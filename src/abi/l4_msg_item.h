@@ -210,6 +210,8 @@ public:
    */
   CXX_BITFIELD_MEMBER_UNSHIFTED( 4, 7, attr, _raw);
 
+  CXX_BITFIELD_MEMBER( 8, 13, cap_br_idx, _raw);
+
   /** \name the hot-spot address encoded in the message item
    *  \note Useful for memory message items. */
   CXX_BITFIELD_MEMBER_UNSHIFTED(Addr_shift, sizeof(_raw)*8-1, address, _raw);

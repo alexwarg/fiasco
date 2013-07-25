@@ -709,7 +709,7 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag const &tag,
     L4_fpage::Rights rights)
 {
   // LOG_MSG_3VAL(current(), "map bd=", rcv_utcb->buf_desc.raw(), 0, 0);
-  Ref_ptr<Task> rcv_t(nonull_static_cast<Task*>(rcv->space()));
+  Ref_ptr<Task> receiver_t(nonull_static_cast<Task*>(rcv->space()));
   L4_buf_iter mem_buffer(rcv_utcb, rcv_utcb->buf_desc.mem());
   L4_buf_iter io_buffer(rcv_utcb, rcv_utcb->buf_desc.io());
   L4_buf_iter obj_buffer(rcv_utcb, rcv_utcb->buf_desc.obj());
@@ -790,6 +790,39 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag const &tag,
               L4_error err;
 
                 {
+                  Ref_ptr<Task> rcv_t;
+                  if (EXPECT_FALSE(buf->b.compound()))
+                    {
+                      unsigned cap_br = buf->b.cap_br_idx();
+                      if (cap_br >= Utcb::Max_buffers)
+                        {
+                          // LOG_MSG_3VAL(snd, "lIPCm1", buf->b.raw(), item->b.raw(), 0);
+                          snd->set_ipc_error(L4_error::Overflow, rcv);
+                          return false;
+                        }
+
+                      L4_obj_ref tc(rcv_utcb->buffers[cap_br]);
+                      if (EXPECT_FALSE(!tc.valid()))
+                        {
+                          // LOG_MSG_3VAL(snd, "lIPCm1", buf->b.raw(), item->b.raw(), 0);
+                          snd->set_ipc_error(L4_error::Overflow, rcv);
+                          return false;
+                        }
+
+                      L4_fpage::Rights task_rights = L4_fpage::Rights(0);
+                      rcv_t = Ref_ptr<Task>(cxx::dyn_cast<Task*>(receiver_t->lookup_local(tc.cap(),
+                              &task_rights)));
+
+                      if (EXPECT_FALSE(!rcv_t || !(task_rights & L4_fpage::Rights::W())))
+                        {
+                          // LOG_MSG_3VAL(snd, "lIPCm1", buf->b.raw(), item->b.raw(), 0);
+                          snd->set_ipc_error(L4_error::Overflow, rcv);
+                          return false;
+                        }
+                    }
+                  else
+                    rcv_t = receiver_t;
+
                   // We take the existence_lock for synchronizing maps...
                   // This is kind of coarse grained
                   auto sp_lock = lock_guard_dont_lock(rcv_t->existence_lock);
