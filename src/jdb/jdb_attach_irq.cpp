@@ -138,9 +138,9 @@ Jdb_kobject_irq::show_kobject_short(String_buffer *buf,
   Irq *i = cxx::dyn_cast<Irq*>(o);
   Kobject_common *w = follow_link(o);
 
-  buf->printf(" I=%3lx %s F=%x",
+  buf->printf(" I=%3lx %s F=%x cnt=%u:%u",
               i->pin(), i->chip()->chip_type(),
-              (unsigned)i->flags());
+              (unsigned)i->flags(), i->cnt(), i->xcpu_cnt());
 
   i->dbg_print(buf, w != o ? w : nullptr);
 }

@@ -176,7 +176,13 @@ public:
     mask();
   }
 
-  void hit(Upstream_irq const *ui) { hit_func(this, ui); }
+  void hit(Upstream_irq const *ui)
+  {
+#ifdef CONFIG_JDB
+    ++_cnt;
+#endif
+    hit_func(this, ui);
+  }
 
   Mword pin() const { return _pin; }
   Irq_chip *chip() const { return _chip; }
@@ -279,7 +285,12 @@ public:
   void log() {}
 #endif // CONFIG_JCB
 
-
+#ifdef CONFIG_JDB
+  // debug extensions
+  unsigned cnt() const { return _cnt; }
+  unsigned xcpu_cnt() const { return _xcpu; }
+  // ----------------
+#endif
 protected:
   Hit_func hit_func;
 
@@ -287,6 +298,13 @@ protected:
   Mword _pin;
   Mword _flags;
   Spin_lock<> _irq_lock;
+
+#ifdef CONFIG_JDB
+  // debug extensions
+  unsigned _cnt = 0;
+  unsigned _xcpu = 0;
+  // ----------------
+#endif
 
   template<typename T>
   static void FIASCO_FLATTEN

@@ -47,6 +47,9 @@ Irq_sender::handle_remote_hit(Context::Drq *, Context *target, void *arg)
   auto t = irq->_irq_thread.load(cxx::memory_order_acquire);
   if (EXPECT_TRUE(t == target))
     {
+#ifdef CONFIG_JDB
+      ++irq->_xcpu;
+#endif
       if (EXPECT_TRUE(irq->send_msg(t, false)))
         return Context::Drq::no_answer_resched();
     }
