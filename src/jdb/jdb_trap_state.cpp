@@ -23,6 +23,16 @@ public:
 
 static Jdb_trap_state_module jdb_trap_state_module INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
+#ifdef ARCH_ARM
+
+#define PRINT_CPR(name, r1, r2, r3, r4) \
+{ Mword tmp; asm ("mrc p15, " # r1 ",%0, " # r2 ", " # r3 ", " # r4 : "=r"(tmp)); printf("%s: %08lx\n", # name, tmp); }
+
+#else
+
+#define PRINT_CPR(name, r1, r2, r3, r4)
+
+#endif
 
 PRIVATE static
 void
@@ -36,12 +46,18 @@ Jdb_trap_state_module::print_trap_state(Cpu_number cpu)
       printf("Registers of CPU %u (before entering JDB)\n",
              cxx::int_value<Cpu_number>(cpu));
       ef->dump();
+
+      PRINT_CPR(dfsr, 0, c5, c0, 0);
+      PRINT_CPR(dfar, 0, c6, c0, 0);
+      PRINT_CPR(ifsr, 0, c5, c0, 1);
+      PRINT_CPR(ifar, 0, c6, c0, 2);
+
     }
 }
 
 PUBLIC
 Jdb_module::Action_code
-Jdb_trap_state_module::action (int cmd, void *&argbuf, char const *&fmt, int &next) override
+Jdb_trap_state_module::action(int cmd, void *&argbuf, char const *&fmt, int &next) override
 {
   char const *c = (char const *)argbuf;
   static Cpu_number cpu;
@@ -52,7 +68,7 @@ Jdb_trap_state_module::action (int cmd, void *&argbuf, char const *&fmt, int &ne
   if (argbuf != &cpu)
     {
       if (*c == 'a')
-	Jdb::foreach_cpu(&print_trap_state);
+        Jdb::on_each_cpu(print_trap_state);
       else if (*c >= '0' && *c <= '9')
 	{
 	  next = *c; argbuf = &cpu; fmt = "%i";
