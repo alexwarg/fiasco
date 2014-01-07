@@ -11,6 +11,7 @@ public:
   static int system_suspend(Mword extra);
   static void system_off();
   static void system_reboot();
+  static int arch_cpu_hotplug(Cpu_phys_id id);
 };
 
 // ------------------------------------------------------------------------
@@ -50,3 +51,8 @@ Platform_control::system_reboot()
 {
   platform_reset();
 }
+
+IMPLEMENT_DEFAULT inline NEEDS["l4_types.h"]
+int
+Platform_control::arch_cpu_hotplug(Cpu_phys_id)
+{ return -L4_err::ENodev; }

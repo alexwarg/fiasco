@@ -14,6 +14,7 @@ class Pfc : public Kobject_h<Pfc, Icu>
     Suspend_system     = 0x0,
     Shutdown_system    = 0x1,
     Allow_cpu_shutdown = 0x2,
+    Cpu_hotplug        = 0x3,
   };
 
   L4_msg_tag sys_cpu_allow_shutdown(L4_fpage::Rights, Syscall_frame *f,
@@ -60,6 +61,16 @@ class Pfc : public Kobject_h<Pfc, Icu>
     return commit_result(-L4_err::ENosys);
   }
 
+  L4_msg_tag
+  sys_cpu_hotplug(L4_fpage::Rights, Syscall_frame *f, Utcb const *msg)
+  {
+    if (f->tag().words() < 2)
+      return commit_result(-L4_err::EInval);
+
+    Mword phys_id = msg->values[1];
+    return commit_result(Platform_control::arch_cpu_hotplug(Cpu_phys_id(phys_id)));
+  }
+
   static Pfc pfc;
 
 public:
@@ -79,6 +90,7 @@ public:
       case Op::Suspend_system:     return sys_system_suspend(rights, f, r_msg);
       case Op::Shutdown_system:    return sys_system_shutdown(rights, f, r_msg);
       case Op::Allow_cpu_shutdown: return sys_cpu_allow_shutdown(rights, f, r_msg);
+      case Op::Cpu_hotplug:        return sys_cpu_hotplug(rights, f, r_msg);
       default:                     return commit_result(-L4_err::ENosys);
       }
   }
