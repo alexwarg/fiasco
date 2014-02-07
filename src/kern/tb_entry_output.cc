@@ -26,9 +26,9 @@ format_timeout(String_buffer *buf, Mword us)
   else if (us >= 1000000)	// >=1s
     buf->printf("%lu.%lus", us/1000000, (us%1000000)/100000);
   else if (us >= 10000)		// 10ms
-    buf->printf("%lum", us/1000);
+    buf->printf("%lums", us/1000);
   else if (us >= 1000)		// 1ms
-    buf->printf("%lu.%lum", us/1000, (us%1000)/100);
+    buf->printf("%lu.%lums", us/1000, (us%1000)/100);
   else
     buf->printf("%luu", us);
 }
