@@ -157,9 +157,13 @@ private:
     if (Mword err = parse_src_id(src_id, &bus, &dfs, &dfe, &mmu))
       return Kobject_iface::commit_result(err);
 
+    unsigned long did = space.obj->get_did();
     // no free domain id left
-    if (EXPECT_FALSE(space.obj->get_did() == ~0UL))
+    if (EXPECT_FALSE(did == ~0UL))
       return Kobject_iface::commit_result(-L4_err::ENomem);
+
+    auto aw = mmu->aw();
+    auto slptptr = space.obj->get_root(aw);
 
     bool need_wait = false;
     for (unsigned df = dfs; df < dfe; ++df)
@@ -173,9 +177,9 @@ private:
 
         Intel::Io_mmu::Cte entry;
         entry.tt() = Intel::Io_mmu::Cte::Tt_translate_all;
-        entry.slptptr() = space.obj->get_root(mmu->aw());
-        entry.aw() = mmu->aw();
-        entry.did() = space.obj->get_did();
+        entry.slptptr() = slptptr;
+        entry.aw() = aw;
+        entry.did() = did;
         entry.os() = 1;
         entry.present() = 1;
 
