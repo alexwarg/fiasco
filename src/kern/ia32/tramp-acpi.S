@@ -113,7 +113,7 @@ _tramp_acpi_wakeup:
 
   /* small stack needed for bios call */
   .align 16
-  .space 0x90, 0
+  .space 0x400, 0
 _acpi_rm_stack_top:
 
 #if SET_VIDEO_MODE
@@ -124,7 +124,7 @@ rm_idt_desc:
   .long	0
 #endif
 
-
+.align 16
 _wakeup_header:
 _cr0:   .quad 0
 _cr3:   .quad 0
