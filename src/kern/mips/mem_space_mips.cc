@@ -126,4 +126,28 @@ Mem_space::init()
   //init_vzguestid();
 }
 
+namespace {
+
+struct Mem_space_init
+{
+  Mem_space_init(Cpu_number)
+  {
+    if (Cpu::options.hwpw())
+      {
+        asm volatile ("mtc0 %0, $5, 6" : : "r"(Pdir::PWField));
+        asm volatile ("mtc0 %0, $5, 7" : : "r"(Pdir::PWSize));
+        asm volatile ("mtc0 %0, $6, 6" : : "r"((1 << 31) | (1 << 6) | Pdir::PWCtl_psn));
+        Mword v;
+        asm volatile ("ehb"); // avoid mtc0 -> mfc0 hazard for the debug prints below
+        asm volatile ("mfc0 %0, $6, 6" : "=r"(v));
+        if (!(v & (1UL << 31)))
+          printf("MIPS: WARNING: could not enable HW page walker\n");
+      }
+  }
+};
+
+DEFINE_PER_CPU static Per_cpu<Mem_space_init> _mem_space_init(Per_cpu_data::Cpu_num);
+
+} // anon namespace
+ 
 

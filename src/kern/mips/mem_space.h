@@ -208,11 +208,21 @@ public:
     return true;
   }
 
-  void make_current(Switchin_flags = None)
+  void make_current(Switchin_flags, unsigned long _asid)
   {
     // asign asid if not yet done!
-    Mem_unit::set_current_asid(asid());
+    Mem_unit::set_current_asid(_asid);
     _current.current() = this;
+    asm volatile (ALTERNATIVE_INSN(
+          "nop",
+          ASM_MTC0 " %0, $5, 5",
+          (1 << 5) /* HW Page Walk */)
+        : : "r"(_dir));
+  }
+
+  void make_current(Switchin_flags flags = None)
+  {
+    make_current(flags, asid());
   }
 
   void switchin_context(Mem_space *, Switchin_flags flags)

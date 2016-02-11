@@ -22,8 +22,7 @@ public:
           0x4 /* FEATURE_VZ */)
         : : "r"(guest_id));
 
-    Mem_unit::set_current_asid(0);
-    M::_current.current() = static_cast<M *>(this);
+    static_cast<M *>(this)->make_current(M::None, 0);
     // no ehb here as we use the mappings after the eret only
     return guest_id;
   }

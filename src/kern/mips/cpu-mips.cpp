@@ -254,6 +254,7 @@ public:
     CXX_BITFIELD_MEMBER (2, 2, vz,     _o);
     CXX_BITFIELD_MEMBER (3, 3, bi,     _o); /// < BadInstr supported
     CXX_BITFIELD_MEMBER (4, 4, bp,     _o); /// < BadInstrP supported
+    CXX_BITFIELD_MEMBER (5, 5, hwpw,   _o); /// < HW page walk
     CXX_BITFIELD_MEMBER (6, 6, ftlb,   _o); /// < Dual VTLB / FTLB found
     CXX_BITFIELD_MEMBER (7, 7, ftlbinv,_o); /// < Dual VTLB / FTLB full TLBINV
     CXX_BITFIELD_MEMBER (8, 8, segctl, _o); /// < Segmentation control
@@ -392,6 +393,7 @@ Cpu::first_boot(bool is_boot_cpu)
   opts.vz()  = c.r<3>().vz();
   opts.bi()  = c.r<3>().bi();
   opts.bp()  = c.r<3>().bp();
+  opts.hwpw() = c.r<3>().pw();
   opts.segctl() = c.r<3>().sc();
 
   if (c.r<3>().m())
