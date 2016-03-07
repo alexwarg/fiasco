@@ -187,11 +187,11 @@ Context_drq_x<C>::kernel_context_drq(Drq::Request_func *func, void *arg)
   if (EXPECT_TRUE(_this()->home_cpu() == _this()->get_current_cpu()))
     _this()->update_ready_list();
 
-  Context *kc = _this()->kernel_context(current_cpu());
+  Context *kc = _this()->kernel_context(_this()->get_current_cpu());
   if (current() == kc)
     return func(0, kc, arg).need_resched();
 
-  Kernel_drq *mdrq = new (&_kernel_drq.current()) Kernel_drq;
+  Kernel_drq *mdrq = new (&_kernel_drq.cpu(_this()->get_current_cpu())) Kernel_drq;
 
   mdrq->src = _this();
   mdrq->func  = func;
