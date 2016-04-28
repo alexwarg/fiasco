@@ -41,14 +41,14 @@ public:
   explicit Mem_space(Ram_quota *q)
   : Mem_space_x<Mem_space>(q)
   {
-    asid(~0UL);
+    asid(-1);
     guest_id_init();
   }
 
   Mem_space(Ram_quota *q, Dir_type* pdir)
   : Mem_space_x<Mem_space>(q, pdir)
   {
-    asid(~0UL);
+    asid(-1);
     guest_id_init();
     _current.cpu(Cpu_number::boot_cpu()) = this;
   }
@@ -130,7 +130,7 @@ public:
     return ~0UL;
   }
 
-  unsigned long c_asid() const
+  short c_asid() const
   {
     return _asid[current_cpu()];
   }
@@ -208,7 +208,7 @@ public:
     return true;
   }
 
-  void make_current(Switchin_flags, unsigned long _asid)
+  void make_current(Switchin_flags, short _asid)
   {
     // asign asid if not yet done!
     Mem_unit::set_current_asid(_asid);
@@ -270,7 +270,7 @@ protected:
 private:
   // DATA
 
-  typedef Per_cpu_array<unsigned long> Asid_array;
+  typedef Per_cpu_array<short> Asid_array;
   Asid_array _asid;
 
   struct Asid_ops
@@ -278,22 +278,22 @@ private:
     enum { Id_offset = 0 };
 
     static bool valid(Mem_space *o, Cpu_number cpu)
-    { return o->_asid[cpu] != ~0UL; }
+    { return o->_asid[cpu] >= 0; }
 
-    static unsigned long get_id(Mem_space *o, Cpu_number cpu)
+    static short get_id(Mem_space *o, Cpu_number cpu)
     { return o->_asid[cpu]; }
 
     static bool can_replace(Mem_space *v, Cpu_number cpu)
     { return v != current_mem_space(cpu); }
 
-    static void set_id(Mem_space *o, Cpu_number cpu, unsigned long id)
+    static void set_id(Mem_space *o, Cpu_number cpu, short id)
     {
       write_now(&o->_asid[cpu], id);
       Mem_unit::tlb_flush(id, 0);
     }
 
     static void reset_id(Mem_space *o, Cpu_number cpu)
-    { write_now(&o->_asid[cpu], ~0UL); }
+    { write_now(&o->_asid[cpu], -1); }
   };
 
   struct Asid_alloc : Id_alloc<unsigned char, Mem_space, Asid_ops>
@@ -303,13 +303,13 @@ private:
 
   static Per_cpu<Asid_alloc> _asid_alloc;
 
-  void asid(unsigned long a)
+  void asid(short a)
   {
     for (Asid_array::iterator i = _asid.begin(); i != _asid.end(); ++i)
       *i = a;
   }
 
-  unsigned long asid()
+  short asid()
   {
     Cpu_number cpu = current_cpu();
     return _asid_alloc.cpu(cpu).alloc(this, cpu);

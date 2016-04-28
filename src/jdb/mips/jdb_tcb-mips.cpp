@@ -116,7 +116,7 @@ Jdb_tcb::info_thread_state(Thread *t)
   Jdb_tcb_ptr current((Address)t->get_kernel_sp());
 
   printf("Ca=%08lx St=%08lx Epc=%08lx\n"
-         "BadVA=%08lx Asid=%lx Hi=%lx Lo=%lx\n",
+         "BadVA=%08lx Asid=%hx Hi=%lx Lo=%lx\n",
          current.top_value(-3), current.top_value(-2), current.top_value(-1),
          current.top_value(-4), s->c_asid(), current.top_value(-5),
          current.top_value(-6));
@@ -150,7 +150,7 @@ void Jdb_tcb::print_entry_frame_regs(Thread *t)
          "[2]  %016lx  %016lx\n"
          "[4]  %016lx  %016lx  %016lx  %016lx\n"
          "[8]  %016lx  %016lx  %016lx  %016lx\n"
-         "Hi=%08lx Lo=%08lx Pf=%08lx Ca=%08lx St=%08lx Epc=%08lx Asid=%lx\n",
+         "Hi=%08lx Lo=%08lx Pf=%08lx Ca=%08lx St=%08lx Epc=%08lx Asid=%hx\n",
          from_user ? "user" : "kernel",
          ef->r[0],  ef->r[1], ef->r[2], ef->r[3], ef->r[4],
          ef->r[5],  ef->r[6], ef->r[7], ef->r[8], ef->r[9],
