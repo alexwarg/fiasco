@@ -26,5 +26,6 @@ Return_frame::dump() const
 
   printf("HI: %*lx LO: %*lx\n", sz, hi, sz, lo);
   printf("Status %0*lx Cause %0*lx EPC %0*lx\n", sz, status, sz, cause, sz, epc);
-  //printf("Cause  %0*lx BadVaddr %0*lx\n", sz, cause, sz, badvaddr);
+  printf("BadVaddr %08lx  BadInstr %08lx  BadInstrP %08lx\n",
+         bad_v_addr, bad_instr, bad_instr_p);
 }
