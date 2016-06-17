@@ -131,8 +131,32 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   if (phys <= Mem_layout::KSEG0e - Mem_layout::KSEG0)
     return (unsigned char *)(phys + Mem_layout::KSEG0);
 
+  Mword old_hi = Mem_unit::entry_hi();
+
+  Address pbits = 21;
+  Address pmask = (1UL << pbits) - 1;
+  Address phys_pfn = phys & ~pmask;
+  Address phys_ofs = phys & pmask;
+
+  Address map_window = 0xe0000000;
+  Mem_unit::index_reg(0);
+  Mem_unit::set_vz_guest_rid(Mem_unit::vz_guest_ctl1(), 0);
+  Mem_unit::entry_hi(map_window);
+  Mem_unit::page_mask(pmask);
+  Mword e = Tlb_entry::Valid | Tlb_entry::Cached | Tlb_entry::Write
+            | Tlb_entry::Global;
+  Mem_unit::entry_lo0(e | (phys_pfn >> 6));
+  Mem_unit::entry_lo1(e | (phys_pfn >> 6) | (1UL << (pbits - 1)));
+
+  Mips::ehb();
+  Mips::tlbwi();
+  Mips::ehb();
+
+  Mem_unit::entry_hi(old_hi);
+  Mips::ehb();
+
   // FIXME: temp mapping for the physical memory needed
-  return 0;
+  return reinterpret_cast<unsigned char *>(map_window | phys_ofs);
 }
 
 PUBLIC static
