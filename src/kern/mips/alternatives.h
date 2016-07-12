@@ -18,10 +18,10 @@ struct Alternative_insn
 {
   Signed32 orig; ///< offset of the original instruction relative to `this`
   Signed32 alt;  ///< offset of the alternative instruction relative to `this`
-  Unsigned32 feature; ///< feature bit that enables the alternative
+  Unsigned16 feature;  ///< feature value compared agains the masked options
+  Unsigned16 mask;     ///< feature bit mask select significant option bits
   Unsigned8 total_len; ///< Total number of bytes in the code
   Unsigned8 r_len;     ///< Length of this replacement in bytes
-                       //
 
   Unsigned32 *orig_code() const
   {
@@ -43,7 +43,8 @@ private:
         "888:                      \n\t"    \
         ".long 819b - 888b         \n\t"    \
         ".long 889" # idx "f - 888b\n\t"    \
-        ".word " # feature "       \n\t"    \
+        ".half " # feature "       \n\t"    \
+        ".half " # feature "       \n\t"    \
         ".byte 839b - 819b         \n\t"    \
         ".byte 8991f - 8891f       \n\t"
 
@@ -62,5 +63,4 @@ private:
         new_insn "\n\t"                                   \
         "8991:\n\t"                                       \
         ".popsection                   \n\t"
-
 

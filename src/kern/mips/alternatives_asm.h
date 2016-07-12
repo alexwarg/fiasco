@@ -7,9 +7,18 @@
 .macro ASM_ALTERNATIVE_ORIG_START
 819:
 .endm
-.macro ASM_ALTERNATIVE_ORIG_END
-829:
-	.skip	-(((8991f - 8891f) - (829b - 819b)) > 0) * ((8991f - 8891f) - (829b - 819b)), 0x00
+
+.macro ASM_ALTERNATIVE_PAD index
+829\index :
+	.skip  -(((899\index\()f - 889\index\()f) - (829\index\()b - 819b)) > 0) * \
+		(((899\index\()f - 889\index\()f) - (829\index\()b - 819b))), 0x00
+.endm
+.macro ASM_ALTERNATIVE_ORIG_END alternatives=1
+	.irp idx, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+		.if \idx <= \alternatives
+			ASM_ALTERNATIVE_PAD \idx
+		.endif
+	.endr
 839:
 .endm
 
@@ -18,12 +27,17 @@
 	.popsection
 .endm
 
-.macro ASM_ALTERNATIVE_ALT_START alt, feature
+.macro ASM_ALTERNATIVE_ALT_START alt, feature, mask=0
 	.pushsection	.alt_insns, "a"
 888:
 	.long	819b - 888b
 	.long	889\alt\()f  - 888b
-	.word	\feature
+	.half	\feature
+	.if \mask == 0
+		.half	\feature
+	.else
+		.half	\mask
+	.endif
 	.byte	839b - 819b
 	.byte	899\alt\()f  - 889\alt\()f
 	.popsection

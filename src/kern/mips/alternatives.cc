@@ -34,7 +34,7 @@ Alternative_insn::handle_alternatives(unsigned features)
 
   for (auto *i = _alt_insns_begin; i != _alt_insns_end; ++i)
     {
-      if (i->feature & features)
+      if ((features & i->mask) == i->feature)
         {
           if (0)
             printf("  replace insn at %p %08x -> %08x\n",
