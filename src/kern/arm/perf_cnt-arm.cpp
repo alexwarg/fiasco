@@ -218,6 +218,14 @@ Perf_cnt::init_cpu()
 
   // allow user to access events
   useren(1);
+
+  Mword r;
+  asm volatile("mrc p15, 4, %0, c1, c1, 1" : "=r"(r));
+  r |= (1 << 7);
+  asm volatile("mcr p15, 4, %0, c1, c1, 1" : : "r"(r));
+
+  asm volatile("mcr p15, 0, %0, c9, c12, 5" : : "r"(31));
+  asm volatile("mcr p15, 0, %0, c9, c13, 1" : : "r"(1 << 27));
 }
 
 // ------------------------------------------------------------------------
