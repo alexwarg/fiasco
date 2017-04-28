@@ -14,7 +14,7 @@ public:
 
   void prepare_switch_to(void (*fptr)())
   {
-    this->kernel_sp -= 1;
+    this->kernel_sp -= 2;
     *reinterpret_cast<void (**)()> (this->kernel_sp) = fptr;
   }
 

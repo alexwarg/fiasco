@@ -216,6 +216,7 @@
 1:	ldr	pc, [r0]
 .global fast_ret_from_irq
 fast_ret_from_irq:
+        add sp, sp, #8
 2:      ldmia	sp, {r0 - r12}
 	disable_irqs
 	add	sp, sp, #(13*4 + RF_SIZE)

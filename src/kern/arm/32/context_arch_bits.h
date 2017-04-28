@@ -58,8 +58,9 @@ protected:
        "   bl switchin_context_label \n" // call Context::switchin_context(Context *)
 
        // return to new context
-       "   ldr   pc, [sp], #4       \n"
-       "1: ldmia sp!, {fp}          \n"
+       "   ldr   pc, [sp]           \n"
+       "1: ldr   fp, [sp, #4]       \n"
+       "   add   sp, sp, #8         \n"
 
        :
                 "+r" (_old_this),
