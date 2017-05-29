@@ -195,6 +195,7 @@ exception_vector:
 	ENTRY arm_kernel_sync_entry
 	b .
 
+#ifdef CONFIG_JDB
 	.align 7 /* 0x80 -- IRQ */
 	ENTRY_ESR call_nested_trap_handler
 	b .
@@ -206,6 +207,11 @@ exception_vector:
 	.align 7 /* 0x180 -- SError */
 	ENTRY_ESR call_nested_trap_handler
 	b .
+#else
+	.align 7
+	.skip 128 * 3
+#endif
+
 
 	# from kernel with SP_ELx
 	.align 7 /* 0x200 -- Sync */
