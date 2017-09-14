@@ -279,7 +279,7 @@ public:
       lower |= 0x080;
 
     if (attr.rights & R::U())
-      lower |= 0x040;
+      lower |= 0x0020000000000040; // PXN + U
 
     if (!(attr.rights & R::X()))
       lower |= 0x0040000000000000;
