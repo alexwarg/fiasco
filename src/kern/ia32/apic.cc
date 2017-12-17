@@ -24,6 +24,7 @@ Address    Apic::phys_base;
 unsigned   Apic::timer_divisor = 1;
 unsigned   Apic::frequency_khz;
 Unsigned64 Apic::scaler_us_to_apic;
+bool       Apic::use_x2;
 
 int ignore_invalid_apic_reg_access;
 
@@ -245,6 +246,8 @@ Apic::activate_by_msr()
   msr = Cpu::rdmsr(APIC_base_msr);
   phys_base = msr & 0xfffff000;
   msr |= 1 << 11;
+  if (use_x2)
+    msr |= 1 << 10; // enable x2APIC mode
   Cpu::wrmsr(msr, APIC_base_msr);
 
   // later we have to call update_feature_info() as the flags may have changed
@@ -393,18 +396,30 @@ Apic::map_registers()
       present &= ~Present_before_msr;
     }
 
-  if (!(present & Present_before_msr))
+  if (cpu->ext_features() & FEATX_X2APIC)
     {
-      good_cpu = test_cpu(cpu);
+      printf("Using x2APIC\n");
+      use_x2 = true;
 
-      if (good_cpu && Config::apic)
+      present |= Present;
+      activate_by_msr();
+    }
+  else
+    {
+      printf("Using Legacy xAPIC\n");
+      if (!(present & Present_before_msr))
         {
-          // activate; this could lead an disabled APIC to appear
-          // set MMIO base address to be able to access the registers
-          activate_by_msr();
-          cpu->update_features_info();
-          if (cpu->features() & FEAT_APIC)
-            present |= Present;
+          good_cpu = test_cpu(cpu);
+
+          if (good_cpu && Config::apic)
+            {
+              // activate; this could lead an disabled APIC to appear
+              // set MMIO base address to be able to access the registers
+              activate_by_msr();
+              cpu->update_features_info();
+              if (cpu->features() & FEAT_APIC)
+                present |= Present;
+            }
         }
     }
 
@@ -412,7 +427,7 @@ Apic::map_registers()
     return;
 
   // initialize if available
-  if (is_present())
+  if (is_present() && !use_x2)
     // map the Local APIC device registers
     map_apic_page();
 }

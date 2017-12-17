@@ -52,7 +52,7 @@ static void populate_cpu_id_map()
 
   Cpu_number last_cpu = Cpu_number::first();
 
-  // Collect all *enabled* CPUs and assign them the leading CPU numbers.
+  // xAPIC: Collect all *enabled* CPUs and assign them the leading CPU numbers.
   for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
     {
       auto const *lapic = madt->find<Acpi_madt::Lapic>(entry);
@@ -62,7 +62,32 @@ static void populate_cpu_id_map()
       if (!(lapic->flags & 1))
         continue; // skip disabled entries
 
-      Apic_id aid = Unsigned32{lapic->apic_id} << 24;
+      Apic_id aid = Apic::acpi_lapic_to_apic_id(lapic->apic_id);
+
+      if (aid == boot_apic_id)
+        continue; // boot CPU already has a CPU number assigned
+
+      // skip logical boot CPU number
+      if (last_cpu == Cpu_number::boot_cpu())
+        ++last_cpu; // skip logical boot CPU number
+
+      kernel_cpu_id_map.set(last_cpu++, aid);
+    }
+
+  // x2APIC: According to ACPI 5.2.12.12, logical processors with APIC ID values
+  // less than 255 must use the Processor Local APIC structure but there is
+  // hardware which has only MADT entry type LOCAL_X2AIC but no MADT entry type
+  // LAPIC!
+  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
+    {
+      auto const *lx2apic = madt->find<Acpi_madt::Local_x2apic>(entry++);
+      if (!lx2apic)
+        break;
+
+      if (!(lx2apic->flags & 1))
+        continue; // skip disabled entries
+
+      Apic_id aid{lx2apic->apic_id};
 
       if (aid == boot_apic_id)
         continue; // boot CPU already has a CPU number assigned
@@ -88,9 +113,25 @@ static void populate_cpu_id_map()
 
       if (last_cpu == Cpu_number::boot_cpu())
         ++last_cpu; // skip logical boot CPU number
-
-      kernel_cpu_id_map.set(last_cpu++, Unsigned32{lapic->apic_id} << 24);
+                    //
+      Apic_id aid = Apic::acpi_lapic_to_apic_id(lapic->apic_id);
+      kernel_cpu_id_map.set(last_cpu++, aid);
     }
+
+  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
+    {
+      auto const *lx2apic = madt->find<Acpi_madt::Local_x2apic>(entry);
+      if (!lx2apic)
+        break;
+
+      if (lx2apic->flags & 1)
+        continue; // skip enabled entries
+
+      Apic_id aid{lx2apic->apic_id};
+
+      if (aid != Apic_id{0xffffffff}) // ignore dummy entries
+        kernel_cpu_id_map.set(last_cpu++, aid);
+   }
 }
 
 #else

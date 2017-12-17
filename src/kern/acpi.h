@@ -128,8 +128,9 @@ class Acpi_madt : public Acpi_table_head
 {
 public:
   enum Type
-  { LAPIC, IOAPIC, Irq_src_ovr, NMI, LAPIC_NMI, LAPIC_adr_ovr, IOSAPIC,
-    LSAPIC, Irq_src,
+  {
+    LAPIC = 0, IOAPIC, Irq_src_ovr, NMI, LAPIC_NMI, LAPIC_adr_ovr, IOSAPIC,
+    LSAPIC, Irq_src, LOCAL_X2APIC, LOCAL_X2APIC_NMI,
     GICC = 0xb, GICD, GICM, GICR, ITS,
   };
 
@@ -145,6 +146,15 @@ public:
     Unsigned8 apic_processor_id;
     Unsigned8 apic_id;
     Unsigned32 flags;
+  } __attribute__((packed));
+
+  struct Local_x2apic : public Apic_head
+  {
+    enum { ID = LOCAL_X2APIC };
+    Unsigned16 reserved;
+    Unsigned32 apic_id;
+    Unsigned32 flags;
+    Unsigned32 uid;
   } __attribute__((packed));
 
   struct Io_apic : public Apic_head

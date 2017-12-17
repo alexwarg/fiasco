@@ -53,21 +53,20 @@ public:
     APIC_lvt_timer_periodic	= 1 << 17,
   };
 
-  enum Apic_ipi_dest
+  enum class Ipi_dest_shrt : Unsigned8
   {
-    APIC_IPI_NOSHRT = 0x00000000,
-    APIC_IPI_SELF   = 0x00040000,
-    APIC_IPI_ALL    = 0x00080000,
-    APIC_IPI_OTHERS = 0x000c0000,
-    APIC_IPI_DSTMSK = 0x000c0000
+    Noshrt = 0b00,
+    Self   = 0b01,
+    All    = 0b10,
+    Others = 0b11,
   };
 
-  enum Apic_ipi_mode
+  enum class Ipi_delivery_mode : Unsigned8
   {
-    APIC_IPI_FIXED  = 0x00000000,
-    APIC_IPI_NMI    = 0x00000400,
-    APIC_IPI_INIT   = 0x00000500,
-    APIC_IPI_STRTUP = 0x00000600
+    Fixed   = 0b000,
+    Nmi     = 0b100,
+    Init    = 0b101,
+    Startup = 0b110,
   };
 
   enum
@@ -90,7 +89,13 @@ public:
   static void dump_info();
 
   Apic_id apic_id() const { return _id; }
-  Cpu_phys_id cpu_id() const { return Cpu_phys_id{cxx::int_value<Apic_id>(_id) >> 24}; }
+  Cpu_phys_id cpu_id() const
+  {
+    if (use_x2)
+      return Cpu_phys_id{cxx::int_value<Apic_id>(_id)};
+    else
+      return Cpu_phys_id{cxx::int_value<Apic_id>(_id) >> 24};
+  }
 
   static Per_cpu<Static_object<Apic> > apic;
 
@@ -128,7 +133,21 @@ public:
    */
   static Apic_id get_id()
   {
-    return Apic_id{reg_read(APIC_id) & 0xff000000};
+    if (use_x2)
+      return Apic_id{reg_read(APIC_id)};
+    else
+      return Apic_id{reg_read(APIC_id) & 0xff000000};
+  }
+
+  /**
+   * APIC identifier generated from 1-byte MADT Local APIC structure APIC ID.
+   */
+  static Apic_id acpi_lapic_to_apic_id(Unsigned32 acpi_id)
+  {
+    if (use_x2)
+      return Apic_id{acpi_id};
+    else
+      return Apic_id{Unsigned32{acpi_id} << 24};
   }
 
   static void irq_ack()
@@ -153,12 +172,24 @@ public:
 
   static Unsigned32 reg_read(unsigned reg)
   {
-    return *reinterpret_cast<volatile Unsigned32*>(io_base + reg);
+    if (use_x2)
+      return Cpu::rdmsr(APIC_msr_base + (reg >> 4));
+    else
+      return *offset_cast<volatile Unsigned32 *>(io_base, reg);
   }
 
   static void reg_write(unsigned reg, Unsigned32 val)
   {
-    *reinterpret_cast<volatile Unsigned32*>(io_base + reg) = val;
+    if (use_x2)
+      Cpu::wrmsr(val, 0, APIC_msr_base + (reg >> 4));
+    else
+      *offset_cast<volatile Unsigned32 *>(io_base, reg) = val;
+  }
+
+  static void reg_write64(unsigned reg, Unsigned64 val)
+  {
+    assert(use_x2);
+    Cpu::wrmsr(val, APIC_msr_base + (reg >> 4));
   }
 
   static int reg_delivery_mode(Unsigned32 val)
@@ -304,11 +335,13 @@ private:
   static unsigned timer_divisor;
   static unsigned frequency_khz;
   static Unsigned64 scaler_us_to_apic;
+  static bool use_x2;
 
 
   enum
   {
-    APIC_base_msr		= 0x1b,
+    APIC_msr_base               = 0x800,
+    APIC_base_msr               = 0x1b,
   };
 
   enum
@@ -319,8 +352,8 @@ private:
 
   enum
   {
-    APIC_ICR	= 0x300,
-    APIC_ICR2	= 0x310,
+    Apic_icr = 0x300,
+    Apic_icr2 = 0x310,
   };
 
   static bool is_integrated()
@@ -359,7 +392,10 @@ public:
 
   static bool mp_ipi_idle()
   {
-    return ((reg_read(APIC_ICR) & 0x00001000) == 0);
+    if (use_x2)
+      return true;
+    else
+      return ((reg_read(Apic_icr) & 0x00001000) == 0);
   }
 
   static bool mp_ipi_idle_timeout(Cpu const *c, Unsigned32 wait)
@@ -370,35 +406,28 @@ public:
     return mp_ipi_idle();
   }
 
-  static void mp_send_ipi(Apic_id dest, Unsigned32 vect,
-                          Unsigned32 mode = APIC_IPI_FIXED)
+  static void mp_send_ipi(Ipi_dest_shrt dest_shrt, Apic_id dest,
+                          Ipi_delivery_mode delivery_mode, Unsigned8 vector)
   {
-    Unsigned32 tmp_val;
-    Unsigned32 dest_val = cxx::int_value<Apic_id>(dest);
-
-    assert((dest_val & 0x00f3ffff) == 0);
-    assert(vect <= 0xff);
-
     while (!mp_ipi_idle())
       Proc::pause();
 
-    // Set destination for no-shorthand destination type
-    if ((dest_val & APIC_IPI_DSTMSK) == APIC_IPI_NOSHRT)
-      {
-        tmp_val  = reg_read(APIC_ICR2);
-        tmp_val &= 0x00ffffff;
-        tmp_val |= dest_val & 0xff000000;
-        reg_write(APIC_ICR2, tmp_val);
-      }
+    Unsigned32 lower_icr =   static_cast<Unsigned32>(dest_shrt) << 18
+                           | static_cast<Unsigned32>(delivery_mode) << 8
+                           | vector;
 
-    // send the interrupt vector to the destination...
-    tmp_val  = reg_read(APIC_ICR);
-    tmp_val &= 0xfff32000;
-    tmp_val |= (dest_val & 0x000c0000) |
-               (       0x00004000) | // phys proc num, edge triggered, assert
-               (mode & 0x00000700) |
-               (vect & 0x000000ff);
-    reg_write(APIC_ICR, tmp_val);
+    if (use_x2)
+      {
+        asm volatile ("mfence; lfence"); // enforce serializing as in xAPIC mode
+        Cpu::wrmsr(lower_icr, cxx::int_value<Apic_id>(dest),
+                   APIC_msr_base + (Apic_icr >> 4));
+      }
+    else
+      {
+        if (dest_shrt == Ipi_dest_shrt::Noshrt)
+          reg_write(Apic_icr2, cxx::int_value<Apic_id>(dest));
+        reg_write(Apic_icr, lower_icr);
+      }
   }
 
   static void mp_ipi_ack()
@@ -407,9 +436,7 @@ public:
   }
 
 
-  static void mp_startup(Cpu const *current_cpu, Unsigned32 dest,
-                         Address tramp_page);
-
+  static int mp_startup(Cpu const *current_cpu, Apic_id dest, bool bcast, Address tramp_page);
   static void init_ap();
 
 private:

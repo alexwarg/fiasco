@@ -11,7 +11,7 @@ protected:
   Apic_id _apic_id = ~0;
 
 public:
-  enum Message
+  enum Message : Unsigned8
   {
     Request        = APIC_IRQ_BASE - 1,
     Global_request = APIC_IRQ_BASE + 2,
@@ -39,14 +39,16 @@ struct Ipi_arch : Ipi_arch_base
 
   static void send(Message m, Cpu_number from_cpu, Cpu_number to_cpu)
   {
-    Apic::mp_send_ipi(IPI::_ipi.cpu(to_cpu)._apic_id, (Unsigned8)m);
+    Apic::mp_send_ipi(Apic::Ipi_dest_shrt::Noshrt, IPI::_ipi.cpu(to_cpu)._apic_id,
+                      Apic::Ipi_delivery_mode::Fixed, Unsigned8{m});
     IPI::stat_sent(from_cpu);
   }
 
   static void bcast(Message m, Cpu_number from_cpu)
   {
     (void)from_cpu;
-    Apic::mp_send_ipi(Apic::APIC_IPI_OTHERS, (Unsigned8)m);
+    Apic::mp_send_ipi(Apic::Ipi_dest_shrt::Others, Apic_id{0},
+                      Apic::Ipi_delivery_mode::Fixed, Unsigned8{m});
   }
 };
 
