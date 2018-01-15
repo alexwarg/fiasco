@@ -73,11 +73,8 @@ struct Ipi_arch
     (void)from_cpu;
     Cpu_mask ipis;
     Cpu_number max = Cpu_number::first();
-    for (Cpu_number n = Cpu_number::first(); n < Config::max_num_cpus(); ++n)
+    for (Cpu_number n: Cpu::all_online())
       {
-        if (! Cpu::online(n))
-          continue;
-
         auto &ipi = IPI::_ipi.cpu(n);
         if (access_once(&ipi._rq[m]))
           continue;

@@ -43,6 +43,42 @@ public:
 
   static bool is_canonical_address(Address addr);
 
+  struct All_online
+  {
+    struct Iter
+    {
+      Cpu_number n;
+
+      void inc()
+      {
+        while (EXPECT_FALSE(!online(n) && n < Config::max_num_cpus()))
+          ++n;
+      }
+
+      explicit Iter(Cpu_number n) : n(n)
+      { inc(); }
+
+      Iter() = default;
+
+      Cpu_number operator * () const { return n; }
+
+      Iter &operator ++ ()
+      {
+        ++n;
+        inc();
+        return *this;
+      }
+
+      bool operator != (Iter const &o) const
+      { return n != o.n; }
+    };
+
+    Iter begin() { return Iter(Cpu_number::first()); }
+    Iter end() { return Iter(Config::max_num_cpus()); }
+  };
+
+  static All_online all_online() { return All_online(); }
+
 private:
 
   static Online_cpu_mask _online_mask;
