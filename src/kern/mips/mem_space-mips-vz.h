@@ -122,7 +122,7 @@ protected:
 
   void reset_guest_id()
   {
-    for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
+    for (auto i: _guest_id_alloc.all())
       _guest_id_alloc.cpu(i).free(this, i);
   }
 };

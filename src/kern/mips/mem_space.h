@@ -307,7 +307,7 @@ private:
 
   void reset_asid()
   {
-    for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
+    for (auto i: _asid_alloc.all())
       _asid_alloc.cpu(i).free(this, i);
   }
 };

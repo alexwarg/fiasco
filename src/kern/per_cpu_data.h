@@ -25,11 +25,50 @@
 
 template< typename T > class Per_cpu_ptr;
 
+struct Per_cpu_data_all_cpus
+{
+  struct Iter
+  {
+    Cpu_number n;
+
+    void inc() noexcept
+    {
+      while (EXPECT_FALSE(!Per_cpu_data::valid(n) && n < Config::max_num_cpus()))
+        ++n;
+    }
+
+    explicit Iter(Cpu_number n) noexcept : n(n)
+    { inc(); }
+
+    Iter() = default;
+
+    Cpu_number operator * () const noexcept { return n; }
+
+    Iter &operator ++ () noexcept
+    {
+      ++n;
+      inc();
+      return *this;
+    }
+
+    bool operator != (Iter const &o) const noexcept
+    { return n != o.n; }
+  };
+
+  Iter begin() const noexcept { return Iter(Cpu_number::first()); }
+  Iter end() const noexcept { return Iter(Config::max_num_cpus()); }
+};
+
 template< typename T >
 class Per_cpu : private Per_cpu_data
 {
   friend class Per_cpu_ptr<T>;
 public:
+  static Per_cpu_data_all_cpus all() noexcept
+  {
+    return Per_cpu_data_all_cpus();
+  }
+
   typedef T Type;
 
   Per_cpu() noexcept
@@ -47,8 +86,8 @@ public:
   template<typename TEST>
   Cpu_number find_cpu(TEST const &test) const
   {
-    for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
-      if (valid(i) && test(cpu(i)))
+    for (auto i: all())
+      if (test(cpu(i)))
         return i;
 
     return Cpu_number::nil();
