@@ -56,11 +56,14 @@
  * uses k0, k1, and s0 as scratch
  */
 .macro restore_cp0_status ts_base, ts_offset
+	.set push
+	.set noreorder
 	mfc0	k0, CP0_STATUS
 	ext	k1, k0, 6, 26
 	ASM_L	k0, TS_STATUS(\ts_offset)(\ts_base)
 	ins	k0, k1, 6, 26
 #ifdef CONFIG_CPU_VIRT
+	.set virt
 	ASM_ALTERNATIVE_ORIG_START
 	mtc0	k0, CP0_STATUS
 	b	7216f
@@ -82,15 +85,11 @@
    Note that this only works as long as Fiasco is uses a
    periodic timer.
 */
-	.set push
-	.set virt
-	.set noreorder
 	mfgc0	k1, CP0_CAUSE
 	mfc0	k0, CP0_GUESTCTL2
 	srl	k1, k1, 30
 	ins	k0, k1, 15, 1
 	mtc0	k0, CP0_GUESTCTL2
-	.set pop
 #endif
 7214:
 	ASM_ALTERNATIVE_ALT_END 1
@@ -98,6 +97,7 @@
 #else
 	mtc0	k0, CP0_STATUS
 #endif
+	.set pop
 .endm
 
 /**
