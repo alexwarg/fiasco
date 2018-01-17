@@ -244,7 +244,7 @@ void Cpu::early_init()
 
   Mem_unit::flush_cache();
 }
-
+#if 0
 PUBLIC static inline
 void
 Cpu::enable_dcache()
@@ -266,7 +266,7 @@ Cpu::disable_dcache()
                "msr     SCTLR_EL1, %0 \n"
                : "=&r" (r) : "r" ((Mword)(Sctlr_c | Sctlr_i)));
 }
-
+#endif
 //--------------------------------------------------------------------------
 IMPLEMENTATION [arm && arm_v8]:
 
