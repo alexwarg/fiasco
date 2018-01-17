@@ -188,7 +188,7 @@ INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
 
 
 bootstrap_IMPL		:= bootstrap bootstrap-arm-$(BITS)
-CXXFLAGS_bootstrap      := -O3 $(if $(CONFIG_BIT64),-mcmodel=large)
+CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if $(CONFIG_BIT64),-mcmodel=large)
 CXXFLAGS_bootstrap-arm-$(BITS) := $(CXXFLAGS_bootstrap)
 clock_IMPL              := clock
 cpu_IMPL	  	:= cpu cpu-arm cpu-arm-hyp cpu-arm-$(BITS)
