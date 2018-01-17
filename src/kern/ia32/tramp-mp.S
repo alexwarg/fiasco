@@ -7,9 +7,11 @@
 #ifdef CONFIG_AMD64
 # define CX rcx
 # define SP rsp
+# define PTR_VAR(x) .quad x
 #else
 # define CX ecx
 # define SP esp
+# define PTR_VAR(x) .long x
 #endif
 
 REALMODE_SECTION
@@ -41,8 +43,9 @@ _tramp_mp_entry:
 	/* we've the lock, can run on the init_stack */
 	mov $_tramp_mp_init_stack_top, %SP
 	mov %edi, %eax /* IA32: cpu-num in %eax, AMD64: %rdi */
-	jmp BOOT_AP_CPU
+	jmp *.Lbootap
 
+.Lbootap: PTR_VAR(BOOT_AP_CPU)
 
 .global _tramp_mp_startup_cr0
 .global _tramp_mp_startup_cr4
