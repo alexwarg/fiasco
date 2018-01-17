@@ -296,6 +296,7 @@ Vmx::pm_on_suspend(Cpu_number)
   asm volatile("vmclear %1 \n\t"
 	       "pushf      \n\t"
 	       "pop %0     \n\t"
+               "vmxoff     \n\t"
                : "=r"(eflags) : "m"(_kernel_vmcs_pa) : "cc");
   if (eflags & 0x41)
     WARN("VMX: vmclear: vmcs pointer not valid\n");
