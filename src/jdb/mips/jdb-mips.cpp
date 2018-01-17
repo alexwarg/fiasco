@@ -143,7 +143,7 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   Mem_unit::set_vz_guest_rid(Mem_unit::vz_guest_ctl1(), 0);
   Mem_unit::entry_hi(map_window);
   Mem_unit::page_mask(pmask);
-  Mword e = Tlb_entry::Valid | Tlb_entry::Cached | Tlb_entry::Write
+  Mword e = Tlb_entry::Valid | Tlb_entry::cached | Tlb_entry::Write
             | Tlb_entry::Global;
   Mem_unit::entry_lo0(e | (phys_pfn >> 6));
   Mem_unit::entry_lo1(e | (phys_pfn >> 6) | (1UL << (pbits - 1)));
