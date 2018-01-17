@@ -301,6 +301,12 @@ Vmx::pm_on_suspend(Cpu_number)
     WARN("VMX: vmclear: vmcs pointer not valid\n");
 }
 
+void
+Vmx::pm_on_shutdown(Cpu_number cpu)
+{
+  Vmx::pm_on_suspend(cpu);
+}
+
 Vmx::Vmx(Cpu_number cpu)
   : _vmx_enabled(false), _has_vpid(false)
 {

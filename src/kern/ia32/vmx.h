@@ -464,6 +464,7 @@ public:
 
   void pm_on_resume(Cpu_number cpu) override;
   void pm_on_suspend(Cpu_number cpu) override;
+  void pm_on_shutdown(Cpu_number cpu) override;
 
   void init_vmcs_infos(void *vcpu_state) const
   {

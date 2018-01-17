@@ -12,6 +12,7 @@ private:
 public:
   virtual void pm_on_suspend(Cpu_number) = 0;
   virtual void pm_on_resume(Cpu_number) = 0;
+  virtual void pm_on_shutdown(Cpu_number) {}
   virtual ~Pm_object() noexcept = 0;
 
   void register_pm(Cpu_number cpu) noexcept
@@ -34,6 +35,13 @@ public:
     List &l = _list.cpu(cpu);
     for (auto const &&c: l)
       c->pm_on_resume(cpu);
+  }
+
+  static void run_on_shutdown_hooks(Cpu_number cpu)
+  {
+    List &l = _list.cpu(cpu);
+    for (List::Iterator c = l.begin(); c != l.end(); ++c)
+      (*c)->pm_on_shutdown(cpu);
   }
 
 private:
