@@ -135,7 +135,10 @@ Kernel_thread::run()
 
   kernel_context(home_cpu(), this);
 
-  Rcu::leave_idle(home_cpu());
+    {
+      auto g = lock_guard(cpu_lock);
+      Rcu::leave_idle(home_cpu());
+    }
 
   check_debug_koptions();
 
