@@ -74,7 +74,6 @@ public:
   Kuart()
   {
     setup();
-    register_pm(Cpu_number::boot_cpu());
   }
 
   int write(char const *d, size_t len) override
@@ -230,6 +229,12 @@ FIASCO_CONST
 Uart *
 Kernel_uart::uart()
 { return _kernel_uart; }
+
+void
+Kernel_uart::pm_register()
+{
+  _kernel_uart->register_pm(Cpu_number::boot_cpu());
+}
 
 bool
 Kernel_uart::init(Init_mode init_mode)

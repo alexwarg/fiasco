@@ -77,6 +77,7 @@ static void stage2()
   Timer::init(boot_cpu);
   Kip_init::init_kip_clock();
   Perf_cnt::init_ap();
+  Kernel_uart::pm_register();
 }
 
 STATIC_INITIALIZER_P(stage2, STARTUP_INIT_PRIO);

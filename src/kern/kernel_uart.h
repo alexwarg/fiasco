@@ -18,6 +18,7 @@ public:
   };
 
   Kernel_uart();
+  static void pm_register();
   static void enable_rcv_irq();
   static bool init(Init_mode = Init_before_mmu);
   static bool init_for_mode(Init_mode init_mode);

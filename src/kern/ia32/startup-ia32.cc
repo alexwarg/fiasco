@@ -127,7 +127,7 @@ static void stage2()
       else
 	Config::scheduler_irq_vector = Config::Apic_timer_vector;
     }
-
+  Kernel_uart::pm_register();
   Idt::set_vectors_run();
   Apic::check_still_getting_interrupts();
   Platform_control::init(Cpu_number::boot_cpu());
