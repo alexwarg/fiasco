@@ -2265,7 +2265,7 @@ Context::rcu_wait()
 }
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [fpu && !ux && lazy_fpu]:
+IMPLEMENTATION [fpu && lazy_fpu]:
 
 #include "fpu.h"
 
@@ -2299,11 +2299,6 @@ Context::switch_fpu(Context *t)
   else if (f.is_owner(t) && !(t->state() & Thread_vcpu_fpu_disabled))
     f.enable();
 }
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [fpu && lazy_fpu]:
-
-#include "fpu.h"
 
 PUBLIC inline
 void
@@ -2355,7 +2350,7 @@ Context::release_fpu_if_owner()
 }
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [fpu && !ux && !lazy_fpu]:
+IMPLEMENTATION [fpu && !lazy_fpu]:
 
 #include "fpu.h"
 

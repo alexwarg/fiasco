@@ -1,4 +1,4 @@
-IMPLEMENTATION [ia32,ux,amd64]:
+IMPLEMENTATION [ia32,amd64]:
 
 // base_init() puts those Mem_region_map's on the stack which is slightly
 // larger than our warning limit, it's init code only, so it's ok
@@ -225,7 +225,7 @@ Kmem_alloc::Kmem_alloc()
 }
 
 //-----------------------------------------------------------------------------
-IMPLEMENTATION [{ia32,ux,amd64}-debug]:
+IMPLEMENTATION [{ia32,amd64}-debug]:
 
 #include "div32.h"
 

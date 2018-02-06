@@ -1,8 +1,8 @@
-IMPLEMENTATION [ia32,ux,arm]:
+IMPLEMENTATION [ia32,arm]:
 
 #include "paging.h"
 
-IMPLEMENTATION [ia32,ux]:
+IMPLEMENTATION [ia32]:
 
 IMPLEMENT
 void

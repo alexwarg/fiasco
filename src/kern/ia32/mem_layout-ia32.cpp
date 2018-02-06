@@ -1,4 +1,4 @@
-INTERFACE [ia32 || amd64 || ux]:
+INTERFACE [ia32 || amd64]:
 
 EXTENSION class Mem_layout
 {
@@ -8,7 +8,7 @@ public:
   static Address _io_map_ptr;
 };
 
-IMPLEMENTATION [ia32 || amd64 || ux]:
+IMPLEMENTATION [ia32 || amd64]:
 
 #include "static_assert.h"
 

@@ -148,16 +148,29 @@ IMPLEMENTATION:
 #include "jdb_entry_frame.h"
 #include "jdb_screen.h"
 #include "kernel_console.h"
+#include "kernel_uart.h"
 #include "processor.h"
 #include "push_console.h"
 #include "static_init.h"
+#include "task.h"
 #include "keycodes.h"
 #include "libc_backend.h"
+#include "ipi.h"
+#include "logdefs.h"
+
 
 KIP_KERNEL_FEATURE("jdb");
 
 Jdb_handler_queue Jdb::jdb_enter;
 Jdb_handler_queue Jdb::jdb_leave;
+
+char Jdb::esc_iret[]     = "\033[36;1m";
+char Jdb::esc_bt[]       = "\033[31m";
+char Jdb::esc_emph[]     = "\033[33;1m";
+char Jdb::esc_emph2[]    = "\033[32;1m";
+char Jdb::esc_mark[]     = "\033[35;1m";
+char Jdb::esc_line[]     = "\033[37m";
+char Jdb::esc_symbol[]   = "\033[33;1m";
 
 DEFINE_PER_CPU Per_cpu<String_buf<81> > Jdb::error_buffer;
 char Jdb::next_cmd;			// next global command to execute
@@ -1048,17 +1061,6 @@ Jdb_base_cmds::Jdb_base_cmds()
   : Jdb_module("GENERAL")
 {}
 
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [ux]:
-
-PRIVATE inline static void Jdb::rcv_uart_enable() {}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [!ux]:
-
-#include "kernel_uart.h"
-
 PRIVATE inline static
 void
 Jdb::rcv_uart_enable()
@@ -1066,23 +1068,6 @@ Jdb::rcv_uart_enable()
   if (Config::serial_esc == Config::SERIAL_ESC_IRQ)
     Kernel_uart::enable_rcv_irq();
 }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "ipi.h"
-#include "logdefs.h"
-#include "task.h"
-
-char Jdb::esc_iret[]     = "\033[36;1m";
-char Jdb::esc_bt[]       = "\033[31m";
-char Jdb::esc_emph[]     = "\033[33;1m";
-char Jdb::esc_emph2[]    = "\033[32;1m";
-char Jdb::esc_mark[]     = "\033[35;1m";
-char Jdb::esc_line[]     = "\033[37m";
-char Jdb::esc_symbol[]   = "\033[33;1m";
-
-
 
 
 

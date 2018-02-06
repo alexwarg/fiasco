@@ -87,13 +87,9 @@ entry_\name:
 GATE_INITTAB_BEGIN idt_init_table
 
 EXCEPTION	0x00, vec00_zero_div
-#ifdef CONFIG_PF_UX
-EXCEPTION	0x01, vec01_debug
-#else
 /* IA32 has to handle breakpoint exceptions if occured exactly at
    entry_sys_fast_ipc -- see ia32/entry-ia32.S */
 GATE_ENTRY	0x01, entry_vec01_debug, (ACC_PL_K | ACC_INTR_GATE)
-#endif
 /* XXX IA32 has to handle NMI occured exactly at entry_sys_fast_ipc */
 EXCEPTION	0x02, vec02_nmi
 EXCEP_USR	0x03, vec03_breakpoint
@@ -101,11 +97,7 @@ EXCEPTION	0x04, vec04_into
 EXCEPTION	0x05, vec05_bounds
 EXCEPTION	0x06, vec06_invop
 # EXCEPTION	0x07, nofpu
-#ifdef CONFIG_PF_UX
-EXCEP_ERR	0x08, vec08_dbl_fault
-#else
 GATE_ENTRY	0x08, GDT_TSS_DBF, (ACC_PL_K | ACC_TASK_GATE)
-#endif
 EXCEPTION	0x09, vec09_fpu_ovfl
 # EXCEP_ERR	0x0a, vec0a_inv_tss
 EXCEP_ERR	0x0b, vec0b_segnp
@@ -128,13 +120,8 @@ EXCEPTION	0x13, vec13_simd_err
 	   from outside. */
 .L_slowtraps:
 slowtraps:
-#ifdef CONFIG_PF_UX
-# define REG_GS CPU_GS
-# define REG_FS CPU_FS
-#else
-# define REG_GS %gs
-# define REG_FS %fs
-#endif
+#define REG_GS %gs
+#define REG_FS %fs
 
 	pushl	REG_FS		/* we save the segment regs in the trap   */
 	pushl	REG_GS		/* state, but we do not restore them.  We */
@@ -538,13 +525,11 @@ ret_from_syscall:
 
 SYSTEM_CALL	0x32, sys_invoke_debug
 
-#ifndef CONFIG_PF_UX
 /* these functions are implemented in entry-native.S */
 GATE_ENTRY	0x0a, entry_vec0a_invalid_tss, (ACC_PL_K | ACC_INTR_GATE)
 GATE_ENTRY	0x0f, entry_vec0f_apic_spurious_interrupt_bug, (ACC_PL_K | ACC_INTR_GATE)
 GATE_ENTRY	(APIC_IRQ_BASE + 3), entry_apic_error_interrupt, (ACC_PL_K | ACC_INTR_GATE)
 GATE_ENTRY	(APIC_IRQ_BASE + 4), entry_apic_spurious_interrupt, (ACC_PL_K | ACC_INTR_GATE)
-#endif
 
 #ifdef CONFIG_MP
 GATE_ENTRY	(APIC_IRQ_BASE + 2), entry_ipi, (ACC_PL_K | ACC_INTR_GATE)

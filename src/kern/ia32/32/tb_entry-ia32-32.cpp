@@ -1,4 +1,4 @@
-INTERFACE [ia32,ux]:
+INTERFACE [ia32]:
 
 EXTENSION class Tb_entry
 {
@@ -21,7 +21,7 @@ public:
   void print(String_buffer *buf) const;
 } __attribute__((packed));
 
-IMPLEMENTATION [ia32,ux]:
+IMPLEMENTATION [ia32]:
 
 #include "cpu.h"
 

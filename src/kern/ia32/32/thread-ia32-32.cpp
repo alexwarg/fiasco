@@ -1,4 +1,4 @@
-IMPLEMENTATION[ia32 || ux]:
+IMPLEMENTATION[ia32]:
 
 PUBLIC template<typename T> inline
 void FIASCO_NORETURN
@@ -6,7 +6,7 @@ Thread::fast_return_to_user(Mword ip, Mword sp, T arg)
 {
   assert(cpu_lock.test());
   assert(current() == this);
-  assert(Config::Is_ux || (regs()->cs() & 3) == 3);
+  assert((regs()->cs() & 3) == 3);
 
   regs()->ip(ip);
   regs()->sp(sp);
@@ -52,11 +52,7 @@ Thread::restore_exc_state()
   _exc_cont.restore(regs());
 #if 0
 
-#ifdef CONFIG_PF_UX
-  r->cs (exception_cs() & ~1);
-#else
   r->cs (exception_cs());
-#endif
   r->ip (_exc_ip);
   r->flags (_exc_flags);
   _exc_ip = ~0UL;
@@ -169,9 +165,6 @@ Thread::check_known_inkernel_fault(Trap_state *ts)
          || ts->ip() == (Mword)vcpu_resume_label_fs;
 }
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [ia32 && !ux]:
-
 IMPLEMENT inline NEEDS[Thread::exception_triggered]
 void
 Thread::user_ip(Mword ip)
@@ -267,9 +260,6 @@ Thread::user_invoke()
 
   // never returns here
 }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [ia32]:
 
 PROTECTED inline NEEDS[Thread::sys_gdt_x86]
 L4_msg_tag

@@ -1,4 +1,4 @@
-INTERFACE [ia32 || amd64 || ux]:
+INTERFACE [ia32 || amd64]:
 
 #include "types.h"
 #include "config.h"
@@ -33,7 +33,7 @@ public:
 
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [ia32 || amd64 || ux]:
+IMPLEMENTATION [ia32 || amd64]:
 
 #include "atomic.h"
 

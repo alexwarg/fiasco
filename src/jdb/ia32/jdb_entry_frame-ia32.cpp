@@ -30,7 +30,7 @@ class Jdb_lines_frame : public Jdb_debug_frame
 {};
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION[ia32,ux,amd64]:
+IMPLEMENTATION[ia32,amd64]:
 
 PUBLIC inline
 bool
@@ -59,7 +59,7 @@ Jdb_entry_frame::param() const
 
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION[ia32,ux]:
+IMPLEMENTATION[ia32]:
 
 PUBLIC inline
 Mword
@@ -126,17 +126,6 @@ PUBLIC inline NEEDS["cpu.h"]
 Mword
 Jdb_entry_frame::ss() const
 { return from_user() ? _ss : Cpu::get_ss(); }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION[ux]:
-
-PUBLIC
-Mword
-Jdb_entry_frame::ss() const
-{ return _ss; }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION[ia32,ux,amd64]:
 
 PUBLIC inline
 Unsigned8*

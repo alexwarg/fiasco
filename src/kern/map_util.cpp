@@ -783,7 +783,7 @@ unmap(MAPDB* mapdb, SPACE* space, Space *space_id,
 }
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION[!io || ux]:
+IMPLEMENTATION[!io]:
 
 // Empty dummy functions when I/O protection is disabled
 inline

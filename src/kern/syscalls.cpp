@@ -62,13 +62,13 @@ IMPLEMENTATION [!debug]:
 extern "C" void sys_invoke_debug_wrapper() {}
 
 //---------------------------------------------------------------------------
-INTERFACE [ia32 || ux || amd64]:
+INTERFACE [ia32 || amd64]:
 
 extern void (*syscall_table[])();
 
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [ia32 || ux || amd64]:
+IMPLEMENTATION [ia32 || amd64]:
 
 void (*syscall_table[])() =
 {

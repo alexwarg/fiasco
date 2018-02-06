@@ -22,7 +22,7 @@ Vkey::irq(Irq_base *i)
 { vkey_irq = i; }
 
 // ------------------------------------------------------------------------
-IMPLEMENTATION [serial && !ux && debug]:
+IMPLEMENTATION [serial && debug]:
 
 PRIVATE static inline
 bool
@@ -32,7 +32,7 @@ Vkey::is_debugger_entry_key(int key)
 }
 
 // ------------------------------------------------------------------------
-IMPLEMENTATION [serial && !ux && !debug]:
+IMPLEMENTATION [serial && !debug]:
 
 PRIVATE static inline
 bool
@@ -42,7 +42,7 @@ Vkey::is_debugger_entry_key(int)
 }
 
 // ---------------------------------------------------------------------------
-IMPLEMENTATION [serial && !ux]:
+IMPLEMENTATION [serial]:
 
 #include <cstdio>
 
@@ -188,7 +188,7 @@ Vkey::clear()
 }
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [!serial || ux]:
+IMPLEMENTATION [!serial]:
 
 #include "kernel_console.h"
 

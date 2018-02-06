@@ -1,4 +1,4 @@
-INTERFACE[ia32,amd64,ux]:
+INTERFACE[ia32,amd64]:
 
 #include "types.h"
 #include "initcalls.h"
@@ -332,7 +332,7 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-IMPLEMENTATION[ia32,amd64,ux]:
+IMPLEMENTATION[ia32,amd64]:
 
 #include <cstdio>
 #include <cstring>

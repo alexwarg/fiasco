@@ -73,7 +73,7 @@ class Pseudo_descriptor
 
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [ia32 | ux]:
+IMPLEMENTATION [ia32]:
 
 PUBLIC inline
 Address Idt_entry::offset() const

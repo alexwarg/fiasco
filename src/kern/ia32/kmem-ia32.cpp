@@ -4,7 +4,7 @@
 // more specialized memory allocation/deallocation functions follow
 // below in the "Kmem" namespace
 
-INTERFACE [ia32,amd64,ux]:
+INTERFACE [ia32,amd64]:
 
 #include "globalconfig.h"
 #include "initcalls.h"
@@ -461,12 +461,6 @@ Kmem::setup_cpu_structures(Cpu &cpu, cxx::Simple_alloc *cpu_alloc,
 //---------------------------------------------------------------------------
 IMPLEMENTATION [ia32 || amd64]:
 
-IMPLEMENT inline Address Kmem::user_max() { return ~0UL; }
-
-
-//--------------------------------------------------------------------------
-IMPLEMENTATION [ia32,ux,amd64]:
-
 #include <cstdlib>
 #include <cstddef>		// size_t
 #include <cstring>		// memset
@@ -482,6 +476,8 @@ IMPLEMENTATION [ia32,ux,amd64]:
 
 // static class variables
 Kpdir *Mem_layout::kdir;
+
+IMPLEMENT inline Address Kmem::user_max() { return ~0UL; }
 
 /**
  * Compute a kernel-virtual address for a physical address.

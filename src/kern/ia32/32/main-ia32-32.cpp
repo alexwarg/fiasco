@@ -1,9 +1,9 @@
 /*
- * Fiasco ia32 / UX
+ * Fiasco ia32
  * Shared main startup/shutdown code
  */
 
-INTERFACE[ia32,ux]:
+INTERFACE[ia32]:
 
 #include "initcalls.h"
 #include "std_macros.h"
@@ -11,7 +11,7 @@ INTERFACE[ia32,ux]:
 class Kernel_thread;
 
 
-IMPLEMENTATION[ia32,ux]:
+IMPLEMENTATION[ia32]:
 
 #include <cstdio>
 
@@ -59,7 +59,7 @@ kernel_main(void)
 }
 
 //------------------------------------------------------------------------
-IMPLEMENTATION[(ia32 || ux) && mp]:
+IMPLEMENTATION[ia32 && mp]:
 
 #include "kernel_thread.h"
 

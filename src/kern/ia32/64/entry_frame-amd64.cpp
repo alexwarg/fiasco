@@ -49,7 +49,7 @@ public:
   enum { Pf_ax_offset = 2 };
 };
 
-IMPLEMENTATION[ux,amd64]:
+IMPLEMENTATION[amd64]:
 
 //---------------------------------------------------------------------------
 // basic Entry_frame methods for IA32
@@ -87,7 +87,6 @@ Return_frame::ip(Mword ip)
   // eip is set to.
   if (cs() & 0x80)
     {
-      // this cannot happen in Fiasco UX
       /* symbols from the assember entry code */
       extern Mword leave_from_syscall_by_iret;
       //extern Mword leave_alien_from_syscall_by_iret;
@@ -142,9 +141,6 @@ PUBLIC inline
 void
 Return_frame::ss(Mword ss)
 { _ss = ss; }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [ux,amd64]:
 
 //---------------------------------------------------------------------------
 // IPC frame methods for IA32

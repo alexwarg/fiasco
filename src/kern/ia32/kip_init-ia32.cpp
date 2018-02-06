@@ -1,4 +1,4 @@
-INTERFACE [ia32,ux,amd64]:
+INTERFACE [ia32,amd64]:
 
 #include "initcalls.h"
 #include "types.h"
@@ -18,14 +18,7 @@ public:
   static void setup_kmem_region (Address kmem_base, Address kmem_size);
 };
 
-IMPLEMENTATION [!ux]:
-
-PRIVATE static inline
-void
-Kip_init::setup_ux(Kip *)
-{}
-
-IMPLEMENTATION [ia32,ux,amd64]:
+IMPLEMENTATION [ia32,amd64]:
 
 #include <cstring>
 #include "config.h"
@@ -87,7 +80,6 @@ PUBLIC static FIASCO_INIT
 void Kip_init::init()
 {
   Kip *kinfo = reinterpret_cast<Kip*>(&KIP_namespace::my_kernel_info_page);
-  setup_ux(kinfo);
 
   Kip::init_global_kip(kinfo);
 
@@ -139,7 +131,7 @@ void
 Kip_init::reserve_amd64_hole()
 {}
 
-IMPLEMENTATION [!ux]:
+IMPLEMENTATION:
 
 PUBLIC static FIASCO_INIT
 void

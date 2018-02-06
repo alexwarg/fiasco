@@ -78,11 +78,6 @@ config PF_PC
 	select HAS_MP_OPTION
 	select HAS_CPU_VIRT
 
-config PF_UX
-	bool "Linux Usermode Platform"
-	depends on IA32
-	select JDB
-
 # PF_CHOICE
 
 endchoice
@@ -105,12 +100,12 @@ config CPU_VIRT
 
 choice
 	prompt "Timer tick source"
-	depends on PF_PC || PF_UX
+	depends on PF_PC
 	default SCHED_APIC
 
 config SCHED_PIT
 	bool "Use PIT for scheduling"
-	depends on (PF_PC || PF_UX) && !MP
+	depends on PF_PC && !MP
 	help
 	  Normally, Fiasco uses the RTC at IRQ8 for scheduling. This can be
 	  disadvantageous in certain circumstances, e.g. VMWare doesn't seem
@@ -251,22 +246,6 @@ config FINE_GRAINED_CPUTIME
 	  Measure CPU time consumed by a thread from switching to the thread
 	  until switching to another thread. Induces an overhead during each
 	  thread switch, so only activate it for debugging.
-
-config UX_CON
-	bool "Graphical console (requires SDL library!)"
-	depends on PF_UX
-	help
-	  Fiasco-UX can supply a graphical console for the L4 program it is
-	  running.  Enabling this option will build the additional program
-	  but needs the SDL library including development header files
-	  installed.
-
-config UX_NET
-	bool "Network support"
-	depends on PF_UX
-	help
-	  Enabling this option makes Fiasco-UX provide network support for
-	  L4 programs.
 
 choice 
 	prompt "Scheduler"
@@ -471,7 +450,7 @@ if JDB
 
 config JDB_LOGGING
 	bool "JDB extended logging"
-	default y if !PF_UX
+	default y
 	help
 	  There are two classes of logging events: Basic events don't
 	  consume any time if they are disabled (ipc, ipc result,
@@ -507,7 +486,7 @@ config JDB_ACCOUNTING
 
 config JDB_MISC
 	bool "Miscellaneous JDB modules"
-	depends on PF_UX || PF_PC
+	depends on PF_PC
 
 endif # JDB
 
@@ -607,7 +586,6 @@ config WARN_LEVEL
 
 config XARCH
 	string
-	default "ux" if PF_UX
 	default "amd64" if AMD64 && PF_PC
 	default "ia32" if IA32 && PF_PC
 # ARCH_NAME

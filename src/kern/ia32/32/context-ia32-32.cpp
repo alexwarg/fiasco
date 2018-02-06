@@ -10,9 +10,6 @@ Context::arch_setup_utcb_ptr()
   _gs = _fs = Gdt::gdt_utcb | 3;
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [ia32 || ux]:
-
 IMPLEMENT inline
 void
 Context::spill_user_state()

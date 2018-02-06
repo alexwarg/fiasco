@@ -1,4 +1,4 @@
-INTERFACE [!ux]:
+INTERFACE:
 
 #include "x86desc.h"
 
@@ -11,7 +11,7 @@ protected:
 };
 
 
-IMPLEMENTATION [ia32,amd64,ux]:
+IMPLEMENTATION [ia32,amd64]:
 
 #include <cassert>
 #include <cstdio>
@@ -56,7 +56,7 @@ Context::switchin_context(Context *from)
 }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [ia32 || ux]:
+IMPLEMENTATION [ia32]:
 
 PROTECTED inline NEEDS["cpu.h"]
 void

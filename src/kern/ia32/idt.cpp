@@ -243,23 +243,3 @@ Idt::set_vectors_run()
     Irq_chip::hw_chip->reset(0x0f);
 #endif
 }
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION[ux]:
-
-#include "emulation.h"
-
-PUBLIC static
-void
-Idt::set(Pseudo_descriptor *desc)
-{
-  Emulation::lidt(desc);
-}
-
-PUBLIC static
-void
-Idt::get(Pseudo_descriptor *desc)
-{
-  Emulation::sidt(desc);
-}

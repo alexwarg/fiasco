@@ -95,10 +95,6 @@ public:
   static const unsigned default_console_uart_baudrate = 115200;
 
   static bool found_vmware;
-
-  enum {
-    Is_ux = 0,
-  };
 };
 
 IMPLEMENTATION[ia32,amd64]:

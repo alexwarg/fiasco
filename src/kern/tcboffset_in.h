@@ -73,9 +73,6 @@
   DUMP_CONSTANT (MEM_LAYOUT__IO_BITMAP,        Mem_layout::Io_bitmap)
   DUMP_CONSTANT (MEM_LAYOUT__SYSCALLS,         Mem_layout::Syscalls)
 #endif
-#ifdef CONFIG_PF_UX
-  DUMP_CONSTANT (MEM_LAYOUT__TRAMPOLINE_PAGE,  Mem_layout::Trampoline_page)
-#endif
 #if defined(CONFIG_IA32) || defined(CONFIG_AMD64)
   DUMP_MEMBER1 (CPU, Cpu, tss, TSS)
 #endif

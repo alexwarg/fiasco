@@ -29,7 +29,6 @@ public:
     // attributes to identify a specific console
     DIRECT      =   0x4, ///< output to screen or input from keyboard
     UART        =   0x8, ///< output to/input from serial serial line
-    UX          =  0x10, ///< filtered input console for UX
     PUSH        =  0x20, ///< input console
     GZIP        =  0x40, ///< gzip+uuencode output and sent to uart console
     BUFFER      =  0x80, ///< ring buffer
@@ -205,7 +204,7 @@ const char*
 Console::str_attr(Mword bit) const
 {
   static char const * const attr_str[] =
-    { "Direct", "Uart", "UX", "Push", "Gzip", "Buffer", "Kdb", "FAILED!" };
+    { "Direct", "Uart", "<unk>", "Push", "Gzip", "Buffer", "Kdb", "FAILED!" };
 
   return (bit < 2 || bit >= (sizeof(attr_str)/sizeof(attr_str[0]))+2)
     ? "???"

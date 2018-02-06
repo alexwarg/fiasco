@@ -44,10 +44,6 @@ $(OBJS): .Compiler-config
 ifeq ("$(CONFIG_MAINTAINER_MODE)","y")
 
 do-all: Checkinitcalls Circular-ok ToDoItems $(ALL)
-ifeq ($(CONFIG_XARCH),ux)
-# disabled until unittests fixed
-#do-all: unittest
-endif # UX
 
 else  # ! maintainer mode
 
@@ -130,10 +126,6 @@ KERNEL_MODULES_CPP = $(foreach mod, $(INTERFACES_KERNEL) $(INTERFACES_LIBK), \
 	$(foreach idir, $(srcdir)/kern $(srcdir)/kern/shared \
 	                $(srcdir)/kern/$(CONFIG_XARCH), \
 	  $(wildcard $(idir)/*.h))
-
-ifeq ($(CONFIG_XARCH),ux)
-EXTRA_INCLUDES = -I/usr/include/c++/$(shell $(CXX) -dumpversion) -I/usr/include
-endif
 
 DEPS.dot: $(KERNEL_MODULES_CPP)
 	@echo -n > source_files.mkdeps

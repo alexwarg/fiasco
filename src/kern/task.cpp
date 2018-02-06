@@ -22,10 +22,6 @@ class Task :
 {
   friend class Jdb_space;
 
-private:
-  /// \brief Do host (platform) specific initialization.
-  void ux_init();
-
 public:
   enum Operation
   {
@@ -78,8 +74,6 @@ Task::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
   Trap_state ts;
   ctxt->copy_and_sanitize_trap_state(&ts, &vcpu->_regs.s);
 
-  // FIXME: UX is currently broken
-  /* UX:ctxt->vcpu_resume_user_arch(); */
   if (user_mode)
     {
       ctxt->state_add_dirty(Thread_vcpu_user);
@@ -234,25 +228,6 @@ Task::free_ku_mem()
     free_ku_mem(m);
 }
 
-
-/** Allocate space for the UTCBs of all threads in this task.
- *  @ return true on success, false if not enough memory for the UTCBs
- */
-PUBLIC
-bool
-Task::initialize()
-{
-  if (!Mem_space::initialize())
-    return false;
-
-  // For UX, map the UTCB pointer page. For ia32, do nothing
-  map_utcb_ptr_page();
-
-  CNT_TASK_CREATE;
-
-  return true;
-}
-
 /**
  * \brief Create a normal Task.
  * \pre \a parent must be valid and exist.
@@ -260,8 +235,6 @@ Task::initialize()
 PUBLIC explicit
 Task::Task(Ram_quota *q, Caps c) : Space(q, c)
 {
-  ux_init();
-
   // increment reference counter from zero
   inc_ref(true);
 }
@@ -270,8 +243,6 @@ PUBLIC explicit
 Task::Task(Ram_quota *q)
 : Space(q, Caps::mem() | Caps::io() | Caps::obj() | Caps::threads())
 {
-  ux_init();
-
   // increment reference counter from zero
   inc_ref(true);
 }
@@ -597,10 +568,9 @@ register_factory()
 }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [!ux]:
+IMPLEMENTATION:
 
 IMPLEMENT inline void Task::map_utcb_ptr_page() {}
-IMPLEMENT inline void Task::ux_init() {}
 
 PUBLIC inline
 Task::~Task()

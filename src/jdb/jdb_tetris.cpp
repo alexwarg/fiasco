@@ -44,44 +44,6 @@ static int tiles[] = {	9,      9,      -13,    -12,    1,	4,
 static const char *modes[] = { "", "Fiasco Mode", "Lars Mode" };
 static long unsigned int randseed;
 
-IMPLEMENTATION [ux]:
-
-static unsigned slice_to_timeout(unsigned slice)
-{
-  slice /= 50;
-  return slice < 2 ? 2 : slice;
-}
-
-static void show_grid()
-{
-  int i, j;
-
-  printf("\033[H");
-
-  for (i = j = 0; i < 264; i++)
-    {
-      if (grid[i])
-        printf("\033[m\033[1;4%d;30m  \033[40m", grid[i]);
-      else
-        putstr("  ");
-
-      if (i % 12 == 11)
-        {
-          for (; j <= i && j < 48; j++)
-            if (next[j])
-              printf("\033[m\033[1;4%d;30m  \033[40m", next[j]);
-            else
-              putstr("\033[m\033[30m  \033[m");
-
-          putchar('\n');
-        }
-    }
-
-  printf("\033[mLines: %d   Score: %d   %s\033[K", lines, score, modes[mode]);
-}
-
-IMPLEMENTATION [!ux]:
-
 static unsigned slice_to_timeout(unsigned slice)
 {
   return slice;
@@ -114,8 +76,6 @@ static void show_grid()
 
   printf("Lines: %d   Score: %d   %s\033[K", lines, score, modes[mode]);
 }
-
-IMPLEMENTATION:
 
 static int getchar_timeout()
 {

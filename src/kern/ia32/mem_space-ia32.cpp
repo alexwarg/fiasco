@@ -1,4 +1,4 @@
-INTERFACE [ia32 || ux || amd64]:
+INTERFACE [ia32 || amd64]:
 
 EXTENSION class Mem_space
 {
@@ -47,22 +47,13 @@ public:
     Identity_map = 0,
   };
 
-
-  void	page_map	(Address phys, Address virt,
-                         Address size, Attr);
-
-  void	page_unmap	(Address virt, Address size);
-
-  void	page_protect	(Address virt, Address size,
-                         unsigned page_attribs);
-
 protected:
   // DATA
   Dir_type *_dir;
 };
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [ia32 || ux || amd64]:
+IMPLEMENTATION [ia32 || amd64]:
 
 #include <cstring>
 #include <cstdio>
@@ -189,17 +180,11 @@ Mem_space::v_insert(Phys_addr phys, Vaddr virt, Page_order size,
         return Insert_warn_exists;
 
       i.set_page(entry);
-      page_protect(Virt_addr::val(virt), Address(1) << Page_order::val(size),
-                   *i.pte & Page_all_attribs);
-
       return Insert_warn_attrib_upgrade;
     }
   else
     {
       i.set_page(entry);
-      page_map(Virt_addr::val(phys), Virt_addr::val(virt),
-               Address(1) << Page_order::val(size), page_attribs);
-
       return Insert_ok;
     }
 
@@ -303,18 +288,11 @@ Mem_space::v_delete(Vaddr virt, Page_order size, L4_fpage::Rights page_attribs)
   L4_fpage::Rights ret = i.access_flags();
 
   if (! (page_attribs & L4_fpage::Rights::R()))
-    {
-      // downgrade PDE (superpage) rights
-      i.del_rights(page_attribs);
-      page_protect(Virt_addr::val(virt), Address(1) << Page_order::val(size),
-                   *i.pte & Page_all_attribs);
-    }
+    // downgrade PDE (superpage) rights
+    i.del_rights(page_attribs);
   else
-    {
-      // delete PDE (superpage)
-      i.clear();
-      page_unmap(Virt_addr::val(virt), Address(1) << Page_order::val(size));
-    }
+    // delete PDE (superpage)
+    i.clear();
 
   return ret;
 }
@@ -376,27 +354,6 @@ Mem_space::phys_dir()
 {
   return Mem_layout::pmem_to_phys(_dir);
 }
-
-/*
- * The following functions are all no-ops on native ia32.
- * Pages appear in an address space when the corresponding PTE is made
- * ... unlike Fiasco-UX which needs these special tricks
- */
-
-IMPLEMENT inline
-void
-Mem_space::page_map(Address, Address, Address, Attr)
-{}
-
-IMPLEMENT inline
-void
-Mem_space::page_protect(Address, Address, unsigned)
-{}
-
-IMPLEMENT inline
-void
-Mem_space::page_unmap(Address, Address)
-{}
 
 IMPLEMENT inline NEEDS["kmem.h", "logdefs.h"]
 void
@@ -519,7 +476,7 @@ Mem_space::init_page_sizes()
 }
 
 // --------------------------------------------------------------------
-IMPLEMENTATION [ia32 || ux]:
+IMPLEMENTATION [ia32]:
 
 #include "cpu.h"
 

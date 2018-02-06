@@ -47,7 +47,7 @@ atomic_change(T *ptr, T mask, T bits)
 }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [ia32,ux]:
+IMPLEMENTATION [ia32]:
 
 inline
 void

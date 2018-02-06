@@ -64,7 +64,6 @@ public:
     Ctl_set_pager       = 0x0010000,
     Ctl_bind_task       = 0x0200000,
     Ctl_alien_thread    = 0x0400000,
-    Ctl_ux_native       = 0x0800000,
     Ctl_set_exc_handler = 0x1000000,
   };
 
@@ -657,15 +656,6 @@ bool
 Thread::arch_ext_vcpu_enabled()
 { return false; }
 
-// used by UX only
-PUBLIC static inline
-bool
-Thread::is_tcb_address(Address a)
-{
-  a &= ~(Thread::Size - 1);
-  return reinterpret_cast<Thread *>(a)->_magic == magic;
-}
-
 PUBLIC static inline
 void
 Thread::assert_irq_entry()
@@ -784,7 +774,7 @@ Thread::finish_migration() override
 { enqueue_timeout_again(); }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [fpu && !ux && lazy_fpu]:
+IMPLEMENTATION [fpu && lazy_fpu]:
 
 #include "fpu.h"
 #include "fpu_alloc.h"
@@ -877,7 +867,7 @@ Thread::transfer_fpu(Thread *to) //, Trap_state *trap_state, Utcb *to_utcb)
 }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [fpu && !ux && !lazy_fpu]:
+IMPLEMENTATION [fpu && !lazy_fpu]:
 
 #include "fpu.h"
 #include "fpu_alloc.h"
@@ -927,9 +917,6 @@ Thread::switchin_fpu(bool alloc_new_fpu = true)
   (void)alloc_new_fpu;
   return 0;
 }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [!fpu || ux]:
 
 PUBLIC inline
 bool

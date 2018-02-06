@@ -255,7 +255,7 @@ Jdb_pcm::wait_for_escape(Console *cons)
     }
 }
 
-IMPLEMENTATION[ia32 || ux || amd64]:
+IMPLEMENTATION[ia32 || amd64]:
 
 #include "cpu.h"
 

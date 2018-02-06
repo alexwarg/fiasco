@@ -1,4 +1,4 @@
-IMPLEMENTATION [io && (ia32 || amd64 || ux) && !no_io_pagefault]:
+IMPLEMENTATION [io && (ia32 || amd64) && !no_io_pagefault]:
 
 //
 // disassamble IO statements to compute the port address and

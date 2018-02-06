@@ -123,9 +123,6 @@ public:
 INTERFACE[ia32]:
 #define TARGET_NAME "x86-32"
 
-INTERFACE[ux]:
-#define TARGET_NAME "ux-x86-32"
-
 INTERFACE[amd64]:
 #define TARGET_NAME "x86-64"
 
@@ -140,21 +137,7 @@ INTERFACE:
   GREETING_COLOR_ANSI_OFF
 
 //---------------------------------------------------------------------------
-INTERFACE [ux]:
-
-EXTENSION class Config
-{
-public:
-  // 8 percent of total RAM, >=800MB RAM => 64MB kmem
-  static const unsigned kernel_mem_per_cent = 8;
-  enum
-  {
-    kernel_mem_max      = 64 << 20
-  };
-};
-
-//---------------------------------------------------------------------------
-INTERFACE [!ux && !64bit]:
+INTERFACE [!64bit]:
 
 EXTENSION class Config
 {
@@ -168,7 +151,7 @@ public:
 };
 
 //---------------------------------------------------------------------------
-INTERFACE [!ux && 64bit]:
+INTERFACE [64bit]:
 
 EXTENSION class Config
 {
