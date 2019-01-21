@@ -4,6 +4,7 @@
 #ifndef CAPSTONE_PLATFORM_H
 #define CAPSTONE_PLATFORM_H
 
+
 // handle C99 issue (for pre-2013 VisualStudio)
 #if !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__) && (defined (WIN32) || defined (WIN64) || defined (_WIN32) || defined (_WIN64))
 // MSVC
@@ -15,26 +16,29 @@
 typedef unsigned char bool;
 #define false 0
 #define true 1
-#endif
+#endif  // __cplusplus
 
 #else
 // VisualStudio 2013+ -> C99 is supported
 #include <stdbool.h>
-#endif
+#endif  // (_MSC_VER < 1800) || defined(_KERNEL_MODE)
 
 #else
 // not MSVC -> C99 is supported
 #include <stdbool.h>
-#endif
+#endif  // !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__MINGW64__) && (defined (WIN32) || defined (WIN64) || defined (_WIN32) || defined (_WIN64))
 
 
-// handle C99 issue (for pre-2013 VisualStudio)
+// handle inttypes.h / stdint.h compatibility
+#if defined(_WIN32_WCE) && (_WIN32_WCE < 0x800)
+#include "windowsce/stdint.h"
+#endif  // defined(_WIN32_WCE) && (_WIN32_WCE < 0x800)
+
 #if defined(CAPSTONE_HAS_OSXKERNEL) || (defined(_MSC_VER) && (_MSC_VER <= 1700 || defined(_KERNEL_MODE))) || 1 // Fiasco
 // this system does not have inttypes.h
 
-#if defined(_MSC_VER) && (_MSC_VER < 1600 || defined(_KERNEL_MODE)) || 1 // Fiasco
+#if defined(_MSC_VER) && (_MSC_VER <= 1600 || defined(_KERNEL_MODE)) || 1 // Fiasco
 // this system does not have stdint.h
-
 typedef signed char  int8_t;
 typedef signed short int16_t;
 typedef signed int   int32_t;
@@ -43,11 +47,13 @@ typedef unsigned short uint16_t;
 typedef unsigned int   uint32_t;
 typedef signed long long   int64_t;
 typedef unsigned long long uint64_t;
+#endif  // defined(_MSC_VER) && (_MSC_VER <= 1600 || defined(_KERNEL_MODE))
 
+#if defined(_MSC_VER) && (_MSC_VER < 1600 || defined(_KERNEL_MODE)) || 1 // Fiasco
 #define INT8_MIN         (-127 - 1)
 #define INT16_MIN        (-32767 - 1)
 #define INT32_MIN        (-2147483647 - 1)
-#define INT64_MIN        (-9223372036854775807 - 1)
+#define INT64_MIN        (-9223372036854775807ll - 1)
 #define INT8_MAX         127
 #define INT16_MAX        32767
 #define INT32_MAX        2147483647
@@ -56,6 +62,11 @@ typedef unsigned long long uint64_t;
 #define UINT16_MAX       0xffff
 #define UINT32_MAX       0xfffffffful
 #define UINT64_MAX       0xffffffffffffffffull
+#endif  // defined(_MSC_VER) && (_MSC_VER < 1600 || defined(_KERNEL_MODE))
+
+#ifdef CAPSTONE_HAS_OSXKERNEL
+// this system has stdint.h
+#include <stdint.h>
 #endif
 
 #define __PRI_8_LENGTH_MODIFIER__ "hh"
@@ -89,7 +100,7 @@ typedef unsigned long long uint64_t;
 #define PRIu32        "u"
 #define PRIx32        "x"
 #define PRIX32        "X"
-#endif
+#endif  // defined(_MSC_VER) && _MSC_VER <= 1700
 
 #if defined(_MSC_VER) && _MSC_VER <= 1700
 // redefine functions from inttypes.h used in cstool
@@ -106,6 +117,6 @@ typedef unsigned long long uint64_t;
 #else
 // this system has inttypes.h by default
 #include <inttypes.h>
-#endif
+#endif  // defined(CAPSTONE_HAS_OSXKERNEL) || (defined(_MSC_VER) && (_MSC_VER <= 1700 || defined(_KERNEL_MODE)))
 
 #endif
