@@ -713,14 +713,14 @@ Kmem::setup_cpu_structures_isolation(Cpu &cpu, Kpdir *cpu_dir, cxx::Simple_alloc
                  Pdir::Depth,
                  false, pdir_alloc(Kmem_alloc::allocator()));
 
-  unsigned const estack_sz = 128;
-  char *estack = (char *)cpu_m->alloc_bytes(estack_sz, 16);
-
   extern char const syscall_entry_code[];
   extern char const syscall_entry_code_end[];
   char *sccode = (char *)cpu_m->alloc_bytes(syscall_entry_code_end - syscall_entry_code, 16);
-  assert ((Address)sccode == Kentry_cpu_page + 0xa0);
+  assert ((Address)sccode == Kentry_cpu_page + 0x20);
   memcpy(sccode, syscall_entry_code, syscall_entry_code_end - syscall_entry_code);
+
+  unsigned const estack_sz = 512;
+  char *estack = (char *)cpu_m->alloc_bytes(estack_sz, 16);
 
   setup_cpu_structures(cpu, cpu_m, cpu_m);
   cpu.get_tss()->_rsp0 = (Address)(estack + estack_sz);

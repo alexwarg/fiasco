@@ -78,14 +78,14 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
             _fs = 0;
             _fs_base = base;
             if (current() == this)
-              Cpu::wrmsr(_fs_base, MSR_FS_BASE);
+              Cpu::set_fs_base(&_fs_base);
             break;
 
           case 1:
             _gs = 0;
             _gs_base = base;
             if (current() == this)
-              Cpu::wrmsr(_gs_base, MSR_GS_BASE);
+              Cpu::set_gs_base(&_gs_base);
             break;
 
           default: return commit_result(-L4_err::EInval);
@@ -281,14 +281,6 @@ PRIVATE inline
 int
 Thread::check_trap13_kernel (Trap_state * /*ts*/)
 { return 1; }
-
-PRIVATE static inline
-bool
-Thread::check_known_inkernel_fault(Trap_state *ts)
-{
-  extern char in_slowtrap_exit_label_iret[];
-  return ts->ip() == (Mword)in_slowtrap_exit_label_iret;
-}
 
 //----------------------------------------------------------------------------
 IMPLEMENTATION [amd64 & (debug | kdb)]:
