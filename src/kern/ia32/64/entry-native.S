@@ -210,8 +210,8 @@ leave_from_syscall_by_iret:
 dbf_stack_top:
 
 	.section ".text.syscall_entry"
-/* This code shall be copied to Kentry_cpu_page + 0x20 */
-#define CPUE_OFFSET syscall_entry_code - 0x20
+/* This code shall be copied to Kentry_cpu_page + 0x30 */
+#define CPUE_OFFSET syscall_entry_code - 0x30
 	.global syscall_entry_code
 syscall_entry_code:
 	mov	%rsp, (CPUE_OFFSET + CPUE_SCRATCH_OFS)(%rip)
@@ -271,8 +271,7 @@ safe_iret:
 	mov	64(%rsp), %r13
 	mov	%r13, CPUE_STACK( -8, %r14)
 	lea	CPUE_STACK(-56, %r14), %rsp
-	mov	CPUE_CR3(%r14), %r13
-	or	$0x1000, %r13
+	mov	CPUE_CR3U(%r14), %r13
 	mov	%r13, %cr3
 	pop	%r13
 	pop	%r14

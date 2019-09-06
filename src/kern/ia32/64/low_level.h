@@ -8,7 +8,9 @@
 
 
 #define REGISTER_SIZE 8
-#define CPUE_STACK_OFS (0x20 + (((syscall_entry_code_end - syscall_entry_code) + 0xf) & ~0xf))
+
+/* Layout of Kentry_cpu_page */
+#define CPUE_STACK_OFS (0x30 + (((syscall_entry_code_end - syscall_entry_code) + 0xf) & ~0xf))
 #define CPUE_STACK_TOP_OFS (CPUE_STACK_OFS + 512)
 #define CPUE_STACK(x, reg) (CPUE_STACK_TOP_OFS + x)(reg)
 #define CPUE_CR3_OFS 0
@@ -16,9 +18,10 @@
 #define CPUE_KSP(reg) 8(reg)
 #define CPUE_CR3(reg) 0(reg)
 #define CPUE_EXIT(reg) 16(reg)
+#define CPUE_CR3U(reg) 24(reg)
 #define CPUE_EXIT_NEED_IBPB 1
-#define CPUE_SCRATCH(reg) 24(reg)
-#define CPUE_SCRATCH_OFS 24
+#define CPUE_SCRATCH(reg) 32(reg)
+#define CPUE_SCRATCH_OFS 32
 
 #if defined(CONFIG_KERNEL_ISOLATION) && defined(CONFIG_INTEL_IA32_BRANCH_BARRIERS)
 .macro IA32_IBRS_CLOBBER
@@ -61,7 +64,7 @@
 	sar     $16, %rcx
 #ifdef CONFIG_KERNEL_ISOLATION
 	mov	$0xffff817fffffc000, %r15
-#ifdef CONFIG_INTEL_IA32_BRANCH_BARRIERS
+# ifdef CONFIG_INTEL_IA32_BRANCH_BARRIERS
 	mov	CPUE_EXIT(%r15), %r11
 	test	$(CPUE_EXIT_NEED_IBPB), %r11
 	jz	333f
@@ -69,9 +72,8 @@
 	mov	%r11, CPUE_EXIT(%r15)
 	IA32_IBPB
 333:
-#endif
-	mov	CPUE_CR3(%r15), %r15
-	or	$0x1000, %r15
+# endif
+	mov	CPUE_CR3U(%r15), %r15
 #endif
 	mov	32(%rsp), %r11				/* load user rflags */
 	mov	40(%rsp), %rsp				/* load user rsp */
