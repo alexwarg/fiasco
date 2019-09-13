@@ -1,6 +1,7 @@
 INTERFACE:
 
 #include "jdb_module.h"
+#include "jdb_types.h"
 #include "l4_types.h"
 #include "types.h"
 
@@ -34,14 +35,14 @@ IMPLEMENTATION [!jdb_disasm]:
 
 PUBLIC static
 Jdb_module::Action_code
-Jdb_disasm::show(Address, Space *, int)
+Jdb_disasm::show(Jdb_address, int)
 {
   return Jdb_module::NOTHING;
 }
 
 PUBLIC static
 bool
-Jdb_disasm::show_disasm_line(int, Address &, Space *)
+Jdb_disasm::show_disasm_line(int, Jdb_address &)
 {
   return false;
 }
@@ -73,14 +74,14 @@ char Jdb_disasm::show_lines = 0;
 
 static
 bool
-Jdb_disasm::disasm_line(char *buffer, int buflen, Address &addr,
-			Space *task)
+Jdb_disasm::disasm_line(char *buffer, int buflen,
+                        Jdb_address &addr)
 {
   int len;
 
-  if ((len = disasm_bytes(buffer, buflen, addr, task,
-			  show_intel_syntax, &Jdb::peek_task,
-			  &Jdb::is_adapter_memory)) < 0)
+  if ((len = disasm_bytes(buffer, buflen, addr,
+                          show_intel_syntax, &Jdb::peek_task,
+                          &Jdb::is_adapter_memory)) < 0)
     {
       addr += 1;
       return false;
@@ -92,25 +93,25 @@ Jdb_disasm::disasm_line(char *buffer, int buflen, Address &addr,
 
 static
 Address
-Jdb_disasm::disasm_offset(Address &start, int offset, Space *task)
+Jdb_disasm::disasm_offset(Jdb_address &start, int offset)
 {
-  Address addr = start;
+  Jdb_address addr = start;
   if (offset > 0)
     {
       while (offset--)
-	{
-          if (!disasm_offset_incr(addr, task))
+        {
+          if (!disasm_offset_incr(addr))
             {
               start = addr + offset;
               return false;
             }
-	}
+        }
     }
   else
     {
       while (offset++)
         {
-          if (!disasm_offset_decr(addr, task))
+          if (!disasm_offset_decr(addr))
             {
               start = addr + offset - 1;
               return false;
@@ -123,7 +124,7 @@ Jdb_disasm::disasm_offset(Address &start, int offset, Space *task)
 
 PUBLIC static
 bool
-Jdb_disasm::show_disasm_line(int len, Address &addr, Space *task)
+Jdb_disasm::show_disasm_line(int len, Jdb_address &addr)
 {
   int clreol = 0;
   if (len < 0)
@@ -133,7 +134,7 @@ Jdb_disasm::show_disasm_line(int len, Address &addr, Space *task)
     }
 
   char line[len];
-  if (disasm_line(line, len, addr, task))
+  if (disasm_line(line, len, addr))
     {
       if (clreol)
 	printf("%.*s\033[K\n", len, line);
@@ -151,9 +152,9 @@ Jdb_disasm::show_disasm_line(int len, Address &addr, Space *task)
 
 PUBLIC static
 Jdb_module::Action_code
-Jdb_disasm::show(Address virt, Space *task, int level)
+Jdb_disasm::show(Jdb_address virt, int level)
 {
-  Address  enter_addr = virt;
+  Jdb_address  enter_addr = virt;
 
   if (!level)
     Jdb::clear_screen();
@@ -162,9 +163,9 @@ Jdb_disasm::show(Address virt, Space *task, int level)
     {
       Jdb::cursor();
 
-      Address addr;
+      Jdb_address addr;
       Mword   i;
-      for (i=Jdb_screen::height()-1, addr=virt; i>0; i--)
+      for (i=Jdb_screen::height() - 1, addr = virt; i > 0; i--)
 	{
 	  char stat_str[4] = { "   " };
 
@@ -180,7 +181,7 @@ Jdb_disasm::show(Address virt, Space *task, int level)
 #endif
 
 	  printf("%s" L4_PTR_FMT "%s%s  ",
-	         addr == enter_addr ? Jdb::esc_emph : "", addr, stat_str,
+	         addr == enter_addr ? Jdb::esc_emph : "", addr.addr(), stat_str,
 		 addr == enter_addr ? "\033[m" : "");
 	  show_disasm_line(
 #ifdef CONFIG_BIT32
@@ -188,7 +189,7 @@ Jdb_disasm::show(Address virt, Space *task, int level)
 #else
 			   -58,
 #endif
-			   addr, task);
+			   addr);
 	}
 
 #if 0
@@ -205,7 +206,7 @@ Jdb_disasm::show(Address virt, Space *task, int level)
                            "",
 #endif
 			   "<" L4_PTR_FMT "> %s  %-9s  %-7s",
-			   virt, Jdb::space_to_str(task, s, sizeof(s)),
+			   virt.addr(), Jdb::space_to_str(virt.space(), s, sizeof(s)),
 #if 0
                            line_mode[(int)show_lines],
 #else
@@ -231,19 +232,19 @@ Jdb_disasm::show(Address virt, Space *task, int level)
 	  break;
 	case KEY_CURSOR_DOWN:
 	case 'j':
-	  disasm_offset(virt, +1, task);
+	  disasm_offset(virt, +1);
 	  break;
 	case KEY_CURSOR_UP:
 	case 'k':
-	  disasm_offset(virt, -1, task);
+	  disasm_offset(virt, -1);
 	  break;
 	case KEY_PAGE_UP:
 	case 'K':
-	  disasm_offset(virt, -Jdb_screen::height()+2, task);
+	  disasm_offset(virt, -Jdb_screen::height() + 2);
 	  break;
 	case KEY_PAGE_DOWN:
 	case 'J':
-	  disasm_offset(virt, +Jdb_screen::height()-2, task);
+	  disasm_offset(virt, +Jdb_screen::height() - 2);
 	  break;
 #if 0
 	case ' ':
@@ -285,11 +286,8 @@ Jdb_disasm::action(int cmd, void *&args, char const *&fmt, int &next_char) overr
       if (code == Jdb_module::NOTHING
 	  && Jdb_input_task_addr::space() != 0)
 	{
-	  Address addr  = Jdb_input_task_addr::addr();
-	  Space *space = Jdb_input_task_addr::space();
-	  if (addr == (Address)-1)
-	    addr = Jdb::get_entry_frame(Jdb::current_cpu)->ip();
-	  return show(addr, space, 0) ? GO_BACK : NOTHING;
+	  auto addr = Jdb_input_task_addr::address();
+	  return show(addr, 0) ? GO_BACK : NOTHING;
 	}
 
       return code;
@@ -328,14 +326,14 @@ IMPLEMENTATION[jdb_disasm && !arm && !mips]:
 
 static
 bool
-Jdb_disasm::disasm_offset_decr(Address &addr, Space *task)
+Jdb_disasm::disasm_offset_decr(Jdb_address &addr)
 {
-  Address test_addr = addr - 64;
-  Address work_addr;
+  Jdb_address test_addr = addr - 64;
+  Jdb_address work_addr;
   for (;;)
     {
       work_addr = test_addr;
-      if (!disasm_line(0, 0, test_addr, task))
+      if (!disasm_line(0, 0, test_addr))
         return false;
       if (test_addr >= addr)
         break;
@@ -346,9 +344,9 @@ Jdb_disasm::disasm_offset_decr(Address &addr, Space *task)
 
 static
 bool
-Jdb_disasm::disasm_offset_incr(Address &addr, Space *task)
+Jdb_disasm::disasm_offset_incr(Jdb_address &addr)
 {
-  if (!disasm_line(0, 0, addr, task))
+  if (!disasm_line(0, 0, addr))
     return false;
 
   return true;
@@ -359,7 +357,7 @@ IMPLEMENTATION[jdb_disasm && (arm || mips)]:
 
 static
 bool
-Jdb_disasm::disasm_offset_decr(Address &addr, Space *)
+Jdb_disasm::disasm_offset_decr(Jdb_address &addr)
 {
   addr -= 4;
   return true;
@@ -367,7 +365,7 @@ Jdb_disasm::disasm_offset_decr(Address &addr, Space *)
 
 static
 bool
-Jdb_disasm::disasm_offset_incr(Address &addr, Space *)
+Jdb_disasm::disasm_offset_incr(Jdb_address &addr)
 {
   addr += 4;
   return true;
