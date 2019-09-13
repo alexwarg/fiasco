@@ -8,7 +8,6 @@ IMPLEMENTATION[ia32,amd64]:
 #include "cpu.h"
 #include "gdt.h"
 #include "idt.h"
-#include "jdb_symbol.h"
 #include "perf_cnt.h"
 #include "pic.h"
 #include "space.h"
