@@ -2,6 +2,7 @@
 
 #include "console.h"
 #include <uart_base.h>
+#include <std_macros.h>
 
 /**
  * Platform independent UART stub.
@@ -75,7 +76,7 @@ public:
 
   Mword get_attributes() const override
   {
-    return UART | IN | OUT;
+    return UART | OUT | (IS_ENABLED(CONFIG_INPUT) ? IN : 0);
   }
 
 protected:

@@ -10,11 +10,14 @@ public:
   {
     Console::stdout = this;
     Console::stderr = this;
-    Console::stdin  = this;
+    if constexpr (IS_ENABLED(CONFIG_INPUT))
+      Console::stdin  = this;
   }
   static void init();
 
+#ifdef CONFIG_INPUT
   int  getchar(bool blocking = true) override;
+#endif
 
   static Kconsole *console() FIASCO_CONST
   { return _c; }

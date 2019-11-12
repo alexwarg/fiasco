@@ -11,7 +11,11 @@
 
 Static_object<Kconsole> Kconsole::_c;
 
+void
+Kconsole::init()
+{ _c.construct(); }
 
+#ifdef CONFIG_INPUT
 int Kconsole::getchar(bool blocking)
 {
   if (check_input_ignore())
@@ -33,11 +37,6 @@ int Kconsole::getchar(bool blocking)
         Proc::pause();
     }
 }
-
-
-void
-Kconsole::init()
-{ _c.construct(); }
 
 int
 Kconsole::check_input_ignore()
@@ -75,4 +74,5 @@ Kconsole::check_input_ignore()
 
   return 0;
 }
+#endif
 

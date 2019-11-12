@@ -271,6 +271,7 @@ Kernel_uart::init(Init_mode init_mode)
 void
 Kernel_uart::enable_rcv_irq()
 {
+#ifdef CONFIG_INPUT
   static Kuart_irq uart_irq;
   auto mgr = Irq_mgr::mgr;
   if (mgr->alloc(&uart_irq, mgr->legacy_override(uart()->irq())))
@@ -278,5 +279,6 @@ Kernel_uart::enable_rcv_irq()
       uart_irq.unmask();
       uart()->enable_rx_irq(true);
     }
+#endif
 }
 

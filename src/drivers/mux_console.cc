@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-
+#ifdef CONFIG_INPUT
 int
 Mux_console::getchar(bool blocking)
 {
@@ -54,6 +54,7 @@ Mux_console::char_avail() const
       }
   return ret;
 }
+#endif
 
 void
 Mux_console::list_consoles()

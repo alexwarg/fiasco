@@ -8,9 +8,12 @@
 
 #include <kdb_ke.h>
 #include <kernel_console.h>
-#include <vkey.h>
 
 #include <globalconfig.h>
+
+#ifdef CONFIG_INPUT
+#include <vkey.h>
+#endif
 
 #ifdef CONFIG_JDB
 #include <logdefs.h>
@@ -116,12 +119,14 @@ private:
   static void handle_timer_noack(Thread *t, Cpu_number cpu)
   {
     System_clock::update(cpu);
+#ifdef CONFIG_INPUT
     if (   (cpu == Cpu_number::boot_cpu())
         && (Config::esc_hack || (Config::serial_esc == Config::SERIAL_ESC_NOIRQ)))
       {
         if (Kconsole::console()->char_avail() > 0 && !Vkey::check_())
           kdb_ke("SERIAL_ESC");
       }
+#endif
     log_timer();
     t->handle_timer_interrupt();
   }

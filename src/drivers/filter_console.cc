@@ -1,5 +1,7 @@
 #include "filter_console.h"
 
+#ifdef CONFIG_INPUT
+
 #include <cstdio>
 #include <cstring>
 #include <cctype>
@@ -141,4 +143,4 @@ Filter_console::getchar(bool blocking)
   return -1;
 }
 
-
+#endif

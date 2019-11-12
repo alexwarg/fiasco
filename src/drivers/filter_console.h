@@ -7,8 +7,8 @@
 class Filter_console : public Console
 {
 public:
-  explicit Filter_console(Console *o, int to = 10)
-  : Console(ENABLED), _o(o), csi_timeout(to), state(NORMAL), pos(0), arg(0)
+  explicit Filter_console(Console *o)
+  : Console(ENABLED), _o(o)
   {
     if (o->failed())
       fail();
@@ -16,6 +16,24 @@ public:
 
   ~Filter_console() = default;
 
+  int write(char const *str, size_t len) override
+  {
+    if (!(_o->state() & OUTENABLED))
+      return len;
+
+    return _o->write(str, len);
+  }
+
+  Mword get_attributes() const override
+  {
+    return _o->get_attributes();
+  }
+
+private:
+  Console *const _o;
+
+#ifdef CONFIG_INPUT
+public:
   int char_avail() const override
   {
     if (!(_o->state() & INENABLED))
@@ -27,24 +45,10 @@ public:
     return _o->char_avail();
   }
 
-  int write(char const *str, size_t len) override
-  {
-    if (!(_o->state() & OUTENABLED))
-      return len;
-
-    return _o->write(str, len);
-  }
-
   int getchar(bool b = true) override;
 
-  Mword get_attributes() const override
-  {
-    return _o->get_attributes();
-  }
-
 private:
-  Console *const _o;
-  int csi_timeout;
+  int csi_timeout = 10;
   enum State
   {
     NORMAL,
@@ -52,10 +56,10 @@ private:
     GOT_CSI, ///< control sequence introducer
   };
 
-  State state;
-  unsigned pos;
+  State state = NORMAL;
+  unsigned pos = 0;
   char ibuf[32];
-  unsigned arg;
+  unsigned arg = 0;
   int args[4];
 
   int getchar_timeout(unsigned timeout)
@@ -68,5 +72,6 @@ private:
       Delay::delay(1);
     return c;
   }
+#endif
 };
 

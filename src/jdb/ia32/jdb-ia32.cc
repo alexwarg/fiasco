@@ -42,7 +42,6 @@
 #include <timer.h>
 #include <timer_tick.h>
 #include <trap_state.h>
-#include <vkey.h>
 #include <watchdog.h>
 #include <paging_bits.h>
 

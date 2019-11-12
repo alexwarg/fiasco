@@ -87,8 +87,12 @@ CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc ipi.cc \
 			      context_mp.cc
 
-CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc vkey_serial.cc
-CXXSRC_KERNEL-a$(CONFIG_SERIAL) += vkey_noserial.cc
+CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc
+ifeq ($(CONFIG_SERIAL)$(CONFIG_INPUT),yy)
+CXXSRC_KERNEL += vkey_serial.cc
+else
+CXXSRC_KERNEL += vkey_noserial.cc
+endif
 CXXSRC_KERNEL-y$(CONFIG_PERF_CNT) += perf_cnt_dummy.cc
 
 CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)

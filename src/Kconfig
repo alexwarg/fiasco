@@ -409,9 +409,17 @@ config UNIT_TEST
 	help
 	  Compile fiasco unit tests.
 
+config INPUT
+	bool "Console input support"
+	default y if HAS_SERIAL_OPTION
+	help
+	  Enable input specific code in the kernel. Disable this option if you
+	  do not require input support.
+
 menuconfig JDB
 	bool "JDB kernel debugger"
 	default y
+	select INPUT
 	help
 	  The powerful Fiasco kernel debugger.
 

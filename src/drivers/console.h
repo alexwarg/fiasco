@@ -71,6 +71,7 @@ public:
     return -1; /* no input */
   }
 
+#ifdef CONFIG_INPUT
   /**
    * Is input available?
    *
@@ -83,7 +84,7 @@ public:
   {
     return -1; /* unknown */
   }
-
+#endif
 
   /**
    * Console attributes.

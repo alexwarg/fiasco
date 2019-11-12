@@ -24,7 +24,7 @@ public:
   };
 
   Mux_console()
-  : Console(ENABLED), _next_getchar(-1), _items(0)
+  : Console(ENABLED)
   {}
 
 
@@ -36,9 +36,6 @@ public:
 
     return len;
   }
-
-  int getchar(bool blocking = true) override;
-  int char_avail() const override;
 
   /**
    * deliver attributes of all subconsoles.
@@ -54,17 +51,6 @@ public:
     return attr;
   }
 
-  void getchar_chance()
-  {
-    for (int i = 0; i < _items; ++i)
-      if (   _cons[i] && (_cons[i]->state() & INENABLED)
-          && _cons[i]->char_avail() == 1)
-        {
-          int c = _cons[i]->getchar(false);
-          if (c != -1 && _next_getchar == -1)
-            _next_getchar = c;
-        }
-  }
 
   /**
    * Register a console to be multiplexed.
@@ -201,10 +187,29 @@ public:
   void list_consoles();
 
 private:
-  int     _next_getchar;
-  int     _items;
+  int _items = 0;
   Console *_cons[SIZE];
 
+#ifdef CONFIG_INPUT
+public:
+  int getchar(bool blocking = true) override;
+  int char_avail() const override;
+
+  void getchar_chance()
+  {
+    for (int i = 0; i < _items; ++i)
+      if (   _cons[i] && (_cons[i]->state() & INENABLED)
+          && _cons[i]->char_avail() == 1)
+        {
+          int c = _cons[i]->getchar(false);
+          if (c != -1 && _next_getchar == -1)
+            _next_getchar = c;
+        }
+  }
+
+private:
+  int _next_getchar = -1;
   int check_input_ignore();
+#endif
 };
 
