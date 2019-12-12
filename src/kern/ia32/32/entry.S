@@ -170,20 +170,20 @@ in_slowtrap:
 	addl	$4*2,%esp		/* Pop trap number and error code */
 3:	iret
 
-	/* set ifxups for segemnt pops */
+	/* set fixups for segemnt pops */
 	ASM_KEX 1b, 11f
 	ASM_KEX 2b, 22f
 	ASM_KEX 3b, 0, .Liret_exception_handler
 
 	.section .fixup, "ax?", @progbits
 	.align 4
-11:	movl	$13, (10 * 4)(%esp)
-	mov	%gs, (11 * 4)(%esp)
+11:	movl	$13, (10 * 4)(%esp) /* GP as trap number */
+	mov	%gs, (11 * 4)(%esp) /* segment selector as error code */
 	jmp .Lslowtrap_push_ds
 
 	.align 4
-22:	movl	$13, (10 * 4)(%esp)
-	mov	%fs, (11 * 4)(%esp)
+22:	movl	$13, ( 9 * 4)(%esp) /* GP as trap number */
+	mov	%fs, (10 * 4)(%esp) /* segment selector as error code */
 	jmp .Lslowtrap_push_gs
 
 	/* write new return address below trap state.
