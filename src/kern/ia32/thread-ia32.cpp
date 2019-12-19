@@ -206,7 +206,6 @@ PUBLIC
 int
 Thread::handle_slow_trap(Trap_state *ts)
 {
-  Address ip;
   int from_user = ts->cs() & 3;
 
   if (EXPECT_FALSE(ts->_trapno == 0xee)) //debug IPI
@@ -290,8 +289,6 @@ Thread::handle_slow_trap(Trap_state *ts)
     default:
       break;
     }
-
-  ip = ts->ip();
 
   _recover_jmpbuf = 0;
 
