@@ -17,6 +17,7 @@
 #include <kernel_console.h>
 #include <paging_bits.h>
 #include <arch_time_source.h>
+#include <jdb_power_safe-arch.h>
 
 #include <ctype.h>
 
@@ -1162,7 +1163,7 @@ Jdb::stop_all_cpus(Cpu_number current_cpu)
 	{
 	  Mem::mp_mb();
           remote_func.cpu(current_cpu).monitor_exec(current_cpu);
-	  Proc::pause();
+          Jdb_power_safe::other_cpu_halt_in_jdb();
 	}
 
       // This CPU defacto left JDB
@@ -1198,6 +1199,7 @@ Jdb::leave_wait_for_others()
 	  if (cpu_in_jdb(c))
 	    {
 	      // notify other CPU
+              Jdb_power_safe::wakeup_other_cpus_from_jdb(c);
               Jdb::remote_func.cpu(c).reset_mp_safe();
 //	      printf("JDB: wait for CPU[%2u] to leave\n", cxx::int_value<Cpu_number>(c));
 	      all_there = false;
