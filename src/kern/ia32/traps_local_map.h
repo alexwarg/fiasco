@@ -26,8 +26,8 @@ update_local_map(Context *c, Address pfa, Mword /*error_code*/)
   if (EXPECT_FALSE((idx > 255) && idx != 259))
     return false;
 
-  auto *m = Kmem::pte_map();
-  if (EXPECT_FALSE(m->operator [](idx)))
+  auto &m = *Kmem::pte_map();
+  if (EXPECT_FALSE(m[idx]))
     return false;
 
   auto s = Kmem::current_cpu_udir()->walk(Virt_addr(pfa), 0);
@@ -36,7 +36,7 @@ update_local_map(Context *c, Address pfa, Mword /*error_code*/)
   if (EXPECT_FALSE(!r.is_valid()))
     return false;
 
-  m->set_bit(idx);
+  m.set_bit(idx);
   *s.pte = *r.pte;
   return true;
 }
