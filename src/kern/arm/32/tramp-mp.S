@@ -258,7 +258,8 @@ defvar _tramp_mp_startup_mair1
 
 	adr	sp, .LC_tramp_mp_init_stack
 	add	sp, #(.LC_tramp_mp_init_stack_top-.LC_tramp_mp_init_stack)
-	nop
+	// 8-byte stack alignment for passing 'long long' values on the stack
+	bic	sp, sp, #7
 	ldr	pc, [pc, #-4]
 
 	.long BOOT_AP_CPU
