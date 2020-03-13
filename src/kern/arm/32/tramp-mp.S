@@ -246,7 +246,8 @@ _tramp_mp_virt:
 	// TLB flush
 	mcr p15, 0, r0, c8, c7, 0
 
-	adr	sp, _tramp_mp_init_stack_top
+	adr	sp, _tramp_mp_init_stack
+	add	sp, #(_tramp_mp_init_stack_top-_tramp_mp_init_stack)
 	nop
 	ldr	pc, [pc, #-4]
 
@@ -255,6 +256,7 @@ _tramp_mp_virt:
 .long 0
 defvar _tramp_mp_spinlock
 
+	.p2align 3
 _tramp_mp_init_stack:
 	.space 1024
 _tramp_mp_init_stack_top:
