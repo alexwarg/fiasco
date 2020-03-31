@@ -40,7 +40,7 @@ public:
   static void run_on_shutdown_hooks(Cpu_number cpu)
   {
     List &l = _list.cpu(cpu);
-    for (auto const &c: l)
+    for (auto const &&c: l)
       c->pm_on_shutdown(cpu);
   }
 
