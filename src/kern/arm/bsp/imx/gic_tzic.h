@@ -121,6 +121,9 @@ public:
   void softint_bcast(unsigned) override            {}
   void softint_phys(unsigned, Unsigned64) override {}
 
+  void cpu_deinit(Cpu_number) override
+  {}
+
   unsigned gic_version() const override { return 2; }
 
   void set_pending_irq(unsigned idx, Unsigned32 val) override

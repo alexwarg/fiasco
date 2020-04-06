@@ -60,6 +60,7 @@ public:
 
   void find(Address base, Unsigned64 mpidr, Cpu_number cpu);
   void cpu_init();
+  void disable();
 
   void mask(Mword pin)
   {

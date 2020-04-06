@@ -9,7 +9,20 @@ DEFINE_PER_CPU Per_cpu<Gic_redist> Gic_v3::_redist;
 void
 Gic_v3::set_cpu(Mword pin, Cpu_number cpu)
 {
-  _dist.set_cpu(pin, ::Cpu::cpus.cpu(cpu).phys_id(), Version());
+  _dist.set_cpu(pin, _dist.cpu_to_irouter_entry(cpu), Version());
+}
+
+void
+Gic_v3::migrate_irqs(Cpu_number from, Cpu_number to)
+{
+  unsigned num = hw_nr_irqs();
+  Unsigned64 val_from = _dist.cpu_to_irouter_entry(from);
+
+  for (unsigned i = 0; i < num; ++i)
+    if (_dist.irouter(i) == val_from)
+      set_cpu(i, to);
+
+  migrate_lpis(from, to);
 }
 
 void
@@ -88,6 +101,13 @@ Gic_v3::cpu_local_init_lpi(Cpu_number cpu)
     for (unsigned i = 0; i < _num_its; i++)
       _its_vec[i]->cpu_init(cpu, _redist.cpu(cpu));
   }
+}
+
+void
+Gic_v3::migrate_lpis(Cpu_number from, Cpu_number to)
+{
+  if (_has_lpis)
+    _msi->Gic_msi::migrate_lpis(from, to);
 }
 
 Irq_base *

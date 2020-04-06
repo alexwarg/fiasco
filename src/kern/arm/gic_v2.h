@@ -45,12 +45,29 @@ public:
   void softint_phys(unsigned m, Unsigned64 target) override
   { _dist.softint(target | m); }
 
+  void redist_disable(Cpu_number)
+  {}
+
   void cpu_local_init(Cpu_number cpu)
   {
     _dist.cpu_init_v2();
     // initialize our CPU target using the target register from some
     // CPU local IRQ
     _sgi_template[cpu] = _dist.itarget(0) & 0x00ff0000;
+  }
+
+  void migrate_irqs(Cpu_number from, Cpu_number to)
+  {
+    unsigned num = hw_nr_irqs();
+    Unsigned8 val_from = _sgi_template[from] >> 16;
+
+    for (unsigned i = 0; i < num; i += 4)
+      {
+        Unsigned32 itarget = _dist.itarget(i);
+        for (unsigned j = 0; j < 4; ++j, itarget >>= 8)
+          if ((itarget & 0xff) == val_from)
+            set_cpu(i + j, to);
+      }
   }
 
   void set_cpu(Mword pin, Cpu_number cpu) override

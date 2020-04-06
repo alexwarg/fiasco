@@ -34,3 +34,16 @@ Gic_msi::msg(Mword pin, Unsigned64 src, Irq_mgr::Msi_info *inf)
     err = -L4_err::ERange;
   return err;
 }
+
+void
+Gic_msi::migrate_lpis(Cpu_number from, Cpu_number to)
+{
+  for (Mword pin = 0; pin < _lpis.size(); ++pin)
+    {
+      Lpi &lpi = _lpis[pin];
+      auto g = lock_guard(lpi.lock);
+      if (lpi.cpu() == from)
+        lpi.set_cpu(to);
+    }
+}
+

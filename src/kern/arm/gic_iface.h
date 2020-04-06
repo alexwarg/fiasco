@@ -13,6 +13,7 @@ public:
   // init / pm only functions (rarely used)
   virtual void softint_bcast(unsigned m) = 0;
   virtual void softint_phys(unsigned m, Unsigned64 target) = 0;
+  virtual void cpu_deinit(Cpu_number cpu) = 0;
   virtual unsigned gic_version() const = 0;
   virtual void set_pending_irq(unsigned, Unsigned32)  = 0;
 

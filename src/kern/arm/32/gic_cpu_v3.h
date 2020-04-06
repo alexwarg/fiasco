@@ -3,6 +3,7 @@
 #include "gic_cpu_v3_generic.h"
 #include "mem_unit.h"
 #include "globalconfig.h"
+#include <mem.h>
 
 class Gic_cpu_v3 : public Gic_cpu_v3_generic
 {
@@ -31,6 +32,12 @@ public:
     asm volatile("mcr p15, 0, %0, c12, c12, 7" : : "r" (1)); // ICC_IGRPEN1
 
     pmr(Cpu_prio_val);
+  }
+
+  void disable()
+  {
+    asm volatile("mcr p15, 0, %0, c12, c12, 7" : : "r" (0)); // ICC_IGRPEN1
+    Mem::isb();
   }
 
   void ack(Unsigned32 irq)

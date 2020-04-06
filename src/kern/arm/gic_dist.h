@@ -190,12 +190,11 @@ private:
 
 public:
   // GICv3 implementation ------------------------------------
-  void set_cpu(Mword pin, Cpu_phys_id cpu, V3)
+  void set_cpu(Mword pin, Unsigned64 irouter_entry, V3)
   {
     if (pin < 32) // GICD_IROUTER<0..31> are reserved
       return;
-    Unsigned64 v = cxx::int_value<Cpu_phys_id>(cpu);
-    _dist.write_non_atomic<Unsigned64>(v & 0xff00ffffff, GICD_IROUTER + 8 * pin);
+    _dist.write_non_atomic<Unsigned64>(irouter_entry, GICD_IROUTER + 8 * pin);
   }
 
   void sync_rwp(V3)
@@ -210,10 +209,15 @@ public:
 
   void init_targets(unsigned max, V3)
   {
-    Unsigned64 t = Cpu::mpidr() & 0xff00ffffff;
+    Unsigned64 t = Cpu::mpidr() & 0xff00ffffffULL;
 
     for (unsigned i = 32; i < max; ++i)
       _dist.write_non_atomic<Unsigned64>(t, GICD_IROUTER + 8 * i);
+  }
+
+  Unsigned32 irouter(unsigned num)
+  {
+    return _dist.read_non_atomic<Unsigned64>(GICD_IROUTER + num * 8);
   }
 
   void enable(V3)
@@ -237,6 +241,12 @@ public:
   Unsigned32 itarget(unsigned offset)
   {
     return _dist.read<Unsigned32>(GICD_ITARGETSR + offset);
+  }
+
+  static Unsigned64 cpu_to_irouter_entry(Cpu_number cpu)
+  {
+    auto phys_id = cxx::int_value<Cpu_phys_id>(Cpu::cpus.cpu(cpu).phys_id());
+    return Unsigned64{phys_id & 0xff000000} << 8 | (phys_id & 0xffffff);
   }
 
   explicit Gic_dist(Address dist_base)

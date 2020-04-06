@@ -72,6 +72,21 @@ Gic_redist::cpu_init()
     _redist.write<Unsigned32>(0xa0a0a0a0, GICR_IPRIORITYR0 + g);
 }
 
+void
+Gic_redist::disable()
+{
+  unsigned val = _redist.read<Unsigned32>(GICR_WAKER);
+  val |= GICR_WAKER_Processor_sleep;
+  _redist.write<Unsigned32>(val, GICR_WAKER);
+
+  L4::Poll_timeout_counter i(5000000);
+  while (i.test(!(_redist.read<Unsigned32>(GICR_WAKER) & GICR_WAKER_Children_asleep)))
+    Proc::pause();
+
+  if (i.timed_out())
+    panic("GIC: redistributor still active\n");
+}
+
 #ifdef CONFIG_ARM_GIC_MSI
 
 #include <gic_dist.h>

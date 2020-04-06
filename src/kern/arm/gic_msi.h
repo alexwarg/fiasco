@@ -114,6 +114,8 @@ private:
 
     Irq_base *irq() const { return _irq; }
 
+    Cpu_number cpu() const { return _cpu; }
+
   private:
     void reset()
     {
@@ -198,6 +200,7 @@ public:
   }
 
   int msg(Mword pin, Unsigned64 src, Irq_mgr::Msi_info *inf) override;
+  void migrate_lpis(Cpu_number from, Cpu_number to);
 
 #ifdef CONFIG_JDB
   char const *chip_type() const override

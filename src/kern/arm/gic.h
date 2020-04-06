@@ -101,6 +101,13 @@ public:
     _cpu.enable();
   }
 
+  void cpu_deinit(Cpu_number cpu) override
+  {
+    self()->migrate_irqs(cpu, Cpu_number::boot_cpu());
+    self()->redist_disable(cpu);
+    _cpu.disable();
+  }
+
   void acknowledge_locked(unsigned irq)
   {
     _cpu.ack(irq);

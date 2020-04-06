@@ -61,6 +61,11 @@ public:
   void softint_phys(unsigned m, Unsigned64 target) override
   { _cpu.softint(target | (m << 24)); }
 
+  void redist_disable(Cpu_number cpu)
+  { _redist.cpu(cpu).disable(); }
+
+  void migrate_irqs(Cpu_number from, Cpu_number to);
+
   void cpu_local_init(Cpu_number cpu)
   {
     auto &rd = _redist.cpu(cpu);
@@ -103,6 +108,7 @@ private:
 
   void init_lpi();
   void cpu_local_init_lpi(Cpu_number cpu);
+  void migrate_lpis(Cpu_number from, Cpu_number to);
 
 public:
   enum { Have_lpis = 1 };
@@ -126,6 +132,7 @@ public:
 private:
   void init_lpi() {}
   void cpu_local_init_lpi(Cpu_number) {}
+  void migrate_lpis(Cpu_number, Cpu_number) {}
 
 public:
   enum { Have_lpis = 0 };

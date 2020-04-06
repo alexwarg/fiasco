@@ -51,6 +51,9 @@ struct Ext_gic : Gic
     g[cpu]->Gic_v2::init_ap(cpu, resume);
   }
 
+  void cpu_deinit(Cpu_number) override
+  {}
+
   unsigned gic_version() const override
   { return 2; }
 
