@@ -200,8 +200,8 @@ switch_from_el3_to_el1()
 
   Mword sctlr_el3;
   Mword sctlr_el1;
-  asm ("mrs %0, sctlr_el3" : "=r"(sctlr_el3));
-  asm ("mrs %0, sctlr_el1" : "=r"(sctlr_el1));
+  asm volatile ("mrs %0, sctlr_el3" : "=r"(sctlr_el3));
+  asm volatile ("mrs %0, sctlr_el1" : "=r"(sctlr_el1));
   sctlr_el1 &= ~(Cpu::Sctlr_m | Cpu::Sctlr_a | Cpu::Sctlr_sa
                  | Cpu::Sctlr_ee | Cpu::Sctlr_wxn
                  | Cpu::Sctlr_uma);
@@ -377,7 +377,7 @@ Bootstrap::leave_el3()
 
   Mword sctlr_el3;
   Mword sctlr;
-  asm ("mrs %0, sctlr_el3" : "=r"(sctlr_el3));
+  asm volatile ("mrs %0, sctlr_el3" : "=r"(sctlr_el3));
   sctlr = Cpu::Sctlr_generic & ~Cpu::Sctlr_m;
   sctlr |= sctlr_el3 & Cpu::Sctlr_ee;
   asm volatile ("dsb sy" : : : "memory");
