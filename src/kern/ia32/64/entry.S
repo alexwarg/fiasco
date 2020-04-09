@@ -468,7 +468,7 @@ alien_sys_call:
 	ALIEN_SYSCALL syscall="call *(%rax)" trap_target=_slowtraps
 
 	.section ".entry.text.upcalls", "ax", @progbits
-	.p2align
+	.p2align 3
 	.globl	leave_by_trigger_exception
 leave_by_trigger_exception:
         sub $40, %rsp
@@ -481,7 +481,7 @@ leave_by_trigger_exception:
 
 #define OFS__VCPU_STATE__REGS_IRET (VAL__SIZEOF_TRAP_STATE - 40 + OFS__VCPU_STATE__TREX)
 
-	.p2align
+	.p2align 3
 	.globl	leave_by_vcpu_upcall
 leave_by_vcpu_upcall:
 	sub	$40,%rsp		/* clean up stack from previous
@@ -545,7 +545,7 @@ leave_by_vcpu_upcall:
         movq $(GDT_CODE_USER | SEL_PL_U), 8(%rsp)
 	SAFE_IRET
 
-	.p2align
+	.p2align 3
 	.globl	vcpu_resume
 vcpu_resume:
 	mov %rdi, %rsp
@@ -560,7 +560,7 @@ vcpu_resume:
 	andq	$0x7f, 8(%rsp)			// if entered using syscall
 	SAFE_IRET
 
-        .p2align
+        .p2align 3
         .globl  leave_and_kill_myself
 leave_and_kill_myself:
         // make space for a dummy Return_frame accessible by the callee
