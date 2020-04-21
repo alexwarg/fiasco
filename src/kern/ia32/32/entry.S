@@ -615,7 +615,7 @@ GATE_INITTAB_END
 
 #define OFS__VCPU_STATE__REGS_IRET (VAL__SIZEOF_TRAP_STATE - 20 + OFS__VCPU_STATE__TREX)
 
-	.p2align
+	.p2align 3
 	.globl	leave_by_trigger_exception
 leave_by_trigger_exception:
 	subl	$12,%esp		/* clean up stack from previous
@@ -628,7 +628,7 @@ leave_by_trigger_exception:
 	pusha
 	jmp	.L_slowtraps
 
-	.p2align
+	.p2align 3
 	.globl	leave_by_vcpu_upcall
 leave_by_vcpu_upcall:
 	subl	$12,%esp		/* clean up stack from previous
@@ -680,7 +680,7 @@ leave_by_vcpu_upcall:
 	movl $EFLAGS_IF, 8(%esp)
 	iret
 	
-	.p2align
+	.p2align 3
 	.globl	vcpu_resume
 vcpu_resume:
 	mov %eax, %esp
@@ -703,7 +703,7 @@ fast_ret_from_irq:
 	andl	$0x7f, 4(%esp)			// if entered using sysenter
 	iret
 
-        .p2align
+        .p2align 3
         .globl  leave_and_kill_myself
 leave_and_kill_myself:
         // make space for a dummy Return_frame accessible by the callee
