@@ -324,12 +324,6 @@ Jdb_kobject::obj_description(String_buffer *buffer, String_buffer *help_text,
     }
 }
 
-void
-Jdb_kobject::print_kobj(Kobject *o)
-{
-  printf("%p [type=%s]", o, cxx::dyn_typeid(o)->name);
-}
-
 Jdb_module::Action_code
 Jdb_kobject::action(int cmd, void *&, char const *&, int &)
 {
@@ -344,7 +338,6 @@ Jdb_kobject::action(int cmd, void *&, char const *&, int &)
           Kobject *k = Kobject::from_dbg(i);
           if (!handle_obj(k, 0))
             printf("Kobj w/o handler: ");
-          print_kobj(k);
           puts("");
         }
       return NOTHING;

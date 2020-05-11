@@ -75,7 +75,7 @@ public:
       if (t->type == cxx::dyn_typeid(o))
         return t->name;
 
-    return cxx::dyn_typeid(o)->name;
+    return "no type name";
   }
 
   bool is_global() const { return !kobj_type; }
