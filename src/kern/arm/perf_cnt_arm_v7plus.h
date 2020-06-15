@@ -66,10 +66,12 @@ namespace Perf_cnt_arm_v7plus
     return evtsel();
   }
 
-  inline void init_cpu()
+  inline void init_cpu(Cpu const &cpu)
   {
     if (!is_avail())
       return;
+
+    ccnt_init(cpu);
 
     _nr_counters = (pmcr() >> 11) & 0x1f;
     pmcr(PMNC_ENABLE | PMNC_PERF_RESET | PMNC_CNT_RESET);

@@ -29,7 +29,7 @@ namespace Perf_cnt
   inline bool is_avail() { return true; }
   inline void set_event_type(int, int) {}
 
-  inline void init_cpu() {}
+  inline void init_cpu(Cpu const &) {}
   Unsigned64 read_cycle_cnt();
   unsigned long read_counter(int counter_nr);
   unsigned mon_event_type(int nr);
@@ -50,6 +50,6 @@ namespace Perf_cnt
            Mword *event, Mword *user, Mword *kern, Mword *edge);
   int setup_pmc(Mword slot, Mword event, Mword, Mword, Mword);
 
-  inline void init_ap(Cpu const &)
-  { init_cpu(); }
+  inline void init_ap(Cpu const &cpu)
+  { init_cpu(cpu); }
 }

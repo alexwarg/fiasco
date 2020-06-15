@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+class Cpu;
+
 // ARM64 PMUv3 register access via MRS/MSR system register instructions.
 namespace Perf_cnt_arm_v7plus_64
 {
@@ -37,6 +39,8 @@ namespace Perf_cnt_arm_v7plus_64
 
   inline Mword ccnt()
   { Mword val; asm volatile ("mrs %0, PMCCNTR_EL0" : "=r" (val)); return val; }
+
+  void ccnt_init(Cpu const &cpu);
 
   inline void evtsel(Mword val)
   { asm volatile ("msr PMXEVTYPER_EL0, %0" : : "r" (val)); }

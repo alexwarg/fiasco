@@ -156,7 +156,7 @@ CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if
 CXXSRC_KERNEL		+= cpu-arm.cc mem_layout-arm.cc kmem-generic.cc
 CXXSRC_KERNEL += mem_layout-arm-$(BITS).cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += cpu-arm-32.cc
-CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arm_v7plus.cc perf_cnt_arm.cc
+CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arm_v7plus.cc perf_cnt_arm_v7plus_bits.cc perf_cnt_arm.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SVE) += fpu_arm_sve.cc
 
 

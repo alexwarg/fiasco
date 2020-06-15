@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+class Cpu;
+
 // ARM32 PMUv1/v2 register access via CP15 coprocessor instructions.
 namespace Perf_cnt_arm_v7plus_32
 {
@@ -41,6 +43,8 @@ namespace Perf_cnt_arm_v7plus_32
 
   inline Mword ccnt()
   { Mword val; asm volatile ("mrc p15, 0, %0, c9, c13, 0" : "=r" (val)); return val; }
+
+  void ccnt_init(Cpu const &cpu);
 
   inline void evtsel(Mword val)
   { asm volatile ("mcr p15, 0, %0, c9, c13, 1" : : "r" (val)); }

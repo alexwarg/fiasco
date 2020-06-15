@@ -29,15 +29,9 @@ static Mword read_counter_1() { return Perf_cnt_arch_mpcore::read_counter(1); }
 static FIASCO_INIT_CPU
 void init()
 {
-  Perf_cnt_arch_mpcore::init_cpu();
+  Perf_cnt_arch_mpcore::init_cpu(*Cpu::boot_cpu());
   read_pmc[0] = read_counter_0;
   read_pmc[1] = read_counter_1;
-}
-
-FIASCO_INIT_CPU_SFX(arm_perf_init_ap)
-void init_ap()
-{
-  Perf_cnt_arch_mpcore::init_cpu();
 }
 
 char const *perf_type()

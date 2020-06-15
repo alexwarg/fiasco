@@ -141,6 +141,12 @@ public:
     return pmuv >= 1 && pmuv != 0xf;
   }
 
+  bool has_pmuv2() const
+  {
+    unsigned pmuv = (self()->_cpu_id._dfr0 >> 8) & 0xf;
+    return pmuv >= 1 && pmuv != 0xf;
+  }
+
   static Mword midr() noexcept
   {
     Mword m;

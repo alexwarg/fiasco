@@ -296,6 +296,11 @@ public:
       return false;
   }
 
+  bool has_pmuv2() const
+  {
+    unsigned pmuv = (self()->_cpu_id._dfr0 >> 24) & 0xf;
+    return pmuv >= 2 && pmuv != 0xf;
+  }
 
   static Unsigned32 sctlr;
 

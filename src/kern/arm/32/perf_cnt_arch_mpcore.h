@@ -62,7 +62,7 @@ namespace Perf_cnt_arch_mpcore
 
   inline char const *perf_type() { return "MP-C"; }
 
-  inline void init_cpu()
+  inline void init_cpu(Cpu const &)
   {
     static_assert(Scu::Available, "No SCU available in this configuration");
     Cpu::scu.r[MON_CONTROL] = 0xff << 16 | MON_CONTROL_RESET | MON_CONTROL_ENABLE;

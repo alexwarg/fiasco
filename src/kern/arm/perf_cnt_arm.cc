@@ -4,6 +4,7 @@
 #include <cstdio>
 #include "static_init.h"
 #include "tb_entry.h"
+#include <cpu.h>
 
 namespace Perf_cnt
 {
@@ -66,7 +67,7 @@ void combine_event(Mword evntsel, Mword, Mword *event)
 static FIASCO_INIT_CPU
 void init()
 {
-  init_cpu();
+  init_cpu(*Cpu::boot_cpu());
 
   read_pmc[0] = read_counter_0;
   read_pmc[1] = read_counter_1;
