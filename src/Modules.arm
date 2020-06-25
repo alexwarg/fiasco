@@ -57,6 +57,15 @@ NOOPT			+= $(patsubst %.o, %, $(OBJ_DRIVERS))
 ALWAYS_INLINE           += mem
 
 #
+# LIBREGEX subsystem (only for Jdb)
+#
+LIBREGEX	:= libregex.a
+VPATH		+= lib/regex
+PRIVATE_INCDIR	+= lib/regex
+CSRC_LIBREGEX	:= rx.c
+NOOPT		+= $(patsubst %.o, %, $(OBJ_LIBREGEX))
+
+#
 # MINILIBC Subsystem
 #
 MINILIBC	:= libc.a
@@ -228,14 +237,6 @@ jdb_trace_set_IMPL	:= jdb_trace_set jdb_trace_set-arm \
 jdb_bp_IMPL		:= jdb_bp-arm
 thread_IMPL		+= thread-debug
 
-ifneq ($(CONFIG_JDB_GZIP),)
- ifneq ($(wildcard $(srcdir)/lib/gzip),)
-  SUBSYSTEMS		+= LIBGZIP
-  KERNEL_EXTRA_LIBS	+= $(LIBGZIP)
-  INTERFACES_KERNEL	+= jdb_gzip
- endif
-endif
-
 endif
 
 CXXSRC_KERNEL		:= kernel_panic.cc libc_backend_lock.cc
@@ -293,9 +294,6 @@ ifeq ("$(CONFIG_JDB_DISASM)","y")
   KERNEL_EXTRA_LIBS   += $(LIBDISASM)
   PREPROCESS_PARTS    += jdb_disasm
 
-  SUBSYSTEMS          += SIMPLEMALLOC
-  KERNEL_EXTRA_LIBS   += $(SIMPLEMALLOC)
-
   LIBDISASM           := libdisasm.a
   VPATH               += lib/disasm lib/disasm/capstone
   PRIVATE_INCDIR      += lib/disasm lib/disasm/capstone/include
@@ -320,6 +318,29 @@ ifeq ("$(CONFIG_JDB_DISASM)","y")
     CFLAGS_AArch64Disassembler = -Wno-unused-parameter
     CFLAGS_AArch64InstPrinter  = -Wno-bad-function-cast -Wno-unused-parameter
   endif
+endif
+
+ifeq ("$(CONFIG_JDB)","y")
+
+ifneq ($(CONFIG_JDB_GZIP),)
+ ifneq ($(wildcard $(srcdir)/lib/gzip),)
+  SUBSYSTEMS		+= LIBGZIP
+  KERNEL_EXTRA_LIBS	+= $(LIBGZIP)
+  INTERFACES_KERNEL	+= jdb_gzip
+ endif
+endif
+
+ifneq ($(wildcard $(srcdir)/lib/regex),)
+  SUBSYSTEMS            += LIBREGEX
+  KERNEL_EXTRA_LIBS     += $(LIBREGEX)
+  PREPROCESS_PARTS      += jdb_regex
+endif
+
+ifneq ($(filter LIBREGEX LIBDISASM,$(SUBSYSTEMS)),)
+  SUBSYSTEMS          += SIMPLEMALLOC
+  KERNEL_EXTRA_LIBS   += $(SIMPLEMALLOC)
+endif
+
 endif
 
 #
