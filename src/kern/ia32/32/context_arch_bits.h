@@ -73,7 +73,7 @@ protected:
   void arch_bits_setup_utcb_ptr(void *utcb_ptr)
   {
     _cpu_state.gdt_user_entries[_cpu_state.gdt_user_entries.Num]
-      = Gdt_entry((Address)utcb_ptr, 0xfffff, Gdt_entry::Accessed,
+      = Gdt_entry((Address)utcb_ptr - 28, 0xfffff, Gdt_entry::Accessed,
                   Gdt_entry::Data_write, Gdt_entry::User, Gdt_entry::Code_undef,
                   Gdt_entry::Size_32, Gdt_entry::Granularity_4k);
     _cpu_state.gs = _cpu_state.fs = Gdt::gdt_utcb | 3;
