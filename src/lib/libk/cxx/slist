@@ -52,6 +52,7 @@ private:
 
 public:
   typedef typename Base::Iterator Iterator;
+  typedef typename Base::Const_iterator Const_iterator;
 
   S_list(S_list &&o) : Base(static_cast<Base&&>(o)) {}
 
@@ -87,6 +88,13 @@ public:
     if (this->_f)
       this->_f = this->_f->_n;
     return r;
+  }
+
+  void insert(T *e, Const_iterator const &pred)
+  {
+    S_list_item *p = *pred;
+    e->_n = p->_n;
+    p->_n = e;
   }
 
   void insert(T *e, Iterator const &pred)
