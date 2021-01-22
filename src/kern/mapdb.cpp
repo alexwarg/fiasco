@@ -461,7 +461,7 @@ Treemap_ops::mem_size(Treemap const *submap) const
       if (!f->has_mappings())
         continue;
 
-      // recurse dow through all page sizes
+      // recurse down through all page sizes
       if (Treemap *s = f->find_submap(f->insertion_head()))
         quota += mem_size(s);
     }
@@ -485,7 +485,7 @@ Treemap_ops::grant(Treemap *submap, Space *old_space,
       if (!f->has_mappings())
         continue;
 
-      // recurse dow through all page sizes
+      // recurse down through all page sizes
       if (Treemap *s = f->find_submap(f->insertion_head()))
         Treemap_ops(submap->_page_shift).grant(s, old_space, new_space,
                     subva + key);
@@ -516,7 +516,6 @@ Treemap_ops::flush(Treemap *submap,
         subframe->erase_tree(submap->owner());
       else
         {
-          // FIXME: do we have to check for subframe->tree != 0 here ?
           submap->flush(subframe,
                         page_offs_begin > offs_begin
                           ? Pcnt(0)
