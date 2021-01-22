@@ -366,8 +366,7 @@ Physframe::alloc(size_t size)
 #endif
 }
 
-inline NOEXPORT
-       NEEDS["mapping_tree.h", Treemap::operator delete]
+inline NOEXPORT NEEDS["mapping_tree.h", Treemap::operator delete]
 void
 Physframe::del(Space *owner)
 {
@@ -386,8 +385,7 @@ Physframe::del(Space *owner)
     }
 }
 
-inline NOEXPORT
-       NEEDS["mapping_tree.h", Treemap::operator delete]
+inline NOEXPORT NEEDS["mapping_tree.h", <cassert>]
 Physframe::~Physframe()
 {
   assert (!has_mappings());
