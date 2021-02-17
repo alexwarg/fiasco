@@ -368,7 +368,7 @@ Kmem::init_mmu()
   dev_map.init();
   Kmem_alloc *const alloc = Kmem_alloc::allocator();
 
-  kdir = (Kpdir*)alloc->alloc(Config::PAGE_SHIFT);
+  kdir = (Kpdir*)alloc->alloc(Config::page_order());
   memset (kdir, 0, Config::PAGE_SIZE);
 
   unsigned long cpu_features = Cpu::get_features();
@@ -594,7 +594,7 @@ Kmem::setup_global_cpu_structures(bool superpages)
   if (tss_mem_size < Config::PAGE_SIZE)
     tss_mem_size = Config::PAGE_SIZE;
 
-  tss_mem_pm = Mem_layout::pmem_to_phys(alloc->unaligned_alloc(tss_mem_size));
+  tss_mem_pm = Mem_layout::pmem_to_phys(alloc->alloc(Bytes(tss_mem_size)));
 
   printf("Kmem:: TSS mem at %lx (%uBytes)\n", tss_mem_pm, tss_mem_size);
 
@@ -647,7 +647,7 @@ PUBLIC static FIASCO_INIT_CPU
 void
 Kmem::init_cpu(Cpu &cpu)
 {
-  cxx::Simple_alloc cpu_mem_vm(Kmem_alloc::allocator()->unaligned_alloc(1024), 1024);
+  cxx::Simple_alloc cpu_mem_vm(Kmem_alloc::allocator()->alloc(Bytes(1024)), 1024);
   if (Config::Warn_level >= 2)
     printf("Allocate cpu_mem @ %p\n", cpu_mem_vm.block());
 
@@ -776,7 +776,8 @@ void
 Kmem::setup_global_cpu_structures(bool superpages)
 {
   (void)superpages;
-  io_bitmap_delimiter = (Unsigned8 *)Kmem_alloc::allocator()->alloc(Config::PAGE_SHIFT);
+  io_bitmap_delimiter = (Unsigned8 *)Kmem_alloc::allocator()
+                                        ->alloc(Config::page_order());
 }
 
 PUBLIC static FIASCO_INIT_CPU
@@ -787,7 +788,7 @@ Kmem::init_cpu(Cpu &cpu)
 
   unsigned const cpu_dir_sz = sizeof(Kpdir) * Num_cpu_dirs;
 
-  Kpdir *cpu_dir = (Kpdir*)alloc->unaligned_alloc(cpu_dir_sz);
+  Kpdir *cpu_dir = (Kpdir*)alloc->alloc(Bytes(cpu_dir_sz));
   memset (cpu_dir, 0, cpu_dir_sz);
 
   auto src = kdir->walk(Virt_addr(0), 0);
@@ -899,7 +900,7 @@ Kmem::init_cpu(Cpu &cpu)
                false, pdir_alloc(alloc));
 
   unsigned const cpu_mx_sz = Config::PAGE_SIZE;
-  void *cpu_mx = alloc->unaligned_alloc(cpu_mx_sz);
+  void *cpu_mx = alloc->alloc(Bytes(cpu_mx_sz));
   auto cpu_mx_pa = Mem_layout::pmem_to_phys(cpu_mx);
 
   cpu_dir->map(cpu_mx_pa, Virt_addr(Kentry_cpu_page), Virt_size(cpu_mx_sz),
