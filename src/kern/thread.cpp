@@ -592,7 +592,7 @@ Thread::kill() override
       return true;
     }
 
-  drq(Thread::handle_remote_kill, 0, Drq::Any_ctxt);
+  drq(Thread::handle_remote_kill, 0);
 
   return true;
 }
