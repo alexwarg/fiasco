@@ -1,0 +1,7 @@
+# vim:set ft=make:
+
+OBJECTS_LIBUART    += uart_16550.o uart_16550_dw.o
+LIBUART_UART_FLAGS += $(call LIBUART_UART, 16550_dw)
+RAM_PHYS_BASE      := 0x10000000
+
+CXXSRC_KERNEL      += pfc-arm-armadaa8k.cc pic-arm-armadaa8k.cc armadaa8k_pf.cc
