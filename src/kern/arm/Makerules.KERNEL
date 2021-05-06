@@ -70,4 +70,4 @@ Symbols: $(KERNEL).image
 
 
 clean-KERNEL:
-
+	$(VERBOSE)$(RM) $(foreach s,bin rel sym,bootstrap.$(KERNEL).$(s))
