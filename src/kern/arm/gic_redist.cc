@@ -6,14 +6,14 @@
 #include "panic.h"
 #include "poll_timeout_counter.h"
 #include <cstdio>
+#include <arithmetic.h>
 
 void
 Gic_redist::find(Address base, Unsigned64 mpidr, Cpu_number cpu)
 {
   unsigned o = 0;
-  Unsigned64 gicr_typer;
-  Unsigned64 typer_aff =   ((mpidr & 0x0000ffffff) << (32 - 0))
-                         | ((mpidr & 0xff00000000) << (56 - 32));
+  Typer gicr_typer;
+  Unsigned64 typer_aff = (mpidr & 0x0000ffffff) | ((mpidr & 0xff00000000) >> 8);
   do
     {
       Mmio_register_block r(base + o);
@@ -23,8 +23,8 @@ Gic_redist::find(Address base, Unsigned64 mpidr, Cpu_number cpu)
         // No GICv3 and no GICv4
         break;
 
-      gicr_typer = r.read<Unsigned64>(GICR_TYPER);
-      if ((gicr_typer & 0xffffffff00000000) == typer_aff)
+      gicr_typer.raw = r.read<Unsigned64>(GICR_TYPER);
+      if (gicr_typer.affinity() == typer_aff)
         {
           printf("CPU%d: GIC Redistributor at %lx for 0x%llx\n",
                  cxx::int_value<Cpu_number>(cpu),
@@ -34,10 +34,10 @@ Gic_redist::find(Address base, Unsigned64 mpidr, Cpu_number cpu)
         }
 
       o += 2 * GICR_frame_size;
-      if (gicr_typer & GICR_TYPER_VLPIS)
+      if (gicr_typer.vlpis())
         o += 2 * GICR_frame_size;
     }
-  while (!(gicr_typer & GICR_TYPER_Last));
+  while (!gicr_typer.last());
 
   panic("GIC: Did not find a redistributor for CPU%d\n",
         cxx::int_value<Cpu_number>(cpu));
@@ -72,3 +72,61 @@ Gic_redist::cpu_init()
     _redist.write<Unsigned32>(0xa0a0a0a0, GICR_IPRIORITYR0 + g);
 }
 
+#ifdef CONFIG_ARM_GIC_MSI
+
+#include <gic_dist.h>
+
+unsigned Gic_redist::num_lpi_intid_bits;
+Gic_mem::Mem_chunk Gic_redist::lpi_config_table;
+
+void
+Gic_redist::init_lpi(unsigned num_lpis)
+{
+  num_lpi_intid_bits = cxx::log2u(Gic_dist::Lpi_intid_base + num_lpis - 1) + 1;
+  num_lpis = (1U << num_lpi_intid_bits) - Gic_dist::Lpi_intid_base;
+
+  lpi_config_table = Gic_mem::alloc_mem(num_lpis, GICR_config_table_align);
+  if (!lpi_config_table.is_valid())
+    panic("GIC: Failed to allocate redistributor LPI configuration table.\n");
+  // Initialize all LPIs with default priority and disabled.
+  memset(lpi_config_table.virt_ptr(), GICR_lpi_default_prio, num_lpis);
+}
+
+void
+Gic_redist::cpu_init_lpi()
+{
+  Typer gicr_typer(_redist.read<Unsigned64>(GICR_TYPER));
+  if (!gicr_typer.plpis())
+    panic("GIC: Redistributor does not support physical LPIs.\n");
+
+  Ctrl ctrl(_redist.read<Unsigned32>(GICR_CTRL));
+  if (ctrl.enable_lpis())
+    panic("GIC: LPI support of redistributor is already enabled.\n");
+
+  Propbaser propbaser;
+  propbaser.id_bits() = num_lpi_intid_bits - 1;
+  propbaser.pa() = lpi_config_table.phys_addr();
+  lpi_config_table.setup_reg(_redist.r<Unsigned64>(GICR_PROPBASER), propbaser);
+  lpi_config_table.make_coherent();
+
+  // Each bit in the pending table represents the pending state of one LPI.
+  // The first 1KB is reserved for the pending state of SGIs/PPIs/SPIs.
+  unsigned lpi_pending_table_size = (1U << num_lpi_intid_bits) / 8;
+  // Zero initialize pending table, no LPIs are pending.
+  _lpi_pending_table = Gic_mem::alloc_zmem(lpi_pending_table_size,
+                                           GICR_pending_table_align);
+  if (!_lpi_pending_table.is_valid())
+    panic("GIC: Failed to allocate redistributor LPI pending table.\n");
+
+  Pendbaser pendbaser;
+  pendbaser.pa() = _lpi_pending_table.phys_addr();
+  pendbaser.ptz() = 1;
+  _lpi_pending_table.setup_reg(_redist.r<Unsigned64>(GICR_PENDBASER), pendbaser);
+  _lpi_pending_table.make_coherent();
+
+  // Enable LPI support for redistributor.
+  ctrl.enable_lpis() = 1;
+  _redist.write<Unsigned32>(ctrl.raw, GICR_CTRL);
+}
+
+#endif

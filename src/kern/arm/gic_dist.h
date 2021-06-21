@@ -13,6 +13,7 @@
 #include <processor.h>
 #include <warn.h>
 
+#include <cxx/bitfield>
 #include <arithmetic.h>
 
 class Gic_dist
@@ -46,15 +47,29 @@ public:
     // covers GICv2 and GICv3
     Size              = 0x10000,
 
-    MXC_TZIC_PRIOMASK = 0x00c,
-    MXC_TZIC_SYNCCTRL = 0x010,
-    MXC_TZIC_PND      = 0xd00,
-
     GICD_CTRL_ENABLE         = 0x01,
     GICD_CTRL_ENGR1          = 0x01,
     GICD_CTRL_ENGR1A         = 0x02,
     GICD_CTRL_ARE_NS         = 0x10,
     GICD_CTRL_RWP            = 0x80000000,
+
+    Lpi_intid_base = 8192,
+  };
+
+  struct Typer
+  {
+    Unsigned32 raw;
+    explicit Typer(Unsigned32 v) : raw(v) {}
+    CXX_BITFIELD_MEMBER_RO( 0,  4, num_spis, raw);
+    CXX_BITFIELD_MEMBER_RO(10, 10, security_extn, raw);
+  };
+
+  struct Typer_v3 : public Typer
+  {
+    explicit Typer_v3(Unsigned32 v) : Typer(v) {}
+    CXX_BITFIELD_MEMBER_RO(11, 15, num_lpis, raw);
+    CXX_BITFIELD_MEMBER_RO(17, 17, lpis, raw);
+    CXX_BITFIELD_MEMBER_RO(19, 23, id_bits, raw);
   };
 
   Address get_mmio_base() const
@@ -78,10 +93,35 @@ public:
   void sync_rwp(V2)
   {}
 
+  unsigned hw_nr_lpis()
+  {
+    Typer_v3 t = typer<Typer_v3>();
+    if (!t.lpis())
+      return 0;
+
+    Unsigned64 num_intids = 1ULL << (t.id_bits() + 1);
+    if (num_intids <= Lpi_intid_base)
+      return 0;
+
+    unsigned num_lpis = t.num_lpis();
+    if (num_lpis == 0)
+      // Number of supported LPIs is indicated by GICD_TYPER.IDbits.
+      return num_intids - Lpi_intid_base;
+
+    // Number of supported LPIs = 2^(num_lpis+1)
+    return 1U << (num_lpis + 1);
+  }
+
   void set_cpu(Mword pin, Unsigned8 target, V2)
   {
     // GICD_ITARGETSR<0..31> are read-only
     _dist.write<Unsigned8>(target, GICD_ITARGETSR + pin);
+  }
+
+  template <typename TYPER> inline
+  TYPER typer()
+  {
+    return TYPER(_dist.read<Unsigned32>(GICD_TYPER));
   }
 
   void enable(V2)
@@ -205,12 +245,12 @@ public:
 
   unsigned hw_nr_irqs()
   {
-    return ((_dist.read<Unsigned32>(GICD_TYPER) & 0x1f) + 1) * 32;
+    return (typer<Typer>().num_spis() + 1) * 32;
   }
 
   bool has_sec_ext()
   {
-    return _dist.read<Unsigned32>(GICD_TYPER) & (1 << 10);
+    return typer<Typer>().security_extn();
   }
 
   void softint(Unsigned32 sgi)

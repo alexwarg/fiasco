@@ -5,6 +5,9 @@
 #include "gic_cpu_v3.h"
 #include "globalconfig.h"
 
+class Gic_msi;
+class Gic_its;
+
 class Gic_v3 : public Gic_mixin<Gic_v3, Gic_cpu_v3>
 {
   using Gic = Gic_mixin<Gic_v3, Gic_cpu_v3>;
@@ -76,4 +79,33 @@ public:
                          | ((mpidr & (Unsigned64)0xff00ff0000) << 16);
   }
 
+#ifdef CONFIG_ARM_GIC_MSI
+private:
+  enum
+  {
+    // Limit the number of supported LPIs to avoid excessive memory
+    // allocations.
+    Max_num_lpis = 512,
+  };
+
+  bool _has_lpis = false;
+  Gic_its *_its = nullptr;
+  Gic_msi *_msi = nullptr;
+
+  void init_lpi(Address its_base);
+  void cpu_local_init_lpi(Cpu_number cpu);
+
+public:
+  /**
+   * \return The MSI Irq_chip for this GIC, might be nullptr if the GIC does not
+   *         support LPIs or MSI support has been disabled in the Kconfig.
+   */
+  Gic_msi *msi_chip() const { return _msi; }
+  Irq_base *irq(Mword pin) const override;
+
+#else
+public:
+  Gic_msi *msi_chip() const { return _msi; }
+
+#endif
 };

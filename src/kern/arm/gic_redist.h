@@ -6,6 +6,12 @@
 #include <warn.h>
 #include <processor.h>
 #include "l4_types.h"
+#include <cxx/bitfield>
+
+#include <globalconfig.h>
+#ifdef CONFIG_ARM_GIC_MSI
+#include <gic_mem.h>
+#endif
 
 class Gic_redist
 {
@@ -20,6 +26,8 @@ public:
     GICR_TYPER        = 0x0008,
     GICR_STATUSR      = 0x0010,
     GICR_WAKER        = 0x0014,
+    GICR_PROPBASER    = 0x0070,
+    GICR_PENDBASER    = 0x0078,
     GICR_PIDR2        = 0xffe8,
     GICR_SGI_BASE     = 0x10000,
     GICR_IGROUPR0     = GICR_SGI_BASE + 0x0080,
@@ -34,11 +42,19 @@ public:
 
     GICR_frame_size   = 0x10000,
 
-    GICR_TYPER_VLPIS  = 1 << 1,
-    GICR_TYPER_Last   = 1 << 4,
-
     GICR_WAKER_Processor_sleep = 1 << 1,
     GICR_WAKER_Children_asleep = 1 << 2,
+  };
+
+  struct Typer
+  {
+    Unsigned64 raw;
+    Typer() = default;
+    explicit Typer(Unsigned64 v) : raw(v) {}
+    CXX_BITFIELD_MEMBER_RO( 0,  0, plpis, raw);
+    CXX_BITFIELD_MEMBER_RO( 1,  1, vlpis, raw);
+    CXX_BITFIELD_MEMBER_RO( 4,  4, last, raw);
+    CXX_BITFIELD_MEMBER_RO(32, 63, affinity, raw);
   };
 
   void find(Address base, Unsigned64 mpidr, Cpu_number cpu);
@@ -89,6 +105,23 @@ public:
     return 0;
   }
 
+#ifdef CONFIG_ARM_GIC_MSI
+  static void init_lpi(unsigned num_lpis);
+  void cpu_init_lpi();
+
+  static void enable_lpi(Mword lpi, bool enabled)
+  {
+    Unsigned8 *lpi_config = lpi_config_table.virt_ptr<Unsigned8>() + lpi;
+    write_now(lpi_config, GICR_lpi_default_prio | enabled);
+    lpi_config_table.make_coherent(lpi_config, lpi_config + 1);
+  }
+
+  Address get_base() const
+  {
+    return _redist.get_mmio_base();
+  }
+#endif
+
 private:
   void sync_rwp()
   {
@@ -99,4 +132,49 @@ private:
     if (EXPECT_FALSE(i.timed_out()))
       WARNX(Error, "GICR: RWP timed out!\n");
   }
+
+  enum
+  {
+    GICR_lpi_default_prio = 0xa0,
+
+    GICR_config_table_align  = 0x1000,
+    GICR_pending_table_align = 0x10000,
+  };
+
+  struct Ctrl
+  {
+    Unsigned32 raw;
+    Ctrl() = default;
+    explicit Ctrl(Unsigned32 v) : raw(v) {}
+    CXX_BITFIELD_MEMBER          ( 0,  0, enable_lpis, raw);
+  };
+
+  struct Propbaser
+  {
+    Unsigned64 raw;
+    Propbaser() = default;
+    explicit Propbaser(Unsigned64 v) : raw(v) {}
+    CXX_BITFIELD_MEMBER          ( 0,  4, id_bits, raw);
+    CXX_BITFIELD_MEMBER          ( 7,  9, cacheability, raw);
+    CXX_BITFIELD_MEMBER          (10, 11, shareability, raw);
+    CXX_BITFIELD_MEMBER_UNSHIFTED(12, 51, pa, raw);
+  };
+
+  struct Pendbaser
+  {
+    Unsigned64 raw;
+    Pendbaser() = default;
+    explicit Pendbaser(Unsigned64 v) : raw(v) {}
+    CXX_BITFIELD_MEMBER          ( 7,  9, cacheability, raw);
+    CXX_BITFIELD_MEMBER          (10, 11, shareability, raw);
+    CXX_BITFIELD_MEMBER_UNSHIFTED(16, 51, pa, raw);
+    CXX_BITFIELD_MEMBER          (62, 62, ptz, raw);
+  };
+
+#ifdef CONFIG_ARM_GIC_MSI
+  Gic_mem::Mem_chunk _lpi_pending_table;
+
+  static unsigned num_lpi_intid_bits;
+  static Gic_mem::Mem_chunk lpi_config_table;
+#endif
 };
