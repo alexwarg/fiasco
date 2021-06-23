@@ -20,6 +20,11 @@ public:
   static void init_system_clock();
 
   /**
+   * Initialize the system clock for application CPUs.
+   */
+  static void init_system_clock_ap(Cpu_number cpu);
+
+  /**
    * Advances the system clock.
    */
   static void update_system_clock(Cpu_number cpu);
@@ -49,6 +54,11 @@ private:
 IMPLEMENTATION:
 
 Cpu_number Timer::_cpu;
+
+IMPLEMENT_DEFAULT
+void
+Timer::init_system_clock_ap(Cpu_number)
+{}
 
 IMPLEMENT_DEFAULT
 void
