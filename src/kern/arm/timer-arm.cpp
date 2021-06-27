@@ -4,6 +4,8 @@ INTERFACE [arm]:
 
 EXTENSION class Timer
 {
+  friend class Kip_test;
+
 public:
   static Irq_chip::Mode irq_mode();
   static Unsigned32 get_scaler_ts_to_ns() { return _scaler_ts_to_ns; }

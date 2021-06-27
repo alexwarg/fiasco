@@ -21,6 +21,8 @@ INTERFACE[ia32,amd64]:
 EXTENSION
 class Cpu
 {
+  friend class Kip_test;
+
 public:
 
   enum Vendor
