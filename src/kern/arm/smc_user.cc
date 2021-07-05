@@ -6,12 +6,12 @@
 
 struct Smc_user : Kobject_h<Smc_user, Kobject>
 {
-  L4_msg_tag kinvoke(L4_obj_ref, L4_fpage::Rights rights,
+  L4_msg_tag kinvoke(L4_obj_ref, L4_fpage::Rights,
                      Syscall_frame *f, Utcb const *in, Utcb *out)
   {
     L4_msg_tag tag = f->tag();
 
-    if (!Ko::check_basics(&tag, rights, L4_msg_tag::Label_smc))
+    if (!Ko::check_basics(&tag, L4_msg_tag::Label_smc))
       return tag;
 
     if (f->tag().words() != 8)

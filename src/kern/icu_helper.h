@@ -239,7 +239,7 @@ public:
   {
     L4_msg_tag tag = f->tag();
 
-    if (!Ko::check_basics(&tag, rights, L4_msg_tag::Label_irq))
+    if (!Ko::check_basics(&tag, L4_msg_tag::Label_irq))
       return tag;
 
     return icu_invoke(ref, rights, f, in, out);

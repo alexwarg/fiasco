@@ -61,7 +61,7 @@ public:
         return commit_result(0);
       }
 
-    if (!Ko::check_basics(&tag, rights, L4_msg_tag::Label_debugger))
+    if (!Ko::check_basics(&tag, L4_msg_tag::Label_debugger))
       return tag;
 
     unsigned op =  access_once(&r_msg->values[0]);
