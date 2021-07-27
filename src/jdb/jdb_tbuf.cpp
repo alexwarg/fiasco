@@ -443,5 +443,5 @@ Jdb_tbuf::set_entry_status(Tb_log_table_entry const *e,
                            unsigned char value)
 {
   *(e->patch) = value;
-  Mem_unit::make_coherent_to_pou(e->patch);
+  Mem_unit::make_coherent_to_pou(e->patch, sizeof(*(e->patch)));
 }

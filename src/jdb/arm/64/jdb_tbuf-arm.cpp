@@ -36,6 +36,6 @@ Jdb_tbuf::set_entry_status(Tb_log_table_entry const *e,
 {
   Unsigned32 *insn = reinterpret_cast<Unsigned32 *>(e->patch);
   *insn = (*insn & ~(0xffffU << 5)) | (((Unsigned32)value) << 5);
-  Mem_unit::make_coherent_to_pou(insn);
+  Mem_unit::make_coherent_to_pou(insn, 4);
 }
 
