@@ -32,21 +32,12 @@ public:
   unsigned hw_nr_irqs()
   { return _dist.hw_nr_irqs(); }
 
-  void disable_locked(unsigned irq)
-  { _dist.disable_irq(irq); }
-
   void enable_locked(unsigned irq)
   { _dist.enable_irq(irq); }
 
   void set_pending_irq(unsigned idx, Unsigned32 val) override
   {
     _dist.set_pending_irq(idx, val);
-  }
-
-  void mask(Mword pin) override
-  {
-    assert (cpu_lock.test());
-    disable_locked(pin);
   }
 
   void unmask(Mword pin) override
@@ -110,10 +101,15 @@ public:
     _cpu.enable();
   }
 
-
   void acknowledge_locked(unsigned irq)
   {
     _cpu.ack(irq);
+  }
+
+  void mask(Mword pin) override
+  {
+    assert (cpu_lock.test());
+    disable_locked(pin);
   }
 
   void mask_and_ack(Mword pin) override
@@ -173,6 +169,8 @@ public:
 
   unsigned get_pmr() override { return _cpu.pmr(); }
   void set_pmr(unsigned prio) override { _cpu.pmr(prio); }
+  void disable_locked(unsigned irq)
+  { _dist.disable_irq(typename IMPL::Version(), irq); }
 
 protected:
   unsigned init_dist(int nr_irqs_override = -1)

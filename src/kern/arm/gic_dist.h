@@ -9,6 +9,10 @@
 #include "l4_types.h"
 #include "lock_guard.h"
 
+#include <poll_timeout_counter.h>
+#include <processor.h>
+#include <warn.h>
+
 #include <arithmetic.h>
 
 class Gic_dist
@@ -20,7 +24,7 @@ private:
 public:
   using V2 = cxx::integral_constant<int, 2>;
   using V3 = cxx::integral_constant<int, 3>;
-  enum
+  enum : unsigned
   {
     GICD_CTRL         = 0x000,
     GICD_TYPER        = 0x004,
@@ -50,9 +54,7 @@ public:
     GICD_CTRL_ENGR1          = 0x01,
     GICD_CTRL_ENGR1A         = 0x02,
     GICD_CTRL_ARE_NS         = 0x10,
-
-    MXC_TZIC_CTRL_NSEN       = 1 << 16,
-    MXC_TZIC_CTRL_NSENMASK   = 1 << 31,
+    GICD_CTRL_RWP            = 0x80000000,
   };
 
   Address get_mmio_base() const
@@ -72,6 +74,9 @@ public:
     for (unsigned i = 32; i < max; i += 4)
       _dist.write<Unsigned32>(t, GICD_ITARGETSR + i);
   }
+
+  void sync_rwp(V2)
+  {}
 
   void set_cpu(Mword pin, Unsigned8 target, V2)
   {
@@ -153,6 +158,16 @@ public:
     _dist.write<Unsigned64>(v & 0xff00ffffff, GICD_IROUTER + 8 * pin);
   }
 
+  void sync_rwp(V3)
+  {
+    L4::Poll_timeout_counter i(1U << 27); // ~134ms @ 1GHz
+    while (i.test(_dist.read<Unsigned32>(GICD_CTRL) & GICD_CTRL_RWP))
+      Proc::pause();
+
+    if (EXPECT_FALSE(i.timed_out()))
+      WARNX(Error, "GICD: RWP timed out!\n");
+  }
+
   void init_targets(unsigned max, V3)
   {
     Unsigned64 t = Cpu::mpidr() & 0xff00ffffff;
@@ -203,9 +218,11 @@ public:
     _dist.write<Unsigned32>(sgi, GICD_SGIR);
   }
 
-  void disable()
+  template<typename VERSION>
+  void disable(VERSION)
   {
     _dist.write<Unsigned32>(0, GICD_CTRL);
+    sync_rwp(VERSION());
   }
 
   void init_prio(unsigned from, unsigned to)
@@ -279,8 +296,12 @@ public:
       }
   }
 
-  void disable_irq(unsigned irq)
-  { _dist.write<Unsigned32>(1 << (irq % 32), GICD_ICENABLER + (irq / 32) * 4); }
+  template<typename VERSION>
+  void disable_irq(VERSION, unsigned irq)
+  {
+    _dist.write<Unsigned32>(1 << (irq % 32), GICD_ICENABLER + (irq / 32) * 4);
+    sync_rwp(VERSION());
+  }
 
   void enable_irq(unsigned irq)
   { _dist.write<Unsigned32>(1 << (irq % 32), GICD_ISENABLER + (irq / 32) * 4); }
@@ -290,7 +311,7 @@ public:
   {
     _lock.init();
 
-    disable();
+    disable(VERSION());
 
     unsigned num = hw_nr_irqs();
     if (nr_irqs_override != -1)
