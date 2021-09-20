@@ -135,6 +135,11 @@ public:
       }
   }
 
+  static void copy_state(Fpu_state *to, Fpu_state const *from)
+  {
+    memcpy(to, from, state_size());
+  }
+
   static void save_state(Fpu_state *s)
   {
     assert (s);

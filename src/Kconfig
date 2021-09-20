@@ -40,6 +40,9 @@ config HAS_SYNC_CLOCK
 config VIRTUAL_SPACE_IFACE
 	bool
 
+config FPU_ALLOC_TYPED
+	bool
+
 menu "Target configuration"
 
 choice

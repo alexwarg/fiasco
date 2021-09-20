@@ -75,12 +75,29 @@ public:
     Cptr_el2_tfp        = 1UL << 10, // Trap advanced SIMD and floating-point
     Cptr_el2_tta        = 1UL << 20, // Trap accesses to trace registers
 
+    Cptr_el3_ez         = 1UL << 8, // Do not trap SVE instructions.
+
+    Cptr_el2_tz         = 1UL << 8, // Trap SVE instructions.
+
+    // Trap advanced SVE instructions at both EL0 and EL1.
+    Cpacr_el1_zen_full  = 3UL << 16,
+
     // Trap advanced SIMD and floating-point instructions at both EL0 and EL1.
     Cpacr_el1_fpen_full = 3UL << 20,
+
     // When we run at EL2 we have to make sure that CPACR_EL1.FPEN is 3 when
     // user-mode runs with HCR.TGE = 1, otherwise we get undefined instruction
     // exceptions instead of FPU traps into EL2.
-    Cpacr_el1_generic_hyp = Cpacr_el1_fpen_full,
+    Cpacr_el1_generic_hyp = Cpacr_el1_fpen_full
+                            | (IS_ENABLED(CONFIG_ARM_SVE) ? Cpacr_el1_zen_full : 0)
+  };
+
+  enum : Mword
+  {
+    Zcr_vl_128             = 0,
+    Zcr_vl_2048            = 15,
+    Zcr_vl_max             = Zcr_vl_2048,
+    Zcr_vl_mask            = 0xf,
   };
 
   struct has_aarch32_el1 : public Alternative_static_functor<has_aarch32_el1>
@@ -98,6 +115,9 @@ public:
     // cf. ARMv8-A Address Translation
     return addr >= 0xffff000000000000UL || addr <= 0x0000ffffffffffffUL;
   }
+
+  bool has_sve() const
+  { return ((self()->_cpu_id._pfr[0] >> 32) & 0xf) == 1; }
 
   static bool has_generic_timer() noexcept
   { return true; }
@@ -195,6 +215,16 @@ public:
             asid_bits(), Mem_unit::Asid_bits);
   }
 
+  // SVE related registers
+  static Mword zcr()
+  {
+    return zcr_el1();
+  }
+
+  static void zcr(Unsigned64 zcr)
+  {
+    return zcr_el1(zcr);
+  }
 #endif // !CONFIG_CPU_VIRT
 
 #ifdef CONFIG_CPU_VIRT
@@ -293,7 +323,48 @@ public:
     asm volatile("msr CPTR_EL2, %x0" : : "r" (Cptr_el2_generic | Cptr_el2_tta));
   }
 
+  // SVE related registers
+  static Mword zcr()
+  {
+    Unsigned64 r;
+    asm volatile (".arch_extension sve\n"
+                  "mrs %0, ZCR_EL2" : "=r"(r));
+    return r;
+  }
+
+  static void zcr(Unsigned64 zcr)
+  {
+    asm volatile (".arch_extension sve\n"
+                  "msr ZCR_EL2, %0" : : "r"(zcr));
+  }
+
 #endif // CONFIG_CPU_VIRT
+
+  // SVE related registers
+  static unsigned sve_vl()
+  {
+    Mword vl;
+    asm volatile (".arch_extension sve\n"
+                  "rdvl %0, #1" : "=r"(vl));
+    // rdvl returns the vector length in bytes, but we measure the vector length
+    // in quad-words (128-bits).
+    return vl / 16;
+  }
+
+  static Mword zcr_el1()
+  {
+    Unsigned64 r;
+    asm volatile (".arch_extension sve\n"
+                  "mrs %0, ZCR_EL1" : "=r"(r));
+    return r;
+  }
+
+  static void zcr_el1(Unsigned64 zcr)
+  {
+    asm volatile (".arch_extension sve\n"
+                  "msr ZCR_EL1, %0" : : "r"(zcr));
+  }
+
 
 };
 

@@ -5,21 +5,32 @@
 #include <fpu_state_ptr.h>
 
 #include <globalconfig.h>
+#ifdef CONFIG_ARM_SVE
+#include <fpu_arm_sve.h>
+#else
+#include <fpu_state_arm_simd.h>
+
+class Fpu_state : public Fpu_state_simd {};
+
+struct Fpu_arch_base
+{
+  static void inline init(Cpu_number, bool) {}
+
+  static unsigned state_size()
+  { return sizeof (Fpu_state); }
+
+  static void init_state(Fpu_state *fpu_regs)
+  {
+    fpu_regs->init();
+  }
+};
+
+#endif
 
 class Trap_state;
 
-class Fpu_state
+struct Fpu_arch : Fpu_arch_base
 {
-public:
-  Unsigned32 fpcr, fpsr;
-  Unsigned64 state[64]; // 32 128bit regs
-};
-
-
-struct Fpu_arch
-{
-  using Fpu_regs = Fpu_state;
-
   struct Exception_state_user
   {
   };
@@ -30,28 +41,24 @@ struct Fpu_arch
 
   static void init(Cpu_number cpu, bool resume);
 
-  static void save_state(Fpu_state *s);
-  static void restore_state(Fpu_state const *s, bool owner);
+  static void copy_state(Fpu_state *to, Fpu_state const *from)
+  {
+    to->copy(from);
+  }
 
-  static unsigned state_size()
-  { return sizeof (Fpu_regs); }
+  static void save_state(Fpu_state *s) { s->save(); }
+  static void restore_state(Fpu_state const *s, bool owner)
+  { s->restore(); (void)owner; }
 
-  static unsigned state_align()
+  constexpr static unsigned state_align()
   { return 16; }
 
 #if ! defined (CONFIG_CPU_VIRT)
-  static void init_state(Fpu_state *fpu_regs)
-  {
-    static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
-                  "Non-mword size of Fpu_regs");
-    Mem::memset_mwords(fpu_regs, 0, sizeof (*fpu_regs) / sizeof(Mword));
-  }
-
   static bool is_enabled()
   {
     Mword x;
     asm volatile ("mrs %0, CPACR_EL1" : "=r"(x));
-    return x & (Cpu::Cpacr_el1_generic_hyp);
+    return x & (Cpu::Cpacr_el1_fpen_full);
   }
 
   static void enable()
@@ -60,7 +67,7 @@ struct Fpu_arch
     asm volatile("mrs  %0, CPACR_EL1  \n"
                  "orr  %0, %0, %1     \n"
                  "msr  CPACR_EL1, %0  \n"
-                 : "=r"(t) : "I" (Cpu::Cpacr_el1_generic_hyp));
+                 : "=r"(t) : "I" (Cpu::Cpacr_el1_fpen_full));
     Mem::isb();
   }
 
@@ -70,19 +77,11 @@ struct Fpu_arch
     asm volatile("mrs  %0, CPACR_EL1  \n"
                  "bic  %0, %0, %1     \n"
                  "msr  CPACR_EL1, %0  \n"
-                 : "=r"(t) : "I" (Cpu::Cpacr_el1_generic_hyp));
+                 : "=r"(t) : "I" (Cpu::Cpacr_el1_fpen_full));
     Mem::isb();
   }
 
 #else // CONFIG_CPU_VIRT
-
-  static void init_state(Fpu_state *fpu_regs)
-  {
-    static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
-                  "Non-mword size of Fpu_regs");
-    Mem::memset_mwords(fpu_regs, 0, sizeof (*fpu_regs) / sizeof(Mword));
-    //fpu_regs->fpexc |= FPEXC_EN;
-  }
 
   static bool is_enabled()
   {

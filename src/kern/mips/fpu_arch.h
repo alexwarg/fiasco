@@ -101,6 +101,11 @@ public:
     fpu_regs->fcsr = 0;
   }
 
+  static void copy_state(Fpu_state *to, Fpu_state const *from)
+  {
+    memcpy(to, from, state_size());
+  }
+
   static bool is_enabled()
   {
     return Cp0_status::read() & Cp0_status::ST_CU1;

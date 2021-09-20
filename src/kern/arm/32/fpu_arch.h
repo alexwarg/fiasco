@@ -4,6 +4,7 @@
 #include <mem.h>
 #include <fpu_state_ptr.h>
 #include <globalconfig.h>
+#include <cstring>
 
 class Trap_state;
 
@@ -47,6 +48,11 @@ struct Fpu_arch
   };
 
   Fpsid fpsid() const { return _fpsid; }
+
+  static void copy_state(Fpu_state *to, Fpu_state const *from)
+  {
+    memcpy(to, from, state_size());
+  }
 
   static void restore_state(Fpu_state const *s, bool);
   static void save_state(Fpu_state *s);

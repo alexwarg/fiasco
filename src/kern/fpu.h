@@ -55,11 +55,6 @@ public:
   static Per_cpu<Fpu> fpu;
 
 #ifdef CONFIG_FPU
-  static void copy_state(Fpu_state *to, Fpu_state const *from)
-  {
-    memcpy(to, from, Fpu::state_size());
-  }
-
 #ifdef CONFIG_LAZY_FPU
 public:
   Context *owner() const { return _owner; }
