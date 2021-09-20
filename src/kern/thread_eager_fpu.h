@@ -37,6 +37,8 @@ public:
 
   void transfer_fpu(Thread *to) //, Trap_state *trap_state, Utcb *to_utcb)
   {
+    Fpu_alloc::ensure_compatible_state(to->quota(), to->fpu_state(), _this()->fpu_state());
+
     auto *curr = current();
     if (_this() == curr)
       Fpu::save_state(to->fpu_state().get());
