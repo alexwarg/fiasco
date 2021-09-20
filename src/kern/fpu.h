@@ -4,6 +4,7 @@
 #include <per_cpu_data.h>
 #include <types.h>
 #include <globalconfig.h>
+#include <cstring>
 
 #ifdef CONFIG_FPU
 
@@ -33,6 +34,9 @@ struct Fpu_arch
   static void restore_state(Fpu_state *)
   {}
 
+  static void copy_state(Fpu_state *, Fpu_state *)
+  {}
+
   static void disable()
   {}
 
@@ -51,6 +55,11 @@ public:
   static Per_cpu<Fpu> fpu;
 
 #ifdef CONFIG_FPU
+  void copy_state(Fpu_state *to, Fpu_state *from)
+  {
+    memcpy(to->state_buffer(), from->state_buffer(), Fpu::state_size());
+  }
+
 #ifdef CONFIG_LAZY_FPU
 public:
   Context *owner() const { return _owner; }

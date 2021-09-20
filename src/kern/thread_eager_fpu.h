@@ -43,7 +43,7 @@ public:
     else if (curr == to)
       Fpu::restore_state(_this()->fpu_state());
     else
-      memcpy(to->fpu_state()->state_buffer(), _this()->fpu_state()->state_buffer(), Fpu::state_size());
+      Fpu::copy_state(to->fpu_state(), _this()->fpu_state());
   }
 
 protected:
