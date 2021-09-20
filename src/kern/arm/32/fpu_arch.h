@@ -2,24 +2,26 @@
 
 #include <cxx/bitfield>
 #include <mem.h>
-#include <fpu_state.h>
+#include <fpu_state_ptr.h>
 #include <globalconfig.h>
 
 class Trap_state;
 
+class Fpu_state
+{
+public:
+  Mword fpexc, fpscr, fpinst, fpinst2;
+  Mword state[64];
+};
+
 struct Fpu_arch
 {
+  using Fpu_regs = Fpu_state;
   struct Exception_state_user
   {
     Mword fpexc;
     Mword fpinst;
     Mword fpinst2;
-  };
-
-  struct Fpu_regs
-  {
-    Mword fpexc, fpscr, fpinst, fpinst2;
-    Mword state[64];
   };
 
   enum
@@ -46,7 +48,7 @@ struct Fpu_arch
 
   Fpsid fpsid() const { return _fpsid; }
 
-  static void restore_state(Fpu_state *s, bool);
+  static void restore_state(Fpu_state const *s, bool);
   static void save_state(Fpu_state *s);
   static void init(Cpu_number cpu, bool resume);
 
@@ -123,7 +125,7 @@ struct Fpu_arch
   { return 4; }
 
   static void
-  save_user_exception_state(bool owner, Fpu_state *s,
+  save_user_exception_state(bool owner, Fpu_state_ptr const &s,
                             Trap_state *ts, Exception_state_user *esu);
 
 #ifdef CONFIG_CPU_VIRT
@@ -131,9 +133,8 @@ private:
   Mword _fpexc;
 
 public:
-  static void init_state(Fpu_state *s)
+  static void init_state(Fpu_state *fpu_regs)
   {
-    Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
     static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
                   "Non-mword size of Fpu_regs");
     Mem::memset_mwords(fpu_regs, 0, sizeof (*fpu_regs) / sizeof(Mword));
@@ -183,9 +184,8 @@ public:
 
 #else // CONFIG_CPU_VIRT
 
-  static void init_state(Fpu_state *s)
+  static void init_state(Fpu_state *fpu_regs)
   {
-    Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
     static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
                   "Non-mword size of Fpu_regs");
     Mem::memset_mwords(fpu_regs, 0, sizeof (*fpu_regs) / sizeof(Mword));

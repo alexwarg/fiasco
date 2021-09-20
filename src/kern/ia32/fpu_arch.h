@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cpu.h>
-#include <fpu_state.h>
+#include <fpu_state_ptr.h>
 #include <regdefs.h>
 
 #include <std_macros.h>
@@ -109,7 +109,7 @@ public:
     Cpu const &_cpu = *Cpu::boot_cpu();
     if (_cpu.features() & FEAT_FXSR)
       {
-        sse_regs *sse = reinterpret_cast<sse_regs *>(s->state_buffer());
+        sse_regs *sse = reinterpret_cast<sse_regs *>(s);
 
         memset(sse, 0, sizeof (*sse));
         sse->cwd = 0x37f;
@@ -118,14 +118,14 @@ public:
           sse->mxcsr = 0x1f80;
 
         if (_cpu.has_xsave())
-          memset(reinterpret_cast<Xsave_buffer *>(s->state_buffer())->header, 0,
+          memset(reinterpret_cast<Xsave_buffer *>(s)->header, 0,
                  sizeof (Xsave_buffer::header));
 
         static_assert(sizeof (sse_regs) == 512, "SSE-regs size not 512 bytes");
       }
     else
       {
-        fpu_regs *fpu = reinterpret_cast<fpu_regs *>(s->state_buffer());
+        fpu_regs *fpu = reinterpret_cast<fpu_regs *>(s);
 
         memset(fpu, 0, sizeof (*fpu));
         fpu->cwd = 0xffff037f;
@@ -137,7 +137,7 @@ public:
 
   static void save_state(Fpu_state *s)
   {
-    assert (s->state_buffer());
+    assert (s);
 
     // Both fxsave and fnsave are non-waiting instructions and thus
     // cannot cause exception #16 for pending FPU exceptions.
@@ -145,13 +145,13 @@ public:
     switch (_variant)
       {
       case Variant_xsave:
-        asm volatile("xsave (%2)" : : "a" (~0UL), "d" (~0UL), "r" (s->state_buffer()) : "memory");
+        asm volatile("xsave (%2)" : : "a" (~0UL), "d" (~0UL), "r" (s) : "memory");
         break;
       case Variant_fxsr:
-        asm volatile ("fxsave (%0)" : : "r" (s->state_buffer()) : "memory");
+        asm volatile ("fxsave (%0)" : : "r" (s) : "memory");
         break;
       case Variant_fpu:
-        asm volatile ("fnsave (%0)" : : "r" (s->state_buffer()) : "memory");
+        asm volatile ("fnsave (%0)" : : "r" (s) : "memory");
         break;
       }
   }
@@ -159,19 +159,19 @@ public:
   /*
    * Restore a saved FPU or SSE state
    */
-  static void restore_state(Fpu_state *s, bool owner)
+  static void restore_state(Fpu_state const *s, bool owner)
   {
-    assert (s->state_buffer());
+    assert (s);
 
     switch (_variant)
       {
       case Variant_xsave:
-        asm volatile ("xrstor (%2)" : : "a" (~0UL), "d" (~0UL), "r" (s->state_buffer()));
+        asm volatile ("xrstor (%2)" : : "a" (~0UL), "d" (~0UL), "r" (s));
         break;
       case Variant_fxsr:
           {
 #if !defined (CONFIG_WORKAROUND_AMD_FPU_LEAK)
-            asm volatile ("fxrstor (%0)" : : "r" (s->state_buffer()));
+            asm volatile ("fxrstor (%0)" : : "r" (s));
 #else
             /* The code below fixes a security leak on AMD CPUs, where
              * some registers of the FPU are not restored from the state_buffer
@@ -189,7 +189,7 @@ public:
                 "1: fildl %1      \n\t"   // dummy load which sets the
                 // affected to def. values
                 "fxrstor (%0)     \n\t"   // finally restore the state
-                : : "r" (s->state_buffer()), "m" (int_dummy) : "ax");
+                : : "r" (s), "m" (int_dummy) : "ax");
 #endif
           }
         break;
@@ -204,7 +204,7 @@ public:
         if (IS_ENABLED(CONFIG_LAZY_FPU) && !owner)
           asm volatile ("fnclex");
 
-        asm volatile ("frstor (%0)" : : "r" (s->state_buffer()));
+        asm volatile ("frstor (%0)" : : "r" (s));
         break;
       }
   }

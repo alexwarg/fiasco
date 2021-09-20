@@ -2,7 +2,7 @@
 
 #include <fpu.h>
 #include <fpu_alloc.h>
-#include <fpu_state.h>
+#include <fpu_state_ptr.h>
 
 #include <cassert>
 #include <cstring>
@@ -39,11 +39,11 @@ public:
   {
     auto *curr = current();
     if (_this() == curr)
-      Fpu::save_state(to->fpu_state());
+      Fpu::save_state(to->fpu_state().get());
     else if (curr == to)
-      Fpu::restore_state(_this()->fpu_state());
+      Fpu::restore_state(_this()->fpu_state().get());
     else
-      Fpu::copy_state(to->fpu_state(), _this()->fpu_state());
+      Fpu::copy_state(to->fpu_state().get(), _this()->fpu_state().get());
   }
 
 protected:

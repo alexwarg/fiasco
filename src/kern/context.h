@@ -4,7 +4,7 @@
 #include "clock.h"
 #include "config.h"
 #include "continuation.h"
-#include "fpu_state.h"
+#include "fpu_state_ptr.h"
 #include "globals.h"
 #include "l4_types.h"
 #include "member_offs.h"
@@ -354,9 +354,9 @@ public:
     _cpu_state.kernel_sp = sp;
   }
 
-  Fpu_state *fpu_state()
+  Fpu_state_ptr &fpu_state()
   {
-    return &_fpu_state;
+    return _fpu_state;
   }
 
   void switch_to_locked(Context *t)
@@ -593,7 +593,7 @@ private:
   Clock::Time _consumed_time;
 
   // Pointer to floating point register state
-  Fpu_state _fpu_state;
+  Fpu_state_ptr _fpu_state;
 
   // XXX Timeout for both, sender and receiver! In normal case we would have
   // to define own timeouts in Receiver and Sender but because only one

@@ -31,10 +31,10 @@ struct Fpu_arch
   static void save_state(Fpu_state *)
   {}
 
-  static void restore_state(Fpu_state *)
+  static void restore_state(Fpu_state const *)
   {}
 
-  static void copy_state(Fpu_state *, Fpu_state *)
+  static void copy_state(Fpu_state *, Fpu_state const *)
   {}
 
   static void disable()
@@ -55,9 +55,9 @@ public:
   static Per_cpu<Fpu> fpu;
 
 #ifdef CONFIG_FPU
-  void copy_state(Fpu_state *to, Fpu_state *from)
+  static void copy_state(Fpu_state *to, Fpu_state const *from)
   {
-    memcpy(to->state_buffer(), from->state_buffer(), Fpu::state_size());
+    memcpy(to, from, Fpu::state_size());
   }
 
 #ifdef CONFIG_LAZY_FPU
@@ -66,7 +66,7 @@ public:
   void set_owner(Context *owner) { _owner = owner; }
   bool is_owner(Context *owner) const { return _owner == owner; }
 
-  static void restore_state(Fpu_state *s)
+  static void restore_state(Fpu_state const *s)
   { Fpu_arch::restore_state(s, Fpu::fpu.current().owner()); }
 
 private:
@@ -74,7 +74,7 @@ private:
 
 #else // CONFIG_LAZY_FPU
 public:
-  static void restore_state(Fpu_state *s)
+  static void restore_state(Fpu_state const *s)
   { Fpu_arch::restore_state(s, true); }
 
 #endif // CONFIG_LAZY_FPU

@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "fpu_state.h"
 #include "mem.h"
 #include "processor.h"
 #include <trap_state.h>
@@ -99,7 +98,7 @@ save_fpu_regs(Fpu_arch::Fpu_regs *r, bool save_32r)
 }
 
 inline void
-restore_fpu_regs(Fpu_arch::Fpu_regs *r, bool save_32r)
+restore_fpu_regs(Fpu_arch::Fpu_regs const *r, bool save_32r)
 {
   Mword tmp;
   asm volatile(".fpu neon\n "
@@ -112,9 +111,8 @@ restore_fpu_regs(Fpu_arch::Fpu_regs *r, bool save_32r)
 }
 
 void
-Fpu_arch::save_state(Fpu_state *s)
+Fpu_arch::save_state(Fpu_state *fpu_regs)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
   Mword tmp;
 
   assert(fpu_regs);
@@ -170,7 +168,7 @@ Fpu_arch::emulate_insns(Mword opcode, Trap_state *ts)
 }
 
 void
-Fpu_arch::save_user_exception_state(bool owner, Fpu_state *s, Trap_state *ts, Exception_state_user *esu)
+Fpu_arch::save_user_exception_state(bool owner, Fpu_state_ptr const &s, Trap_state *ts, Exception_state_user *esu)
 {
   if (!(ts->esr.ec() == 7 && ts->esr.cpt_cpnr() == 10))
     return;
@@ -195,15 +193,15 @@ Fpu_arch::save_user_exception_state(bool owner, Fpu_state *s, Trap_state *ts, Ex
       return;
     }
 
-  if (!s->state_buffer())
+  if (!s)
     {
       esu->fpexc = 0;
       return;
     }
 
-  assert (s->state_buffer());
+  assert (s);
 
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
+  Fpu_regs *fpu_regs = s.get();
   esu->fpexc = fpu_regs->fpexc;
   if (fpu_regs->fpexc & FPEXC_EX)
     {
@@ -219,10 +217,8 @@ Fpu_arch::save_user_exception_state(bool owner, Fpu_state *s, Trap_state *ts, Ex
 #ifdef CONFIG_CPU_VIRT
 
 void
-Fpu_arch::restore_state(Fpu_state *s, bool)
+Fpu_arch::restore_state(Fpu_state const *fpu_regs, bool)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
   assert(fpu_regs);
 
   asm volatile (".fpu vfp\n"
@@ -249,10 +245,8 @@ Fpu_arch::restore_state(Fpu_state *s, bool)
 #else // CONFIG_CPU_VIRT
 
 void
-Fpu_arch::restore_state(Fpu_state *s, bool)
+Fpu_arch::restore_state(Fpu_state const *fpu_regs, bool)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
   assert(fpu_regs);
 
   restore_fpu_regs(fpu_regs, save_32r);

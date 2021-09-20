@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fpu_state.h>
+#include <fpu_state_ptr.h>
 #include <fpu.h>
 #include <context_base.h>
 
@@ -18,7 +18,7 @@ private:
   Context const *_this() const
   { return static_cast<Context const*>(this); }
 
-  Fpu_state *fpu_state() { return _this()->fpu_state(); }
+  Fpu_state_ptr &fpu_state() { return _this()->fpu_state(); }
 
 public:
   void spill_fpu()
@@ -26,7 +26,7 @@ public:
     assert (fpu_state());
 
     // Save the FPU state of the previous FPU owner
-    Fpu::save_state(fpu_state());
+    Fpu::save_state(fpu_state().get());
   }
 
   void spill_fpu_if_owner()
@@ -57,7 +57,7 @@ protected:
       f.enable();
 
     spill_fpu();
-    f.restore_state(t->fpu_state());
+    f.restore_state(t->fpu_state().get());
 
     if (t->state.has(Thread_vcpu_fpu_disabled))
       f.disable();

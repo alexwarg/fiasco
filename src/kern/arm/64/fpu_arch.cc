@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "fpu_state.h"
 #include "mem.h"
 #include "processor.h"
 #include "static_assert.h"
@@ -76,7 +75,7 @@ save_fpu_regs(Fpu_arch::Fpu_regs *r)
 }
 
 inline void
-restore_fpu_regs(Fpu_arch::Fpu_regs *r)
+restore_fpu_regs(Fpu_arch::Fpu_regs const *r)
 {
   asm volatile("ldp     q0, q1,   [%[s], #16 *  0]        \n"
                "ldp     q2, q3,   [%[s], #16 *  2]        \n"
@@ -103,19 +102,15 @@ restore_fpu_regs(Fpu_arch::Fpu_regs *r)
 }
 
 void
-Fpu_arch::save_state(Fpu_state *s)
+Fpu_arch::save_state(Fpu_state *fpu_regs)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
   assert(fpu_regs);
   save_fpu_regs(fpu_regs);
 }
 
 void
-Fpu_arch::restore_state(Fpu_state *s, bool)
+Fpu_arch::restore_state(Fpu_state const *fpu_regs, bool)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
   assert(fpu_regs);
   restore_fpu_regs(fpu_regs);
 }

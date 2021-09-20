@@ -2,7 +2,7 @@
 
 #include <fpu.h>
 #include <fpu_alloc.h>
-#include <fpu_state.h>
+#include <fpu_state_ptr.h>
 #include <context.h>
 
 #include <cassert>
@@ -36,10 +36,10 @@ public:
     // If we own the FPU, we should never be getting an "FPU unavailable" trap
     assert (f.owner() != _this());
 
-    Fpu_state *_fpu_state = _this()->fpu_state();
+    Fpu_state_ptr &_fpu_state = _this()->fpu_state();
 
     // Allocate FPU state slab if we didn't already have one
-    if (!_fpu_state->state_buffer()
+    if (!_fpu_state
         && (EXPECT_FALSE(!alloc_new_fpu
                          || !Fpu_alloc::alloc_state(_this()->quota(), _fpu_state))))
       return 0;
@@ -52,7 +52,7 @@ public:
       f.owner()->spill_fpu();
 
     // Become FPU owner and restore own FPU state
-    f.restore_state(_fpu_state);
+    f.restore_state(_fpu_state.get());
 
     _this()->state.add_dirty(Thread_fpu_owner);
     f.set_owner(_this());
@@ -61,11 +61,10 @@ public:
 
   void transfer_fpu(Thread *to) //, Trap_state *trap_state, Utcb *to_utcb)
   {
-    if (to->fpu_state()->state_buffer())
+    if (to->fpu_state())
       Fpu_alloc::free_state(to->fpu_state());
 
-    to->fpu_state()->state_buffer(_this()->fpu_state()->state_buffer());
-    _this()->fpu_state()->state_buffer(0);
+    to->fpu_state() = cxx::move(_this()->fpu_state());
 
     if (_this()->home_cpu() != to->home_cpu())
       {

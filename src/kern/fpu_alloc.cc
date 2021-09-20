@@ -1,7 +1,6 @@
 #include <fpu_alloc.h>
 #include <fpu.h>
 
-#include "fpu_state.h"
 #include "kmem_slab.h"
 #include "ram_quota.h"
 #include "slab_cache.h"
@@ -17,7 +16,7 @@ static Kmem_slab _fpu_state_allocator(
   Fpu::state_align(), "Fpu state");
 
 bool
-Fpu_alloc::alloc_state(Ram_quota *q, Fpu_state *s)
+Fpu_alloc::alloc_state(Ram_quota *q, Fpu_state_ptr &s)
 {
   unsigned long sz = Fpu::state_size();
   void *b;
@@ -26,20 +25,19 @@ Fpu_alloc::alloc_state(Ram_quota *q, Fpu_state *s)
     return false;
 
   *((Ram_quota **)((char*)b + quota_offset(sz))) = q;
-  s->state_buffer(b);
-  Fpu::init_state(s);
+  s.set(reinterpret_cast<Fpu_state *>(b));
+  Fpu::init_state(s.get());
 
   return true;
 }
 
 void
-Fpu_alloc::free_state(Fpu_state *s)
+Fpu_alloc::free_state(Fpu_state_ptr &s)
 {
-  auto *sb = s->state_buffer();
-  if (!sb)
+  if (!s)
     return;
 
-  s->state_buffer(nullptr);
+  auto *sb = s.reset();
   unsigned long sz = Fpu::state_size();
   Ram_quota *q = *((Ram_quota **)((char*)(sb)
                                   + quota_offset(sz)));

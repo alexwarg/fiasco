@@ -1,22 +1,23 @@
 #pragma once
 
 #include <cxx/bitfield>
-#include <fpu_state.h>
 #include <cp0_status.h>
 #include <globalconfig.h>
 #include <std_macros.h>
 #include <mem.h>
 
 #include <cassert>
+class Fpu_state
+{
+public:
+  Unsigned64 regs[32];
+  Mword fcsr;
+};
 
 class Fpu_arch
 {
 public:
-  struct Fpu_regs
-  {
-    Unsigned64 regs[32];
-    Mword fcsr;
-  };
+  using Fpu_regs = Fpu_state;
 
   struct Fir
   {
@@ -66,10 +67,8 @@ public:
     return fcr;
   }
 
-  static Mword fcr(Fpu_state *s)
+  static Mword fcr(Fpu_state *fpu_regs)
   {
-    Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
     assert(fpu_regs);
     return fpu_regs->fcsr;
   }
@@ -88,9 +87,8 @@ public:
   static unsigned state_align()
   { return sizeof(Unsigned64); }
 
-  static void init_state(Fpu_state *s)
+  static void init_state(Fpu_state *fpu_regs)
   {
-    Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
     static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
                   "Non-mword size of Fpu_regs");
 
@@ -120,7 +118,7 @@ public:
 
   static void init(Cpu_number cpu, bool resume);
   static void save_state(Fpu_state *s);
-  static void restore_state(Fpu_state *s, bool owner);
+  static void restore_state(Fpu_state const *s, bool owner);
 
   Fir fir() const { return _fir; }
 

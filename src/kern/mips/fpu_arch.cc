@@ -143,7 +143,7 @@ fpu_save_16odd(Fpu_arch::Fpu_regs *r)
 }
 
 inline void
-fpu_restore_16even(Fpu_arch::Fpu_regs *r)
+fpu_restore_16even(Fpu_arch::Fpu_regs const *r)
 {
   Mword tmp;
 
@@ -174,7 +174,7 @@ fpu_restore_16even(Fpu_arch::Fpu_regs *r)
 }
 
 inline void
-fpu_restore_16odd(Fpu_arch::Fpu_regs *r)
+fpu_restore_16odd(Fpu_arch::Fpu_regs const *r)
 {
   set_mipsr2_fp64();
   asm volatile(".set   push                   \n"
@@ -202,10 +202,8 @@ fpu_restore_16odd(Fpu_arch::Fpu_regs *r)
 }
 
 void
-Fpu_arch::save_state(Fpu_state *s)
+Fpu_arch::save_state(Fpu_state *fpu_regs)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
   assert(fpu_regs);
 
   if (Fpu::mode_64bit())
@@ -215,10 +213,8 @@ Fpu_arch::save_state(Fpu_state *s)
 }
 
 void
-Fpu_arch::restore_state(Fpu_state *s, bool)
+Fpu_arch::restore_state(Fpu_state const *fpu_regs, bool)
 {
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
   assert(fpu_regs);
 
   if (Fpu::mode_64bit())
@@ -226,5 +222,4 @@ Fpu_arch::restore_state(Fpu_state *s, bool)
 
   fpu_restore_16even(fpu_regs);
 }
-
 
