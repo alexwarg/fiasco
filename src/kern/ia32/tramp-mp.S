@@ -12,7 +12,6 @@
 # define SP esp
 #endif
 
-#define CPU_NR_COUNTER (config_num_ap_cpus)
 REALMODE_SECTION
 	.code16
 	.align 16
@@ -28,13 +27,6 @@ _tramp_mp_entry:
 	/* 32bit code follows */
 
 	ENABLE_PAGING cr0=_tramp_mp_startup_cr0 cr3=_realmode_startup_pdbr cr4=_tramp_mp_startup_cr4 gdt=_tramp_mp_startup_gdt_pdesc
-
-    /* Increase CPU counter */
-1:	mov	CPU_NR_COUNTER, %eax
-	mov	%eax, %edi
-	inc	%edi
-	lock	; cmpxchg %edi, CPU_NR_COUNTER
-	jnz	1b
 
     /* Acquire spinlock */
 1:	cmpl $0, _tramp_mp_spinlock
