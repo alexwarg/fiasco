@@ -155,6 +155,7 @@ public:
     bool verbose = false;
     bool restart = false;
     bool debug   = false;
+    bool record  = false;
 
     // Hardware information
     Unsigned32 cores = 0;
@@ -339,7 +340,7 @@ Utest_fw::parse_feature_string()
       ext_info.verbose = feature[0] == '1';
       ext_info.restart = feature[1] == '1';
       ext_info.debug   = feature[2] == '1';
-      // feature[3] is reserved
+      ext_info.record  = feature[3] == '1';
 
       if (feature[4] != 'a')
         {
@@ -413,7 +414,7 @@ Utest_fw::name_group_test(char const *group, char const *test)
 }
 
 /**
- * Start a new test with new `group` and `test` name.
+ * Start a new test with new `group` and `test` name and a mandatory UUID.
  *
  * When the same group and test name are used as the previous test, an instance
  * counter is incremented.
@@ -503,7 +504,8 @@ Utest_fw::tap_msg(bool success,
            todo_skip ? todo_skip : "",
            msg ? msg : "");
 
-  printf("# Test-uuid: %s\n", _test_uuid);
+  if (ext_info.record)
+    printf("# Test-uuid: %s\n", _test_uuid);
 }
 
 /**
