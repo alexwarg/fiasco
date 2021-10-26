@@ -505,7 +505,7 @@ Utest_fw::tap_msg(bool success,
            msg ? msg : "");
 
   if (ext_info.record)
-    printf("# Test-uuid: %s\n", _test_uuid);
+    printf("KUT # Test-uuid: %s\n", _test_uuid);
 }
 
 /**
