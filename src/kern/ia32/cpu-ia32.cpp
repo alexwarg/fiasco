@@ -2140,7 +2140,7 @@ Cpu::set_frequency_and_scalers(Unsigned64 freq)
  */
 PRIVATE
 bool
-Cpu::tsc_frequency_from_cpuid_15h()
+Cpu::tsc_frequency_from_cpuid_15h(bool check_only = false)
 {
   if (_vendor != Vendor_intel || cpuid_eax(0) < 0x15 || family() != 6)
     return false;
@@ -2169,8 +2169,18 @@ Cpu::tsc_frequency_from_cpuid_15h()
   if (!crystal_clock)
     return false;
 
+  if (check_only)
+    return true;
+
   set_frequency_and_scalers((crystal_clock * ebx) / eax);
   return true;
+}
+
+PUBLIC inline
+bool
+Cpu::tsc_frequency_accurate()
+{
+  return tsc_frequency_from_cpuid_15h(true);
 }
 
 IMPLEMENT inline
