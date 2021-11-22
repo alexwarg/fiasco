@@ -7,6 +7,7 @@
 #include <cpu_arm_defaults.h>
 #include <paging.h>
 #include <panic.h>
+#include <alternatives.h>
 
 class Cpu_arm_bits_generic : public Cpu_generic, public Cpu_arm_defaults
 {};
@@ -80,6 +81,16 @@ public:
     // user-mode runs with HCR.TGE = 1, otherwise we get undefined instruction
     // exceptions instead of FPU traps into EL2.
     Cpacr_el1_generic_hyp = Cpacr_el1_fpen_full,
+  };
+
+  struct has_aarch32_el1 : public Alternative_static_functor<has_aarch32_el1>
+  {
+    static bool probe()
+    {
+      Mword pfr0;
+      asm ("mrs %0, ID_AA64PFR0_EL1": "=r" (pfr0));
+      return pfr0 & 0x20;
+    }
   };
 
   static bool is_canonical_address(Address addr) noexcept
