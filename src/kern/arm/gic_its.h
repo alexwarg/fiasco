@@ -157,6 +157,14 @@ public:
     Invalid_icid = Num_cols + 1,
   };
 
+  struct Rd_base
+  {
+    Unsigned64 raw = 0;
+
+    CXX_BITFIELD_MEMBER_UNSHIFTED(16, 50, phys_base_addr, raw);
+    CXX_BITFIELD_MEMBER          (16, 31, processor_nr, raw);
+  };
+
   class Table
   {
   public:
@@ -196,7 +204,7 @@ public:
   struct Collection
   {
     Icid icid = Invalid_icid;
-    Address redist_base;
+    Rd_base redist_base;
 
     inline bool is_valid() const
     { return icid != Invalid_icid; }
@@ -306,10 +314,10 @@ public:
      * This command ensures that the effects of all previous physical commands
      * associated with the specified redistributor are globally observable.
      */
-    static Cmd sync(Address rd_base)
+    static Cmd sync(Rd_base rd_base)
     {
       Cmd cmd(Op_sync);
-      cmd.rd_base() = rd_base;
+      cmd.rd_base() = rd_base.raw;
       return cmd;
     }
 
@@ -338,14 +346,14 @@ public:
     /**
      * This command maps a collection to a redistributor.
      */
-    static Cmd mapc(Icid icid, Address rd_base)
+    static Cmd mapc(Icid icid, Rd_base rd_base, bool valid)
     {
       Cmd cmd(Op_mapc);
       cmd.icid() = icid;
-      if (rd_base)
+      if (valid)
         {
           // Map ICID to target redistributor
-          cmd.rd_base() = rd_base;
+          cmd.rd_base() = rd_base.raw;
           cmd.valid() = true;
         }
       else
@@ -533,6 +541,7 @@ private:
   Spin_lock<> _lock;
 
   Collection _cols[Num_cols];
+  bool _redist_pta;
 
   using Lpi_vect = cxx::static_vector<Lpi>;
   Lpi_vect _lpis;

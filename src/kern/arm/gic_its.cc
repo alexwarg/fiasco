@@ -148,11 +148,9 @@ Gic_its::init(Gic_cpu_v3 *gic_cpu, Address base, unsigned num_lpis)
   _device_alloc_lock.init();
 
   Typer typer(_its.read<Unsigned64>(GITS_TYPER));
+  _redist_pta = typer.pta();
   _max_device_id = (1ULL << (typer.dev_bits() + 1)) - 1;
   _itt_entry_size = typer.itt_entry_size() + 1;
-
-  if (!typer.pta())
-    panic("ITS: Expects processor number for RDbase.\n");
 
   Unsigned64 num_events = 1ULL << (typer.id_bits() + 1);
   if (num_lpis > num_events)
@@ -225,9 +223,12 @@ Gic_its::cpu_init(Cpu_number cpu, Gic_redist const &redist)
   unsigned cpu_index = cxx::int_value<Cpu_number>(cpu);
 
   Collection tmp;
-  tmp.redist_base = Gic_mem::to_phys(redist.get_base());
+  if (_redist_pta)
+    tmp.redist_base.phys_base_addr() = Gic_mem::to_phys(redist.get_base());
+  else
+    tmp.redist_base.processor_nr() = redist.get_processor_nr();
   tmp.icid = cpu_index;
-  send_cmd(Cmd::mapc(tmp.icid, tmp.redist_base), &tmp);
+  send_cmd(Cmd::mapc(tmp.icid, tmp.redist_base, true), &tmp);
   send_cmd(Cmd::invall(tmp.icid), &tmp);
 
   Collection &col = _cols[cpu_index];

@@ -54,6 +54,7 @@ public:
     CXX_BITFIELD_MEMBER_RO( 0,  0, plpis, raw);
     CXX_BITFIELD_MEMBER_RO( 1,  1, vlpis, raw);
     CXX_BITFIELD_MEMBER_RO( 4,  4, last, raw);
+    CXX_BITFIELD_MEMBER_RO( 8, 23, processor_nr, raw);
     CXX_BITFIELD_MEMBER_RO(32, 63, affinity, raw);
   };
 
@@ -119,6 +120,11 @@ public:
   Address get_base() const
   {
     return _redist.get_mmio_base();
+  }
+
+  unsigned get_processor_nr() const
+  {
+    return Typer(_redist.read<Unsigned64>(GICR_TYPER)).processor_nr();
   }
 #endif
 
