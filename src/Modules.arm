@@ -143,7 +143,7 @@ CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
 	timer_arm_generic.cc
 #CXXSRC_KERNEL-$(CONFIG_ARM_GIC_MSI)-$(CONFIG_HAVE_ARM_GICV3) += gic_mem.cc gic_its.cc gic_msi.cc
-CXXSRC_KERNEL-$(CONFIG_ARM_GIC_MSI)-$(CONFIG_HAVE_ARM_GICV3) += gic_mem.cc gic_its.cc
+CXXSRC_KERNEL-$(CONFIG_ARM_GIC_MSI)-$(CONFIG_HAVE_ARM_GICV3) += gic_mem.cc gic_its.cc gic_msi.cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_V6PLUS) += mem_space-arm-asid.cc
 

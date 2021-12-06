@@ -156,15 +156,11 @@ Gic_its::init(Gic_cpu_v3 *gic_cpu, Address base, unsigned num_lpis)
   if (num_lpis > num_events)
   {
     // TODO: Use per-device EventID space instead of global EventID space?
-    WARN("ITS: Limit number of LPIs %u to number of supported EventIDs %llu.\n",
-         num_lpis, num_events);
-
-    num_lpis = num_events;
+    WARN("ITS: Number of LPIs %u exceeds number of supported EventIDs %llu.\n",
+         _num_lpis, num_events);
   }
 
-  _lpis = Lpi_vect(new Boot_object<Lpi>[num_lpis], num_lpis);
-  for (unsigned i = 0; i < _lpis.size(); i++)
-    _lpis[i].event_id = i;
+  _num_lpis = num_lpis;
 
   Ctlr ctlr(_its.read<Unsigned32>(GITS_CTLR));
   if (ctlr.enabled() || !ctlr.quiescent())
@@ -179,7 +175,7 @@ Gic_its::init(Gic_cpu_v3 *gic_cpu, Address base, unsigned num_lpis)
   _its.write<Unsigned32>(ctlr.raw, GITS_CTLR);
 
   printf("ITS: %lx rev=%x num_lpis=%u num_cols=%u num_devs=%u dev_bits=%u\n",
-         base, arch_rev, num_lpis, Num_cols, Max_num_devs,
+         base, arch_rev, _num_lpis, Num_cols, Max_num_devs,
          cxx::log2u(_max_device_id + 1));
 }
 
@@ -337,19 +333,17 @@ Gic_its::unbind_lpi_from_device(Lpi &lpi)
     }
 }
 
+/**
+ * \pre The lpi.lock must be held.
+ */
 int
-Gic_its::bind_lpi_to_device(unsigned pin, Unsigned64 src, Irq_mgr::Msi_info *inf)
+Gic_its::bind_lpi_to_device(Lpi &lpi, Unsigned32 src, Irq_mgr::Msi_info *inf)
 {
-  assert(pin < _lpis.size());
-
   if (src > _max_device_id)
     {
-      WARN("ITS: 0x%llx is not a valid DeviceID!\n", src);
+      WARN("ITS: 0x%x is not a valid DeviceID!\n", src);
       return -L4_err::ERange;
     }
-
-  Lpi &lpi = _lpis[pin];
-  auto g = lock_guard(lpi.lock);
 
   if (!lpi.device || lpi.device->id() != src)
     {
@@ -361,41 +355,34 @@ Gic_its::bind_lpi_to_device(unsigned pin, Unsigned64 src, Irq_mgr::Msi_info *inf
       if (!device)
         return -L4_err::ENomem;
 
-      device->bind_lpi(lpi, to_intid(pin));
+      device->bind_lpi(lpi);
     }
 
-  inf->data = lpi.event_id;
+  inf->data = lpi.event_id();
   // TODO: Must be mapped in the DMA space of the device if IOMMU is enabled.
   inf->addr = Gic_mem::to_phys(_its.get_mmio_base()) + GITS_TRANSLATER;
   return 0;
 }
 
+/**
+ * \pre The lpi.lock must be held.
+ */
 void
-Gic_its::free_lpi(unsigned pin)
+Gic_its::free_lpi(Lpi &lpi)
 {
-  assert(pin < _lpis.size());
-
-  Lpi &lpi = _lpis[pin];
-  auto g = lock_guard(lpi.lock);
-
   auto guard = lock_guard(_device_alloc_lock);
   unbind_lpi_from_device(lpi);
   lpi.reset();
 }
 
 void
-Gic_its::assign_lpi_to_cpu(unsigned pin, Cpu_number cpu)
+Gic_its::assign_lpi_to_cpu(Lpi &lpi, Cpu_number cpu)
 {
-  assert(pin < _lpis.size());
-
-  Lpi &lpi = _lpis[pin];
-  auto g = lock_guard(lpi.lock);
-
   Collection const *col = get_col(cpu);
   if (EXPECT_FALSE(!col->is_valid()))
     {
       WARN("ITS: Tried to assign LPI %u to uninitialized CPU %u.\n",
-           pin, cxx::int_value<Cpu_number>(cpu));
+           lpi.intid(), cxx::int_value<Cpu_number>(cpu));
       return;
     }
 
@@ -403,11 +390,11 @@ Gic_its::assign_lpi_to_cpu(unsigned pin, Cpu_number cpu)
     {
       if (lpi.device && lpi.col)
         {
-          send_cmd(Cmd::movi(lpi.device->id(), lpi.event_id, col->icid), col);
+          send_cmd(Cmd::movi(lpi.device->id(), lpi.event_id(), col->icid), col);
         }
       else if (lpi.device)
         {
-          send_cmd(Cmd::mapti(lpi.device->id(), lpi.event_id, to_intid(pin),
+          send_cmd(Cmd::mapti(lpi.device->id(), lpi.event_id(), lpi.intid(),
                               col->icid), col);
         }
 
@@ -464,7 +451,7 @@ Gic_its::Device::itt_size()
  * \pre The lpi.lock must be held.
  */
 void
-Gic_its::Device::bind_lpi(Lpi &lpi, unsigned intid)
+Gic_its::Device::bind_lpi(Lpi &lpi)
 {
   assert(lpi.device == nullptr);
 
@@ -472,7 +459,8 @@ Gic_its::Device::bind_lpi(Lpi &lpi, unsigned intid)
   _lpi_count++;
 
   if (lpi.col)
-    _its.send_cmd(Cmd::mapti(_id, lpi.event_id, intid, lpi.col->icid), lpi.col);
+    _its.send_cmd(Cmd::mapti(_id, lpi.event_id(), lpi.intid(), lpi.col->icid),
+                  lpi.col);
 }
 
 /**
@@ -485,7 +473,7 @@ Gic_its::Device::unbind_lpi(Lpi &lpi)
   assert(lpi.device == this);
 
   if (lpi.col)
-    _its.send_cmd(Cmd::discard(_id, lpi.event_id), lpi.col);
+    _its.send_cmd(Cmd::discard(_id, lpi.event_id()), lpi.col);
 
   lpi.device = nullptr;
   _lpi_count--;

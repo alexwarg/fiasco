@@ -61,7 +61,7 @@ Gic_v3::irq_prio_bootcpu(unsigned irq)
 #include <gic_its.h>
 
 void
-Gic_v3::init_lpi(Address its_base)
+Gic_v3::init_lpi()
 {
   unsigned hw_num_lpis = _dist.hw_nr_lpis();
   _has_lpis = hw_num_lpis > 0;
@@ -70,10 +70,9 @@ Gic_v3::init_lpi(Address its_base)
       unsigned num_lpis = min<unsigned>(hw_num_lpis, Max_num_lpis);
 
       Gic_redist::init_lpi(num_lpis);
-      _its = new Boot_object<Gic_its>();
-      _its->init(&_cpu, its_base, num_lpis);
-      _msi = new Boot_object<Gic_msi>();
-      _msi->init(_its, num_lpis);
+      _its_vec = Its_vec(Boot_alloced::allocate<Gic_its *>(Max_num_its),
+                         Max_num_its);
+      _msi = new Boot_object<Gic_msi>(this, num_lpis);
       printf("GIC: Supports up to %u LPIs, using %u.\n", hw_num_lpis, num_lpis);
     }
   else
@@ -86,7 +85,8 @@ Gic_v3::cpu_local_init_lpi(Cpu_number cpu)
   if (_has_lpis)
   {
     _redist.cpu(cpu).cpu_init_lpi();
-    _its->cpu_init(cpu, _redist.cpu(cpu));
+    for (unsigned i = 0; i < _num_its; i++)
+      _its_vec[i]->cpu_init(cpu, _redist.cpu(cpu));
   }
 }
 
@@ -98,5 +98,25 @@ Gic_v3::irq(Mword pin) const
 
   return this->Gic::irq(pin);
 }
+
+bool
+Gic_v3::add_its(Address its_base)
+{
+  if (!_has_lpis)
+    return false;
+
+  if (_num_its >= _its_vec.size())
+  {
+    WARN("Maximum number of ITS exceeded.");
+    return false;
+  }
+
+  Gic_its *its = new Boot_object<Gic_its>();
+  its->init(&_cpu, its_base, _msi->nr_irqs());
+  its->cpu_init(Cpu_number::boot_cpu(), _redist.cpu(Cpu_number::boot_cpu()));
+  _its_vec[_num_its++] = its;
+  return true;
+}
+
 
 #endif

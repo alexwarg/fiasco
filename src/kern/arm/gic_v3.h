@@ -4,6 +4,7 @@
 #include "gic_redist.h"
 #include "gic_cpu_v3.h"
 #include "globalconfig.h"
+#include "cxx/static_vector"
 
 class Gic_msi;
 class Gic_its;
@@ -31,6 +32,8 @@ public:
     unsigned num = init_dist(nr_irqs_override);
     printf("Number of IRQs available at this GIC: %d\n", num);
     Irq_chip_gen::init(num);
+
+    init_lpi();
 
     cpu_local_init(Cpu_number::boot_cpu());
     _cpu.enable();
@@ -83,29 +86,50 @@ public:
 private:
   enum
   {
+    Max_num_its = 16,
+
     // Limit the number of supported LPIs to avoid excessive memory
     // allocations.
     Max_num_lpis = 512,
   };
 
   bool _has_lpis = false;
-  Gic_its *_its = nullptr;
+  using Its_vec = cxx::static_vector<Gic_its *>;
+  Its_vec _its_vec;
+  unsigned _num_its = 0;
   Gic_msi *_msi = nullptr;
 
-  void init_lpi(Address its_base);
+  void init_lpi();
   void cpu_local_init_lpi(Cpu_number cpu);
 
 public:
+  enum { Have_lpis = 1 };
+
   /**
    * \return The MSI Irq_chip for this GIC, might be nullptr if the GIC does not
    *         support LPIs or MSI support has been disabled in the Kconfig.
    */
   Gic_msi *msi_chip() const { return _msi; }
   Irq_base *irq(Mword pin) const override;
+  bool add_its(Address its_base);
+  Gic_its *get_its(unsigned its_num) const
+  {
+    if (its_num >= _num_its)
+      return nullptr;
+
+    return _its_vec[its_num];
+  }
+
 
 #else
+private:
+  void init_lpi() {}
+  void cpu_local_init_lpi(Cpu_number) {}
+
 public:
-  Gic_msi *msi_chip() const { return _msi; }
+  enum { Have_lpis = 0 };
+  Gic_msi *msi_chip() { return nullptr; };
+  bool add_its(Address) { return true; };
 
 #endif
 };
