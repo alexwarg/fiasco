@@ -129,7 +129,9 @@ class Acpi_madt : public Acpi_table_head
 public:
   enum Type
   { LAPIC, IOAPIC, Irq_src_ovr, NMI, LAPIC_NMI, LAPIC_adr_ovr, IOSAPIC,
-    LSAPIC, Irq_src };
+    LSAPIC, Irq_src,
+    GICC = 0xb, GICD, GICM, GICR, ITS,
+  };
 
   struct Apic_head
   {
@@ -161,6 +163,55 @@ public:
     Unsigned8  src;
     Unsigned32 irq;
     Unsigned16 flags;
+  } __attribute__((packed));
+
+  struct Gic_cpu_if : public Apic_head
+  {
+    enum { ID = GICC };
+    enum { Enabled = 0x1, Perf_irq_edge = 0x2, Vgic_irq_edge = 0x4 };
+    Unsigned8 reserved[2];
+    Unsigned32 cpu_if_num;
+    Unsigned32 uid;
+    Unsigned32 flags;
+    Unsigned32 parking_protocol_version;
+    Unsigned32 perf_gsiv;
+    Unsigned64 parked_addr;
+    Unsigned64 gicc_base;
+    Unsigned64 gicv_base;
+    Unsigned64 gich_base;
+    Unsigned32 vgic_maintenance_irq;
+    Unsigned64 gicr_base;
+    Unsigned64 mpidr;
+    Unsigned8  power_efficiency_class;
+    Unsigned8  reserved2;
+    Unsigned16 spe_overflow_irq;
+  } __attribute__((packed));
+
+  struct Gic_distributor_if : public Apic_head
+  {
+    enum { ID = GICD };
+    enum { V1 = 1, V2, V3, V4 };
+    Unsigned8   reserved[2];
+    Unsigned32  id;
+    Unsigned64  base;
+    Unsigned32  reserved2;
+    Unsigned8   version;
+  } __attribute__((packed));
+
+  struct Gic_redistributor_if : public Apic_head
+  {
+    enum { ID = GICR };
+    Unsigned8   reserved[2];
+    Unsigned64  base;
+    Unsigned32  length;
+  } __attribute__((packed));
+
+  struct Gic_its_if : public Apic_head
+  {
+    enum { ID = ITS };
+    Unsigned8   reserved[2];
+    Unsigned32  id;
+    Unsigned64  base;
   } __attribute__((packed));
 
   Apic_head const *find(Unsigned8 type, int idx) const

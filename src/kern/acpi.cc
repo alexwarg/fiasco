@@ -3,6 +3,7 @@
 #include "boot_alloc.h"
 #include "kmem.h"
 #include "warn.h"
+#include "panic.h"
 #include <cctype>
 
 
@@ -225,11 +226,34 @@ Acpi::init_virt()
     }
 }
 
+static
+Acpi_rsdp const *locate_via_kip()
+{
+  // If we are booted from UEFI, bootstrap reads the RSDP pointer from
+  // UEFI and creates a memory descriptor with sub type 5 for it
+  for (auto const &md: Kip::k()->mem_descs_a())
+    if (   md.type() == Mem_desc::Info
+        && md.ext_type() == Mem_desc::Info_acpi_rsdp)
+      {
+        // Rover across first page in memory descriptor. The actual RSDP
+        // address was rounded down to page alignment by bootstrap...
+        for (unsigned off = 0; off < Config::PAGE_SIZE; off += sizeof(void*))
+          {
+            Acpi_rsdp const *r = Acpi::map_table_head<Acpi_rsdp>(md.start() + off);
+            if (   Acpi::check_signature(r->signature, "RSD PTR ")
+                && r->checksum_ok())
+              return r;
+          }
+
+        panic("RSDP memory descriptor from bootstrap invalid");
+      }
+
+  return 0;
+}
+
 
 #if defined (CONFIG_IA32) || defined (CONFIG_AMD64)
 // ------------------------------------------------------------------------
-
-#include "panic.h"
 
 Acpi_rsdp const *
 Acpi_rsdp::locate()
@@ -242,19 +266,8 @@ Acpi_rsdp::locate()
     BDA_EBDA_SEGMENT       = 0x00040E,
   };
 
-  // If we are booted from UEFI, bootstrap reads the RSDP pointer from
-  // UEFI and creates a memory descriptor with sub type 5 for it
-  for (auto const &md: Kip::k()->mem_descs_a())
-    if (   md.type() == Mem_desc::Info
-        && md.ext_type() == Mem_desc::Info_acpi_rsdp)
-      {
-        Acpi_rsdp const *r = Acpi::map_table_head<Acpi_rsdp>(md.start());
-        if (   Acpi::check_signature(r->signature, "RSD PTR ")
-            && r->checksum_ok())
-          return r;
-        else
-          panic("RSDP memory descriptor from bootstrap invalid");
-      }
+  if (Acpi_rsdp const *r = locate_via_kip())
+    return r;
 
   if (Acpi_rsdp const *r = locate_in_region(ACPI20_PC99_RSDP_START,
                                             ACPI20_PC99_RSDP_END))

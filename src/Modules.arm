@@ -143,6 +143,7 @@ CXXSRC_KERNEL += main_arm.cc \
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
 	timer_arm_generic.cc
+CXXSRC_KERNEL-$(CONFIG_ARM_ACPI) += acpi.cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_V6PLUS) += mem_space-arm-asid.cc
 
