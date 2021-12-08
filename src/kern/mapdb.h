@@ -275,11 +275,29 @@ public:
       {
         if (Treemap *sub = m->submap())
           {
+            Physframe *f = sub->tree(sub->trunc_to_page(subkey));
+
+            // special sigma0 case for synthetic 1. level mapping nodes
+            if (spc->is_sigma0())
+              {
+                res->set(f->insertion_head(), sub, f);
+                return m;
+              }
+
             // XXX Recursion.  The max. recursion depth should better be
             // limited!
-            if (sub->lookup(subkey, spc, va, res))
-              return m;
+            auto ms = sub->_lookup(f, f->tree()->begin(), spc, subkey, va, res,
+                                   root_depth, current_depth);
 
+            if (*ms)
+              {
+                if (ms->submap())
+                  f->lock.clear();
+
+                return m;
+              }
+
+            f->lock.clear();
             continue;
           }
 
