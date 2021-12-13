@@ -11,6 +11,8 @@
 
 namespace Bootstrap
 {
+static unsigned long load_addr;
+
 inline void set_mair0(Mword v)
 {
   asm volatile ("mcr p15, 0, %0, c10, c2, 0" : : "r"(v));
@@ -251,6 +253,35 @@ inline void do_arm_1176_cache_alias_workaround()
     }
 }
 #endif // CONFIG_ARM_1176_CACHE_ALIAS_FIX
+
+struct Elf32_dyn
+{
+  enum { Reloc = 17 /* REL */, Reloc_count = 0x6ffffffa /* RELCOUNT */ };
+
+  Signed32 tag;
+  union {
+    Unsigned32 val;
+    Unsigned32 ptr;
+  };
+};
+
+struct Elf32_rel
+{
+  Unsigned32  offset;
+  Unsigned32  info;
+
+  inline void apply(unsigned long load_addr)
+  {
+    auto *addr = (unsigned long *)(load_addr + offset);
+    *addr += load_addr;
+  }
+};
+
+static unsigned long relocate()
+{
+  return Elf<Elf32_dyn, Elf32_rel>::relocate();
+}
+
 }
 
 asm
@@ -259,11 +290,12 @@ asm
 ".type _start,#function                \n"
 ".global _start                        \n"
 "_start:                               \n"
-"     ldr sp, __init_data              \n"
+"     adr r12, _start                  \n"
+"     ldr sp, .Lstack_offs             \n"
+"     add sp, sp, r12                  \n"
 "     bl	bootstrap_main         \n"
 
-"__init_data:                          \n"
-".long _stack                          \n"
+".Lstack_offs: .word (_stack - _start) \n"
 ".previous                             \n"
 ".section .bss                         \n"
 ".p2align 3                            \n"

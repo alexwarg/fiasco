@@ -4,6 +4,7 @@
 #include <cxx/cxx_int>
 #include <boot_infos.h>
 #include <paging-page.h>
+#include <bootstrap.h>
 
 #include <globalconfig.h>
 

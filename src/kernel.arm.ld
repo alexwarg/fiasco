@@ -51,6 +51,7 @@ PHDRS {
   excpt PT_LOAD;
 #endif
   initcall PT_LOAD;
+  dyn PT_DYNAMIC;
   l4_kip 0x10;
   l4_koptions 0x11;
 }
@@ -79,6 +80,13 @@ SECTIONS {
     . = ABSOLUTE(start_of_loader);
     KEEP(*(.bootstrap.text))
   } :bstrap
+
+  /* Dummy dynamic section to appear as PIE to bootstrap. The real one is in
+   * .bootstrap.text. */
+  .dynamic : {
+    QUAD(0)
+    QUAD(0)
+  } :bstrap :dyn
 
   . = ALIGN(4K);
   end_of_loader = .;

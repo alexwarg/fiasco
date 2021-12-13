@@ -17,6 +17,11 @@ namespace Bootstrap {
 extern "C" void bootstrap_main();
 void bootstrap_main()
 {
+  Bootstrap::load_addr = Bootstrap::relocate();
+
+  bs_info.kernel_start_phys += Bootstrap::load_addr;
+  bs_info.kernel_end_phys   += Bootstrap::load_addr;
+
   Unsigned32 tbbr = cxx::int_value<Bootstrap::Phys_addr>(Bootstrap::init_paging())
                     | Page::Ttbr_bits;
 
