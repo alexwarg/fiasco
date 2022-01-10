@@ -36,8 +36,8 @@ void *Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
     r |= Page::Rights::U();
 
   pte.set_page(Phys_mem_addr(page), Page::Attr::kern_global(r));
-  pte.write_back_if(true, Mem_unit::Asid_kernel);
-  Mem_unit::dtlb_flush(address);
+  pte.write_back_if(true);
+  Mem_unit::tlb_flush_kernel(reinterpret_cast<Address>(address));
 
   if (zf == ZERO_FILL)
     Mem::memset_mwords((unsigned long *)address, 0, Config::PAGE_SIZE / sizeof(Mword));

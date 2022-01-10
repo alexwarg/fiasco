@@ -17,7 +17,7 @@ public:
   static void tlb_flush(unsigned long asid);
   static void tlb_flush(void *va, unsigned long asid);
   static void tlb_flush_kernel();
-  static void dtlb_flush(void *va);
+  static void tlb_flush_kernel(Address va);
   static void make_coherent_to_pou(void const *start, size_t size);
 };
 
@@ -28,17 +28,7 @@ inline void
 Mem_unit_tlb::tlb_flush()
 {
   Mem::dsbst();
-  asm volatile("tlbi vmalle1" : : : "memory");
-  Mem::dsb();
-}
-
-inline void
-Mem_unit_tlb::dtlb_flush(void *va)
-{
-  Mem::dsbst();
-  asm volatile("tlbi vaae1, %0"
-               : : "r" ((((unsigned long)va) >> 12) & 0x00000ffffffffffful)
-               : "memory");
+  asm volatile("tlbi vmalle1is" : : : "memory");
   Mem::dsb();
 }
 
@@ -49,8 +39,8 @@ Mem_unit_tlb::tlb_flush(void *va, unsigned long asid)
     return;
 
   Mem::dsbst();
-  asm volatile("tlbi vae1, %0"
-               : : "r" (((unsigned long)va >> 12)
+  asm volatile("tlbi vae1is, %0"
+               : : "r" ((reinterpret_cast<unsigned long>(va) >> 12)
                         | (asid << 48)) : "memory");
   Mem::dsb();
 }
@@ -59,7 +49,7 @@ inline void
 Mem_unit_tlb::tlb_flush(unsigned long asid)
 {
   Mem::dsbst();
-  asm volatile("tlbi aside1, %0" // TLBIASID
+  asm volatile("tlbi aside1is, %0"
                : : "r" (asid << 48) : "memory");
   Mem::dsb();
 }
@@ -68,32 +58,24 @@ inline void
 Mem_unit_tlb::tlb_flush_kernel()
 { tlb_flush(); }
 
-// ---------------------------------------------------------------------------
-#else // CONFIG_CPU_VIRT
-
 inline void
-Mem_unit_tlb::tlb_flush_kernel()
+Mem_unit_tlb::tlb_flush_kernel(Address va)
 {
   Mem::dsbst();
-  asm volatile("tlbi alle2" : : : "memory");
+  asm volatile("tlbi vaae1is, %0"
+               : : "r" ((va >> 12) & 0x00000ffffffffffful)
+               : "memory");
   Mem::dsb();
 }
+
+// ---------------------------------------------------------------------------
+#else // CONFIG_CPU_VIRT
 
 inline void
 Mem_unit_tlb::tlb_flush()
 {
   Mem::dsbst();
-  asm volatile("tlbi alle1" : : : "memory");
-  Mem::dsb();
-}
-
-inline void
-Mem_unit_tlb::dtlb_flush(void *va)
-{
-  Mem::dsbst();
-  asm volatile("tlbi vae2, %0"
-               : : "r" ((((unsigned long)va) >> 12) & 0x00000ffffffffffful)
-               : "memory");
+  asm volatile("tlbi alle1is" : : : "memory");
   Mem::dsb();
 }
 
@@ -111,15 +93,15 @@ Mem_unit_tlb::tlb_flush(void *va, unsigned long asid)
       "msr vttbr_el2, %[asid] \n"
       "isb                    \n"
       "dsb ishst              \n"
-      "tlbi ipas2e1, %[ipa]   \n"
+      "tlbi ipas2e1is, %[ipa] \n"
       "dsb ish                \n"
-      "tlbi vmalle1           \n"
+      "tlbi vmalle1is         \n"
       "dsb ish                \n"
       "msr vttbr_el2, %[vttbr]\n"
       :
       [vttbr] "=&r" (vttbr)
       :
-      [ipa] "r" ((unsigned long)va >> 12),
+      [ipa] "r" (reinterpret_cast<unsigned long>(va) >> 12),
       [asid] "r" (asid << 48)
       :
       "memory");
@@ -136,7 +118,7 @@ Mem_unit_tlb::tlb_flush(unsigned long asid)
       "msr vttbr_el2, %[asid] \n"
       "isb                    \n"
       "dsb ishst              \n"
-      "tlbi vmalls12e1        \n"
+      "tlbi vmalls12e1is      \n"
       "dsb ish                \n"
       "msr vttbr_el2, %[vttbr]\n"
       :
@@ -145,6 +127,24 @@ Mem_unit_tlb::tlb_flush(unsigned long asid)
       [asid] "r" (asid << 48)
       :
       "memory");
+}
+
+inline void
+Mem_unit_tlb::tlb_flush_kernel()
+{
+  Mem::dsbst();
+  asm volatile("tlbi alle2is" : : : "memory");
+  Mem::dsb();
+}
+
+inline void
+Mem_unit_tlb::tlb_flush_kernel(Address va)
+{
+  Mem::dsbst();
+  asm volatile("tlbi vae2is, %0"
+               : : "r" ((va >> 12) & 0x00000ffffffffffful)
+               : "memory");
+  Mem::dsb();
 }
 
 #endif // CONFIG_CPU_VIRT

@@ -41,7 +41,8 @@ map_pmem(unsigned long phys, unsigned long size,
       auto pte = Kmem::kdir->walk(Virt_addr(next_map + i), Kpdir::Super_level);
       pte.set_page(Phys_mem_addr(phys + i),
                    Page::Attr::kern_global(Page::Rights::RW()));
-      pte.write_back_if(true, Mem_unit::Asid_kernel);
+      pte.write_back_if(true);
+      Mem_unit::tlb_flush_kernel(next_map + i);
     }
   Mem_layout::add_pmem(phys, next_map, size);
   next_map += size;

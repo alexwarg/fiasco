@@ -118,7 +118,9 @@ Mem_space_arm_bits<M>::set_syscall_page(void *p)
 
   pte.set_page(Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)p)),
                Page::Attr::kern_global(Page::Rights::URX()));
-  pte.write_back_if(true, Mem_unit::Asid_kernel);
+  pte.write_back_if(true);
+  Mem_unit::tlb_flush_kernel(Kmem_space::Syscalls);
+
 }
 
 template<typename M>
