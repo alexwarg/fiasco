@@ -3,14 +3,26 @@
 #include <types.h>
 #include <globalconfig.h>
 #include <smc_call.h>
+#include <alternatives.h>
 
 #ifdef CONFIG_ARM_PSCI_SMC
 #define FIASCO_ARM_PSCI_CALL_ASM_FUNC "smc #0"
+#define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS FIASCO_ARM_SMC_CALL_ASM_OPERANDS
 #endif
 #ifdef CONFIG_ARM_PSCI_HVC
 #define FIASCO_ARM_PSCI_CALL_ASM_FUNC "hvc #0"
+#define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS FIASCO_ARM_SMC_CALL_ASM_OPERANDS
+#endif
+#ifdef CONFIG_ARM_PSCI_DYN
+#define FIASCO_ARM_PSCI_CALL_ASM_FUNC ALTERNATIVE_INSN("smc #0", "hvc #0")
+
+#define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS \
+    : FIASCO_ARM_SMC_CALL_ASM_OUTPUTS \
+    : FIASCO_ARM_SMC_CALL_ASM_INPUTS, [alt_probe] "i"(Psci::is_hvc) \
+    : FIASCO_ARM_SMC_CALL_ASM_CLOBBERS
 #else
 #define FIASCO_ARM_PSCI_CALL_ASM_FUNC "smc #0"
+#define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS FIASCO_ARM_SMC_CALL_ASM_OPERANDS
 #endif
 
 class Psci
@@ -99,7 +111,7 @@ public:
     register Mword r7 FIASCO_ARM_ASM_REG(7) = a6;
 
     asm volatile(FIASCO_ARM_PSCI_CALL_ASM_FUNC
-                 FIASCO_ARM_SMC_CALL_ASM_OPERANDS);
+                 FIASCO_ARM_PSCI_CALL_ASM_OPERANDS);
 
     Result res = { r0, r1, r2, r3 };
     return res;
