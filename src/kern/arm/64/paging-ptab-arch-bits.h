@@ -16,6 +16,7 @@ static constexpr unsigned K_ptab_super_level = K_ptab_max_level - 1;
 
 #ifdef CONFIG_ARM_PT48
 
+/* 4-levels for stage 2 paging with a maximum IPA size of 48bits */
 using Ptab_traits =
   Ptab::Tupel< Ptab::Traits< Unsigned64, 39, 9, false>,
                Ptab::Traits< Unsigned64, 30, 9, true>,
@@ -24,7 +25,7 @@ using Ptab_traits =
 
 #else
 
-/* 3-levels for stage 2 paging with a fixed IPA size of 40bits */
+/* 3-levels for stage 2 paging with a maximum IPA size of 40bits */
 using Ptab_traits =
   Ptab::Tupel< Ptab::Traits< Unsigned64, 30, 10, true>,
                Ptab::Traits< Unsigned64, 21, 9, true>,

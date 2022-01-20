@@ -76,18 +76,33 @@ namespace Page
     | (5UL  << 16); // (PS)   Physical address size 48bits
                     //
 #ifdef CONFIG_ARM_PT48
-  static constexpr Mword Vtcr_bits =
-      (2UL  <<  6) // SL0
-    | (5UL  << 16) // PS
-    | (16UL <<  0) // T0SZ
-    | ((Mem_unit::Asid_bits == 16) << 19); // VS
+  static constexpr Mword Max_pa_range = 5; // 48 bits PA/IPA size (encoded as VTCR_EL2.PS)
+  static constexpr Mword Vtcr_sl0 = 2;     // 4 level page table
 #else
-  static constexpr Mword Vtcr_bits =
-      (1UL  <<  6) // SL0
-    | (2UL  << 16) // PS
-    | (24UL <<  0) // T0SZ
-    | ((Mem_unit::Asid_bits == 16) << 19); // VS
+  static constexpr Mword Max_pa_range = 2; // 40 bits PA/IPA size (encoded as VTCR_EL2.PS)
+  static constexpr Mword Vtcr_sl0 = 1;     // 3 level page table
 #endif
+  static unsigned inline ipa_bits(unsigned pa_range)
+  {
+    static char const pa_range_bits[] = { 32, 36, 40, 42, 44, 48, 52 };
+    if (pa_range > Max_pa_range)
+      pa_range = Max_pa_range;
+
+    return pa_range_bits[pa_range];
+  }
+
+  static unsigned inline vtcr_bits(unsigned pa_range)
+  {
+    if (pa_range > Max_pa_range)
+      pa_range = Max_pa_range;
+
+    unsigned pa_bits = ipa_bits(pa_range);
+
+    return (Vtcr_sl0            <<  6)  // SL0
+            | (pa_range         << 16)  // PS
+            | ((64U - pa_bits)  <<  0)  // T0SZ
+            | ((Mem_unit::Asid_bits == 16) << 19); // VS
+  }
 
 #else // CONFIG_CPU_VIRT
   static constexpr Mword Ttbcr_bits =

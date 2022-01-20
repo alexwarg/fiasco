@@ -4,8 +4,9 @@
 #include "config.h"
 #include "template_math.h"
 #include "types.h"
+#include <mem_layout-defaults.h>
 
-class Mem_layout_arm_bits
+class Mem_layout_arm_bits  : public Mem_layout_defaults<Mem_layout_arm_bits>
 {
 public:
 #if !defined(CONFIG_KERN_START_0XD) && !defined(CONFIG_CPU_VIRT)

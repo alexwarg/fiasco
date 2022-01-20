@@ -4,8 +4,9 @@
 #include "config.h"
 #include "template_math.h"
 #include "types.h"
+#include <mem_layout-defaults.h>
 
-class Mem_layout_arm_bits
+class Mem_layout_arm_bits : public Mem_layout_defaults<Mem_layout_arm_bits>
 {
 public:
 #if defined(CONFIG_CPU_VIRT) && !defined(CONFIG_ARM_PT48)
@@ -20,7 +21,6 @@ public:
 
 #ifdef CONFIG_CPU_VIRT
   enum Virt_layout_kern : Address {
-    Utcb_addr            = User_max + 1 - 0x10000,
     Map_base             = RAM_PHYS_BASE,
     Vmap_base            = (Map_base > 0x800000000000) ? 0x40000000 : 0x800000000000,
     Jdb_tmp_map_area     = Vmap_base,
@@ -33,6 +33,10 @@ public:
 
     Cache_flush_area     = 0x0,
   };
+
+  static Address const Utcb_addr;
+  static Address hw_user_max();
+
 #else // !CONFIG_CPU_VIRT
   enum Virt_layout_kern : Address {
     User_max             = 0x0000ff7fffffffff,
@@ -53,4 +57,5 @@ public:
     utcb_ptr_align       = Tl_math::Ld<sizeof(void*)>::Res,
   };
 #endif
+
 };

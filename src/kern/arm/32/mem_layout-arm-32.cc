@@ -1,5 +1,6 @@
 #include "mem_layout.h"
 
+#ifdef CONFIG_VIRT_OBJ_SPACE
 Mword
 Mem_layout_arch::_read_special_safe(Mword const *a)
 {
@@ -25,3 +26,4 @@ Mem_layout_arch::_read_special_safe(Mword const *address, Mword &v)
   v = a;
   return ret;
 }
+#endif

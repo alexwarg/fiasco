@@ -54,14 +54,6 @@ public:
     Hcr_rw     = 1UL << 31, ///< EL1 is AArch64
   };
 
-#ifndef CONFIG_ARM_LPAE
-  unsigned phys_bits() { return 32; }
-#elif !defined(CONFIG_ARM_PT48) // CONFIG_ARM_LPAE && !CONFIG_ARM_PT48
-  unsigned phys_bits() { return 40; }
-#else // CONFIG_ARM_LPAE && CONFIG_ARM_PT48
-  unsigned phys_bits() { return 48; }
-#endif
-
 };
 
 class Cpu_arm_v5 : public Cpu_arm_generic

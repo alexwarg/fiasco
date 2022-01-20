@@ -5,10 +5,12 @@
 #include "config.h"
 #include "linking.h"
 #include "template_math.h"
+#include <mem_layout-defaults.h>
 
 #include <cassert>
 
-class Mem_layout_ia32_bits
+class Mem_layout_ia32_bits : public Mem_layout_defaults<Mem_layout_ia32_bits>
+
 {
 public:
   enum Flags

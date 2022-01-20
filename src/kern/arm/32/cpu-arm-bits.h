@@ -266,6 +266,12 @@ public:
     Cp15_c1_cache_disabled = D::Cp15_c1_generic,
   };
 
+#ifndef CONFIG_ARM_LPAE
+  static unsigned phys_bits() { return 32; }
+#else
+  static unsigned phys_bits() { return 40; }
+#endif
+
   bool has_generic_timer() const { return (self()->_cpu_id._pfr[1] & 0xf0000) == 0x10000; }
 
   static Unsigned32 sctlr;

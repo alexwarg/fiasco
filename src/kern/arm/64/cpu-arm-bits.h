@@ -167,6 +167,19 @@ public:
     asm volatile ("msr HCR_EL2, %0" : : "r"(hcr));
   }
 
+  static unsigned pa_range()
+  {
+    Mword id_aa64mmfr0_el1;
+    asm("mrs %0, S3_0_C0_C7_0" : "=r"(id_aa64mmfr0_el1));
+    return id_aa64mmfr0_el1 & 0x0fU;
+  }
+
+  static unsigned phys_bits()
+  {
+    static char const pa_range_bits[16] = { 32, 36, 40, 42, 44, 48, 52 };
+    return pa_range_bits[pa_range()];
+  }
+
 #ifndef CONFIG_CPU_VIRT
   enum : Unsigned64
   {
@@ -282,23 +295,12 @@ public:
     Mdcr_vm_mask   = 0xf00,
   };
 
-  unsigned supported_pa_range() const noexcept
-  {
-    static Unsigned8 const pa_range[16] = { 32, 36, 40, 42, 44, 48, 52 };
-    return pa_range[self()->_cpu_id._mmfr[0] & 0x0fU];
-  }
-
   unsigned vmid_bits() const noexcept
   { return (self()->_cpu_id._mmfr[1] & 0xf0U) == 0x20 ? 16 : 8; }
 
   void init_hyp_mode() noexcept
   {
     extern char exception_vector[];
-
-    // Feature availability check for IPA address space size
-    if (supported_pa_range() < self()->phys_bits())
-      panic("IPA address size too small: HW provides %d bits, required %d bits!",
-            supported_pa_range(), self()->phys_bits());
 
     if (vmid_bits() < Mem_unit::Asid_bits)
       panic("VMID size too small: HW provides %d bits, configured %d bits!",
@@ -308,7 +310,7 @@ public:
     asm volatile ("msr VTCR_EL2, %x0" : :
                   "r"(  (1UL << 31) // RES1
                       | (Page::Tcr_attribs << 8)
-                      | Page::Vtcr_bits));
+                      | Page::vtcr_bits(pa_range())));
 
     asm volatile ("msr MDCR_EL2, %x0" : : "r"((Mword)Mdcr_bits));
 

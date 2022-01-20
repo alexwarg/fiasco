@@ -3,8 +3,9 @@
 #include <globalconfig.h>
 #include "config.h"
 #include "types.h"
+#include <mem_layout-defaults.h>
 
-class Mem_layout_arch
+class Mem_layout_arch : public Mem_layout_defaults<Mem_layout_arch>
 {
 public:
 #ifdef CONFIG_CPU_MIPS32
