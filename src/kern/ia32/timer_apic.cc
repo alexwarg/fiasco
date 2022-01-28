@@ -4,7 +4,7 @@
 #include <pit_i8254.h>
 #include <std_macros.h>
 #include <warn.h>
-#include <kip.h>
+#include <system_clock.h>
 
 #include <cstdio>
 
@@ -42,8 +42,8 @@ void
 Timer_apic::update_one_shot(Unsigned64 wakeup)
 {
   Unsigned32 apic;
-  Unsigned64 now = Kip::k()->clock();
-  if (EXPECT_FALSE (wakeup <= now))
+  Unsigned64 now = System_clock::clock();
+  if (EXPECT_FALSE(wakeup <= now))
     // already expired
     apic = 1;
   else

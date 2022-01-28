@@ -10,7 +10,7 @@
 #include <per_cpu_data.h>
 #include <timer.h>
 #include <config.h>
-#include <kip.h>
+#include <system_clock.h>
 
 /** A timeout basic object. It contains the necessary queues and handles
     enqueuing, dequeuing and handling of timeouts. Real timeout classes
@@ -198,7 +198,7 @@ public:
 
     // Calculate which timeout queues needs to be checked.
     int start = (_old_clock >> Wakeup_queue_distance);
-    Unsigned64 now = Kip::k()->clock();
+    Unsigned64 now = System_clock::clock();
     int diff  = (now >> Wakeup_queue_distance) - start;
     int end   = (start + diff + 1) & (Wakeup_queue_count - 1);
 
