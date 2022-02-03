@@ -2,8 +2,6 @@
 #include <psci.h>
 #include <cstdio>
 
-bool Psci::is_v1;
-
 void
 Psci::init(Cpu_number cpu)
 {
@@ -14,7 +12,7 @@ Psci::init(Cpu_number cpu)
   Result r = psci_call(Psci_version);
   printf("Detected PSCI v%ld.%ld\n", r.res[0] >> 16, r.res[0] & 0xffff);
 
-  is_v1 = (r.res[0] >> 16) >= 1;
+  bool is_v1 = (r.res[0] >> 16) >= 1;
 
   if (is_v1)
     {

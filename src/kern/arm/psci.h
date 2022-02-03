@@ -62,8 +62,6 @@ private:
     Psci_stat_count          = 17,
   };
 
-  static bool is_v1;
-
   static unsigned long psci_fn(unsigned fn)
   {
     switch (fn)
