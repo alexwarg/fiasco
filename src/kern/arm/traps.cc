@@ -180,7 +180,7 @@ void arm_esr_entry(Return_frame *rf)
           Mword state = ct->state();
           Unsigned32 pc = rf->pc;
 
-          if (state & (Thread_vcpu_user | Thread_alien))
+          if (state & Thread_vcpu_user)
             {
               ts->pc += ts->psr & Proc::Status_thumb ? 2 : 4;
               ct->send_exception(ts);

@@ -197,29 +197,12 @@
 #endif
 .endm
 
-.macro  PRE_ALIEN_IPC target=slowtraps
-	btrl	$17, OFS__THREAD__STATE (%rbx)	/* Thread_dis_alien */
-	jc	1f
+.macro VCPU_SYSCALL trap_target=slowtraps
 	movq	$253, (16*8)(%rsp)
 	movq	$0,   (17*8)(%rsp)
 	subq	$2, (16*8 + 2*8)(%rsp) /* reset RIP to syscall */
-	jmp	\target
-1:	/* do alien IPC and raise a trap afterwards */
-	RESET_THREAD_CANCEL_AT %rbx
+	jmp	\trap_target
 .endm
-
-.macro  POST_ALIEN_IPC target=slowtraps
-	movq	$253, (16*8)(%rsp)
-	movq	$1,   (17*8)(%rsp)
-	jmp	\target
-.endm
-
-.macro ALIEN_SYSCALL syscall, trap_target=slowtraps
-	PRE_ALIEN_IPC \trap_target
-	\syscall
-	POST_ALIEN_IPC \trap_target
-.endm
-
 
 .macro	SAVE_STATE save_cr2=0 timeout_reg=%rcx
 	push	\timeout_reg
@@ -283,7 +266,7 @@
 .endm
 
 	.macro	RESET_THREAD_CANCEL_AT reg
-	andl	$~(VAL__Thread_cancel | VAL__Thread_dis_alien), OFS__THREAD__STATE (\reg)
+	andl	$~(VAL__Thread_cancel), OFS__THREAD__STATE (\reg)
 	.endm
 
 	.macro	ESP_TO_TCB_AT reg

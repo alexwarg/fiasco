@@ -40,8 +40,7 @@ public:
 
     // Allocate FPU state slab if we didn't already have one
     if (!_fpu_state->state_buffer()
-        && (EXPECT_FALSE((!alloc_new_fpu
-                          || _this()->state.has(Thread_alien))
+        && (EXPECT_FALSE(!alloc_new_fpu
                          || !Fpu_alloc::alloc_state(_this()->quota(), _fpu_state))))
       return 0;
 

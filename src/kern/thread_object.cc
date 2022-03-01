@@ -278,17 +278,6 @@ Thread_object::sys_control(L4_fpage::Rights rights, L4_msg_tag tag,
   if ((res = sys_control_arch(utcb, out)) < 0)
     return commit_result(res);
 
-  if (flags & Ctl_alien_thread)
-    {
-      if (utcb->values[4] & Ctl_alien_thread)
-        {
-          add_state |= Thread_alien;
-          del_state |= Thread_dis_alien;
-        }
-      else
-        del_state |= Thread_alien;
-    }
-
   out->values[1] = _old_pager;
   out->values[2] = _old_exc_handler;
 

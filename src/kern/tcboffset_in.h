@@ -56,11 +56,10 @@
 
   DUMP_THREAD_STATE (Thread_ready)
   DUMP_THREAD_STATE (Thread_cancel)
-  DUMP_THREAD_STATE (Thread_dis_alien)
   DUMP_THREAD_STATE (Thread_ipc_mask)
   DUMP_THREAD_STATE (Thread_ext_vcpu_enabled)
   DUMP_THREAD_STATE (Thread_fpu_owner)
-  DUMP_CONSTANT (Thread_alien_or_vcpu_user, Thread_vcpu_user | Thread_alien)
+  DUMP_CONSTANT (Thread_vcpu_user, Thread_vcpu_user)
   DUMP_CONSTANT (Thread_vcpu_state_mask, Thread_vcpu_state_mask)
 
 #ifdef CONFIG_IA32

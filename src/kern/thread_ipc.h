@@ -1074,9 +1074,6 @@ template<typename T> bool
 Thread_ipc<T>::handle_page_fault_pager(Address pfa, Mword error_code,
                                        L4_msg_tag::Protocol protocol)
 {
-  if (EXPECT_FALSE(_this()->state.has(Thread_alien)))
-    return false;
-
   auto guard = lock_guard(cpu_lock);
 
   L4_fpage::Rights rights;
@@ -1197,9 +1194,6 @@ Thread_ipc<T>::exception(Kobject_iface *handler, Trap_state *ts, L4_fpage::Right
   saved_state.restore(utcb);
 
   _this()->state.del(Thread_in_exception);
-  if (!r.tag().has_error()
-      && r.tag().proto() == L4_msg_tag::Label_allow_syscall)
-    _this()->state.add(Thread_dis_alien);
 
   // restore original utcb_handler
   _utcb_handler = old_utcb_handler;

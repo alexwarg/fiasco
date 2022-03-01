@@ -191,15 +191,10 @@ inline void handle_svc(Context *c, Trap_state *ts)
   ts->pc = get_lr_for_mode(ts);
   Mword state = c->state.dirty();
   c->state.del(Thread_cancel);
-  if (state & (Thread_vcpu_user | Thread_alien))
+  if (state & Thread_vcpu_user)
     {
-      if (state & Thread_dis_alien)
-        c->state.del_dirty(Thread_dis_alien);
-      else
-        {
-          slowtrap_entry(ts);
-          return;
-        }
+      slowtrap_entry(ts);
+      return;
     }
 
   typedef void Syscall(void);

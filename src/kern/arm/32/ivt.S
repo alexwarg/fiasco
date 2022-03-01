@@ -207,7 +207,7 @@
 	/* stack frame: RF + r12-r0, sp points to r0 */
 	CONTEXT_OF	r1, sp
 	RESET_THREAD_CANCEL_AT r1       @ sets r0 to state 
-	tst	r0, #VAL__Thread_alien_or_vcpu_user
+	tst	r0, #VAL__Thread_vcpu_user
 	bne	alien_syscall
 	ldr	r0, [sp, #RF(SVC_LR, 13*4)]     @ read exception PC from stack (km_lr)
 	adr	r1, sys_call_table
@@ -665,9 +665,6 @@ __irq_handler_fiq:
  * \pre sp  points to r0-r12 + RF
  */
 alien_syscall: @ Do it for an alien ---------------------------------------
-	tst	r0, #VAL__Thread_dis_alien
-	bicne	r0, r0, #VAL__Thread_dis_alien
-	bne	1f
 	@ Trap alien before system call -----------------------------------
 	@ The trap is an insn abort on the syscall address in the kernel.
 	ldr	lr, [sp, #RF(PC,     13*4)]
@@ -677,21 +674,6 @@ alien_syscall: @ Do it for an alien ---------------------------------------
 	str	lr, [sp, #RF(PC,     13*4)] @ store to entry_stack_PC
 	enter_slowtrap_w_stack GET_HSR(0x3d)
 	@ Never reach this -- end up in user land after exception reply
-
-1:	@ Resume the alien system call ------------------------------------
-	str	r0, [r1, #(OFS__THREAD__STATE)]
-	ldr	r0, [sp, #RF(SVC_LR, 13*4)] @ read orig excpetion PC
-	adr	r1, sys_call_table
-	sub	r0, r1, r0
-	adr	lr, 2f
-	ldr	pc, [r0]
-2:	nop @ The return point after the resumed alien system call --------
-	disable_irqs
-	@ Trap after the resumed alien system call ------------------------
-	@ The trap occurs at the insn where the system call returns to.
-	@ Set the bit 0x00000040 to indicate a trap after the resumed 
-	@ system call.
-	enter_slowtrap_w_stack GET_HSR(0x3d), 0x40
 
 	
 .macro LOAD_USR_SP vcpu_ptr

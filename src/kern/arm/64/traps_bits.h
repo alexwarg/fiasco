@@ -190,16 +190,8 @@ handle_svc(Context *c, Trap_state *ts)
 {
   Mword state = c->state.dirty();
   c->state.del(Thread_cancel);
-  if (state & (Thread_vcpu_user | Thread_alien))
+  if (state & Thread_vcpu_user)
     {
-      if (state & Thread_dis_alien)
-        {
-          c->state.del_dirty(Thread_dis_alien);
-          do_syscall();
-
-          ts->error_code |= 1 << 16; // ts->esr().alien_after_syscall() = 1;
-        }
-
       slowtrap_entry(ts);
       return;
     }

@@ -131,14 +131,9 @@ Return_frame::ip(Mword ip)
     {
       /* symbols from the assembler entry code */
       extern Mword leave_from_sysenter_by_iret;
-      extern Mword leave_alien_from_sysenter_by_iret;
-      extern Mword ret_from_fast_alien_ipc;
       Mword **ret_from_disp_syscall = reinterpret_cast<Mword**>(static_cast<Entry_frame*>(this))-1;
       cs(cs() & ~0x80);
-      if (*ret_from_disp_syscall == &ret_from_fast_alien_ipc)
-        *ret_from_disp_syscall = &leave_alien_from_sysenter_by_iret;
-      else
-        *ret_from_disp_syscall = &leave_from_sysenter_by_iret;
+      *ret_from_disp_syscall = &leave_from_sysenter_by_iret;
     }
 
   _eip = ip;

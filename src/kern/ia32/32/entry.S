@@ -60,25 +60,10 @@ entry_\name:
 .endm
 
 .macro  PRE_ALIEN_IPC
-	btrl	$17, OFS__THREAD__STATE (%ebx) /* Thread_dis_alien */
-	jc	1f
 	RESTORE_STATE
 	subl	$2, 4(%esp)                /* Correct EIP to point to insn */
 	popl 	%eax
 	pushl	$(0x30 << 3 | 2)
-	pushl	$(0xd)
-	pusha
-	jmp	.L_slowtraps
-
-1: 	/* do alien IPC and raise a trap afterwards */	
-	RESET_THREAD_CANCEL_AT %ebx
-.endm
-
-.macro  POST_ALIEN_IPC
-	CHECK_SANITY $3			/* scratches ecx */
-	RESTORE_STATE_AFTER_IPC
-	popl	%eax
-	pushl	$(0x30 << 3 | 6)
 	pushl	$(0xd)
 	pusha
 	jmp	.L_slowtraps
@@ -478,7 +463,7 @@ entry_sys_ipc_c:
 	SAVE_STATE
 	RESET_KERNEL_SEGMENTS_FORCE_DS_ES
 	ESP_TO_TCB_AT %ebx
-	testl	$VAL__Thread_alien_or_vcpu_user, OFS__THREAD__STATE (%ebx)
+	testl	$VAL__Thread_vcpu_user, OFS__THREAD__STATE (%ebx)
 	jnz	.Lalien_sys_ipc_c
 	RESET_THREAD_CANCEL_AT %ebx
 	call	sys_ipc_wrapper //ipc_short_cut_wrapper
@@ -500,8 +485,8 @@ entry_sys_ipc_log:
 	SAVE_STATE
 	RESET_KERNEL_SEGMENTS_FORCE_DS_ES
 	ESP_TO_TCB_AT %ebx
-	testl	$VAL__Thread_alien_or_vcpu_user, OFS__THREAD__STATE (%ebx)
-	jnz	.Lalien_sys_ipc_log
+	testl	$VAL__Thread_vcpu_user, OFS__THREAD__STATE (%ebx)
+	jnz	.Lalien_sys_ipc_c
 	RESET_THREAD_CANCEL_AT %ebx
 	call	*syscall_table
 in_slow_ipc4:
@@ -538,15 +523,6 @@ GATE_INITTAB_END
 
 .Lalien_sys_ipc_c:
 	PRE_ALIEN_IPC
-	call	sys_ipc_wrapper
-	POST_ALIEN_IPC
-
-#if defined (CONFIG_JDB)
-.Lalien_sys_ipc_log:
-	PRE_ALIEN_IPC
-	call	*syscall_table
-	POST_ALIEN_IPC
-#endif
 
 
 #define OFS__VCPU_STATE__REGS_IRET (VAL__SIZEOF_TRAP_STATE - 20 + OFS__VCPU_STATE__TREX)

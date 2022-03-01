@@ -91,7 +91,6 @@ public:
   {
     Ctl_set_pager       = 0x0010000,
     Ctl_bind_task       = 0x0200000,
-    Ctl_alien_thread    = 0x0400000,
     Ctl_set_exc_handler = 0x1000000,
   };
 

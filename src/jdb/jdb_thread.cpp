@@ -25,7 +25,7 @@ Jdb_thread::print_state_bits(Mword bits, unsigned max_size)
       "rcv_in_progr",  "transfer",      "<0x40>",      "cancel",
       "timeout",       "dead",          "suspended",   "<0x800>",
       "migrate",       "resched",       "<0x4000>",    "fpu",
-      "alien",         "dealien",       "exc_progr",   "<0x80000>",
+      "<0x10000>",     "<0x20000>",     "exc_progr",   "<0x80000>",
       "drq",           "lock_wait",     "vcpu",        "vcpu_user",
       "vcpu_fpu_disabled", "vcpu_ext"
     };

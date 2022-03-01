@@ -9,8 +9,6 @@
 #include "tcboffset.h"
 
 .macro  PRE_FAST_ALIEN_IPC
-	btrl	$17, OFS__THREAD__STATE (%ebx)	/* Thread_dis_alien */
-	jc	1f
 	RESTORE_STATE
 	popl	%eax
 	andl	$0x7f,4(%esp)
@@ -24,8 +22,6 @@
 	mov	52(%esp), %ebp         /* offset 52: sp */
 	mov	%ebp, 8(%esp)          /* offset  8: ebp */
 	jmp	slowtraps
-1:	/* do alien IPC and raise a trap afterwards */
-	RESET_THREAD_CANCEL_AT %ebx
 
 	.pushsection ".comment" /* discarded section */
 3: /* must be the same code as code before sysenter in syscall-page.... */
@@ -36,16 +32,6 @@
     */
 	.popsection
 
-.endm
-
-.macro  POST_FAST_ALIEN_IPC
-	RESTORE_STATE_AFTER_IPC
-	popl	%eax
-	andl	$0x7f,4(%esp)
-	pushl	$(0x30 << 3 | 6)
-	pushl	$(0xd)
-	pusha
-	jmp	slowtraps
 .endm
 
 	.p2align 4
@@ -84,20 +70,14 @@ entry_vec01_debug:
 	pushl	%ecx
 	RESET_KERNEL_SEGMENTS_FORCE_DS_ES
 	ESP_TO_TCB_AT %ebx
-	testl	$VAL__Thread_alien_or_vcpu_user, OFS__THREAD__STATE (%ebx)
-	jnz	.Ldbg_alien_sys_fast_ipc_log
+	testl	$VAL__Thread_vcpu_user, OFS__THREAD__STATE (%ebx)
+	jnz	.Lalien_sys_fast_ipc_c
 	RESET_THREAD_CANCEL_AT %ebx
 	call	*syscall_table
 	CHECK_SANITY $3			/* scratches ecx */
 	RESTORE_STATE_AFTER_IPC
 	popl	%eax
 	iret
-
-.Ldbg_alien_sys_fast_ipc_log:
-	PRE_FAST_ALIEN_IPC
-	push    $ret_from_fast_alien_ipc
-	jmp     *syscall_table
-
 
 	.globl	entry_vec0a_invalid_tss
 entry_vec0a_invalid_tss:
@@ -206,17 +186,12 @@ entry_sys_fast_ipc_log:
 
 	RESET_KERNEL_SEGMENTS_FORCE_DS_ES
 	ESP_TO_TCB_AT %ebx
-	testl	$VAL__Thread_alien_or_vcpu_user, OFS__THREAD__STATE (%ebx)
-	jnz	.Lalien_sys_fast_ipc_log
+	testl	$VAL__Thread_vcpu_user, OFS__THREAD__STATE (%ebx)
+	jnz	.Lalien_sys_fast_ipc_c
 	RESET_THREAD_CANCEL_AT %ebx
 	call	*syscall_table
 in_slow_ipc5:
 	DO_SYSEXIT
-
-.Lalien_sys_fast_ipc_log:
-	PRE_FAST_ALIEN_IPC
-	push    $ret_from_fast_alien_ipc
-	jmp     *syscall_table
 
 	.globl	in_slow_ipc5
 
@@ -253,7 +228,7 @@ entry_sys_fast_ipc_c:
 	pushl	%ecx				/* save ecx */
 	RESET_KERNEL_SEGMENTS_FORCE_DS_ES
 	ESP_TO_TCB_AT %ebx
-	testl	$VAL__Thread_alien_or_vcpu_user, OFS__THREAD__STATE (%ebx)
+	testl	$VAL__Thread_vcpu_user, OFS__THREAD__STATE (%ebx)
 	jnz	.Lalien_sys_fast_ipc_c
 	RESET_THREAD_CANCEL_AT %ebx
 	call    sys_ipc_wrapper
@@ -275,9 +250,6 @@ in_sc_ipc2:
 .Lalien_sys_fast_ipc_c:
 	cld
 	PRE_FAST_ALIEN_IPC
-	call    sys_ipc_wrapper
-ret_from_fast_alien_ipc:
-	POST_FAST_ALIEN_IPC
 
 	.globl	in_sc_ipc2
 

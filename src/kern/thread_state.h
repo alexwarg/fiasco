@@ -29,8 +29,6 @@ struct Thread_state
   CXX_BITFIELD_MEMBER(12, 13, switch_hazards,   state);
 
   CXX_BITFIELD_MEMBER(15, 15, fpu_owner, state);
-  CXX_BITFIELD_MEMBER(16, 16, alien, state);
-  CXX_BITFIELD_MEMBER(17, 17, dis_alien, state);
   CXX_BITFIELD_MEMBER(18, 18, in_exception, state);
 
   CXX_BITFIELD_MEMBER(20, 20, drq_wait, state);
@@ -93,10 +91,6 @@ enum Thread_state_
   // 0x4000 is free
 
   Thread_fpu_owner            = 0x8000, // currently owns the fpu
-  Thread_alien                = 0x10000, // Thread is an alien, is not allowed
-                                     // to do system calls
-  Thread_dis_alien            = 0x20000, // Thread is an alien, however the next
-                                     // system call is allowed
   Thread_in_exception         = 0x40000, // Thread has sent an exception but still
                                      // got no reply
 

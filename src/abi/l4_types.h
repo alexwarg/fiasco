@@ -398,12 +398,6 @@ public:
   enum Protocol
   {
     Label_none          = 0, ///< No protocol, the default
-    /**
-     * Value to allow the current system call for an alien thread.
-     *
-     * This value is used in the reply to an alien pre-syscall exception IPC.
-     */
-    Label_allow_syscall = 1,
 
     Label_irq = -1L,           ///< IRQ object protocol.
     Label_page_fault = -2L,    ///< Page fault messages use this protocol.
