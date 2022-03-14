@@ -33,7 +33,7 @@ public:
   {
     val.shareability() = _share;
     val.cacheability() = _cache;
-    reg.write(val.raw);
+    reg.write_non_atomic(val.raw);
     detect_coherence<R, T>(reg);
   }
 
@@ -73,7 +73,7 @@ private:
   inline void detect_coherence(R reg)
   {
     // Detect shareability/cacheability by reading back accepted value
-    T rval(reg.read());
+    T rval(reg.read_non_atomic());
     _cache = rval.cacheability();
     if (rval.shareability() != _share)
       {
@@ -84,7 +84,7 @@ private:
             // Mark memory non-cacheable if GIC only supports non-shareable
             _cache = Cacheability_non_cacheable;
             rval.cacheability() = _cache;
-            reg.write(rval.raw);
+            reg.write_non_atomic(rval.raw);
           }
       }
   }

@@ -8,9 +8,9 @@ Timer_integrator::Timer_integrator(Address base)
   : Mmio_register_block(base)
 {
   /* Switch all timers off */
-  write(0, TIMER0_BASE + TIMER_CTRL);
-  write(0, TIMER1_BASE + TIMER_CTRL);
-  write(0, TIMER2_BASE + TIMER_CTRL);
+  write(0u, TIMER0_BASE + TIMER_CTRL);
+  write(0u, TIMER1_BASE + TIMER_CTRL);
+  write(0u, TIMER2_BASE + TIMER_CTRL);
 
   unsigned timer_ctrl = TIMER_CTRL_ENABLE | TIMER_CTRL_PERIODIC;
   unsigned timer_reload = 1000000 / Config::Scheduler_granularity;

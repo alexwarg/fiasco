@@ -22,7 +22,7 @@ public:
 
   static void acknowledge()
   {
-    _timer->write(1, TIMER1_BASE + TIMER_INTCLR);
+    _timer->write(1u, TIMER1_BASE + TIMER_INTCLR);
   }
 
   explicit Timer_integrator(Address base);

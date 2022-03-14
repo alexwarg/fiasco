@@ -23,7 +23,7 @@ Gic_redist::find(Address base, Unsigned64 mpidr, Cpu_number cpu)
         // No GICv3 and no GICv4
         break;
 
-      gicr_typer.raw = r.read<Unsigned64>(GICR_TYPER);
+      gicr_typer.raw = r.read_non_atomic<Unsigned64>(GICR_TYPER);
       if (gicr_typer.affinity() == typer_aff)
         {
           printf("CPU%d: GIC Redistributor at %lx for 0x%llx\n",
@@ -95,7 +95,7 @@ Gic_redist::init_lpi(unsigned num_lpis)
 void
 Gic_redist::cpu_init_lpi()
 {
-  Typer gicr_typer(_redist.read<Unsigned64>(GICR_TYPER));
+  Typer gicr_typer(_redist.read_non_atomic<Unsigned64>(GICR_TYPER));
   if (!gicr_typer.plpis())
     panic("GIC: Redistributor does not support physical LPIs.\n");
 

@@ -124,7 +124,7 @@ public:
 
   unsigned get_processor_nr() const
   {
-    return Typer(_redist.read<Unsigned64>(GICR_TYPER)).processor_nr();
+    return Typer(_redist.read_non_atomic<Unsigned64>(GICR_TYPER)).processor_nr();
   }
 #endif
 
