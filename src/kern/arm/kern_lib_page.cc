@@ -36,6 +36,7 @@ STATIC_INITIALIZE(Kern_lib_page);
 #if defined (CONFIG_ARM_V6PLUS)
 asm (
     ".p2align 12                         \n"
+    ".arm                                \n"
     ".global kern_lib_start              \n" // need this for mem_space.cpp
     "kern_lib_start:                     \n"
 
@@ -94,6 +95,7 @@ asm (
 
 asm (
     ".p2align 12                         \n"
+    ".arm                                \n"
     "kern_lib_start:                     \n"
 
     // atomic add

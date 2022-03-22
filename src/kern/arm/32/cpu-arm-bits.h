@@ -334,7 +334,7 @@ public:
                    " mcr  p15, 0, %0, c1, c0  \n"
                    :
                    : "r" (sctlr),
-                     "I" (Proc::Status_mode_supervisor
+                     "r" (Proc::Status_mode_supervisor
                           | Proc::Status_interrupts_disabled)
                    : "r2", "r3");
 

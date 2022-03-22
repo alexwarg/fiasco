@@ -8,7 +8,7 @@ inline void arm_fast_exit(void *sp, void *pc, void *arg)
   register void *r0 asm("r0") = arg;
   asm volatile
     ("  mov sp, %[stack_p]    \n"    // set stack pointer to regs structure
-     "  mov pc, %[rfe]        \n"
+     "  bx      %[rfe]        \n"
      : :
      [stack_p] "r" (sp),
      [rfe]     "r" (pc),

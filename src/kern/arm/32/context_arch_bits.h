@@ -57,14 +57,26 @@ protected:
 #else // CONFIG_CPU_VIRT
  void bits_fill_user_state(Entry_frame *ef)
   {
+#ifdef __thumb__
+    asm volatile ("msr SP_usr, %0 \n"
+                  "msr LR_usr, %1 \n"
+        : : "r"(ef->usp), "r"(ef->ulr));
+#else
     asm volatile ("ldmia %[rf], {sp, lr}^"
         : : "m"(ef->usp), "m"(ef->ulr), [rf] "r" (&ef->usp));
+#endif
   }
 
   void bits_spill_user_state(Entry_frame *ef)
   {
+#ifdef __thumb__
+    asm volatile ("mrs %0 ,SP_usr \n"
+                  "mrs %1 ,LR_usr \n"
+        : "=r"(ef->usp), "=r"(ef->ulr));
+#else
     asm volatile ("stmia %[rf], {sp, lr}^"
         : "=m"(ef->usp), "=m"(ef->ulr) : [rf] "r" (&ef->usp));
+#endif
   }
 #endif // CONFIG_CPU_VIRT
 
@@ -81,7 +93,11 @@ protected:
     asm volatile
       (// save context of old thread
        "   stmdb sp!, {fp}          \n"
+#ifdef __thumb__
+       "   adr   lr, (1f + 1)       \n" // make sure to return to thumb mode
+#else
        "   adr   lr, 1f             \n"
+#endif
        "   str   lr, [sp, #-4]!     \n"
        "   str   sp, [%[old_sp]]    \n"
 

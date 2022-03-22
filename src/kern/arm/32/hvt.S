@@ -123,6 +123,7 @@ hyp_trap_entry:
 	ldr	pc, 1f
 	add	sp, sp, #8
 .global fast_ret_from_irq
+.type fast_ret_from_irq, #function
 fast_ret_from_irq:
 	ldmia	sp, {r0 - r12}		@ Restore user state
 	disable_irqs
@@ -131,6 +132,7 @@ GEN_IRET
 1:	.word arm_esr_entry
 
 .global	vcpu_resume
+.type vcpu_resume, #function
 vcpu_resume:
 	add	sp, r1, #RF_SIZE
 	add	r0, r0, #8			@ pfa, err

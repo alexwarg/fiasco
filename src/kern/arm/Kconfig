@@ -670,9 +670,10 @@ config ARM_DCACHE_FLASH_WAYS
 	  (reset value), all data cache ways are assigned to the AXIM
 	  interface. Adjusting this setting can optimize performance based on
 	  memory access patterns.
+	depends on ARM_V7PLUS && !BIT64
 
 # SECTION: COMPILING
 
 config THUMB2
 	bool "Compile to Thumb-2 object code"
-	depends on ARM_V7PLUS && !BIT64
+	depends on ARM && ARM_V7PLUS && !BIT64

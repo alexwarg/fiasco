@@ -31,8 +31,9 @@ static Jdb_kern_info_cpu k_c INIT_PRIORITY(JDB_MODULE_INIT_PRIO+1);
 asm (
   ".section \".text.jdb\"                     \t\n"
   ".global jdb_mrc_insn                       \t\n"
+  ".type jdb_mrc_insn, #function              \t\n"
   "jdb_mrc_insn:   mrc p0, 0, r0, c0, c0, 0   \t\n"
-  "                mov pc, lr                 \t\n"
+  "                bx lr                      \t\n"
   ".previous                                  \t\n");
 
 Mword
