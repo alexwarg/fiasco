@@ -9,7 +9,7 @@ class Irq_base;
 namespace Vkey
 {
 enum Echo_type { Echo_off = 0, Echo_on = 1, Echo_crnl = 2 };
-void irq(Irq_base *i);
+void irq(Irq_base *const *i);
 void set_echo(Echo_type echo);
 void add_char(int v);
 int check_();

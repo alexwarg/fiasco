@@ -10,7 +10,7 @@
 
 class Vlog :
   public cxx::Dyn_castable<Vlog, Icu_h<Vlog> >,
-  public Irq_chip_soft
+  public Irq_chip_virt<1>
 {
 public:
   enum O_flags
@@ -41,8 +41,9 @@ public:
   };
 
   Vlog()
-  : _irq(0), _i_flags(F_ICRNL), _o_flags(F_ONLCR), _l_flags(F_ECHO)
+  : _i_flags(F_ICRNL), _o_flags(F_ONLCR), _l_flags(F_ECHO)
   {
+    Vkey::irq(icu_irq_ptr(0));
     Vkey::set_echo(Vkey::Echo_crnl);
     initial_kobjects.register_obj(this, Initial_kobjects::Log);
   }
@@ -51,65 +52,6 @@ public:
   {
     printf("WARNING: tried to delete kernel Vlog object.\n");
   }
-
-  void bind(Irq_base *irq, Mword irqnum)
-  {
-    Irq_chip_soft::bind(irq, irqnum);
-    _irq = irq;
-    Vkey::irq(irq);
-  }
-
-  void unbind(Irq_base *irq) override
-  {
-    if (!_irq || _irq != irq)
-      return;
-
-    Vkey::irq(nullptr);
-    _irq = nullptr;
-    Irq_chip_soft::unbind(irq);
-  }
-
-  L4_msg_tag op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq)
-  {
-    if (irqnum > 0)
-      return commit_result(-L4_err::EInval);
-
-    if (_irq)
-      _irq->unbind();
-
-    if (!Ko::check_rights(irq.rights, Ko::Rights::CW()))
-      return commit_result(-L4_err::EPerm);
-
-    bind(irq.obj, irqnum);
-    return commit_result(0);
-  }
-
-  L4_msg_tag op_icu_set_mode(Mword pin, Irq_chip::Mode)
-  {
-    if (pin != 0)
-      return commit_result(-L4_err::EInval);
-
-    if (_irq)
-      _irq->switch_mode(true);
-    return commit_result(0);
-  }
-
-  Irq_base *icu_get_irq(unsigned irqnum)
-  {
-    if (irqnum > 0)
-      return 0;
-
-    return _irq;
-  }
-
-  L4_msg_tag op_icu_get_info(Mword *features, Mword *num_irqs, Mword *num_msis)
-  {
-    *features = 0; // supported features (only normal irqs)
-    *num_irqs = 1;
-    *num_msis = 0;
-    return L4_msg_tag(0);
-  }
-
 
   L4_msg_tag kinvoke(L4_obj_ref ref, L4_fpage::Rights rights, Syscall_frame *f,
                      Utcb const *r_msg, Utcb *s_msg)
@@ -137,7 +79,6 @@ public:
 
 
 private:
-  Irq_base *_irq;
   Mword _i_flags;
   Mword _o_flags;
   Mword _l_flags;

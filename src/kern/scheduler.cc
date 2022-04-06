@@ -9,7 +9,7 @@
 #include "sched_context.h"
 #include <sched.h>
 
-class Scheduler : public Icu_h<Scheduler>, public Irq_chip_soft, public Scheduler_iface
+class Scheduler : public Icu_h<Scheduler>, public Irq_chip_virt<1>, public Scheduler_iface
 {
   friend class Scheduler_test;
 
@@ -24,7 +24,7 @@ public:
   };
 
   Scheduler(bool)
-  : Scheduler_iface(true), _irq(0)
+  : Scheduler_iface(true)
   {
     initial_kobjects.register_obj(this, Initial_kobjects::Scheduler);
   }
@@ -37,31 +37,10 @@ public:
            "         The system is now useless\n");
   }
 
-  Irq_base *icu_get_irq(unsigned irqnum)
-  {
-    if (irqnum > 0)
-      return 0;
-
-    return _irq;
-  }
-
-  L4_msg_tag op_icu_get_info(Mword *features, Mword *num_irqs, Mword *num_msis)
-  {
-    *features = 0; // supported features (only normal irqs)
-    *num_irqs = 1;
-    *num_msis = 0;
-    return L4_msg_tag(0);
-  }
-
-  L4_msg_tag op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq);
-  L4_msg_tag op_icu_set_mode(Mword pin, Irq_chip::Mode);
-
   L4_msg_tag kinvoke(L4_obj_ref ref, L4_fpage::Rights rights, Syscall_frame *f,
                      Utcb const *iutcb, Utcb *outcb);
 
 private:
-  Irq_base *_irq;
-
   L4_RPC(Info,      sched_info, (L4_cpu_set_descr set, Mword *rm,
                                  Mword *max_cpus, Mword *sched_classes));
   L4_RPC(Idle_time, sched_idle, (L4_cpu_set cpus, Cpu_time *time));
@@ -75,7 +54,6 @@ private:
 
 JDB_DEFINE_TYPENAME(Scheduler, "\033[34mSched\033[m");
 static Scheduler _scheduler(true);
-
 
 L4_msg_tag
 Scheduler::sys_run(L4_fpage::Rights, Syscall_frame *f, Utcb const *utcb)
@@ -171,39 +149,11 @@ Scheduler::op_sched_info(L4_cpu_set_descr const &s, Mword *m, Mword *max_cpus,
   return commit_result(0);
 }
 
-L4_msg_tag
-Scheduler::op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq)
-{
-  if (irqnum > 0)
-    return commit_result(-L4_err::EInval);
-
-  if (_irq)
-    _irq->unbind();
-
-  if (!Ko::check_rights(irq.rights, Ko::Rights::CW()))
-    return commit_result(-L4_err::EPerm);
-
-  Irq_chip_soft::bind(irq.obj, irqnum);
-  _irq = irq.obj;
-  return commit_result(0);
-}
-
-L4_msg_tag
-Scheduler::op_icu_set_mode(Mword pin, Irq_chip::Mode)
-{
-  if (pin != 0)
-    return commit_result(-L4_err::EInval);
-
-  if (_irq)
-    _irq->switch_mode(true);
-  return commit_result(0);
-}
-
 void
 Scheduler::trigger_hotplug_event()
 {
-  if (_irq)
-    _irq->hit(0);
+  if (auto i = icu_get_irq(0))
+    i->hit(0);
 }
 
 L4_msg_tag

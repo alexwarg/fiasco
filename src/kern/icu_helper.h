@@ -5,6 +5,87 @@
 #include "kobject_helper.h"
 #include "kobject_rpc.h"
 
+/**
+ * Helper IRQ chip for virtual ICUs.
+ *
+ * This IRQ chip provides a simple software-only IRQ chip
+ * that can beind up to NIRQS interrupts and can be used with
+ * the Icu_h<> template.
+ */
+template<unsigned NIRQS = 1>
+class Irq_chip_virt : public Irq_chip_soft
+{
+public:
+  struct Ic_res
+  {
+    Ic_res() = default;
+    Ic_res(Irq_chip_virt *c, unsigned p) : chip(c), pin(p) {}
+
+    Irq_chip_virt *chip = nullptr;
+    unsigned pin;
+
+    Irq_base *irq() const
+    { return chip->_irqs[pin]; }
+  };
+
+  unsigned icu_num_irqs() const { return NIRQS; }
+
+  Irq_base *icu_get_irq(unsigned pin) const
+  {
+    if (pin < NIRQS)
+      return _irqs[pin];
+    return nullptr;
+  }
+
+  Ic_res icu_get_chip(unsigned pin)
+  {
+    if (pin < NIRQS)
+      return Ic_res(this, pin);
+
+    return Ic_res();
+  }
+
+  int icu_bind_irq(Mword pin, Irq_base *irq)
+  {
+    if (pin >= NIRQS)
+      return -L4_err::EInval;
+
+    if (_irqs[pin])
+      return -L4_err::EInval;
+
+    bind(irq, pin);
+    Irq_base *null = nullptr;
+    if (cxx::atomic_compare_exchange_strong(&_irqs[pin], null, irq))
+      return 0;
+
+    irq->unbind();
+    return -L4_err::EInval;
+  }
+
+  void unbind(Irq_base *irq) override
+  {
+    if (irq->chip() != this)
+      return;
+
+    unsigned pin = irq->pin();
+    if (pin >= NIRQS)
+      return;
+
+    if (_irqs[pin] != irq)
+      return;
+
+    if (cxx::atomic_compare_exchange_strong(&_irqs[pin], irq, (Irq_base *)nullptr))
+      Irq_chip_soft::unbind(irq);
+  }
+
+protected:
+  Irq_base *const *icu_irq_ptr(Mword pin)
+  { return &_irqs[pin]; }
+
+private:
+  Irq_base *_irqs[NIRQS];
+};
+
 class Icu_h_base
 {
 public:
@@ -59,6 +140,17 @@ public:
       i->unmask();
   }
 
+  L4_msg_tag op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq)
+  {
+    if (!Ko::check_rights(irq.rights, Ko::Rights::CW()))
+      return Kobject_iface::commit_result(-L4_err::EPerm);
+
+    auto g = lock_guard(irq.obj->irq_lock());
+    irq.obj->unbind();
+
+    return Kobject_iface::commit_result(this_icu()->icu_bind_irq(irqnum, irq.obj));
+  }
+
   L4_msg_tag op_icu_unbind(unsigned irqnum, Ko::Cap<Irq> const &)
   {
     Irq_base *irq = this_icu()->icu_get_irq(irqnum);
@@ -67,6 +159,34 @@ public:
       irq->unbind();
 
     return Kobject_iface::commit_result(0);
+  }
+
+  L4_msg_tag op_icu_set_mode(Mword irqnum, Irq_chip::Mode mode)
+  {
+    auto i = this_icu()->icu_get_chip(irqnum);
+
+    if (!i.chip)
+      return Kobject_iface::commit_result(-L4_err::ENodev);
+
+    int r = i.chip->set_mode(i.pin, mode);
+
+    Irq_base *irq = i.irq();
+    if (irq)
+      {
+        auto g = lock_guard(irq->irq_lock());
+        if (irq->chip() == i.chip && irq->pin() == i.pin)
+          irq->switch_mode(i.chip->is_edge_triggered(i.pin));
+      }
+
+    return Kobject_iface::commit_result(r);
+  }
+
+  L4_msg_tag op_icu_get_info(Mword *features, Mword *num_irqs, Mword *num_msis)
+  {
+    *features = 0; // supported features (only normal irqs)
+    *num_irqs = this_icu()->icu_num_irqs();
+    *num_msis = 0;
+    return L4_msg_tag(0);
   }
 
   L4_msg_tag op_icu_msi_info(Mword, Unsigned64, Msi_info *)

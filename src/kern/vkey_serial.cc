@@ -14,14 +14,14 @@ namespace Vkey
 static Vkey::Echo_type vkey_echo;
 static char     vkey_buffer[256];
 static unsigned vkey_tail, vkey_head;
-static Irq_base *vkey_irq;
+static Irq_base *const *vkey_irq;
 
 void set_echo(Echo_type echo)
 {
   vkey_echo = echo;
 }
 
-void irq(Irq_base *i)
+void irq(Irq_base *const *i)
 { vkey_irq = i; }
 
 static bool add(int c)
@@ -57,8 +57,8 @@ static bool add(const char *seq)
 
 static void trigger()
 {
-  if (vkey_irq)
-    vkey_irq->hit(0);
+  if (*vkey_irq)
+    (*vkey_irq)->hit(0);
 }
 
 void add_char(int v)
