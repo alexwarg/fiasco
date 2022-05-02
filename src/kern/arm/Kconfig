@@ -109,6 +109,10 @@ config HAVE_ARM_GICV2
 config HAVE_ARM_GICV3
         bool
 
+config ARM_ASID16
+        depends on ARM_V8 && BIT64
+        bool
+
 # SECTION: CPU
 
 choice
