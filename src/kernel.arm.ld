@@ -169,6 +169,7 @@ SECTIONS {
     _per_cpu_ctor_data_end = .;
     *(.bss .bss.* COMMON .gnu.linkonce.b.*)
     *(.bss.jdb)
+    *(.init.bss)
     PROVIDE(__bss_end = .);
   }
   __end_of_the_kernel = .;
