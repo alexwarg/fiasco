@@ -393,7 +393,6 @@ map(MAPDB* mapdb,
 
   L4_error condition = L4_error::None;
 
-  // FIXME: make this debugging code optional
   bool no_page_mapped = true;
 
   V_pfn const rcv_start = rcv_addr;
@@ -456,7 +455,6 @@ map(MAPDB* mapdb,
         }
 
       // We have a mapping in the sender's address space.
-      // FIXME: make this debugging code optional
       no_page_mapped = false;
 
       // Receiver lookup.
@@ -658,6 +656,8 @@ map(MAPDB* mapdb,
          (unsigned long)cxx::int_value<V_pfc>(rcv_size),
          to_id);
 
+  if (condition.ok() && no_page_mapped)
+    condition.set_empty_map();
   return condition;
 }
 
