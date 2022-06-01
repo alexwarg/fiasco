@@ -26,8 +26,11 @@ public:
 
   // this is somehow arbitrary
   enum { Max_msis = Int_vector_allocator::End - Int_vector_allocator::Base - 0x8 };
-  explicit Irq_chip_rmsi(Intel::Io_mmu::Irte volatile *irt, bool coherent)
-  : Irq_chip_ia32(Max_msis), _irt(irt), _coherent(coherent)
+  explicit Irq_chip_rmsi(Intel::Io_mmu::Irte volatile *irt, bool coherent,
+                         bool need_non_present_flush)
+  : Irq_chip_ia32(Max_msis), _irt(irt),
+    _coherent(coherent),
+    _need_non_present_flush(need_non_present_flush)
   {}
 
   unsigned nr_irqs() const override { return Irq_chip_ia32::nr_irqs(); }
@@ -36,7 +39,9 @@ public:
 
   Intel::Io_mmu::Irte volatile *_irt;
   /// Whether IOMMUs access to the IRT is cache coherent.
-  bool _coherent;
+  bool _coherent:1;
+  /// Whether IOMMUs cache non-present or erroneous IRTEs.
+  bool _need_non_present_flush:1;
 
 
   bool alloc(Irq_base *irq, Mword pin, bool init = true) override
@@ -171,6 +176,9 @@ public:
     e.present() = 1;
     irte = e;
     clean_dcache(&irte);
+    // Invalidate if the IOMMUs cache non-present entries.
+    if (EXPECT_FALSE(_need_non_present_flush))
+      inv_iec(vect);
   }
 
 private:
@@ -200,8 +208,9 @@ class Irq_mgr_rmsi : public Io_apic_mgr
 public:
   mutable Irq_chip_rmsi _chip;
 
-  explicit Irq_mgr_rmsi(Intel::Io_mmu::Irte volatile *irt, bool coherent)
-  : _chip(irt, coherent)
+  explicit Irq_mgr_rmsi(Intel::Io_mmu::Irte volatile *irt, bool coherent,
+                        bool need_non_present_flush)
+  : _chip(irt, coherent, need_non_present_flush)
   {}
 
   Irq chip(Mword irq) const override
@@ -257,7 +266,9 @@ Io_apic_remapped::alloc(Irq_base *irq, Mword pin, bool init)
   // table entry to complete whenever the target CPU of an IRQ is changed (in
   // set_cpu), directly assign a valid destination CPU ID here.
   i.set_dst(::Apic::apic.cpu(Cpu_number::boot_cpu())->cpu_id());
-  _iommu->set_irq_mapping(i, v, Intel::Io_mmu::Flush_op::No_flush);
+  _iommu->set_irq_mapping(i, v, EXPECT_FALSE(_iommu->caps.cm())
+                                ? Intel::Io_mmu::Flush_op::Flush_and_wait
+                                : Intel::Io_mmu::Flush_op::No_flush);
 
   e.format() = 1;
   e.vector() = v;
@@ -353,11 +364,13 @@ Io_apic_remapped::init_apics()
 
   bool use_x2apic = ::Apic::use_x2apic();
   bool coherent = true;
+  bool need_non_present_flush = false;
   Address irt_pa = Kmem::virt_to_phys(irt);
   for (auto &i: Intel::Io_mmu::iommus)
     {
       i.set_irq_remapping_table(irt, irt_pa, IRT_size, use_x2apic);
       coherent &= i.coherent();
+      need_non_present_flush |= i.caps.cm();
     }
 
   unsigned n_apics = 0;
@@ -422,7 +435,7 @@ Io_apic_remapped::init_apics()
     printf("IO-APIC: dual 8259: %s\n", madt->apic_flags & 1 ? "yes" : "no");
 
   Irq_mgr_rmsi *m;
-  Irq_mgr::mgr = m = new Boot_object<Irq_mgr_rmsi>(irt, coherent);
+  Irq_mgr::mgr = m = new Boot_object<Irq_mgr_rmsi>(irt, coherent, need_non_present_flush);
 
   return true;
 }
