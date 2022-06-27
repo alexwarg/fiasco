@@ -438,7 +438,7 @@ public:
       return cmd;
     }
   };
-  static_assert(sizeof(Cmd) == Cmd::Size);
+  static_assert(sizeof(Cmd) == Cmd::Size, "Invalid size of Cmd");
 
   void init(Gic_cpu_v3 *gic_cpu, Address base, unsigned num_lpis);
   void cpu_init(Cpu_number cpu, Gic_redist const &redist);
