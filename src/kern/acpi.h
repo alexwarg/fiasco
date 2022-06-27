@@ -49,7 +49,7 @@ public:
   bool checksum_ok() const
   {
     Unsigned8 sum = 0;
-    for (unsigned i = 0; i < len && i < 4096; ++i)
+    for (unsigned i = 0; i < len; ++i)
       sum += *((Unsigned8 *)this + i);
 
     return !sum;
