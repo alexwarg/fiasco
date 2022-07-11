@@ -80,7 +80,7 @@ Arch_time_source_generic_timer::init_system_clock()
 
 #ifdef CONFIG_BIT64
 #if defined(CONFIG_CPU_VIRT)
-        /* Generic_timer::T<Hyp>:
+        /* Generic_timer::T<Hyp>, Generic_timer::T<Secure_hyp>:
          * CNTKCTL_EL1: EL0VTEN=1, EL0PTEN=1.
          * CNTHCTL_EL2: EL0VCTEN=0, EL0PCTEN=1.
          * Kernel uses physical counter.
@@ -137,7 +137,7 @@ _kip_time_code: )" KIP_CODE_HDR(1f, 2f, 0, 2f) R"(
 
 #ifdef CONFIG_BIT32
 #if defined(CONFIG_CPU_VIRT)
-        /* Generic_timer::T<Hyp>:
+        /* Generic_timer::T<Hyp>, Generic_timer::T<Secure_hyp>:
          * CNTKCTL: PL0VCTEN=1, PL0PCTEN=1.
          * CNTHCTL: PL1PCEN=0, PL1PCTEN=1.
          * Kernel uses physical counter.
