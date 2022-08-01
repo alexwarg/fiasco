@@ -77,7 +77,7 @@ Gic_redist::cpu_init()
 #include <gic_dist.h>
 
 unsigned Gic_redist::num_lpi_intid_bits;
-Gic_mem::Mem_chunk Gic_redist::lpi_config_table;
+Gic_mem Gic_redist::lpi_config_table;
 
 void
 Gic_redist::init_lpi(unsigned num_lpis)

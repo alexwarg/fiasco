@@ -6,6 +6,7 @@
 #include <kmem_alloc.h>
 #include <arithmetic.h>
 #include <cstring>
+#include <minmax.h>
 
 /**
  * Allocate uninitialized memory with alignment requirements.

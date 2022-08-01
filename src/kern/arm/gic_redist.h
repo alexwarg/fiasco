@@ -178,9 +178,9 @@ private:
   };
 
 #ifdef CONFIG_ARM_GIC_MSI
-  Gic_mem::Mem_chunk _lpi_pending_table;
+  Gic_mem _lpi_pending_table;
 
   static unsigned num_lpi_intid_bits;
-  static Gic_mem::Mem_chunk lpi_config_table;
+  static Gic_mem lpi_config_table;
 #endif
 };

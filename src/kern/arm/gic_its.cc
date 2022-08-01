@@ -117,7 +117,7 @@ Gic_its::Table::ensure_id_present(unsigned id)
     // Second level table is already allocated.
     return true;
 
-  Gic_mem::Mem_chunk l2_table = Gic_mem::alloc_zmem(_page_size, _page_size);
+  Gic_mem l2_table = Gic_mem::alloc_zmem(_page_size, _page_size);
   if (l2_table.is_valid())
     {
       e.pa() = l2_table.phys_addr();
