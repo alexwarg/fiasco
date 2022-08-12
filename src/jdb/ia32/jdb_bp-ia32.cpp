@@ -294,7 +294,7 @@ PUBLIC
 int
 Breakpoint::restricted(Thread *t)
 {
-  Jdb_entry_frame *e = Jdb::get_entry_frame(Jdb::current_cpu);
+  Jdb_entry_frame *e = Jdb::get_entry_frame(t->get_current_cpu());
 
   Space *task = t->space();
 #if 0
@@ -376,7 +376,7 @@ PUBLIC
 void
 Breakpoint::test_log(Thread *t)
 {
-  Jdb_entry_frame *e = Jdb::get_entry_frame(Jdb::current_cpu);
+  Jdb_entry_frame *e = Jdb::get_entry_frame(t->get_current_cpu());
 
   if (log && !restricted(t))
     {
