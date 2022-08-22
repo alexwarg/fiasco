@@ -12,4 +12,7 @@ Pic_gic::Gic_info const Pic_gic::primary_gic_info =
 
   // GICv3 redistributor, if we have a GICv3
   .redist_phys = 0x080A0000, .redist_size = 0x00F60000,
+
+  // GICv3 its, ...
+  .its_phys    =  0x08080000, .its_size   = 0x00020000,
 };
