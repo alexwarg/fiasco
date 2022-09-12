@@ -224,6 +224,9 @@ Kuart::startup(unsigned, int irq, bool resume)
         }
     }
 
+  if (Koptions::o()->uart.access_type == Koptions::Uart_type_msr)
+    return ::Uart::startup(0, irq, Koptions::o()->uart.base_baud, resume);
+
   return false;
 }
 
