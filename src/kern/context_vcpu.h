@@ -87,10 +87,9 @@ public:
     _this()->state.del_dirty(Thread_vcpu_user);
     vcpu->kern_entry(_this()->regs());
 
-    if (!_this()->_cpu_state.space.user_mode())
+    if (!(s & Thread_vcpu_user))
       return false;
 
-    _this()->_cpu_state.space.user_mode(false);
     _this()->state.del_dirty(Thread_vcpu_fpu_disabled);
 
     bool load_cpu_state = current() == _this();
@@ -98,15 +97,22 @@ public:
     _this()->arch_load_vcpu_kern_state(vcpu, load_cpu_state);
     _this()->vcpu_pv_switch_to_kernel(vcpu, load_cpu_state);
 
+    bool space_user = _this()->_cpu_state.space.user_mode();
+    if (space_user)
+      _this()->_cpu_state.space.user_mode(false);
+
     if (!load_cpu_state)
       return false;
 
     _this()->vcpu_enable_fpu_if_disabled(s);
 
-    // Space::switchin_context() may optimize the switch of a thread
-    // in vCPU user mode to vCPU kernel mode.
-    _this()->space()->switchin_context(vcpu_user_space(),
-        Mem_space::Vcpu_user_to_kern);
+    if (space_user)
+      {
+        // Space::switchin_context() may optimize the switch of a thread
+        // in vCPU user mode to vCPU kernel mode.
+        _this()->space()->switchin_context(vcpu_user_space(),
+            Mem_space::Vcpu_user_to_kern);
+      }
 
     return true;
   }
