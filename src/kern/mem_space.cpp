@@ -38,8 +38,14 @@ public:
   typedef Page_count V_pfc;
   typedef Addr::Order<0> V_order;
 
+  enum Switchin_flags
+  {
+    None = 0,
+    Vcpu_user_to_kern = 1,
+  };
+
   // Each architecture must provide these members:
-  void switchin_context(Mem_space *from);
+  void switchin_context(Mem_space *from, Switchin_flags flags);
 
   FIASCO_SPACE_VIRTUAL
   void tlb_flush(bool);
@@ -128,7 +134,7 @@ public:
   void v_set_access_flags(Vaddr virt, L4_fpage::Rights access_flags);
 
   /** Set this memory space as the current on this CPU. */
-  void make_current();
+  void make_current(Switchin_flags flags = None);
 
   static Mem_space *kernel_space()
   { return _kernel_space; }
@@ -362,7 +368,7 @@ Mem_space::is_sigma0() const
 
 IMPLEMENT_DEFAULT inline NEEDS["kmem.h", "logdefs.h"]
 void
-Mem_space::switchin_context(Mem_space *from)
+Mem_space::switchin_context(Mem_space *from, Switchin_flags flags)
 {
   // FIXME: this optimization breaks SMP task deletion, an idle thread
   // may run on an already deleted page table
@@ -375,7 +381,7 @@ Mem_space::switchin_context(Mem_space *from)
   if (from != this)
     {
       CNT_ADDR_SPACE_SWITCH;
-      make_current();
+      make_current(flags);
     }
 }
 

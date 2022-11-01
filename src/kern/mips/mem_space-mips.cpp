@@ -437,7 +437,7 @@ Mem_space::reset_asid()
 
 IMPLEMENT inline
 void
-Mem_space::make_current()
+Mem_space::make_current(Switchin_flags)
 {
   // asign asid if not yet done!
   Mem_unit::set_current_asid(asid());
@@ -448,7 +448,7 @@ Mem_space::make_current()
 IMPLEMENTATION [!mips_vz]:
 
 IMPLEMENT inline NEEDS ["kmem.h", "logdefs.h", Mem_space::c_asid]
-void Mem_space::switchin_context(Mem_space *)
+void Mem_space::switchin_context(Mem_space *, Switchin_flags flags)
 {
 #if 0
   // never switch to kernel space (context of the idle thread)
@@ -457,7 +457,7 @@ void Mem_space::switchin_context(Mem_space *)
 #endif
 
   CNT_ADDR_SPACE_SWITCH;
-  make_current();
+  make_current(flags);
 }
 
 IMPLEMENT inline NEEDS["mem_unit.h"]
@@ -610,7 +610,7 @@ Mem_space::set_guest_ctl1_rid(bool guest)
 }
 
 IMPLEMENT inline NEEDS ["kmem.h", Mem_space::asid, "logdefs.h", "alternatives.h"]
-void Mem_space::switchin_context(Mem_space *)
+void Mem_space::switchin_context(Mem_space *, Switchin_flags flags)
 {
 #if 0
   // never switch to kernel space (context of the idle thread)
@@ -625,7 +625,7 @@ void Mem_space::switchin_context(Mem_space *)
 
   CNT_ADDR_SPACE_SWITCH;
 
-  make_current();
+  make_current(flags);
   // no ehb here as we use the mappings after the eret only
 }
 
