@@ -82,6 +82,8 @@ public:
                          | ((mpidr & (Unsigned64)0xff00ff0000) << 16);
   }
 
+  bool add_its(Address its_base);
+
 #ifdef CONFIG_ARM_GIC_MSI
 private:
   enum
@@ -111,7 +113,6 @@ public:
    */
   Gic_msi *msi_chip() const { return _msi; }
   Irq_base *irq(Mword pin) const override;
-  bool add_its(Address its_base);
   Gic_its *get_its(unsigned its_num) const
   {
     if (its_num >= _num_its)
@@ -129,7 +130,5 @@ private:
 public:
   enum { Have_lpis = 0 };
   Gic_msi *msi_chip() { return nullptr; };
-  bool add_its(Address) { return true; };
-
 #endif
 };

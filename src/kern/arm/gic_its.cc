@@ -7,6 +7,41 @@
 #include <poll_timeout_counter.h>
 #include <cstdio>
 #include <string.h>
+#include <mmio_register_block.h>
+#include <processor.h>
+
+/**
+ * Disable the ITS to prevent triggering of unexpected LPIs.
+ */
+void
+Gic_its::disable(Address base)
+{
+  auto its = Mmio_register_block(base);
+
+  unsigned arch_rev = (its.read<Unsigned32>(GITS_PIDR2) >> 4) & 0xf;
+  if (arch_rev != 0x3 && arch_rev != 0x4)
+    panic("ITS: Version %u is not supported.\n", arch_rev);
+
+  Ctlr ctlr(its.read<Unsigned32>(GITS_CTLR));
+  if (!ctlr.enabled() && ctlr.quiescent())
+    return;
+
+  ctlr.umsi_irq() = false;
+  ctlr.enabled() = false;
+  its.write<Unsigned32>(ctlr.raw, GITS_CTLR);
+
+  // Wait for quiescent state
+  L4::Poll_timeout_counter i(5000000);
+  while (i.test(!Ctlr(its.read<Unsigned32>(GITS_CTLR)).quiescent()))
+    Proc::pause();
+  if (Ctlr(its.read<Unsigned32>(GITS_CTLR)).quiescent())
+    printf("ITS: Disabled.\n");
+  else
+    panic("ITS: Trying to disable: Not in quiescent state!\n");
+}
+
+
+#ifdef CONFIG_ARM_GIC_MSI
 
 Gic_its::Device_alloc Gic_its::device_alloc;
 
@@ -483,3 +518,4 @@ Gic_its::Device::unbind_lpi(Lpi &lpi)
   lpi.device = nullptr;
   _lpi_count--;
 }
+#endif

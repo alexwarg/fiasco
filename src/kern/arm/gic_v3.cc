@@ -1,5 +1,6 @@
 
 #include "gic_v3.h"
+#include <gic_its.h>
 #include "globalconfig.h"
 
 
@@ -58,7 +59,6 @@ Gic_v3::irq_prio_bootcpu(unsigned irq)
 #ifdef CONFIG_ARM_GIC_MSI
 
 #include <gic_msi.h>
-#include <gic_its.h>
 
 void
 Gic_v3::init_lpi()
@@ -118,5 +118,13 @@ Gic_v3::add_its(Address its_base)
   return true;
 }
 
+#else
+
+bool
+Gic_v3::add_its(Address its_base)
+{
+  Gic_its::disable(its_base);
+  return true;
+}
 
 #endif

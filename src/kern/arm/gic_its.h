@@ -440,6 +440,9 @@ public:
   };
   static_assert(sizeof(Cmd) == Cmd::Size, "Invalid size of Cmd");
 
+  static void disable(Address base);
+
+#ifdef CONFIG_ARM_GIC_MSI
   void init(Gic_cpu_v3 *gic_cpu, Address base, unsigned num_lpis);
   void cpu_init(Cpu_number cpu, Gic_redist const &redist);
   int bind_lpi_to_device(Lpi &lpi, Unsigned32 src, Irq_mgr::Msi_info *inf);
@@ -588,5 +591,6 @@ private:
 
   using Device_alloc = Kmem_slab_t<Device>;
   static Device_alloc device_alloc;
+#endif
 };
 
