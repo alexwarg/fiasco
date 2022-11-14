@@ -183,6 +183,10 @@ Gic_its::init(Gic_cpu_v3 *gic_cpu, Address base, unsigned num_lpis)
     // No GICv3 and no GICv4
     panic("ITS: Version %u is not supported.\n", arch_rev);
 
+  // Disable ITS before trying to enable it to get an already enabled ITS into
+  // quiescent state (see also the possible panic below).
+  disable(base);
+
   _gic_cpu = gic_cpu;
   _cmd_queue_lock.init();
   _device_alloc_lock.init();
