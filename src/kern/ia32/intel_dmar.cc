@@ -199,6 +199,8 @@ private:
     if (Mword err = parse_src_id(src_id, &bus, &dfs, &dfe, &mmu))
       return Kobject_iface::commit_result(err);
 
+    auto slptptr = space.obj->get_root(mmu->aw());
+
     bool need_wait = false;
     for (unsigned df = dfs; df < dfe; ++df)
       {
@@ -209,7 +211,7 @@ private:
 
         Intel::Io_mmu::Cte entry = access_once(entryp.unsafe_ptr());
         // different space bound, skip
-        if (entry.slptptr() != space.obj->get_root(mmu->aw()))
+        if (entry.slptptr() != slptptr)
           continue;
 
         // when the CAS fails someone else already unbound this slot,
