@@ -313,7 +313,7 @@ fail:
        "\033[1mUnhandled trap \033[m\n", this);
 
 fail_nomsg:
-  if ((int)Config::Warn_level >= Warning)
+  if (Warn::is_enabled(Warning))
     ts->dump();
 
   kill();
