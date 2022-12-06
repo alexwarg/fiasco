@@ -479,6 +479,7 @@ IMPLEMENTATION[vmx]:
 
 #include "cpu.h"
 #include "kmem.h"
+#include "kmem_alloc.h"
 #include "l4_types.h"
 #include <cstring>
 #include "idt.h"
