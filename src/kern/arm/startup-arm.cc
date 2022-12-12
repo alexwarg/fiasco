@@ -26,20 +26,6 @@
 
 #include <globalconfig.h>
 
-#if defined (CONFIG_BIT32) && ! defined (CONFIG_CPU_VIRT)
-
-FIASCO_INIT
-static void add_initial_pmem()
-{
-    // The first 4MB of phys memory are always mapped to Map_base
-  Mem_layout::add_pmem(Mem_layout::Sdram_phys_base, Mem_layout::Map_base,
-                       4 << 20);
-}
-
-STATIC_INITIALIZER_P(add_initial_pmem, 101);
-
-#endif // CONFIG_BIT32 && !CONFIG_CPU_VIRT
-
 FIASCO_INIT
 static void stage1()
 {

@@ -21,11 +21,6 @@ protected:
   }
 
 public:
-  Address pmem_to_phys(Address virt) const
-  {
-    return virt - Mem_layout::Map_base + Mem_layout::Sdram_phys_base;
-  }
-
   void make_current(Mem_space_base::Switchin_flags = Mem_space_base::None)
   {
     asm volatile (

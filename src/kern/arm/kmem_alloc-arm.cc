@@ -17,12 +17,12 @@
 
 #include <globalconfig.h>
 
-#ifdef CONFIG_NONCONT_MEM
-
 #include <mem_layout.h>
 #include <kmem_space.h>
 #include <paging.h>
 #include <kmem.h>
+
+#include <static_init.h>
 
 static bool
 map_pmem(unsigned long phys, unsigned long size,
@@ -36,15 +36,20 @@ map_pmem(unsigned long phys, unsigned long size,
   if (next_map + size > Mem_layout::Pmem_end)
     return false;
 
+  if (!Mem_layout::add_pmem(phys, next_map, size))
+    return false;
+
   for (unsigned long i = 0; i <size; i += Config::SUPERPAGE_SIZE)
     {
       auto pte = Kmem::kdir->walk(Virt_addr(next_map + i), Kpdir::Super_level);
+      assert(!pte.is_valid());
+      assert(pte.page_order() == Config::SUPERPAGE_SHIFT);
       pte.set_page(Phys_mem_addr(phys + i),
                    Page::Attr::kern_global(Page::Rights::RW()));
       pte.write_back_if(true);
       Mem_unit::tlb_flush_kernel(next_map + i);
     }
-  Mem_layout::add_pmem(phys, next_map, size);
+
   next_map += size;
   return true;
 }
@@ -96,66 +101,18 @@ Kmem_alloc::Kmem_alloc()
   setup_kmem_from_kip_md_tmp(freemap_size, min_addr_kern);
 }
 
-#else // CONFIG_NONCONT_MEM
-
-Kmem_alloc::Kmem_alloc()
+/**
+ * Add initial phys->virt mapping of kernel image.
+ *
+ * Required to be called *before* any other function is called that needs to
+ * know the phys-to-virt mapping. The function can rely on the fact that
+ * Mem_layout::Map_base is always mapped with at least 4 MiB.
+ */
+static void add_initial_pmem()
 {
-  // The -Wframe-larger-than= warning for this function is known and
-  // no problem, because the function runs only on our boot stack.
-  Mword offset = Mem_layout::Map_base - Mem_layout::Sdram_phys_base;
-  Mword alloc_size = Config::KMEM_SIZE;
-  Mem_region_map<64> map;
-  unsigned long available_size = create_free_map(Kip::k(), &map);
-
-  // sanity check whether the KIP has been filled out, number is arbitrary
-  if (available_size < (1 << 18))
-    panic("Kmem_alloc: No kernel memory available (%ld)", available_size);
-
-  for (int i = map.length() - 1; i >= 0 && alloc_size > 0; --i)
-    {
-      Mem_region &f = map[i];
-      if (f.size() > alloc_size)
-        f.start += (f.size() - alloc_size);
-
-      Kip::k()->add_mem_region(Mem_desc(f.start, f.end, Mem_desc::Reserved));
-
-      alloc_size -= f.size();
-      if (!alloc_size)
-        {
-          // remove all the unsed regions
-          map.del(0, i);
-          break;
-        }
-    }
-
-  unsigned long freemap_size
-    = Alloc::free_map_bytes(map[0].start, map[map.length()-1].end);
-
-  unsigned long freemap_addr = ~0UL;
-
-  for (int i = map.length() - 1; i >= 0; --i)
-    {
-      Mem_region &f = map[i];
-      if (f.size() >= freemap_size)
-        {
-          freemap_addr = f.end - freemap_size + 1 + offset;
-          f.end -= freemap_size;
-          break;
-        }
-    }
-
-  if (freemap_addr == ~0UL)
-    panic("could not allocate freemap for buddy allocator");
-
-  a->init(map[0].start + offset);
-  a->setup_free_map((unsigned long *)freemap_addr, freemap_size);
-
-  for (int i = map.length() - 1; i >= 0; --i)
-    {
-      Mem_region f = map[i];
-      a->add_mem((void *)(f.start + offset), f.size());
-    }
+  Mem_layout::add_pmem(Mem_layout::Sdram_phys_base, Mem_layout::Map_base,
+                       4 << 20);
 }
 
-#endif
+STATIC_INITIALIZER_P(add_initial_pmem, BOOTSTRAP_INIT_PRIO);
 

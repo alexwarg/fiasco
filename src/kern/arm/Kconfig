@@ -211,10 +211,6 @@ config ARM_ASID16
 config HAS_ARM_SVE
 	bool
 
-config NONCONT_MEM
-        depends on ARM && !CPU_VIRT && !BIT64
-        def_bool y
-
 config ARM_PROFILE_A
 	bool
 	default y if !ARM_PROFILE_R

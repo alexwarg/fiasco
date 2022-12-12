@@ -45,6 +45,11 @@ public:
 
   ~Mem_space();
 
+  static Address pmem_to_phys(Address virt)
+  {
+    return Mem_layout::pmem_to_phys(virt);
+  }
+
   void tlb_flush(bool force) FIASCO_VIRT_OBJ_SPACE_OVERRIDE
   {
     if (!Have_asids)

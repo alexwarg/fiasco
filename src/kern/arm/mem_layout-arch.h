@@ -13,6 +13,53 @@ public:
     Sdram_phys_base = RAM_PHYS_BASE
   };
 
+private:
+  // At least two entries are expected: the kernel image and the heap. If the
+  // RAM is not contiguous there might be more than one heap region needed,
+  // though.
+  enum { Max_pmem_regions = 4 };
+
+  struct Pmem_region
+  {
+    Address paddr;
+    Address vaddr;
+    unsigned long size;
+  };
+
+  static Pmem_region _pm_regions[Max_pmem_regions];
+  static unsigned _num_pm_regions;
+
+public:
+  static Address phys_to_pmem(Address phys)
+  {
+    for (unsigned i = 0; i < Max_pmem_regions && i < _num_pm_regions; ++i)
+      {
+        if (   phys >= _pm_regions[i].paddr
+            && phys <= _pm_regions[i].paddr + _pm_regions[i].size)
+          return phys - _pm_regions[i].paddr + _pm_regions[i].vaddr;
+      }
+
+    return ~0UL;
+  }
+
+  static Address pmem_to_phys(Address virt)
+  {
+    for (unsigned i = 0; i < Max_pmem_regions && i < _num_pm_regions; ++i)
+      {
+        if (   virt >= _pm_regions[i].vaddr
+            && virt <= _pm_regions[i].vaddr + _pm_regions[i].size)
+          return virt - _pm_regions[i].vaddr + _pm_regions[i].paddr;
+      }
+
+    return ~0UL;
+  }
+
+  static inline Address pmem_to_phys(void const *addr)
+  { return pmem_to_phys(Address(addr)); }
+
+  static bool add_pmem(Address phys, Address virt, unsigned long size);
+
+
 #ifdef CONFIG_VIRT_OBJ_SPACE
   static Mword _read_special_safe(Mword const *a);
   static bool _read_special_safe(Mword const *address, Mword &v);
@@ -29,36 +76,5 @@ public:
   template<typename T>
   static inline T read_special_safe(T const *a)
   { return T(_read_special_safe((Mword const *)a)); }
-#endif
-
-  static Address pmem_to_phys(Address addr);
-  static inline Address pmem_to_phys(void const *addr)
-  { return pmem_to_phys(Address(addr)); }
-
-#ifdef CONFIG_NONCONT_MEM
-  static inline Address phys_to_pmem(Address phys)
-  {
-    Address virt = ((unsigned long)__ph_to_pm[phys >> Config::SUPERPAGE_SHIFT]) << 16;
-    if (!virt)
-      return ~0UL;
-    return virt | (phys & (Config::SUPERPAGE_SIZE - 1));
-  }
-
-  static inline ALWAYS_INLINE void add_pmem(Address phys, Address virt, unsigned long size)
-  {
-    for (; size >= Config::SUPERPAGE_SIZE; size -= Config::SUPERPAGE_SIZE)
-      {
-        __ph_to_pm[phys >> Config::SUPERPAGE_SHIFT] = virt >> 16;
-        phys += Config::SUPERPAGE_SIZE;
-        virt += Config::SUPERPAGE_SIZE;
-      }
-  }
-
-private:
-  static unsigned short __ph_to_pm[1UL << (32 - Config::SUPERPAGE_SHIFT)];
-public:
-#else
-  static inline Address phys_to_pmem(Address addr)
-  { return addr - Sdram_phys_base + Map_base; }
 #endif
 };

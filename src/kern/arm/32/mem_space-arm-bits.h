@@ -24,7 +24,6 @@ protected:
 
 public:
   static void set_syscall_page(void *p);
-  Address pmem_to_phys(Address virt) const;
   void make_current(Mem_space_base::Switchin_flags flags = Mem_space_base::None);
 
   static Address user_max()
@@ -40,7 +39,7 @@ template<typename M>
 void
 Mem_space_arm_bits<M>::set_syscall_page(void *p)
 {
-  __mem_space_syscall_page = (Address)p;
+  __mem_space_syscall_page = M::pmem_to_phys((Address)p);
 }
 
 template<typename M>
@@ -72,13 +71,6 @@ Mem_space_arm_bits<M>::sync_kernel()
   pte.write_back_if(true, _ths()->c_asid());
 
   return 0;
-}
-
-template<typename M>
-inline Address
-Mem_space_arm_bits<M>::pmem_to_phys(Address virt) const
-{
-  return Kmem::kdir->virt_to_phys(virt);
 }
 
 template<typename M>
@@ -134,13 +126,6 @@ Mem_space_arm_bits<M>::sync_kernel()
            Virt_size(-(Mem_layout::User_max + 1)), Pdir::Super_level,
            Pte_ptr::need_cache_write_back(_ths() == _ths()->_current.current()),
            Kmem_alloc::q_allocator(_ths()->ram_quota()));
-}
-
-template<typename M>
-inline Address
-Mem_space_arm_bits<M>::pmem_to_phys(Address virt) const
-{
-  return _ths()->virt_to_phys(virt);
 }
 
 #ifdef CONFIG_ARM_V6

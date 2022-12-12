@@ -155,8 +155,8 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc gic_its.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC_MSI)-$(CONFIG_HAVE_ARM_GICV3) += gic_mem.cc gic_msi.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc pic-gic-helper.cc
-CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc sys_call_page.cc kmem-arm-32.cc
-CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc kmem-arm-64.cc
+CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc sys_call_page.cc
+CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_PSCI) += psci.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_CACHE_L2CXX0) += outer_cache-l2cxx0.cc
@@ -166,7 +166,7 @@ CXXSRC_KERNEL-$(CONFIG_ARM_EM_TZ) += vm.cc
 CXXSRC_KERNEL += bootstrap.cc
 CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if $(CONFIG_BIT64),-mcmodel=large)
 
-CXXSRC_KERNEL		+= cpu-arm.cc mem_layout-noncont.cc
+CXXSRC_KERNEL		+= cpu-arm.cc mem_layout-arm.cc
 CXXSRC_KERNEL += mem_layout-arm-$(BITS).cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += cpu-arm-32.cc
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arm_v7plus.cc perf_cnt_arm.cc
