@@ -14,7 +14,7 @@ public:
   static inline Address alloc_io_vmem(unsigned long bytes)
   {
     bytes = (bytes + Config::PAGE_SIZE - 1) & ~(Config::PAGE_SIZE - 1);
-    if (_io_map_ptr - bytes < Io_map_area_start)
+    if (_io_map_ptr - bytes < Registers_map_start)
       return 0;
 
     _io_map_ptr -= bytes;

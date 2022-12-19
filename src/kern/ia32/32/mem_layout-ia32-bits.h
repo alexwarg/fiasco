@@ -34,9 +34,9 @@ public:
     Tbuf_buffer_area  = Service_page + 0x200000, ///< % 2MB
     Tbuf_buffer_size  = 0x200000,
     Tbuf_ubuffer_area = Tbuf_buffer_area,
-    Io_map_area_start = 0xec000000,
-    Io_map_area_end   = 0xec800000,
-    __free_4          = 0xec880000,    ///< % 4MB
+    // 0xeb800000-0xec000000 (8MB) free
+    Registers_map_start = 0xec000000,
+    Registers_map_end   = 0xef800000,
     Kstatic           = 0xef800000,    ///< Io_bitmap - 4MB
     Io_bitmap         = 0xefc00000,    ///< % 4MB
     Vmem_end          = 0xf0000000,

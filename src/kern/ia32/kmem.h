@@ -14,42 +14,6 @@
 class Cpu;
 class Tss;
 
-class Device_map
-{
-public:
-  enum
-  {
-    Max = 16,
-    Virt_base = 0x20000000,
-  };
-
-  void init();
-
-  template< typename T >
-  T *lookup(T *phys) const
-  {
-    unsigned idx = lookup_idx((Address)phys);
-    if (idx == ~0U)
-      return (T*)~0UL;
-
-    return (T*)((Virt_base + idx * Config::SUPERPAGE_SIZE)
-        | ((Address)phys & ~(~0UL << Config::SUPERPAGE_SHIFT)));
-  }
-
-  template< typename T >
-  T * map(T *phys, bool cache = true)
-  { return (T*)map((Address)phys, cache); }
-
-  void unmap(void const *phys);
-
-private:
-  Address _map[Max];
-
-  unsigned lookup_idx(Address phys) const;
-  Address map(Address phys, bool /*cache*/);
-};
-
-
 /**
  * The system's base facilities for kernel-memory management.
  * The kernel memory is a singleton object.  We access it through a
@@ -57,7 +21,6 @@ private:
  */
 class Kmem : public Mem_layout
 {
-  friend class Device_map;
   friend class Jdb;
   friend class Jdb_dbinfo;
   friend class Jdb_kern_info_misc;
@@ -71,7 +34,6 @@ private:
   Kmem (const Kmem&);
 
 public:
-  static Device_map dev_map;
 
   static Mword is_kmem_page_fault(Address addr, Mword /*error*/)
   {
@@ -128,7 +90,7 @@ public:
   static void map_phys_page(Address phys, Address virt,
                             bool cached, bool global, Address *offs = 0);
 
-  static Address mmio_remap(Address phys, Address size);
+  static Address mmio_remap(Address phys, Address size, bool cache = false, bool with_exec = false);
   static void init_mmu();
 
 #ifdef CONFIG_CPU_LOCAL_MAP

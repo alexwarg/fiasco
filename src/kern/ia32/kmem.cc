@@ -12,75 +12,9 @@ enum { Print_info = 0 };
 
 Unsigned8    *Kmem::io_bitmap_delimiter;
 Address Kmem::kphys_start, Kmem::kphys_end;
-Device_map Kmem::dev_map;
 
 // static class variables
 Kpdir *Mem_layout::kdir;
-
-
-void
-Device_map::init()
-{
-  for (unsigned i = 0; i < Max; ++i)
-    _map[i] = ~0UL;
-}
-
-unsigned
-Device_map::lookup_idx(Address phys) const
-{
-  Address p = phys & (~0UL << Config::SUPERPAGE_SHIFT);
-  for (unsigned i = 0; i < Max; ++i)
-    if (p == _map[i])
-      return i;
-
-  return ~0U;
-}
-
-
-Address
-Device_map::map(Address phys, bool /*cache*/)
-{
-  unsigned idx = lookup_idx(phys);
-  if (idx != ~0U)
-    return (Virt_base + idx * Config::SUPERPAGE_SIZE)
-           | (phys & ~(~0UL << Config::SUPERPAGE_SHIFT));
-
-  Address p = phys & (~0UL << Config::SUPERPAGE_SHIFT);
-  Kmem_alloc *const alloc = Kmem_alloc::allocator();
-  for (unsigned i = 0; i < Max; ++i)
-    if (_map[i] == ~0UL)
-      {
-        if (!Kmem::kdir->map(p,
-                             Virt_addr(Virt_base + (i * Config::SUPERPAGE_SIZE)),
-                             Virt_size(Config::SUPERPAGE_SIZE),
-                             Pt_entry::Dirty | Pt_entry::Writable
-                             | Pt_entry::Referenced,
-                             Pt_entry::super_level(), false, pdir_alloc(alloc)))
-          return ~0UL;
-
-	_map[i] = p;
-	return (Virt_base + (i * Config::SUPERPAGE_SIZE))
-	       | (phys & ~(~0UL << Config::SUPERPAGE_SHIFT));
-      }
-
-  return ~0UL;
-}
-
-void
-Device_map::unmap(void const *phys)
-{
-  unsigned idx = lookup_idx((Address)phys);
-  if (idx == ~0U)
-    return;
-
-  Address v = Virt_base + (idx * Config::SUPERPAGE_SIZE);
-
-  Kmem::kdir->unmap(Virt_addr(v), Virt_size(Config::SUPERPAGE_SIZE),
-                    Pdir::Depth, false);
-
-  _map[idx] = ~0U;
-}
-
 
 // Only used for initialization and kernel debugger
 Address
@@ -129,20 +63,60 @@ Kmem::map_phys_page(Address phys, Address virt,
     *offs = phys - pte;
 }
 
-Address
-Kmem::mmio_remap(Address phys, Address size)
+static
+bool cont_mapped(Address phys_beg, Address phys_end, Address virt)
 {
-  assert(size <= Config::PAGE_SIZE);
-  (void)size;
+  for (Address p = phys_beg, v = virt;
+       p < phys_end && v < Mem_layout::Registers_map_end;
+       p += Config::SUPERPAGE_SIZE, v += Config::SUPERPAGE_SIZE)
+    {
+      auto e = Kmem::kdir->walk(Virt_addr(v), Kmem::kdir->Super_level);
+      if (!e.is_valid() || p != e.page_addr())
+        return false;
+    }
 
-  Address offs;
-  Address va = alloc_io_vmem(Config::PAGE_SIZE);
+  return true;
+}
 
-  if (!va)
-    return ~0UL;
+Address
+Kmem::mmio_remap(Address phys, Address size, bool cache, bool with_exec)
+{
+  static Address ndev = 0;
+  Address phys_page = cxx::mask_lsb(phys, Config::SUPERPAGE_SHIFT);
+  Address phys_end  = Mem_layout::round_superpage(phys + size);
 
-  Kmem::map_phys_page(phys, va, false, true, &offs);
-  return va + offs;
+  for (Address a = Mem_layout::Registers_map_start;
+       a < Mem_layout::Registers_map_end; a += Config::SUPERPAGE_SIZE)
+    {
+      if (cont_mapped(phys_page, phys_end, a))
+        return (phys & ~Config::SUPERPAGE_MASK) | (a & Config::SUPERPAGE_MASK);
+    }
+
+  static_assert((Mem_layout::Registers_map_start & ~Config::SUPERPAGE_MASK) == 0,
+                "Registers_map_start must be superpage-aligned");
+  Address map_addr = Mem_layout::Registers_map_start + ndev;
+
+  for (Address p = phys_page; p < phys_end; p+= Config::SUPERPAGE_SIZE)
+    {
+      Address dm = Mem_layout::Registers_map_start + ndev;
+      assert(dm < Mem_layout::Registers_map_end);
+
+      ndev += Config::SUPERPAGE_SIZE;
+
+      auto m = kdir->walk(Virt_addr(dm), Pdir::Super_level);
+      assert (!m.is_valid());
+      assert (m.page_order() == Config::SUPERPAGE_SHIFT);
+      m.set_page(m.make_page(Phys_mem_addr(p),
+                             Page::Attr(with_exec ? Page::Rights::RWX() : Page::Rights::RW(),
+                                        cache ? Page::Type::Normal()
+                                              : Page::Type::Uncached(),
+                                        Page::Kern::Global())));
+
+      //m.write_back_if(true, Mem_unit::Asid_kernel);
+      Mem_unit::tlb_flush_kernel(dm);
+    }
+
+  return (phys & ~Config::SUPERPAGE_MASK) | map_addr;
 }
 
 FIASCO_INIT
@@ -186,7 +160,6 @@ FIASCO_INIT
 void
 Kmem::init_mmu()
 {
-  dev_map.init();
   Kmem_alloc *const alloc = Kmem_alloc::allocator();
 
   kdir = (Kpdir*)alloc->alloc(Config::page_order());
