@@ -260,7 +260,9 @@ Acpi_rsdp::locate()
                                             ACPI20_PC99_RSDP_END))
     return r;
 
-  Address ebda = *(Unsigned16 *)BDA_EBDA_SEGMENT << 4;
+  extern char ebda_segment[];
+
+  Address ebda = *(Unsigned16 const *)ebda_segment << 4;
   if (Acpi_rsdp const *r = locate_in_region(ebda, ebda + 1024))
     return r;
 
