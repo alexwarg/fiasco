@@ -72,7 +72,7 @@ void Mem_unit::tlb_flush(unsigned long asid)
 }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_v7plus && cpu_virt]:
+IMPLEMENTATION [arm && arm_v7plus && cpu_virt && !(arm_v7 && !mp)]:
 
 IMPLEMENT inline
 void Mem_unit::tlb_flush()
