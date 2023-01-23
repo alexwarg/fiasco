@@ -170,7 +170,7 @@ public:
 
     q.insert_before(to, tmp);
 
-    if (Config::Scheduler_one_shot && (to->_wakeup <= _current))
+    if (Config::Scheduler_one_shot && (to->_wakeup < _current))
       {
         _current = to->_wakeup;
         Timer::update_timer(_current);
