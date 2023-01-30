@@ -325,6 +325,14 @@ public:
   static void enter_idle(Cpu_number cpu) noexcept
   {
     Rcu_data *rdp = &_rcu_data.cpu(cpu);
+    if (EXPECT_TRUE(!rdp->_idle))
+      {
+        LOG_TRACE("Rcu idle", "rcu", ::current(), Log_rcu,
+            l->cpu = cpu;
+            l->item = 0;
+            l->event = Rcu_idle);
+      }
+
     rdp->enter_idle(rcu());
   }
 
@@ -333,6 +341,11 @@ public:
     Rcu_data *rdp = &_rcu_data.cpu(cpu);
     if (EXPECT_FALSE(rdp->_idle))
       {
+        LOG_TRACE("Rcu idle", "rcu", ::current(), Log_rcu,
+            l->cpu = cpu;
+            l->item = 0;
+            l->event = Rcu_unidle);
+
         rdp->_idle = false;
         auto guard = lock_guard(rcu()->_lock);
         rcu()->_active_cpus.set(cpu);
@@ -412,7 +425,7 @@ public:
     unsigned char event;
     void print(String_buffer *buf) const
     {
-      char const *events[] = { "call", "process"};
+      char const *events[] = { "call", "process", "idle", "unidle" };
       buf->printf("rcu-%s (cpu=%u) item=%p", events[event],
                   cxx::int_value<Cpu_number>(cpu), item);
     }
@@ -422,6 +435,8 @@ public:
   {
     Rcu_call = 0,
     Rcu_process = 1,
+    Rcu_idle = 2,
+    Rcu_unidle = 3,
   };
 #endif
 };
