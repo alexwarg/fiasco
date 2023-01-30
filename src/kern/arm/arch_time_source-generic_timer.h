@@ -24,9 +24,13 @@ struct Arch_time_source_generic_timer
 
   static void setup_scalers(Unsigned32 freq);
 
+  static Fix_point_multiplier const &us_to_ts_mult()
+  { return _scaler_shift_us_to_ts; }
+
 private:
   static Fix_point_multiplier _scaler_shift_ts_to_ns;
   static Fix_point_multiplier _scaler_shift_ts_to_us;
+  static Fix_point_multiplier _scaler_shift_us_to_ts;
 
   static Unsigned64
   timer_value_to_time(Unsigned64 v, Fix_point_multiplier scaler_shift)

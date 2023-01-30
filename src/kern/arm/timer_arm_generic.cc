@@ -8,6 +8,18 @@
 Mword Timer_generic_timer::_interval;
 Mword Timer_generic_timer::_freq0;
 
+void
+Timer_generic_timer::update_timer_one_shot(Unsigned64 wakeup)
+{
+  Unsigned64 gtimer;
+  if (EXPECT_FALSE(wakeup == Infinite_timeout))
+    gtimer = 0xffffffffffffffffULL;
+  else
+    gtimer = Arch_time_source_generic_timer::us_to_ts_mult() *wakeup;
+
+  Gtimer::compare(gtimer);
+}
+
 bool
 Timer_generic_timer::check_and_disable(Cpu_number cpu)
 {

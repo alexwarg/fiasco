@@ -11,6 +11,7 @@
 
 Fix_point_multiplier Arch_time_source_generic_timer::_scaler_shift_ts_to_ns;
 Fix_point_multiplier Arch_time_source_generic_timer::_scaler_shift_ts_to_us;
+Fix_point_multiplier Arch_time_source_generic_timer::_scaler_shift_us_to_ts;
 
 
 void
@@ -18,6 +19,7 @@ Arch_time_source_generic_timer::setup_scalers(Unsigned32 freq)
 {
   _scaler_shift_ts_to_ns = Fix_point_multiplier::calc(freq, 1'000'000'000);
   _scaler_shift_ts_to_us = Fix_point_multiplier::calc(freq, 1'000'000);
+  _scaler_shift_us_to_ts = Fix_point_multiplier::calc(1'000'000, freq);
 }
 
 void

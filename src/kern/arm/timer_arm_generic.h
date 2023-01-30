@@ -15,6 +15,7 @@ private:
 
 public:
   typedef Generic_timer::Gtimer Gtimer;
+  static constexpr Unsigned64 Infinite_timeout = UINT64_MAX;
 
   static void init(Cpu_number cpu)
   {
@@ -50,18 +51,22 @@ public:
 
   static void acknowledge()
   {
-    Gtimer::compare(Gtimer::compare() + _interval);
+    if constexpr (!Config::Scheduler_one_shot)
+      Gtimer::compare(Gtimer::compare() + _interval);
+    // else done in Timer::update_timer()
   }
 
-  static void update_timer(Unsigned64 /*wakeup*/)
+  static void update_timer(Unsigned64 wakeup)
   {
-    static_assert(!Config::Scheduler_one_shot,
-                  "currently no dynamic ticks with ARM generic timer");
+    if constexpr (Config::Scheduler_one_shot)
+      update_timer_one_shot(wakeup);
   }
 
 protected:
   static bool check_and_disable(Cpu_number cpu);
   static void finalize_init(Cpu_number cpu);
+
+  static void update_timer_one_shot(Unsigned64 wakeup);
 
   static void set_freq0(Mword freq0)
   {

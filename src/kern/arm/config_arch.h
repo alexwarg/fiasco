@@ -26,7 +26,7 @@ namespace Config
   {
 #ifdef CONFIG_ONE_SHOT
     Scheduler_granularity	= 1UL,
-    Default_time_slice	        = 10000 * scheduler_granularity,
+    Default_time_slice	        = 10000 * Scheduler_granularity,
 #else
     Scheduler_granularity	= CONFIG_SCHED_GRANULARITY,
     Default_time_slice	        = CONFIG_SCHED_DEF_TIME_SLICE * Scheduler_granularity,
