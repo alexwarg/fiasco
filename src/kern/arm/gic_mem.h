@@ -2,6 +2,7 @@
 
 #include <mem_chunk.h>
 #include <mem_unit.h>
+#include <globalconfig.h>
 
 #include <cassert>
 
@@ -33,21 +34,7 @@ public:
     val.shareability() = _share;
     val.cacheability() = _cache;
     reg.write(val.raw);
-
-    T rval(reg.read());
-    _cache = rval.cacheability();
-    if (rval.shareability() != _share)
-    {
-      // Inner shareable not supported by the GIC
-      _share = rval.shareability();
-      if (_share == Shareability_non_shareable)
-        {
-          // Mark memory non-cacheable if GIC only supports non-shareable
-          _cache = Cacheability_non_cacheable;
-          rval.cacheability() = _cache;
-          reg.write(rval.raw);
-        }
-    }
+    detect_coherence<R, T>(reg);
   }
 
   /**
@@ -81,6 +68,40 @@ public:
   static Gic_mem alloc_zmem(unsigned size, unsigned align = 1);
 
 private:
+#ifndef CONFIG_ARM_GIC_NOT_COHERENT
+  template<typename R, typename T>
+  inline void detect_coherence(R reg)
+  {
+    // Detect shareability/cacheability by reading back accepted value
+    T rval(reg.read());
+    _cache = rval.cacheability();
+    if (rval.shareability() != _share)
+      {
+        // Inner shareable not supported by the GIC
+        _share = rval.shareability();
+        if (_share == Shareability_non_shareable)
+          {
+            // Mark memory non-cacheable if GIC only supports non-shareable
+            _cache = Cacheability_non_cacheable;
+            rval.cacheability() = _cache;
+            reg.write(rval.raw);
+          }
+      }
+  }
+
   unsigned _share = Shareability_inner_shareable;
   unsigned _cache = Cacheability_cacheable_rawawb;
+
+#else
+
+  template<typename R, typename T>
+  inline void detect_coherence(R /*reg*/)
+  {
+    // Detection is broken (hardware bug), assume non-shareable+non-cacheable
+  }
+
+  unsigned _share = Shareability_non_shareable;
+  unsigned _cache = Cacheability_non_cacheable;
+#endif
 };
+

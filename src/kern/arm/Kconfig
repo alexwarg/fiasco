@@ -167,6 +167,9 @@ config ARM_GIC_NOT_COHERENT
 config HAVE_ARM_GIC_MSI
 	bool
 
+config ARM_GIC_NOT_COHERENT
+  bool
+
 config ARM_IOMMU_COHERENT
 	bool
 
