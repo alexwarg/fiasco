@@ -99,6 +99,12 @@ public:
   };
 #endif
 
+#ifdef CONFIG_PF_IMX_8MP
+  enum Phys_layout_imx8mp : Address {
+    /*dummy*/ Watchdog_phys_base   = ~0UL
+  };
+#endif
+
 #ifdef CONFIG_PF_IMX_8XQ
   enum Phys_layout_imx8xq : Address {
     Gic_dist_phys_base   = 0x51a00000,
