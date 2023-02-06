@@ -36,12 +36,12 @@ private:
   using Context = CTXT;
 
 public:
-  bool execute_drq(Drq *r, Drq_queue::Drop_mode drop, bool local)
+  bool execute_drq(Drq *r, bool local)
   {
     if (r->context() == _this())
       return execute_drq_reply(r);
     else
-      return execute_drq_request(r, drop, local);
+      return execute_drq_request(r, local);
   }
 
   bool enqueue_drq(Drq *rq)
@@ -143,7 +143,7 @@ private:
     return !_this()->state.has(Thread_ready_mask);
   }
 
-  bool execute_drq_request(Drq *r, Drq_queue::Drop_mode drop, bool local)
+  bool execute_drq_request(Drq *r, bool local)
   {
     LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
         l->type = Drq_log::Type::Do_request;
@@ -155,14 +155,11 @@ private:
     );
 
     Drq::Result answer = Drq::done();
-    if (EXPECT_TRUE(drop == Drq_queue::No_drop && r->func))
+    if (EXPECT_TRUE(r->func != nullptr))
       {
         _this()->handle_remote_state_change();
         answer = r->func(r, _this(), r->arg);
       }
-    else if (EXPECT_FALSE(drop == Drq_queue::Drop))
-      // flag DRQ abort for requester
-      r->arg = (void*)-1;
 
     bool need_resched = answer.need_resched();
 

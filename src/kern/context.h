@@ -581,7 +581,7 @@ private:
   // execute DRQ and update ready list according to new state
   bool do_drq(Drq *rq, bool offline_cpu = false)
   {
-    return update_ready_list_drq(execute_drq(rq, Drq_queue::No_drop, true),
+    return update_ready_list_drq(execute_drq(rq, true),
                                  offline_cpu);
   }
 

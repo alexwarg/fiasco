@@ -16,8 +16,6 @@
 class Drq_queue : public Queue
 {
 public:
-  enum Drop_mode { Drop = true, No_drop = false };
-
   void enq(Drq *rq)
   {
     assert(cpu_lock.test());
@@ -34,7 +32,7 @@ public:
   }
 
   template<typename CTXT>
-  bool handle_requests(CTXT *ctxt, Drop_mode drop = No_drop)
+  bool handle_requests(CTXT *ctxt)
   {
     bool need_resched = false;
     while (1)
@@ -50,7 +48,7 @@ public:
           }
 
         Drq *r = static_cast<Drq*>(qi);
-        need_resched |= ctxt->execute_drq(r, drop, false);
+        need_resched |= ctxt->execute_drq(r, false);
       }
   }
 };
