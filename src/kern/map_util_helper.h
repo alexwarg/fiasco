@@ -26,12 +26,23 @@ struct Auto_tlb_flush<Mem_space>
   bool all;
   bool empty;
 
-  Mem_space *spaces[N_spaces];
-  Auto_tlb_flush() : all(false), empty(true)
+  // When we store a pointer to a Mem_space we have to increment its reference
+  // counter to ensure that it still exists, i.e. has not been deleted, when
+  // we later dereference the pointer.
+  struct Mem_space_ref_ptr : Ref_ptr<Space>
   {
-    for (unsigned i = 0; i < N_spaces; ++i)
-      spaces[i] = 0;
-  }
+    Mem_space_ref_ptr() = default;
+    explicit Mem_space_ref_ptr(Mem_space *p)
+    : Ref_ptr(static_cast<Space *>(p)) {}
+
+    Mem_space *get() const { return Ref_ptr<Space>::get(); }
+    Mem_space *operator -> () const { return get(); }
+  };
+
+  Mem_space_ref_ptr spaces[N_spaces];
+
+  Auto_tlb_flush() : all(false), empty(true)
+  {}
 
   void add_page(Mem_space *space, Mem_space::V_pfn, Mem_space::Page_order)
   {
@@ -42,13 +53,13 @@ struct Auto_tlb_flush<Mem_space>
 
     for (unsigned i = 0; i < N_spaces; ++i)
       {
-        if (spaces[i] == 0)
+        if (!spaces[i])
           {
-            spaces[i] = space;
+            spaces[i] = Mem_space_ref_ptr(space);
             return;
           }
 
-        if (spaces[i] == space)
+        if (spaces[i].get() == space)
           return;
       }
 
