@@ -363,7 +363,7 @@ public:
   template<typename T>
   void clean_dcache(T *s, T *e)
   {
-    typedef typename cxx::remove_cv<T>::type Ct;
+    typedef cxx::remove_cv_t<T> Ct;
     if (!coherent())
       Mem_unit::clean_dcache(const_cast<Ct const *>(s),
                              const_cast<Ct const *>(e));
@@ -372,7 +372,7 @@ public:
   template<typename T>
   void clean_dcache(T *s)
   {
-    typedef typename cxx::remove_cv<T>::type Ct;
+    typedef cxx::remove_cv_t<T> Ct;
     if (!coherent())
       Mem_unit::clean_dcache(const_cast<Ct const *>(s),
                              const_cast<Ct const *>(s) + 1);

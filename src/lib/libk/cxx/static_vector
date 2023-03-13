@@ -32,7 +32,7 @@ public:
 
   /// Conversion from compatible arrays
   template<typename X,
-           typename = typename enable_if<is_convertible<X, T>::value>::type>
+           typename = enable_if_t<is_convertible<X, T>::value>>
   constexpr static_vector(static_vector<X, IDX> const &o) : _v(o._v), _l(o._l) {}
 
   constexpr index_type size() const { return _l; }

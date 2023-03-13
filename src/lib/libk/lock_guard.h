@@ -34,7 +34,7 @@ template<
   template< typename L > class POLICY = Lock_guard_regular_policy >
 class Lock_guard
 {
-  typedef typename cxx::remove_pointer<typename cxx::remove_reference<LOCK>::type>::type Lock;
+  typedef typename cxx::remove_pointer<cxx::remove_reference_t<LOCK>>::type Lock;
   typedef POLICY<Lock> Policy;
 
   Lock *_lock = nullptr;
