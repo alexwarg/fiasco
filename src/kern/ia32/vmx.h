@@ -111,6 +111,7 @@ public:
   enum Primary_proc_based_ctls
   {
     PRB1_tpr_shadow               = 21,
+    PRB1_mov_dr_exit              = 23,
     PRB1_unconditional_io_exit    = 24,
     PRB1_use_io_bitmaps           = 25,
     PRB1_use_msr_bitmaps          = 28,
