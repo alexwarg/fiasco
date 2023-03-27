@@ -15,6 +15,20 @@
 
 #include "asm.h"
 
+.macro ENTRY_FUNC name align=8
+	.section ".entry.text.\name", "ax", @progbits
+	.align \align
+	.type	\name,@function
+	.global \name
+\name:
+.endm
+
+.macro LOCAL_ENTRY_FUNC name align=8
+	.section ".entry.text.\name", "ax", @progbits
+	.align \align
+	.type	\name,@function
+\name:
+.endm
 
 /* We make the trap handler an interrupt gate, because for debugging
    purposes, we don't want any interrupts to occur until they're
@@ -26,8 +40,7 @@
  */
 .macro	EXCEPTION n, name
 	GATE_ENTRY	\n, entry_\name, (ACC_PL_K | ACC_INTR_GATE)
-	.p2align 3
-entry_\name:
+	LOCAL_ENTRY_FUNC entry_\name
 	SWITCH_TO_KERNEL_CR3 0
 	push	$(0)
 	push	$(\n)
@@ -40,8 +53,7 @@ entry_\name:
  */
 .macro	EXCEP_USR n, name
 	GATE_ENTRY	\n, entry_\name, (ACC_PL_U | ACC_INTR_GATE)
-	.p2align 3
-entry_\name:
+	LOCAL_ENTRY_FUNC entry_\name
 	SWITCH_TO_KERNEL_CR3 0
 	push	$(0)
 	push	$(\n)
@@ -54,8 +66,7 @@ entry_\name:
  */
 .macro	EXCEP_ERR n, name, from_iret_fault = 0
 	GATE_ENTRY	\n, entry_\name, (ACC_PL_K | ACC_INTR_GATE)
-	.p2align 3
-entry_\name:
+	LOCAL_ENTRY_FUNC entry_\name
 	SWITCH_TO_KERNEL_CR3 1, \from_iret_fault
 	push	$(\n)
 	save_all_regs
@@ -64,7 +75,6 @@ entry_\name:
 
 GATE_INITTAB_BEGIN idt_init_table
 
-	.section ".entry.text.vec", "ax", @progbits
 
 EXCEPTION	0x00, vec00_zero_div
 /* IA32 has to handle breakpoint exceptions if occurred exactly at
@@ -91,16 +101,13 @@ EXCEP_ERR	0x11, vec11_align
 EXCEPTION	0x12, vec12_mcheck
 EXCEPTION	0x13, vec13_simd_err
 
-	.section ".entry.text.slowtrap", "ax", @progbits
-	.p2align 4
-	.type	slowtraps,@function
-	.globl	slowtraps
+
+ENTRY_FUNC slowtraps align=16
 	/* We have to introduce the label _slowtraps besides the label
 	   slowtraps to achieve that jmps from exception entry points
 	   are optimized to two-byte jmps. The label slowtraps is visible
 	   from outside. */
 _slowtraps:
-slowtraps:
 	IA32_IBRS
 .Lenter_slowtrap_after_fixup:
 	mov	%rsp,%rdi		/* ARG1: address of trap_state */
@@ -124,9 +131,8 @@ in_slowtrap:
 	add	$0x10,%rsp		/* pop trap number and error code */
 	SAFE_IRET
 
-.align 8
-.global iretq_exception_handler
-iretq_exception_handler:
+
+ENTRY_FUNC iretq_exception_handler
 	mov	$1, %eax
 	/* test if the NT flag is set in the RFLAGS */
 	testq	$0x4000, (VAL__SIZEOF_TRAP_STATE - 24)(%rsi)
@@ -155,12 +161,10 @@ iretq_exception_handler:
 	add	$(6 * 8), %rsp
 	jmp	.Lenter_slowtrap_after_fixup
 
-.align 8
-.Lunexpected_trap:
+LOCAL_ENTRY_FUNC .Lunexpected_trap
 	mov	%rsp,%rdi		/* 1st arg: trap state */
 	call	trap_dump_panic
 
-	.section ".entry.text.vec0e", "ax", @progbits
 GATE_ENTRY	0x0e, entry_vec0e_page_fault, (ACC_PL_K | ACC_INTR_GATE)
 
 /* we must save %cr2 before we can be preempted -- therefore we're an
@@ -171,10 +175,7 @@ GATE_ENTRY	0x0e, entry_vec0e_page_fault, (ACC_PL_K | ACC_INTR_GATE)
 
 /* XXX slow version - sets up nice stack frame for debugger */
 
-	.p2align 4
-	.type	entry_vec0e_page_fault,@function
-.globl entry_vec0e_page_fault
-entry_vec0e_page_fault:
+LOCAL_ENTRY_FUNC entry_vec0e_page_fault align=16
 	cld
 	SWITCH_TO_KERNEL_CR3	1
 	SAVE_SCRATCH
@@ -230,14 +231,10 @@ in_page_fault:
 	save_all_regs
 	jmp	slowtraps
 
-	.section ".entry.text.vec07", "ax", @progbits
 /* FPU not available in this context. */
 GATE_ENTRY	0x07, entry_vec07_fpu_unavail, (ACC_PL_K | ACC_INTR_GATE)
 
-/* do all of this with disabled interrupts */
-	.p2align 4
-	.type	entry_vec07_fpu_unavail,@function
-entry_vec07_fpu_unavail:
+LOCAL_ENTRY_FUNC entry_vec07_fpu_unavail align=16
 	cld
 	SWITCH_TO_KERNEL_CR3 0
 	SAVE_SCRATCH
@@ -270,9 +267,7 @@ GATE_ENTRY	APIC_IRQ_BASE, entry_int_timer, (ACC_PL_K | ACC_INTR_GATE)
 /* HPET is set at startup */
 #endif
 
-	.p2align 4
-	.globl	entry_int_timer
-entry_int_timer:
+ENTRY_FUNC entry_int_timer align=16
 	SWITCH_TO_KERNEL_CR3	0
 	SAVE_SCRATCH
 	IA32_IBRS
@@ -284,9 +279,7 @@ in_timer_interrupt:
 	RESTORE_SCRATCH
 	SAFE_IRET
 
-	.p2align 4
-	.globl	entry_int_timer_slow
-entry_int_timer_slow:
+ENTRY_FUNC entry_int_timer_slow align=16
 	cld
 	SWITCH_TO_KERNEL_CR3	0
 	SAVE_SCRATCH
@@ -295,10 +288,8 @@ entry_int_timer_slow:
 in_timer_interrupt_slow:
 	jmp	do_timer_interrupt
 
-	
-	.p2align 4
-	.globl	entry_int_timer_stop
-entry_int_timer_stop:
+
+ENTRY_FUNC entry_int_timer_stop align=16
 	cld
 	SWITCH_TO_KERNEL_CR3	0
 	SAVE_SCRATCH
@@ -326,10 +317,7 @@ entry_\name:
  * address of an Irq_base object that is later attached to
  * the corresponding IDT vector.
  */
-	.section ".entry.text.irqs", "ax", @progbits
-	.global idt_irq_vector_stubs
-	.align 64
-idt_irq_vector_stubs:
+ENTRY_FUNC idt_irq_vector_stubs align=64
 .rept APIC_IRQ_BASE - 0x28
 	push	%rdi
 	movabs	$0, %rdi
@@ -337,10 +325,7 @@ idt_irq_vector_stubs:
 .endr
 
 
-	.type __generic_irq_entry,@function
-	.global __generic_irq_entry
-
-__generic_irq_entry:
+ENTRY_FUNC __generic_irq_entry align=8
 	SWITCH_TO_KERNEL_CR3 1
 	push    %rsi
 	push	%rax
@@ -360,12 +345,9 @@ all_irqs:
 in_interrupt:
 	RESTORE_SCRATCH
 
-entry_int_pic_ignore:
+ENTRY_FUNC entry_int_pic_ignore
 	SAFE_IRET
 
-	.global	entry_int_pic_ignore
-	.global	entry_int7
-	.global	entry_intf
 
 #ifndef CONFIG_SCHED_PIT
 INTERRUPT	0x20, int0
@@ -391,10 +373,8 @@ MAX_NUM_CPUS = 1
 #define SYSCALL_ENTRY_DATA (syscall_entry_data + SYSCALL_ENTRY_OFFSET * SYSCALL_ENTRY_DATA_SIZE)
 #define KERN_SP (SYSCALL_ENTRY_DATA + 0)
 #define USER_SP (SYSCALL_ENTRY_DATA + 8)
-	.section ".entry.text.syscalls", "ax", @progbits
-	.global syscall_entry_text
-	.align 64
-syscall_entry_text:
+
+ENTRY_FUNC syscall_entry_text align=64
 .rept MAX_NUM_CPUS
 0:
 	mov %rsp, USER_SP(%rip)
@@ -431,10 +411,7 @@ GATE_ENTRY	(APIC_IRQ_BASE - 1), entry_ipi_remote_request, (ACC_PL_K | ACC_INTR_G
 
 GATE_INITTAB_END
 
-	.section ".entry.text.upcalls", "ax", @progbits
-	.p2align 3
-	.globl	leave_by_trigger_exception
-leave_by_trigger_exception:
+ENTRY_FUNC leave_by_trigger_exception
         sub $40, %rsp
 	pushq	$0x00
 	pushq	$0xff
@@ -445,9 +422,7 @@ leave_by_trigger_exception:
 
 #define OFS__VCPU_STATE__REGS_IRET (VAL__SIZEOF_TRAP_STATE - 40 + OFS__VCPU_STATE__TREX)
 
-	.p2align 3
-	.globl	leave_by_vcpu_upcall
-leave_by_vcpu_upcall:
+ENTRY_FUNC leave_by_vcpu_upcall
 	sub	$40,%rsp		/* clean up stack from previous
 					 * CPL0-CPL0 iret */
 	SAVE_SCRATCH
@@ -503,9 +478,7 @@ leave_by_vcpu_upcall:
 	mov -OFS__VCPU_STATE__REGS_IRET + OFS__VCPU_STATE__ENTRY_IP(%rcx), %rcx
 	SAFE_SYSRET rflags=$EFLAGS_IF load_rsp=0
 
-	.p2align 3
-	.globl	vcpu_resume
-vcpu_resume:
+ENTRY_FUNC vcpu_resume
 	mov %rdi, %rsp
 #if 0
 	popq %es
@@ -518,9 +491,7 @@ vcpu_resume:
 	andq	$0x7f, 8(%rsp)			// if entered using syscall
 	SAFE_IRET
 
-        .p2align 3
-        .globl  leave_and_kill_myself
-leave_and_kill_myself:
+ENTRY_FUNC leave_and_kill_myself
         // make space for a dummy Return_frame accessible by the callee
         subq    $(5*8),%rsp                     // sizeof(Return_frame)
         call    thread_do_leave_and_kill_myself
