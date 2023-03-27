@@ -127,10 +127,18 @@ in_slowtrap:
 .align 8
 .global iretq_exception_handler
 iretq_exception_handler:
+	mov	$1, %eax
+	/* test if the NT flag is set in the RFLAGS */
+	testq	$0x4000, (VAL__SIZEOF_TRAP_STATE - 24)(%rsi)
+	jnz	1f
 	/* patch return address from base-trap handler to the iret fixup */
 	movq	$.Liretq_exception_stack_fix, -8(%rsi)
-	mov	$1, %eax
 	retq
+
+	/* clear the NT flag and retry the iret */
+1:	andq	$~0x4000, (VAL__SIZEOF_TRAP_STATE - 24)(%rsi)
+	retq
+
 
 .align 8
 .Liretq_exception_stack_fix:
@@ -498,6 +506,7 @@ leave_by_vcpu_upcall:
 	mov -OFS__VCPU_STATE__REGS_IRET + OFS__VCPU_STATE__ENTRY_IP(%rcx), %rax
 	mov %rax, 0(%rsp)
 	movq $EFLAGS_IF, 16(%rsp)
+        movq $(GDT_DATA_USER | SEL_PL_U), 32(%rsp)
         movq $(GDT_CODE_USER | SEL_PL_U), 8(%rsp)
 	SAFE_IRET
 
