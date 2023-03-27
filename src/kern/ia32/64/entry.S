@@ -499,16 +499,9 @@ leave_by_vcpu_upcall:
 	push %r14
 	push %r15
 
-	/*add SCRATCH_REGISTER_SIZE, %esp*/
-	mov %rdx, %rsp
-	mov -OFS__VCPU_STATE__REGS_IRET + OFS__VCPU_STATE__ENTRY_SP(%rcx), %rax
-	mov %rax, 24(%rsp)
-	mov -OFS__VCPU_STATE__REGS_IRET + OFS__VCPU_STATE__ENTRY_IP(%rcx), %rax
-	mov %rax, 0(%rsp)
-	movq $EFLAGS_IF, 16(%rsp)
-        movq $(GDT_DATA_USER | SEL_PL_U), 32(%rsp)
-        movq $(GDT_CODE_USER | SEL_PL_U), 8(%rsp)
-	SAFE_IRET
+	mov -OFS__VCPU_STATE__REGS_IRET + OFS__VCPU_STATE__ENTRY_SP(%rcx), %rsp
+	mov -OFS__VCPU_STATE__REGS_IRET + OFS__VCPU_STATE__ENTRY_IP(%rcx), %rcx
+	SAFE_SYSRET rflags=$EFLAGS_IF load_rsp=0
 
 	.p2align 3
 	.globl	vcpu_resume

@@ -63,7 +63,7 @@
 .endm
 #endif
 
-.macro SAFE_SYSRET
+.macro SAFE_SYSRET load_rsp=1, rflags=32(%rsp)
 	/* make RIP canonical, workaround for intel IA32e flaw */
 	shl     $16, %rcx
 	sar     $16, %rcx
@@ -88,8 +88,10 @@
 # endif
 	mov	CPUE_CR3U(%r15), %r15
 #endif
-	mov	32(%rsp), %r11				/* load user rflags */
-	mov	40(%rsp), %rsp				/* load user rsp */
+	mov	\rflags, %r11				/* load user rflags */
+	.if \load_rsp
+		mov	40(%rsp), %rsp			/* load user rsp */
+	.endif
 #ifdef CONFIG_KERNEL_ISOLATION
 	mov	%r15, %cr3
 #endif
