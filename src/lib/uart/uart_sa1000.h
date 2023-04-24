@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0-only OR License-Ref-kk-custom */
+/*
+ * Copyright (C) 2023 Kernkonzept GmbH.
+ */
 /*
  * (c) 2008-2012 Adam Lackorzynski <adam@os.inf.tu-dresden.de>
  *               Alexander Warg <alexander.warg@os.inf.tu-dresden.de>
@@ -7,8 +11,7 @@
  * GNU General Public License 2.
  * Please see the COPYING-GPL-2 file for details.
  */
-#ifndef __L4_CXX_UART_SA1000_H__
-#define __L4_CXX_UART_SA1000_H__
+#pragma once
 
 #include "uart_base.h"
 
@@ -17,17 +20,18 @@ namespace L4
   class Uart_sa1000 : public Uart
   {
   public:
-    Uart_sa1000(unsigned long /*base_rate*/) {}
-    Uart_sa1000() = default;
+    explicit Uart_sa1000(unsigned long /*base_rate*/) {}
+    explicit Uart_sa1000() = default;
     void set_base_rate(unsigned) override {}
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;
     int get_char(bool blocking = true) const override;
     int char_avail() const override;
+    int tx_avail() const;
+    void wait_tx_done() const;
     inline void out_char(char c) const;
-    int write(char const *s, unsigned long count) const override;
+    int write(char const *s, unsigned long count,
+              bool blocking = true) const override;
   };
 };
-
-#endif
