@@ -104,13 +104,18 @@ public:
 
     Mword s = c_thread->state();
     if (s & Thread_wait_mask)
-      c_thread->state.del_dirty(Thread_wait_mask);
+      {
+        c_thread->state.del_dirty(Thread_wait_mask);
+
+        // Reset partner only after clearing the Thread_receive_wait flag, otherwise
+        // the thread can be misperceived as being in an IPC open wait.
+        c_thread->set_partner(nullptr);
+      }
 
     if (EXPECT_FALSE(s & (Thread_cancel | Thread_timeout)))
       {
         if (c_thread->in_sender_list())
           {
-            c_thread->set_partner(0);
             c_thread->set_wait_queue(0);
             c_thread->sender_dequeue(&_waiting);
           }
