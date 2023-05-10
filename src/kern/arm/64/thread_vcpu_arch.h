@@ -46,7 +46,6 @@ public:
     if (current() == c)
       {
         asm volatile ("msr SCTLR_EL1, %x0"   : : "r"(v->sctlr));
-        asm volatile ("msr CNTVOFF_EL2, %x0" : : "r"(v->cntvoff));
         asm volatile ("msr HSTR_EL2, %x0" : : "r"(Cpu::Hstr_vm)); // HSTR
       }
   }

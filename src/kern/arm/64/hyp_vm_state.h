@@ -170,7 +170,7 @@ public:
     asm volatile ("mrs %x0, CNTV_CTL_EL0" : "=r" (guest_regs.cntv_ctl));
     // disable VTIMER
     asm volatile ("msr CNTV_CTL_EL0, %x0" : : "r"(0UL));
-    asm volatile ("msr CNTHCTL_EL2, %x0"  : : "r"(Host_cnthctl));
+    asm volatile ("msr CNTVOFF_EL2, %x0" : : "r"(0));
     // disable all debug exceptions for non-vms, if we want debug
     // exceptions into JDB we need either per-thread or a global
     // setting for this value. (probably including the contextidr)
@@ -206,7 +206,6 @@ public:
     asm volatile ("msr CNTV_CTL_EL0, %x0": : "r"(guest_regs.cntv_ctl));
     asm volatile ("msr SCTLR_EL1, %x0"   : : "r"(guest_regs.sctlr));
     asm volatile ("msr CPACR_EL1, %x0"   : : "r"(guest_regs.cpacr));
-    asm volatile ("msr CNTHCTL_EL2, %x0" : : "r"(Guest_cnthctl));
   }
 
   [[gnu::nonnull]]
@@ -241,12 +240,6 @@ public:
     // CNTKCTL: allow access to virtual and physical counter from PL0
     // see: generic_timer.cpp: setup_timer_access (Hyp)
     asm volatile("msr CNTKCTL_EL1, %x0"   : : "r"(0x3UL));
-    asm volatile("msr CNTHCTL_EL2, %x0"   : : "r"(Host_cnthctl));
-  }
-
-  static void load_cnthctl(Unsigned64 cnthctl)
-  {
-    asm volatile ("msr CNTHCTL_EL2, %x0" : : "r"(cnthctl));
   }
 };
 

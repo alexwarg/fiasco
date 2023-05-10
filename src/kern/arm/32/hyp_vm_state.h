@@ -219,8 +219,8 @@ public:
 
     asm volatile ("mrc p15, 0, %0, c14, c3, 1" : "=r" (guest_regs.cntv_ctl));
     // disable VTIMER
-    asm volatile ("mcr p15, 0, %0, c14, c3, 1" : : "r"(0));
-    asm volatile ("mcr p15, 4, %0, c14, c1, 0" : : "r"(Host_cnthctl));
+    asm volatile ("mcr p15, 0, %0, c14, c3, 1" : : "r"(0)); // CNTV_CTL
+    asm volatile ("mcrr p15, 4, %Q0, %R0, c14" : : "r"(0ULL)); // CNTVOFF
   }
 
   [[gnu::nonnull]]
@@ -254,7 +254,6 @@ public:
 
     asm volatile ("mcr  p15, 4, %0, c0, c0, 5" : : "r" (vmpidr));
     asm volatile ("mcr  p15, 4, %0, c0, c0, 0" : : "r" (vpidr));
-    asm volatile ("mcr  p15, 4, %0, c14, c1, 0" : : "r" (Guest_cnthctl));
   }
 
   [[gnu::nonnull]]
@@ -285,12 +284,6 @@ public:
                   : : "r" ((Cpu::sctlr | Cpu::Cp15_c1_cache_bits) & ~Cpu::Cp15_c1_mmu));
     asm volatile ("mcr p15, 0, %0,  c1, c0, 2" : : "r" (0xf00000));
     asm volatile ("mcr p15, 0, %0, c13, c0, 0" : : "r" (0));
-    asm volatile("mcr p15, 4, %0, c14, c1, 0" : : "r"(Host_cnthctl));
-  }
-
-  static void load_cnthctl(Unsigned32 cnthctl)
-  {
-    asm volatile ("mcr p15, 4, %0, c14, c1, 0" : : "r"(cnthctl));
   }
 };
 

@@ -8,13 +8,6 @@ class Hyp_vm_state_generic
 {
 public:
   enum { Version = 0 };
-  enum
-  {
-    Host_cntkctl = (1U << 8) | (1U << 1),
-    // see: generic_timer.cpp: setup_timer_access (Hyp)
-    Host_cnthctl = 1U,  // enable PL1+PL0 access to CNTPCT_EL0
-    Guest_cnthctl = 0U, // disable PL1+PL0 access to CNTPCT_EL0
-  };
 
   struct Vm_info
   {

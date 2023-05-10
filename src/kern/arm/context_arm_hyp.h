@@ -56,6 +56,8 @@ public:
           }
         else
           arm_ext_vcpu_switch_to_host_no_load(vcpu, v);
+
+        _hyp.cntvoff = 0;
       }
 
     _cpu_state.tpidruro(vcpu->host.tpidruro);
@@ -95,12 +97,10 @@ public:
 
         if (_to_state & Thread_vcpu_user)
           {
-            Vm_state::load_cnthctl(Vm_state::Guest_cnthctl);
             Gic_h_global::gic->load_full(&v->gic, vgic);
           }
         else
           {
-            Vm_state::load_cnthctl(Vm_state::Host_cnthctl);
             if (vgic)
               Gic_h_global::gic->disable();
           }
