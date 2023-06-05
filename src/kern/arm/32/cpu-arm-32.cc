@@ -89,14 +89,15 @@ Cpu_arm_bits_generic::init_supervisor_mode(bool is_boot_cpu)
   if (!is_boot_cpu)
     return;
 
-  extern char ivt_start;
+  extern char ivt_start; // physical address!
+
   // map the interrupt vector table to 0xffff0000
   auto pte = Kmem::kdir->walk(Virt_addr(Kmem_space::Ivt_base),
                               Kpdir::Depth, true,
                               Kmem_alloc::q_allocator(Ram_quota::root));
 
-  pte.set_page(Phys_mem_addr((unsigned long)&ivt_start),
-               Page::Attr::kern_global(Page::Rights::RWX()));
+  pte.set_page(Phys_mem_addr(reinterpret_cast<Address>(&ivt_start)),
+                             Page::Attr::kern_global(Page::Rights::RWX()));
   pte.write_back_if(true);
   Mem_unit::tlb_flush_kernel(Kmem_space::Ivt_base);
 }

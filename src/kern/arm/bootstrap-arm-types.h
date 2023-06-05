@@ -11,6 +11,8 @@ struct Bootstrap_info
 {
   void (*entry)();
   void *kip;
+  Address kernel_start_phys;
+  Address kernel_end_phys;
   Boot_paging_info pi;
 };
 
@@ -29,15 +31,10 @@ namespace Bootstrap
 #else
   using Phys_addr = cxx::int_type_order<Unsigned32, Phys_addr_t, Order>;
 #endif
-#ifdef CONFIG_BIT32
 #ifdef CONFIG_ARM_LPAE
   static constexpr Order map_page_order{21};
 #else
   static constexpr Order map_page_order{20};
-#endif
-#endif
-#ifdef CONFIG_BIT64
-  static constexpr Order map_page_order{30};
 #endif
   static constexpr Phys_addr map_page_size_phys = Phys_addr(1) << map_page_order;
   static constexpr Virt_addr map_page_size      = Virt_addr(1) << map_page_order;

@@ -12,11 +12,7 @@ class Mem_layout_arch : public Mem_layout_arm_bits, public Mem_layout_arm_bsp
 public:
   enum Phys_layout : Address {
     Sdram_phys_base = RAM_PHYS_BASE,
-    Pmem_kernel_size     = 4 << 20, // Kernel image mapping size in Pmem region
   };
-
-  static_assert(Super_pg::aligned(Pmem_kernel_size),
-                "Pmem_kernel_size must be multiple of super page size");
 
 private:
   // At least two entries are expected: the kernel image and the heap. If the

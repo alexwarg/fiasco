@@ -53,8 +53,7 @@ Mem_space_arm_bits<M>::sync_kernel()
 
   extern char kern_lib_start[];
 
-  Phys_mem_addr pa((Address)kern_lib_start - Mem_layout::Map_base
-                   + Mem_layout::Sdram_phys_base);
+  Phys_mem_addr pa(Kmem::kdir->virt_to_phys((Address)kern_lib_start));
   pte.set_page(pa, Page::Attr::space_local(Page::Rights::URX()));
 
   pte.write_back_if(true, _ths()->c_asid());
