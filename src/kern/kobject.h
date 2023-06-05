@@ -218,14 +218,14 @@ public:
     O_dec_refcnt = 0,
   };
 
+  /**
+   * \pre tag.words() >= 1
+   */
   L4_msg_tag kobject_invoke(L4_obj_ref, L4_fpage::Rights /*rights*/,
                             Syscall_frame *f,
                             Utcb const *in, Utcb *out)
   {
     L4_msg_tag tag = f->tag();
-
-    if (EXPECT_FALSE(tag.words() < 1))
-      return Kobject_iface::commit_result(-L4_err::EInval);
 
     switch (in->values[0])
       {
