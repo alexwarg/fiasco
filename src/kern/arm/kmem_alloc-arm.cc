@@ -66,6 +66,12 @@ Kmem_alloc::Kmem_alloc()
   if (available_size < (1 << 18))
     panic("Kmem_alloc: No kernel memory available (%ld)", available_size);
 
+  // Completely remove initial pmem accounted mapping. This was established in
+  // add_initial_pmem(). Otherwise we might try to add a page with a different
+  // virtual address again to the pmem map, which is forbidden.
+  map.sub(Mem_region(Mem_layout::Sdram_phys_base,
+                     Mem_layout::Sdram_phys_base + Mem_layout::Pmem_kernel_size - 1));
+
   // Walk through all KIP memory regions of conventional memory minus the
   // reserved memory and find one or more regions suitable for the kernel
   // memory.
