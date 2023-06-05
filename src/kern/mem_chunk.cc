@@ -1,7 +1,7 @@
 
 #include <mem_chunk.h>
 
-#include <kmem.h>
+#include <mem_layout.h>
 #include <kmem_alloc.h>
 
 void
@@ -13,6 +13,6 @@ Mem_chunk::free_mem(void *mem, unsigned size)
 Address
 Mem_chunk::to_phys(Address virt)
 {
-  return Kmem::kdir->virt_to_phys(virt);
+  return Mem_layout::pmem_to_phys(virt);
 }
 
