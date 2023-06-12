@@ -435,9 +435,9 @@ private:
     if (rq->tag.transfer_fpu())
       clear_fpu_before_receive(rq->partner);
 
-    // trigger remote_ipc_receiver_ready path, because we may need to grab locks
-    // and this is forbidden in a DRQ handler. So transfer the IPC in usual
-    // thread code. However, this induces a overhead of two extra IPIs.
+    // We may need to grab locks but this is forbidden in a DRQ handler. So
+    // transfer the IPC in usual thread code at the sender side. However, this
+    // induces an overhead of two extra IPIs.
     if (rq->tag.items())
       {
         //LOG_MSG_3VAL(rq->partner, "pull", dbg_id(), 0, 0);
@@ -985,11 +985,10 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
           break;
 
         default:
-          // mmh, we can reset the receivers timeout
-          // ping pong with timeouts will profit from it, because
-          // it will require much less sorting overhead
-          // if we dont reset the timeout, the possibility is very high
-          // that the receiver timeout is in the timeout queue
+          // ping pong with timeouts will profit from resetting the receiver´s
+          // timeout, because it will require much less sorting overhead. If we
+          // don't reset the timeout, the probability is very high that the
+          // receiver timeout is in the timeout queue.
           if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
             partner->reset_timeout();
 
