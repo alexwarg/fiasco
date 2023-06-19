@@ -28,7 +28,7 @@ public:
     { return chip->_irqs[pin]; }
   };
 
-  unsigned icu_num_irqs() const { return NIRQS; }
+  unsigned nr_irqs() const { return NIRQS; }
 
   Irq_base *icu_get_irq(unsigned pin) const
   {
@@ -166,7 +166,10 @@ public:
     auto i = this_icu()->icu_get_chip(irqnum);
 
     if (!i.chip)
-      return Kobject_iface::commit_result(-L4_err::ENodev);
+      return Kobject_iface::commit_result(-L4_err::EInval);
+
+    if (i.pin >= i.chip->nr_irqs())
+      return Kobject_iface::commit_result(-L4_err::EInval);
 
     int r = i.chip->set_mode(i.pin, mode);
 
@@ -184,7 +187,7 @@ public:
   L4_msg_tag op_icu_get_info(Mword *features, Mword *num_irqs, Mword *num_msis)
   {
     *features = 0; // supported features (only normal irqs)
-    *num_irqs = this_icu()->icu_num_irqs();
+    *num_irqs = this_icu()->nr_irqs();
     *num_msis = 0;
     return L4_msg_tag(0);
   }
