@@ -8,7 +8,7 @@ public:
   Unsigned64 sp_el1;
   Unsigned64 elr_el1;
   Unsigned64 vbar;
-  Unsigned32 cpacr = 0x0300000;
+  Unsigned32 cpacr = Cpu::Cpacr_el1_generic_hyp;
   // we need to store all banked registers for PL1 modes
   // because a hyp kernel runs applications in system mode (PL1)
   Unsigned32 spsr_fiq, spsr_irq, spsr_svc, spsr_abt, spsr_und;
@@ -157,7 +157,7 @@ public:
     asm volatile ("mrs %x0, TPIDRRO_EL0" : "=r"(tpidruro));
     asm volatile ("mrs %x0, SCTLR_EL1"   : "=r"(guest_regs.sctlr));
     asm volatile ("mrs %x0, CPACR_EL1"   : "=r"(guest_regs.cpacr));
-    asm volatile ("msr CPACR_EL1, %x0"   : : "r"(3UL << 20));
+    asm volatile ("msr CPACR_EL1, %x0"   : : "r"(Cpu::Cpacr_el1_generic_hyp));
 
     asm volatile ("mrs %x0, CNTV_CTL_EL0" : "=r" (guest_regs.cntv_ctl));
     // disable VTIMER
@@ -179,7 +179,7 @@ public:
 
     sctlr   = Cpu::Sctlr_el1_generic;
     hyp->cntv_ctl = 0;
-    hyp->cpacr    = 3UL << 20;
+    hyp->cpacr    = Cpu::Cpacr_el1_generic_hyp;
   }
 
   void load_host_regs(Mword tpidruro)

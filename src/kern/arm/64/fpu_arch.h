@@ -2,6 +2,7 @@
 
 #include <mem.h>
 #include <fpu_state.h>
+#include <cpu.h>
 
 #include <globalconfig.h>
 
@@ -47,7 +48,7 @@ struct Fpu_arch
   {
     Mword x;
     asm volatile ("mrs %0, CPACR_EL1" : "=r"(x));
-    return x & (3UL << 20);
+    return x & (Cpu::Cpacr_el1_generic_hyp);
   }
 
   static void enable()
@@ -56,7 +57,7 @@ struct Fpu_arch
     asm volatile("mrs  %0, CPACR_EL1  \n"
                  "orr  %0, %0, %1     \n"
                  "msr  CPACR_EL1, %0  \n"
-                 : "=r"(t) : "I" (3UL << 20));
+                 : "=r"(t) : "I" (Cpu::Cpacr_el1_generic_hyp));
     Mem::isb();
   }
 
@@ -66,7 +67,7 @@ struct Fpu_arch
     asm volatile("mrs  %0, CPACR_EL1  \n"
                  "bic  %0, %0, %1     \n"
                  "msr  CPACR_EL1, %0  \n"
-                 : "=r"(t) : "I" (3UL << 20));
+                 : "=r"(t) : "I" (Cpu::Cpacr_el1_generic_hyp));
     Mem::isb();
   }
 
@@ -85,7 +86,7 @@ struct Fpu_arch
   {
     Mword dummy;
     __asm__ __volatile__ ("mrs %0, CPTR_EL2" : "=r"(dummy));
-    return !(dummy & (1 << 10));
+    return !(dummy & (Cpu::Cptr_el2_tfp));
   }
 
 
@@ -93,10 +94,10 @@ struct Fpu_arch
   {
     Mword dummy;
     __asm__ __volatile__ (
-        "mrs %0, CPTR_EL2         \n"
-        "bic %0, %0, #(1 << 10)   \n"
-        "msr CPTR_EL2, %0         \n"
-        : "=&r" (dummy) );
+        "mrs %0, CPTR_EL2 \n"
+        "bic %0, %0, %1   \n"
+        "msr CPTR_EL2, %0 \n"
+        : "=&r" (dummy) : "I" (Cpu::Cptr_el2_tfp));
     Mem::isb();
   }
 
@@ -104,10 +105,10 @@ struct Fpu_arch
   {
     Mword dummy;
     __asm__ __volatile__ (
-        "mrs  %0, CPTR_EL2           \n"
-        "orr  %0, %0, #(1 << 10)     \n"
-        "msr  CPTR_EL2, %0           \n"
-        : "=&r" (dummy));
+        "mrs  %0, CPTR_EL2 \n"
+        "orr  %0, %0, %1   \n"
+        "msr  CPTR_EL2, %0 \n"
+        : "=&r" (dummy) : "I" (Cpu::Cptr_el2_tfp));
     Mem::isb();
   }
 #endif // CONFIG_CPU_VIRT
