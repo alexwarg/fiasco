@@ -128,6 +128,23 @@ map_ram(Kpdir *kd, Bs_alloc &alloc)
   }
 }
 
+static inline Mword read_pfr0()
+{
+  Mword pfr0;
+  asm volatile ("mrs %0, ID_AA64PFR0_EL1" : "=r"(pfr0));
+  return pfr0;
+}
+
+static inline void config_feature_traps(Mword, bool leave_el3, bool leave_el2)
+{
+  if (leave_el3)
+    // Disable traps to EL3.
+    asm volatile ("msr CPTR_EL3, %0" : : "r"(0UL));
+
+  if (leave_el2)
+    // Disable traps to EL2.
+    asm volatile ("msr CPTR_EL2, %0" : : "r"(Cpu::Cptr_el2_generic));
+}
 #if defined(CONFIG_ARM_GIC) && !defined(CONFIG_HAVE_ARM_GICV3)
 
 static void config_gic_ns()
@@ -184,8 +201,7 @@ static void leave_el3()
 
   config_gic_ns();
 
-  Mword pfr0;
-  asm volatile ("mrs %0, id_aa64pfr0_el1" : "=r"(pfr0));
+  Mword pfr0 = read_pfr0();;
   if (((pfr0 >> 8) & 0xf) == 0)
     {
       // EL2 not supported, crash
@@ -193,6 +209,8 @@ static void leave_el3()
     }
 
   asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
+
+  Bootstrap::config_feature_traps(pfr0, true, false);
 
   // flush all E2 TLBs
   asm volatile ("tlbi alle2is");
@@ -279,13 +297,14 @@ inline void
 switch_from_el3_to_el1()
 {
   Bootstrap::config_gic_ns();
-  Mword pfr0;
-  asm volatile ("mrs %0, id_aa64pfr0_el1" : "=r"(pfr0));
+  Mword pfr0 = Bootstrap::read_pfr0();
   if (((pfr0 >> 8) & 0xf) != 0)
     {
       // EL2 supported, set HCR (RW and HCD)
       asm volatile ("msr HCR_EL2, %0" : : "r"(Hcr_default_bits));
     }
+
+  Bootstrap::config_feature_traps(pfr0, true, true);
 
   // flush all E1 TLBs
   asm volatile ("tlbi alle1");
@@ -344,6 +363,7 @@ static void leave_hyp_mode()
       asm volatile ("tlbi alle1");
       // set HCR (RW and HCD)
       asm volatile ("msr HCR_EL2, %0" : : "r"(Hcr_default_bits));
+      Bootstrap::config_feature_traps(read_pfr0(), false, true);
       asm volatile ("   mov %[tmp], sp       \n"
                     "   msr spsr_el2, %[psr] \n"
                     "   adr x4, 1f           \n"
