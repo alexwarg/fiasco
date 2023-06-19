@@ -16,7 +16,7 @@ public:
   static void tlb_flush();
   static void tlb_flush(unsigned long asid);
   static void tlb_flush(void *va, unsigned long asid);
-  static void kernel_tlb_flush();
+  static void tlb_flush_kernel();
   static void dtlb_flush(void *va);
   static void make_coherent_to_pou(void const *start, size_t size);
 };
@@ -58,7 +58,7 @@ Mem_unit_tlb::dtlb_flush(void *va)
 }
 
 inline void
-Mem_unit_tlb::kernel_tlb_flush()
+Mem_unit_tlb::tlb_flush_kernel()
 { tlb_flush(); }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +121,7 @@ Mem_unit_tlb::tlb_flush(unsigned long asid)
 }
 
 inline void
-Mem_unit_tlb::kernel_tlb_flush()
+Mem_unit_tlb::tlb_flush_kernel()
 {
   Mem::dsbst();
   asm volatile("mcr p15, 4, r0, c8, c7, 0" : : : "memory"); // TLBIALLH
@@ -173,7 +173,7 @@ Mem_unit_tlb::tlb_flush(unsigned long asid)
 }
 
 inline void
-Mem_unit_tlb::kernel_tlb_flush()
+Mem_unit_tlb::tlb_flush_kernel()
 { tlb_flush(); }
 
 #endif // ARM v5 / cpu_virt / v6plus

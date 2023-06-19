@@ -263,7 +263,7 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
           pte.write_back_if(true, Mem_unit::Asid_kernel);
     }
 
-  Mem_unit::kernel_tlb_flush();
+  Mem_unit::tlb_flush_kernel();
 
   return (unsigned char *)(Mem_layout::Jdb_tmp_map_area
                            + (phys & (Config::SUPERPAGE_SIZE - 1)));

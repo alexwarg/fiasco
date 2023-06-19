@@ -25,7 +25,7 @@ struct Mem_unit_asid
 //   static void tlb_flush();
 //   static void tlb_flush(unsigned long asid);
 //   static void tlb_flush(void *va, unsigned long asid);
-//   static void kernel_tlb_flush();
+//   static void tlb_flush_kernel();
 //   static void dtlb_flush(void *va);
 //   static void make_coherent_to_pou(void const *start, size_t size);
 
@@ -46,7 +46,7 @@ struct Mem_unit_asid
 //   return. Note: completion of the I-cache side is assumed to be provided by
 //   the subsequent return-to-user (context synchronization event).
 //
-// Kernel TLB maintenance (kernel_tlb_flush, dtlb_flush):
+// Kernel TLB maintenance (tlb_flush_kernel, dtlb_flush):
 //   Must only be used for Kmem::kdir operations. Guarantee maintenance has
 //   completed on return. Do not imply any branch predictor maintenance.
 
