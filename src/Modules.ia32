@@ -110,7 +110,8 @@ CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 
-CXXSRC_KERNEL		+= cpu-ia32.cc cpu-ia32-32.cc mem_layout-ia32.cc mem_layout-ia32-32.cc
+CXXSRC_KERNEL		+= cpu-ia32.cc cpu-ia32-32.cc mem_layout-ia32.cc mem_layout-ia32-32.cc \
+			   kmem-generic.cc
 
 CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc timer_tick-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc timer_tick-ia32.cc

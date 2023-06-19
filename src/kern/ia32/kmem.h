@@ -9,6 +9,7 @@
 #include <simple_alloc.h>
 #include <cpu.h>
 #include <paging_bits.h>
+#include <kmem-generic-api.h>
 
 #include <cstring>
 
@@ -20,7 +21,7 @@ class Tss;
  * The kernel memory is a singleton object.  We access it through a
  * static class interface.
  */
-class Kmem : public Mem_layout
+class Kmem : public Mem_layout, public Kmem_generic_api
 {
   friend class Jdb;
   friend class Jdb_dbinfo;
@@ -95,7 +96,6 @@ public:
   static void map_phys_page(Address phys, Address virt,
                             bool cached, bool global, Address *offs = 0);
 
-  static Address mmio_remap(Address phys, Address size, bool cache = false, bool with_exec = false);
   static void init_mmu();
 
 #ifdef CONFIG_CPU_LOCAL_MAP

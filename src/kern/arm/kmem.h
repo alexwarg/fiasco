@@ -5,8 +5,9 @@
 #include <std_macros.h>
 #include <paging.h>
 #include <config.h>
+#include <kmem-generic-api.h>
 
-class Kmem : public Mem_layout
+class Kmem : public Mem_layout, public Kmem_generic_api
 {
 public:
   static Kpdir *kdir;
@@ -23,8 +24,6 @@ public:
   {
     return false;
   }
-
-  static Address mmio_remap(Address phys, Address size, bool cache = false, bool with_exec = false);
 };
 
 
