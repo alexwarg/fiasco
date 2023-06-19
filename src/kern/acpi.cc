@@ -76,19 +76,6 @@ public:
   Unsigned8  ext_chk_sum;
   char       reserved[3];
 
-  Acpi_rsdt_p const *rsdt() const
-  {
-    return (Acpi_rsdt_p const*)(unsigned long)rsdt_phys;
-  }
-
-  Acpi_xsdt_p const *xsdt() const
-  {
-    if (rev == 0)
-      return 0;
-    return (Acpi_xsdt_p const*)xsdt_phys;
-  }
-
-
   bool checksum_ok() const
   {
     // ACPI 1.0 checksum
