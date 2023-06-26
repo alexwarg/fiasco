@@ -173,10 +173,10 @@ public:
   { __asm__ __volatile__ ("mcr p15, 0, r0, c7, c10, 5" : : : "memory"); }
 
   static inline void isb()
-  { __asm__ __volatile__ ("mcr p15, 0, r0, c7, c5, 4" : : : "memory"); }
+  { __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" : : "r" (0) : "memory"); }
 
   static inline void dsb()
-  { __asm__ __volatile__ ("mcr p15, 0, r0, c7, c10, 4" : : : "memory"); }
+  { __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" : : "r" (0) : "memory"); }
 
   static inline void dsbst() { dsb(); }
 #elif defined(CONFIG_ARM_V7PLUS)
