@@ -6,6 +6,7 @@
 #include "kernel_console.h"
 #include "keycodes.h"
 #include "irq_chip.h"
+#include "mem.h"
 
 #include <cstdio>
 
@@ -27,15 +28,25 @@ void irq(Irq_base *const *i)
 static bool add(int c)
 {
   bool hit = false;
+
   unsigned nh = (vkey_head + 1) % sizeof(vkey_buffer);
   unsigned oh = vkey_head;
-  if (nh != vkey_tail)
+  unsigned tail = access_once(&vkey_tail);
+  // The control dependency between `access_once(&vkey_tail)` and
+  // `write_now(&vkey_buffer[vkey_head], c)`, in form of this if statement,
+  // ensures that we don't overwrite a character in vkey_buffer before the
+  // consumer has read it, i.e. updated the vkey_tail index.
+  // This implicit barrier is paired with Mem::mp_mb() in Vkey::clear().
+  if (nh != tail)
     {
-      vkey_buffer[vkey_head] = c;
+      write_now(&vkey_buffer[vkey_head], c);
+      // Ensure updating vkey_head is ordered after writing vkey_buffer.
+      // This barrier is paired with Mem::mp_rmb() in Vkey::get().
+      Mem::mp_wmb();
       vkey_head = nh;
     }
 
-  if (oh == vkey_tail)
+  if (oh == tail)
     hit = true;
 
   if (vkey_echo == Vkey::Echo_crnl && c == '\r')
@@ -117,7 +128,12 @@ int check_()
 int get()
 {
   if (vkey_tail != vkey_head)
-    return vkey_buffer[vkey_tail];
+    {
+      // Ensure reading vkey_buffer is ordered after reading vkey_head.
+      // This barrier is paired with Mem::mp_wmb() in Vkey::add().
+      Mem::mp_rmb();
+      return vkey_buffer[vkey_tail];
+    }
 
   return -1;
 }
@@ -125,7 +141,14 @@ int get()
 void clear()
 {
   if (vkey_tail != vkey_head)
-    vkey_tail = (vkey_tail + 1) % sizeof(vkey_buffer);
+    {
+      // Ensure reading vkey_buffer in Vkey::get() is ordered before updating
+      // vkey_tail, otherwise it could happen that Vkey::add() overwrites the
+      // character in vkey_buffer before Vkey::get() has read it.
+      // This barrier is paired with the control dependency in Vkey::add().
+      Mem::mp_mb();
+      vkey_tail = (vkey_tail + 1) % sizeof(vkey_buffer);
+    }
 }
 
 }
