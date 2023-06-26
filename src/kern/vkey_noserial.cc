@@ -7,7 +7,6 @@ void irq(Irq_base *i) {}
 void set_echo(Echo_type) {}
 void set_echo(Echo_type) {}
 void clear() {}
-void add_char(int) {}
 
 int get()
 {

@@ -61,12 +61,6 @@ static void trigger()
     (*vkey_irq)->hit(0);
 }
 
-void add_char(int v)
-{
-  if (add(v))
-    trigger();
-}
-
 int check_()
 {
   int  ret = 1;
