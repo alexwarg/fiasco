@@ -110,6 +110,7 @@ public:
 
   enum Primary_proc_based_ctls
   {
+    PRB1_rdpmc_exiting            = 11,
     PRB1_tpr_shadow               = 21,
     PRB1_mov_dr_exit              = 23,
     PRB1_unconditional_io_exit    = 24,
