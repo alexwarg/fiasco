@@ -10,7 +10,7 @@ class Mem_layout_arm_bits
 public:
 #if defined(CONFIG_CPU_VIRT) && !defined(CONFIG_ARM_PT48)
   enum Virt_layout_kern_user_max : Address {
-    User_max             = 0x0000007fffffffff,
+    User_max             = 0x000000ffffffffff,
   };
 #elif defined(CONFIG_CPU_VIRT) && defined(CONFIG_ARM_PT48)
   enum Virt_layout_kern_user_max : Address {

@@ -85,7 +85,7 @@ namespace Page
   static constexpr Mword Vtcr_bits =
       (1UL  <<  6) // SL0
     | (2UL  << 16) // PS
-    | (25UL <<  0) // T0SZ
+    | (24UL <<  0) // T0SZ
     | ((Mem_unit::Asid_bits == 16) << 19); // VS
 #endif
 
