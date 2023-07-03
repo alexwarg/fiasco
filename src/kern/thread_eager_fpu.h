@@ -41,7 +41,7 @@ public:
     if (_this() == curr)
       Fpu::save_state(to->fpu_state());
     else if (curr == to)
-      Fpu::fpu.current().restore_state(_this()->fpu_state());
+      Fpu::restore_state(_this()->fpu_state());
     else
       memcpy(to->fpu_state()->state_buffer(), _this()->fpu_state()->state_buffer(), Fpu::state_size());
   }
