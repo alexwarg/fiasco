@@ -89,7 +89,7 @@ Task::alloc_ku_mem(L4_fpage ku_area)
 
   Mword sz = 1UL << ku_area.order();
 
-  if (ku_area.mem_address() > Virt_addr(Mem_layout::User_max - sz + 1))
+  if (ku_area.mem_address() > Virt_addr(Mem_space::user_max() - sz + 1))
     return -L4_err::EInval;
 
   Ku_mem *m = new (ram_quota()) Ku_mem();

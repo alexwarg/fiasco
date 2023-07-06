@@ -37,8 +37,7 @@ Kernel_thread::init_workload()
   Task *sigma0 = Task::create<Sigma0_task>(Ram_quota::root, L4_msg_tag(), 0, &err);
 
   assert_opt (sigma0);
-  check(sigma0->alloc_ku_mem(L4_fpage::mem(Mem_layout::Utcb_addr,
-                                           Config::PAGE_SHIFT))
+  check(sigma0->alloc_ku_mem(L4_fpage::mem(utcb_addr(), Config::PAGE_SHIFT))
         >= 0);
   // prevent deletion of this thing
   sigma0->inc_ref();
@@ -65,7 +64,7 @@ Kernel_thread::init_workload()
   check (map(sigma0_thread, sigma0, sigma0, C_thread, 0));
 
   check (sigma0_thread->control(Thread_ptr(Thread_ptr::Null), Thread_ptr(Thread_ptr::Null)) == 0);
-  check (sigma0_thread->bind(sigma0, User<Utcb>::Ptr((Utcb*)Mem_layout::Utcb_addr)));
+  check (sigma0_thread->bind(sigma0, User<Utcb>::Ptr((Utcb*)utcb_addr())));
   check (sigma0_thread->ex_regs(Kip::k()->sigma0_ip, 0));
 
   //
@@ -75,8 +74,7 @@ Kernel_thread::init_workload()
   Task *boot_task = Task::create<Task>(Ram_quota::root, L4_msg_tag(), 0, &err);
 
   assert_opt (boot_task);
-  check(boot_task->alloc_ku_mem(L4_fpage::mem(Mem_layout::Utcb_addr,
-                                              Config::PAGE_SHIFT))
+  check(boot_task->alloc_ku_mem(L4_fpage::mem(utcb_addr(), Config::PAGE_SHIFT))
         >= 0);
 
   // prevent deletion of this thing
@@ -93,7 +91,7 @@ Kernel_thread::init_workload()
   check (map(boot_thread, boot_task, boot_task, C_thread, 0));
 
   check (boot_thread->control(Thread_ptr(C_pager), Thread_ptr(Thread_ptr::Null)) == 0);
-  check (boot_thread->bind(boot_task, User<Utcb>::Ptr((Utcb*)Mem_layout::Utcb_addr)));
+  check (boot_thread->bind(boot_task, User<Utcb>::Ptr((Utcb*)utcb_addr())));
   check (boot_thread->ex_regs(Kip::k()->root_ip, 0));
 
   auto *s0_b_gate = Ipc_gate::create(Ram_quota::root, sigma0_thread, 4 << 4);

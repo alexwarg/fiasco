@@ -26,6 +26,9 @@ public:
   static void set_syscall_page(void *p);
   Address pmem_to_phys(Address virt) const;
   void make_current(Mem_space_base::Switchin_flags flags = Mem_space_base::None);
+
+  static Address user_max()
+  { return Mem_layout::User_max; }
 };
 
 #ifdef CONFIG_CPU_VIRT

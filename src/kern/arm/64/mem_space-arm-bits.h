@@ -3,7 +3,10 @@
 #include <mem_layout.h>
 #include <types.h>
 #include <globalconfig.h>
+#include <std_macros.h>
 #include <mem_space_base.h>
+#include <cpu.h>
+#include <paging.h>
 
 template<typename M>
 class Mem_space_arm_bits
@@ -35,6 +38,15 @@ public:
         :
         : "r" (cxx::int_value<Phys_mem_addr>(_ths()->_dir_phys) | (_ths()->asid() << 48)));
     _ths()->_current.current() = _ths();
+  }
+
+  static Address user_max()
+  {
+#ifdef CONFIG_CPU_VIRT
+    return (1ULL << Page::ipa_bits(Cpu::pa_range())) - 1U;
+#else
+    return Mem_layout::User_max;
+#endif
   }
 };
 

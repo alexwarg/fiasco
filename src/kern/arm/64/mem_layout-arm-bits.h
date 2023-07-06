@@ -32,10 +32,8 @@ public:
     Registers_map_end    = Registers_map_start + 0x40000000,
 
     Cache_flush_area     = 0x0,
+    Utcb_addr = 0, // dummy
   };
-
-  static Address const Utcb_addr;
-  static Address hw_user_max();
 
 #else // !CONFIG_CPU_VIRT
   enum Virt_layout_kern : Address {

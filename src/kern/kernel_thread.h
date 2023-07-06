@@ -4,17 +4,21 @@
 #include <processor.h>
 #include <config.h>
 #include <cpu_idle_iface.h>
+#include <kernel_thread-arch.h>
 
 class Kernel_thread_defaults
 {
 public:
   void clean_initcall_section()
   {}
+
+  Address utcb_addr() const
+  { return Mem_layout::Utcb_addr; }
 };
 
 class Kernel_thread :
   public Thread_object,
-  public Kernel_thread_defaults
+  public Kernel_thread_arch<Kernel_thread, Kernel_thread_defaults>
 {
 public:
   explicit Kernel_thread(Ram_quota *q)

@@ -42,6 +42,9 @@ class Mem_space :
 public:
   static constexpr bool Need_insert_tlb_flush = false;
 
+  static Address user_max()
+  { return Mem_layout::User_max; }
+
   Mem_space(Ram_quota *q, Dir_type* pdir)
   : Mem_space_x<Mem_space>(q, pdir)
   {

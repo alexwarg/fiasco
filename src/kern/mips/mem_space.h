@@ -9,6 +9,7 @@
 #include <logdefs.h>
 #include <alternatives.h>
 #include <mem_unit.h>
+#include <ram_quota.h>
 
 #include <kmem_alloc.h>
 
@@ -37,6 +38,9 @@ class Mem_space :
 public:
   static constexpr bool Have_asids = true;
   static constexpr bool Need_insert_tlb_flush = false;
+
+  static Address user_max()
+  { return Mem_layout::User_max; }
 
   explicit Mem_space(Ram_quota *q)
   : Mem_space_x<Mem_space>(q)
