@@ -1,5 +1,6 @@
 
 #include <fpu.h>
+#include <cpu.h>
 #include <globalconfig.h>
 
 #include <cstdio>
@@ -29,7 +30,7 @@ static void init_xsave(Cpu_number cpu)
   Cpu::cpus.cpu(cpu).cpuid(0xd, 0, &eax, &ebx, &ecx, &edx);
 
   // allow safe features: x87, SSE, AVX and AVX512
-  Fpu::fpu.cpu(cpu).set_xcr0_shadow((((Unsigned64)edx << 32) | eax) & 0xe7);
+  Fpu::fpu.cpu(cpu).set_xcr0_shadow((((Unsigned64)edx << 32) | eax) & Cpu::Xstate_defined_bits);
 
   // enable xsave features
   Cpu::cpus.cpu(cpu).set_cr4(Cpu::cpus.cpu(cpu).get_cr4() | CR4_OSXSAVE);

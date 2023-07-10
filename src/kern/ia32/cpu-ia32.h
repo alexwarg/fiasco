@@ -93,6 +93,15 @@ public:
     Bts_pentium_4,
   };
 
+  enum Xstate : Unsigned64
+  {
+    Xstate_fp           = 1 << 0,
+    Xstate_sse          = 1 << 1,
+    Xstate_avx          = 1 << 2,
+    Xstate_avx512       = 0x7 << 5,
+    Xstate_defined_bits = Xstate_fp | Xstate_sse | Xstate_avx | Xstate_avx512,
+  };
+
   bool tsc_frequency_accurate()
   {
     return tsc_frequency_from_cpuid_15h(true);
