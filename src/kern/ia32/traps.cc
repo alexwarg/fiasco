@@ -14,6 +14,7 @@
 #include <kdb_ke.h>
 #include <warn.h>
 #include <globalconfig.h>
+#include <std_macros.h>
 #include <log_pagefault.h>
 #include <traps_local_map.h>
 
@@ -308,9 +309,13 @@ generic_debug:
  * @returns False or true whether this was a pagefault at a special region or
  *          not. On true, the return frame got the carry flag and/or the zero
  *          flag set (depending on the architecture).
- */inline bool
+ */
+inline bool
 pagein_tcb_request(Return_frame *regs)
 {
+  if (!IS_ENABLED(CONFIG_VIRT_OBJ_SPACE))
+    return false;
+
   // Counterpart: Mem_layout::read_special_safe()
   unsigned long new_ip = regs->ip();
   if (*(Unsigned8*)new_ip == 0x48) // REX.W

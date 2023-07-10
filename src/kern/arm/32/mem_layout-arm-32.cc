@@ -3,8 +3,7 @@
 Mword
 Mem_layout_arch::_read_special_safe(Mword const *a)
 {
-  // Workaround GCC BUG 33661
-  // Do not use register asm ("r") in a template function, it will be ignored
+  // Counterpart: Thread::pagein_tcb_request()
   register Mword const *res __asm__ ("r14") = a;
   __asm__ __volatile__ ("ldr %0, [%0]\n" : "=r" (res) : "r" (res) : "cc");
   return Mword(res);
@@ -13,8 +12,7 @@ Mem_layout_arch::_read_special_safe(Mword const *a)
 bool
 Mem_layout_arch::_read_special_safe(Mword const *address, Mword &v)
 {
-  // Workaround GCC BUG 33661
-  // Do not use register asm ("r") in a template function, it will be ignored
+  // Counterpart: Thread::pagein_tcb_request()
   register Mword a asm("r14") = (Mword)address;
   Mword ret;
   asm volatile ("msr cpsr_f, #0    \n"

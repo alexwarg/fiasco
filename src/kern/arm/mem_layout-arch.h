@@ -13,6 +13,7 @@ public:
     Sdram_phys_base = RAM_PHYS_BASE
   };
 
+#ifdef CONFIG_VIRT_OBJ_SPACE
   static Mword _read_special_safe(Mword const *a);
   static bool _read_special_safe(Mword const *address, Mword &v);
 
@@ -28,6 +29,7 @@ public:
   template<typename T>
   static inline T read_special_safe(T const *a)
   { return T(_read_special_safe((Mword const *)a)); }
+#endif
 
   static Address pmem_to_phys(Address addr);
   static inline Address pmem_to_phys(void const *addr)

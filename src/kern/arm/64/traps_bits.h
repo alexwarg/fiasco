@@ -2,6 +2,7 @@
 
 #include <processor.h>
 #include <globalconfig.h>
+#include <std_macros.h>
 #include <nested_trap_handler.h>
 
 #define ARM_USE_ESR_TRAPS 1
@@ -116,6 +117,9 @@ get_fault_pfa(Arm_esr hsr, bool /*insn_abt*/, bool /*ext_vcpu*/)
 inline bool
 handle_cap_area_fault(Trap_state *ts)
 {
+  if (!IS_ENABLED(CONFIG_VIRT_OBJ_SPACE))
+    return false;
+
   Address pfa;
   asm volatile ("mrs %0, FAR_EL1" : "=r"(pfa));
 

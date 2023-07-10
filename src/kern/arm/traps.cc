@@ -8,6 +8,7 @@
 #include <log_pagefault.h>
 
 #include <globalconfig.h>
+#include <std_macros.h>
 #include <nested_trap_handler.h>
 
 #ifdef CONFIG_ARM_LPAE
@@ -243,7 +244,7 @@ Mword kern_pagefault_entry(Mword pfa, Mword error_code,
       return handle_user_space_page_fault(t, pfa, error_code);
     }
 
-  if (Mem_layout::is_caps_area(pfa))
+  if (IS_ENABLED(CONFIG_VIRT_OBJ_SPACE) && Mem_layout::is_caps_area(pfa))
     {
       // Test for special case -- see function documentation
       if (pagein_tcb_request(ret_frame))

@@ -21,9 +21,11 @@ public:
     return _io_map_ptr;
   }
 
+#ifdef CONFIG_VIRT_OBJ_SPACE
   template<typename V>
   static inline bool read_special_safe(V const *address, V &v)
   {
+    // Counterpart: Thread::pagein_tcb_request()
     static_assert(sizeof(v) <= sizeof(Mword), "wrong sized argument");
     Mword value;
     bool res;
@@ -38,10 +40,12 @@ public:
   template<typename T>
   static inline T read_special_safe(T const *a)
   {
+    // Counterpart: Thread::pagein_tcb_request()
     static_assert(sizeof(T) <= sizeof(Mword), "wrong sized return type");
     Mword res;
     asm volatile ("mov (%1), %0 \n\t"
         : "=acd" (res) : "acdbSD" (a) : "cc");
     return T(res);
   }
+#endif
 };

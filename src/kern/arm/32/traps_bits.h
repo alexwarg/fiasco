@@ -2,12 +2,16 @@
 
 #include <processor.h>
 #include <globalconfig.h>
+#include <std_macros.h>
 #include <fpu.h>
 #include <kdb_ke.h>
 
 inline bool
 pagein_tcb_request(Return_frame *regs)
 {
+  if (!IS_ENABLED(CONFIG_VIRT_OBJ_SPACE))
+    return false;
+
   //if ((*(Mword*)regs->pc & 0xfff00fff ) == 0xe5900000)
   if (*(Mword*)regs->pc == 0xe59ee000)
     {
