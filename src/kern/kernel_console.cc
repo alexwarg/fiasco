@@ -27,7 +27,7 @@ int Kconsole::getchar(bool blocking)
         return c;
 
       if (Config::getchar_does_hlt_works_ok // wakeup timer is enabled
-          && Proc::interrupts())            // does'nt work without ints
+          && Proc::interrupts())            // doesn't work without ints
         Proc::halt();
       else
         Proc::pause();
