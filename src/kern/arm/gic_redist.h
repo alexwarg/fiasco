@@ -2,6 +2,9 @@
 
 #include "irq_chip.h"
 #include "mmio_register_block.h"
+#include <poll_timeout_counter.h>
+#include <warn.h>
+#include <processor.h>
 #include "l4_types.h"
 
 class Gic_redist
@@ -44,6 +47,7 @@ public:
   void mask(Mword pin)
   {
     _redist.write<Unsigned32>(1u << pin, GICR_ICENABLER0);
+    sync_rwp();
   }
 
   void unmask(Mword pin)
@@ -83,5 +87,16 @@ public:
     _redist.modify<Unsigned32>(v << shift, 3 << shift, GICR_ICFGR0 + (pin >> 4) * 4);
 
     return 0;
+  }
+
+private:
+  void sync_rwp()
+  {
+    L4::Poll_timeout_counter i(1U << 27); // ~134ms @ 1GHz
+    while (i.test(_redist.read<Unsigned32>(GICR_CTRL) & (1u << 3)))
+      Proc::pause();
+
+    if (EXPECT_FALSE(i.timed_out()))
+      WARNX(Error, "GICR: RWP timed out!\n");
   }
 };
