@@ -53,7 +53,7 @@ public:
   void alloc(Cpu_number cpu)
   {
     check (Irq_mgr::mgr->alloc(this, _irq, false));
-    chip()->set_mode(pin(), Irq_chip::Mode::F_level_high);
+    chip()->set_mode_percpu(cpu, pin(), Irq_chip::Mode::F_level_high);
     chip()->unmask_percpu(cpu, pin());
   }
 
@@ -84,7 +84,7 @@ public:
   {
     printf("Allocate ARM PPI %d to virtual %d\n", _irq, 1);
     check (Irq_mgr::mgr->alloc(this, _irq, false));
-    chip()->set_mode(pin(), Irq_chip::Mode::F_level_high);
+    chip()->set_mode_percpu(cpu, pin(), Irq_chip::Mode::F_level_high);
     chip()->unmask_percpu(cpu, pin());
   }
 
