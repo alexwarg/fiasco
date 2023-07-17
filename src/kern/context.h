@@ -365,6 +365,17 @@ public:
       schedule();
   }
 
+  /**
+   * Deblock and switch to the target context.
+   *
+   * Deblock the target context's scheduling context and switch to the target
+   * context if it can preempt the current context.
+   *
+   * \param to  Target context to be deblocked and switched to.
+   *
+   * \returns Whether the target context preempted the current context, i.e. a
+   *          switch to the target context was attempted.
+   */
   bool deblock_and_schedule(Context *to)
   {
     if (Sched_context::rq.current().deblock(to->sched(), sched(), true))
