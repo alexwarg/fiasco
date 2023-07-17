@@ -516,13 +516,10 @@ private:
   }
 
   bool activate_ipc_partner(Thread *partner, Cpu_number current_cpu,
-                            bool do_switch, bool closed_wait)
+                            bool do_switch)
   {
     if (partner->home_cpu() == current_cpu)
       {
-        auto &rq = Sched_context::rq.current();
-        Sched_context *cs = rq.current_sched();
-        do_switch = do_switch && (closed_wait || cs != _this()->sched());
         partner->state.change_dirty(~Thread_ipc_transfer, Thread_ready);
         if (do_switch)
           {
@@ -538,19 +535,25 @@ private:
     return false;
   }
 
-  void goto_sleep(L4_timeout const &t, Sender *sender, Utcb *utcb)
+  /**
+   * Wait until unlocked by an IPC sender or by a pre-programmed IPC timeout.
+   *
+   * The thread blocks until it is unblocked again, i.e. its ready flag is set, by
+   * an IPC sender or by a pre-programmed IPC timeout.
+   *
+   * \param sender  Communication partner to receive from (closed wait), use
+   *                nullptr for an open wait.
+   *
+   * \pre IPC Timeout, if any, must already be set up.
+   */
+  void do_receive_wait(Sender *sender)
   {
-    IPC_timeout timeout;
-
     _this()->state.del_dirty(Thread_ready);
-    _this()->setup_timer(t, utcb, &timeout);
 
     if (sender == this)
       _this()->switch_sched(_this()->sched(), &Sched_context::rq.current());
 
     _this()->schedule();
-
-    _this()->reset_timeout();
 
     assert (_this()->state.has(Thread_ready));
   }
@@ -1034,10 +1037,16 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
     }
 
   {
-    // only do direct switch on closed wait (call) or if we run on a foreign
-    // scheduling context
+    IPC_timeout rcv_timeout;
+    // Indicates whether the receive timeout had already expired (is in the past
+    // or is zero) when attempting to set up the timer for it.
+    bool rcv_timeout_expired = false;
+
+    // Holds the next sender if the IPC has a receive phase.
     Sender *next = 0;
 
+    // If the send phase failed, it did not set the Thread_receive_wait flag and
+    // the receive phase is skipped.
     have_receive = _this()->state.has(Thread_receive_wait);
 
     if (have_receive)
@@ -1045,28 +1054,58 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
         assert (!in_sender_list());
         assert (!_this()->state.has(Thread_send_wait));
         next = get_next_sender(sender);
+
+        if (!next)
+          // If there is no next sender yet, we have to set up the receive
+          // timeout, either for a direct switch to the IPC partner or for a
+          // do_receive_wait.
+          rcv_timeout_expired = !_this()->setup_timer(t.rcv, _this()->utcb().access(true), &rcv_timeout);
       }
 
-    if (activate_partner
-        && activate_ipc_partner(partner, current_cpu, do_switch && !next,
-                                have_receive && sender))
+    if (activate_partner)
       {
-        // blocked so might have a new sender queued
-        have_receive = _this()->state.has(Thread_receive_wait);
-        if (have_receive && !next)
-          next = get_next_sender(sender);
+        // Directly switch to the IPC partner (receiver) only if all of the
+        // following apply:
+        //  - The Schedule flag is not set in the message tag, i.e. the sender
+        //    is willing to donate its remaining time-slice to the receiver
+        //    (provided by `do_switch`).
+        //  - The home CPU of the receiver is the current CPU (provided by
+        //    `do_switch`).
+        //  - If the IPC has a receive phase, there must be no next sender
+        //    already pending (next != nullptr implicates a receive phase) and
+        //    the receive timeout must not have expired yet.
+        //  - The IPC transfer qualifies for time-slice donation, i.e. the
+        //    sender transitions into a closed wait (call) or the sender runs
+        //    on a foreign scheduling context.
+        bool do_direct_switch = do_switch && !next && !rcv_timeout_expired
+          && (   (have_receive && sender) // closed wait (call)
+              || (Sched_context::rq.current().current_sched() != _this()->sched()));
+
+        if (activate_ipc_partner(partner, current_cpu, do_direct_switch))
+          {
+            // blocked so might have a new sender queued
+            have_receive = _this()->state.has(Thread_receive_wait);
+            if (have_receive && !next)
+              next = get_next_sender(sender);
+          }
       }
 
     if (next)
       {
-        _this()->state.change_dirty(~Thread_ipc_mask, Thread_receive_in_progress);
+        // Receive timeout might already been hit here if the next sender was
+        // queued after we activated the IPC partner. In that case ignore the
+        // timeout (clear the timeout flag) and transfer the message from the
+        // pending sender anyway.
+        _this()->state.change_dirty(~Thread_ipc_mask | ~Thread_timeout, Thread_receive_in_progress);
         next->ipc_send_msg(_this(), !sender);
         _this()->state.del_dirty(Thread_ipc_mask);
       }
     else if (have_receive)
       {
+        // If the receive timeout has not yet been hit and the IPC has not been
+        // cancelled, enter receive wait.
         if ((_this()->state.dirty() & Thread_full_ipc_mask) == Thread_receive_wait)
-          goto_sleep(t.rcv, sender, _this()->utcb().access(true));
+          do_receive_wait(sender);
       }
   }
 

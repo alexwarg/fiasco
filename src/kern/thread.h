@@ -262,16 +262,19 @@ public:
    * if the timeout is zero or has already hit (is in the past).
    * Or enqueues the given timer object with the finite timeout calculated
    * from `timeout`.
+   *
+   * \retval true   The timeout has been set up or is never.
+   * \retval false  The timeout has already hit (is in the past) or is zero.
    */
-  void setup_timer(L4_timeout timeout, Utcb const *utcb, Timeout *timer)
+  bool setup_timer(L4_timeout timeout, Utcb const *utcb, Timeout *timer)
   {
     if (EXPECT_TRUE(timeout.is_never()))
-      return;
+      return true;
 
     if (EXPECT_FALSE(timeout.is_zero()))
       {
         state.add_dirty(Thread_ready | Thread_timeout);
-        return;
+        return false;
       }
 
     assert (!have_timeout());
@@ -280,9 +283,15 @@ public:
     Unsigned64 tval = timeout.microsecs(sysclock, utcb);
 
     if (EXPECT_TRUE((tval > sysclock)))
-      set_timeout(timer, tval);
+      {
+        set_timeout(timer, tval);
+        return true;
+      }
     else // timeout already hit
-      state.add_dirty(Thread_ready | Thread_timeout);
+      {
+        state.add_dirty(Thread_ready | Thread_timeout);
+        return false;
+      }
   }
 
 
