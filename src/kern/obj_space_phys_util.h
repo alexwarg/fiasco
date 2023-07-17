@@ -14,7 +14,6 @@
 #include "mem.h"
 #include "mem_layout.h"
 #include "ram_quota.h"
-#include "static_assert.h"
 
 #include "globalconfig.h"
 

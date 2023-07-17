@@ -2,7 +2,6 @@
 #include "kip.h"
 
 #include "version.h"
-#include "static_assert.h"
 
 
 Kip *Kip::global_kip;

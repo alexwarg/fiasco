@@ -7,7 +7,6 @@
 
 #include "mem.h"
 #include "processor.h"
-#include "static_assert.h"
 #include "trap_state.h"
 #include <globalconfig.h>
 

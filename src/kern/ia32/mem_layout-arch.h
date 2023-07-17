@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include "static_assert.h"
 #include <mem_layout-ia32-bits.h>
 
 class Mem_layout_arch : public Mem_layout_ia32_bits
