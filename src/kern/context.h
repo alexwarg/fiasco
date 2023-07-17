@@ -359,6 +359,13 @@ public:
     return _fpu_state;
   }
 
+  /**
+   * Attempt to switch to the target context and reschedule on failure.
+   *
+   * \param t  Target context to switch to.
+   *
+   * \pre The CPU lock must be held (hence the _locked suffix).
+   */
   void switch_to_locked(Context *t)
   {
     if (EXPECT_FALSE(schedule_switch_to_locked(t) != Switch::Ok))
