@@ -86,7 +86,7 @@ public:
   : _combiner_nr(nr), _child(chld)
   { set_hit(&handler_wrapper<Combiner_cascade_irq>); }
 
-  void switch_mode(bool) {}
+  void switch_mode(bool) override {}
   unsigned irq_nr_base() const { return _combiner_nr * 8; }
 
   void handle(Upstream_irq const *u)

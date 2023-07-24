@@ -189,7 +189,7 @@ public:
   : _wu_gpio(gc), _pin(pin)
   { set_hit(&handler_wrapper<Gpio_cascade_wu01_irq>); }
 
-  void switch_mode(bool) {}
+  void switch_mode(bool) override {}
 
   void handle(Upstream_irq const *u)
   {
@@ -214,7 +214,7 @@ public:
   : _wu_gpio(gc)
   { set_hit(&handler_wrapper<Gpio_cascade_wu23_irq>); }
 
-  void switch_mode(bool) {}
+  void switch_mode(bool) override {}
 
   void handle(Upstream_irq const *u)
   {

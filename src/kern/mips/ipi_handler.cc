@@ -44,7 +44,7 @@ public:
     unmask();
   }
 
-  void switch_mode(bool) {}
+  void switch_mode(bool) override {}
 };
 
 static Remote_irq _ipiiii;
