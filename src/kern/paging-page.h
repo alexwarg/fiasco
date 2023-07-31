@@ -34,6 +34,7 @@ namespace Page
     Kern() = default;
     explicit Kern(Value v) : cxx::int_type_base<unsigned char, Kern>(v) {}
 
+    static Kern None() { return Kern::None(); }
     static Kern Global() { return Kern(1); }
   };
 
