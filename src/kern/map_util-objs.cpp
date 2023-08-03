@@ -80,6 +80,12 @@ obj_map(Space *from, Cap_index snd_addr, unsigned long snd_size,
 	     grant, attribs, tlb, reap_list);
 }
 
+/**
+ * Create the first mapping of a kernel object in the given object space and
+ * register it with the object mapping database.
+ *
+ * \pre `o` must not be mapped anywhere yet.
+ */
 bool
 map(Kobject_iface *o, Obj_space* to, Space *to_id, Cap_index rcv_addr,
     Kobject ***reap_list)
