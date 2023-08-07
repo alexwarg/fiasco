@@ -7,15 +7,17 @@
 #include "thread.h"
 
 extern "C"
-void assert_fail(char const *expr_msg, char const *file, unsigned int line);
+void assert_fail(char const *expr_msg, char const *file, unsigned int line,
+                 void *caller);
 
 void
-assert_fail(char const *expr_msg, char const *file, unsigned int line)
+assert_fail(char const *expr_msg, char const *file, unsigned int line,
+            void *caller)
 {
   // make sure that GZIP mode is off
   Kconsole::console()->end_exclusive(Console::GZIP);
 
-  printf("\nAssertion failed at %s:%u: %s\n", file, line, expr_msg);
+  printf("\nAssertion failed at %s:%u:%p: %s\n", file, line, caller, expr_msg);
 
   Thread::system_abort();
 }
