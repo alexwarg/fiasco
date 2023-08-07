@@ -214,6 +214,7 @@ private:
 
 
 private:
+  // Used by Thread::ipc_send_msg().
   Syscall_frame *_snd_regs;
   Mword _from_spec;
   // Used when the IPC receiver executes ipc_send_msg() in the context of the
@@ -278,12 +279,6 @@ public:
     return exception(handler, ts, rights);
   }
 
-protected:
-  void snd_regs(Syscall_frame *r)
-  {
-    _snd_regs = r;
-  }
-
 private:
 
   bool exception(Kobject_iface *handler, Trap_state *ts, L4_fpage::Rights rights);
@@ -293,8 +288,7 @@ private:
 
   Check_sender
   remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
-                            bool have_receive,
-                            L4_timeout snd_t, Syscall_frame *regs);
+                            bool have_receive, L4_timeout snd_t);
 
   static bool
   try_transfer_local_id(L4_buf_iter::Item const *const buf,
@@ -883,15 +877,13 @@ Thread_ipc<T>::handle_remote_ipc_send(Drq *src, Context *, void *_rq)
 template<typename T>
 Thread_ipc_base::Check_sender
 Thread_ipc<T>::remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
-                                         bool have_receive,
-                                         L4_timeout snd_t, Syscall_frame *regs)
+                                         bool have_receive, L4_timeout snd_t)
 {
   Ipc_remote_request rq;
   rq.tag = tag;
   rq.have_rcv = have_receive;
   rq.partner = partner;
   rq.timeout = !snd_t.is_zero();
-  snd_regs(regs);
 
   _this()->set_wait_queue(partner->sender_list());
 
@@ -969,8 +961,8 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
           // This flag also prevents the receive path from accessing the thread
           // state of a remote sender.
           do_switch = false;
-          result = remote_handshake_receiver(tag, partner, have_receive, t.snd,
-                                             regs);
+          _snd_regs = regs;
+          result = remote_handshake_receiver(tag, partner, have_receive, t.snd);
 
           // this may block, so we could have been migrated here
           current_cpu = ::current_cpu();
@@ -983,8 +975,8 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
           break;
 
         case Check_sender::Queued:
-          // set _snd_regs, to enable active receiving
-          snd_regs(regs);
+          // set _snd_regs to enable active receiving
+          _snd_regs = regs;
           ok = _this()->do_send_wait(partner, t.snd); // --- blocking point ---
           current_cpu = ::current_cpu();
           break;
