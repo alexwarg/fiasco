@@ -62,7 +62,7 @@ protected:
   {
     L4_msg_tag tag;
     Thread *partner;
-    bool timeout;
+    bool zero_timeout;
     bool have_rcv;
 
     Check_sender result;
@@ -379,7 +379,7 @@ private:
   }
 
   Check_sender
-  check_sender(Thread *sender, bool timeout)
+  check_sender(Thread *sender, bool zero_timeout)
   {
     if (EXPECT_FALSE(_this()->is_invalid()))
       {
@@ -390,7 +390,7 @@ private:
     if (auto ok = _this()->sender_ok(sender))
       return ok;
 
-    if (!timeout)
+    if (zero_timeout)
       {
         sender->utcb().access()->error = L4_error::Timeout;
         return Check_sender::Failed;
@@ -418,7 +418,7 @@ private:
            rq->timeout);
 #endif
 
-    Check_sender r = _thread(rq->partner)->check_sender(_this(), rq->timeout);
+    Check_sender r = _thread(rq->partner)->check_sender(_this(), rq->zero_timeout);
     switch (r.s)
       {
       case Check_sender::Failed:
@@ -467,7 +467,7 @@ private:
   {
     assert(cpu_lock.test());
 
-    Check_sender r = partner->check_sender(_this(), !snd_t.is_zero());
+    Check_sender r = partner->check_sender(_this(), snd_t.is_zero());
     switch (r.s)
       {
       case Check_sender::Failed:
@@ -883,7 +883,7 @@ Thread_ipc<T>::remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
   rq.tag = tag;
   rq.have_rcv = have_receive;
   rq.partner = partner;
-  rq.timeout = !snd_t.is_zero();
+  rq.zero_timeout = snd_t.is_zero();
 
   _this()->set_wait_queue(partner->sender_list());
 
