@@ -646,6 +646,11 @@ private:
 
 };
 
+/**
+ * Receiver-ready callback. Receivers call this function in the context of a
+ * waiting sender when they get ready to receive a message from that sender
+ * (in this case a thread).
+ */
 template<typename THREAD>
 void
 Thread_ipc<THREAD>::ipc_send_msg(Receiver *recv, bool open_wait)
@@ -655,7 +660,6 @@ Thread_ipc<THREAD>::ipc_send_msg(Receiver *recv, bool open_wait)
   recv->vcpu_update_state();
   bool success = transfer_msg(regs->tag(), nonull_static_cast<Thread*>(recv),
                               _ipc_send_rights, open_wait);
-  //printf("  done\n");
 
   Mword state_del;
   Mword state_add;
@@ -665,7 +669,6 @@ Thread_ipc<THREAD>::ipc_send_msg(Receiver *recv, bool open_wait)
       state_del = Thread_ipc_mask | Thread_ipc_transfer;
       state_add = Thread_ready;
       if (_this()->Receiver::prepared())
-        // same as in Receiver::prepare_receive_dirty_2
         state_add |= Thread_receive_wait;
     }
   else

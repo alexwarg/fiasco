@@ -85,10 +85,10 @@ private:
   static bool requeue_sender() { return false; }
 
 public:
-  /** Sender-activation function called when receiver gets ready.
-      Irq::hit() actually ensures that this method is always called
-      when an interrupt occurs, even when the receiver was already
-      waiting.
+  /**
+   * Receiver-ready callback. Receivers call this function in the context of a
+   * waiting sender when they get ready to receive a message from that sender (in
+   * this case an Ipc_sender aka Irq_sender).
    */
   void ipc_send_msg(Receiver *recv, bool) override
   {
