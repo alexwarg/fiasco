@@ -62,7 +62,6 @@ protected:
   {
     L4_msg_tag tag;
     Thread *partner;
-    L4_fpage::Rights rights;
     bool timeout;
     bool have_rcv;
 
@@ -217,6 +216,8 @@ private:
 private:
   Syscall_frame *_snd_regs;
   Mword _from_spec;
+  // Used when the IPC receiver executes ipc_send_msg() in the context of the
+  // next sender. Otherwise we can use `rights` from `do_ipc()` directly.
   L4_fpage::Rights _ipc_send_rights;
 
 protected:
@@ -283,11 +284,6 @@ protected:
     _snd_regs = r;
   }
 
-  void set_ipc_send_rights(L4_fpage::Rights c)
-  {
-    _ipc_send_rights = c;
-  }
-
 private:
 
   bool exception(Kobject_iface *handler, Trap_state *ts, L4_fpage::Rights rights);
@@ -298,8 +294,7 @@ private:
   Check_sender
   remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
                             bool have_receive,
-                            L4_timeout snd_t, Syscall_frame *regs,
-                            L4_fpage::Rights rights);
+                            L4_timeout snd_t, Syscall_frame *regs);
 
   static bool
   try_transfer_local_id(L4_buf_iter::Item const *const buf,
@@ -889,15 +884,13 @@ template<typename T>
 Thread_ipc_base::Check_sender
 Thread_ipc<T>::remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
                                          bool have_receive,
-                                         L4_timeout snd_t, Syscall_frame *regs,
-                                         L4_fpage::Rights rights)
+                                         L4_timeout snd_t, Syscall_frame *regs)
 {
   Ipc_remote_request rq;
   rq.tag = tag;
   rq.have_rcv = have_receive;
   rq.partner = partner;
   rq.timeout = !snd_t.is_zero();
-  rq.rights = rights;
   snd_regs(regs);
 
   _this()->set_wait_queue(partner->sender_list());
@@ -965,7 +958,7 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
       bool ok;
       Check_sender result;
 
-      set_ipc_send_rights(rights);
+      _ipc_send_rights = rights;
 
       if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
         result = handshake_receiver(partner, t.snd);
@@ -977,7 +970,7 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
           // state of a remote sender.
           do_switch = false;
           result = remote_handshake_receiver(tag, partner, have_receive, t.snd,
-                                             regs, rights);
+                                             regs);
 
           // this may block, so we could have been migrated here
           current_cpu = ::current_cpu();
