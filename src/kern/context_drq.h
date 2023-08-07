@@ -64,10 +64,12 @@ public:
 
   /**
    * \brief Initiate a DRQ for the context.
-   * \pre \a src must be the currently running context.
-   * \param src the source of the DRQ (the context who initiates the DRQ).
-   * \param func the DRQ handler.
-   * \param arg the argument for the DRQ handler.
+   * \param drq   The DRQ context.
+   * \param func  The DRQ handler.
+   * \param arg   The argument for the DRQ handler.
+   * \param wait  On `Drq::Wait`, this function waits for the result of DRQ
+   *              handler; on `Drq::No_wait`, this function returns after the DRQ
+   *              was enqueued and the DRQ handler is executed asynchronously.
    *
    * DRQs are requests that any context can queue to any other context. DRQs are
    * the basic mechanism to initiate actions on remote CPUs in an MP system,
