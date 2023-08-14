@@ -67,7 +67,7 @@ public:
       {
         _sgi_template[cpu] = ~0ull;
         printf("GICv3: Cpu%u affinity level 0 out of range: %u max is 15\n",
-               cxx::int_value<Cpu_number>(cpu), (unsigned)(mpidr % 0xff));
+               cxx::int_value<Cpu_number>(cpu), (unsigned)(mpidr & 0xff));
         return;
       }
 
