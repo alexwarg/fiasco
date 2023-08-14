@@ -57,7 +57,7 @@ public:
   Mword ip() const
   { return pc; }
 
-  Mword ip_syscall_page_user() const
+  Mword ip_syscall_user() const
   { return Return_frame::pc; }
 
   void ip(Mword _pc)

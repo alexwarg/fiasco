@@ -61,7 +61,7 @@ public:
 
   void ip(Mword ip);
 
-  Address ip_syscall_page_user() const
+  Address ip_syscall_user() const
   {
     Address eip = ip();
     if ((eip & Mem_layout::Syscalls) == Mem_layout::Syscalls

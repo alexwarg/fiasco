@@ -77,7 +77,7 @@ public:
   Address ip() const
   { return _rip; }
 
-  Address ip_syscall_page_user() const
+  Address ip_syscall_user() const
   { return ip(); }
 
   void ip(Mword ip);
