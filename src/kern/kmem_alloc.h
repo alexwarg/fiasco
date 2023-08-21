@@ -27,6 +27,11 @@ public:
 
   Kmem_alloc() FIASCO_INIT;
 
+  static Address to_phys(void *v)
+  {
+    return Mem_layout::pmem_to_phys(v);
+  }
+
   static void init();
 
   static Kmem_alloc *allocator()
@@ -125,9 +130,6 @@ public:
     free(size, obj);
     quota->free(size);
   }
-
-  static Phys_mem_addr::Value to_phys(void *v)
-  { return Kmem_alloc_arch::to_phys(v); }
 
   static unsigned long
   create_free_map(Kip const *kip, Mem_region_map_base *map);
