@@ -315,7 +315,7 @@ public:
 
   FIASCO_NOINLINE static void flush_cache()
   {
-    register Mword dummy;
+    Mword dummy;
     asm volatile (
         "     add %0, %1, #8192           \n" // 8k flush area
         " 1:  ldr r0, [%1], %2            \n" // 32 bytes cache line size
@@ -332,7 +332,7 @@ public:
 
   FIASCO_NOINLINE static void clean_dcache()
   {
-    register Mword dummy;
+    Mword dummy;
     asm volatile (
         "     add %0, %1, #8192 \n" // 8k flush area
         " 1:  ldr r0, [%1], %2  \n"
@@ -347,7 +347,7 @@ public:
 
   FIASCO_NOINLINE static void flush_dcache()
   {
-    register Mword dummy;
+    Mword dummy;
     asm volatile (
         "     add %0, %1, #8192           \n" // 8k flush area
         " 1:  ldr r0, [%1], %2            \n"
@@ -369,7 +369,7 @@ public:
 
   FIASCO_NOINLINE static void flush_cache()
   {
-    register Mword dummy1, dummy2;
+    Mword dummy1, dummy2;
     asm volatile
       (
        " 1: mcr p15, 0, %0, c7, c2, 5                      \n\t"
@@ -389,7 +389,7 @@ public:
 
   FIASCO_NOINLINE static void clean_dcache()
   {
-    register Mword dummy1, dummy2;
+    Mword dummy1, dummy2;
     asm volatile
       (
        " 1: mcr p15, 0, %0, c7, c2, 5                      \n\t"
@@ -408,7 +408,7 @@ public:
 
   FIASCO_NOINLINE static void flush_dcache()
   {
-    register Mword dummy1, dummy2;
+    Mword dummy1, dummy2;
     asm volatile
       (
        " 1: mcr p15, 0, %0, c7, c2, 5                      \n\t"
