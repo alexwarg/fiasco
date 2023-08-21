@@ -11,8 +11,6 @@
 
 namespace Bootstrap
 {
-static unsigned long load_addr;
-
 inline void set_mair0(Mword v)
 {
   asm volatile ("mcr p15, 0, %0, c10, c2, 0" : : "r"(v));
@@ -277,9 +275,9 @@ struct Elf32_rel
   }
 };
 
-static unsigned long relocate()
+static void relocate(unsigned long load_addr)
 {
-  return Elf<Elf32_dyn, Elf32_rel>::relocate();
+  Elf<Elf32_dyn, Elf32_rel>::relocate(load_addr);
 }
 
 }
@@ -290,17 +288,25 @@ asm
 ".type _start,#function                \n"
 ".global _start                        \n"
 "_start:                               \n"
-"     adr r12, _start                  \n"
-"     ldr sp, .Lstack_offs             \n"
-"     add sp, sp, r12                  \n"
-"     bl	bootstrap_main         \n"
+"     adr  r12, _start                 \n"
+"     ldr  sp, .Lstack_offs            \n"
+"     add  sp, sp, r12                 \n"
+"     ldr  a1, .L_GOT                  \n"
+"     adr  a2, .L_GOT                  \n"
+"     ldr  a3, .L_GOT+4                \n"
+"     add  a1, a1, a2                  \n"
+"     ldr  a2, [a1, a3]                \n"
+"     sub  a1, r12, a2                 \n"
+"     bl   bootstrap_main              \n"
 
 ".Lstack_offs: .word (_stack - _start) \n"
+".L_GOT:                               \n"
+"     .word _GLOBAL_OFFSET_TABLE_ - .L_GOT \n"
+"     .word _start(GOT)                \n"
 ".previous                             \n"
 ".section .bss                         \n"
 ".p2align 3                            \n"
-"	.space	2048                   \n"
+"     .space 2048                      \n"
 "_stack:                               \n"
 ".previous                             \n"
 );
-

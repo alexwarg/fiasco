@@ -103,10 +103,9 @@ struct Elf64_rela
   }
 };
 
-static unsigned long
-relocate()
+static void relocate(unsigned long load_addr)
 {
-  return Elf<Elf64_dyn, Elf64_rela>::relocate();
+  Elf<Elf64_dyn, Elf64_rela>::relocate(load_addr);
 }
 
 static inline Mword read_pfr0()
@@ -456,17 +455,21 @@ asm
 ".type _start,#function                \n"
 ".global _start                        \n"
 "_start:                               \n"
-"     ldr x9, .Lstack_offs             \n"
-"     adr x10, _start                  \n"
-"     add x9, x9, x10                  \n"
-"     mov sp, x9                       \n"
-"     bl	bootstrap_main         \n"
+"     ldr  x9, .Lstack_offs            \n"
+"     adr  x10, _start                 \n"
+"     add  x9, x9, x10                 \n"
+"     mov  sp, x9                      \n"
+"     adrp x9, :got:_start             \n"
+"     ldr  x9, [x9, #:got_lo12:_start] \n"
+"     adr  x10, _start                 \n"
+"     sub  x0, x10, x9                 \n"
+"     bl   bootstrap_main              \n"
 ".p2align 3                            \n"  // running uncached -> align!
 ".Lstack_offs: .8byte (_stack - _start)\n"
 ".previous                             \n"
 ".section .bss                         \n"
 ".p2align 4                            \n"
-"	.space	4096                   \n"
+"     .space 4096                      \n"
 "_stack:                               \n"
 ".previous                             \n"
 );
