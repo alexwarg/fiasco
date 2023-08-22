@@ -78,6 +78,20 @@ Kmem_alloc::dump() const
   a->dump();
 }
 
+/**
+ * Create map entries for all regions which could be used for kernel memory.
+ *
+ * This is actually the difference quantity of the conventional memory and all
+ * unusable memory regions.
+ *
+ * \param kip        The KIP.
+ * \param[out] map   The map containing the difference quantity of conventional
+ *                   memory and unusable memory regions.
+ * \param alignment  The required kernel memory alignment.
+ * \returns  The amount of detected conventional memory in bytes. The amount of
+ *           actually usable memory is smaller if any unusable region overlaps
+ *           conventional memory.
+ */
 FIASCO_INIT
 unsigned long
 Kmem_alloc::create_free_map(Kip const *kip, Mem_region_map_base *map)
