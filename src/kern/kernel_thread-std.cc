@@ -53,7 +53,7 @@ Kernel_thread::init_workload()
     {
       Kobject_iface *o = initial_kobjects.obj(c);
       if (o)
-	check(map(o, sigma0, sigma0, c, 0));
+        check(map(o, sigma0, sigma0, c, 0));
     }
 
   Thread_object *sigma0_thread = new (Ram_quota::root) Thread_object(Ram_quota::root);
@@ -110,7 +110,7 @@ Kernel_thread::init_workload()
     {
       Kobject_iface *o = initial_kobjects.obj(c);
       if (o)
-	check(obj_map(sigma0, c, 1, boot_task, c, 0).error() == 0);
+        check(obj_map(sigma0, c, 1, boot_task, c, 0).error() == 0);
     }
 
   boot_thread->activate();
