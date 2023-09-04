@@ -10,6 +10,7 @@
 #include <ram_quota.h>
 #include <kip.h>
 #include <buddy_alloc.h>
+#include <paging_bits.h>
 
 #include <cstdio>
 #include <panic.h>
@@ -26,8 +27,8 @@ static bool
 map_pmem(unsigned long phy, unsigned long size)
 {
   static unsigned long next_map = Mem_layout::Pmem_start;
-  size = Mem_layout::round_superpage(size + (phy & ~Config::SUPERPAGE_MASK));
-  phy = Mem_layout::trunc_superpage(phy);
+  size = Super_pg::round(size + Super_pg::offset(phy));
+  phy = Super_pg::trunc(phy);
 
   if (next_map + size > Mem_layout::Pmem_end)
     return false;

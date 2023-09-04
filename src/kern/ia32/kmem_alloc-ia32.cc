@@ -14,6 +14,7 @@
 #include <types.h>
 #include <initcalls.h>
 #include <buddy_alloc.h>
+#include <paging_bits.h>
 
 /**
  * Walk through all KIP memory regions of conventional memory minus the
@@ -52,7 +53,7 @@ Kmem_alloc_arch::base_init()
   if (requested_size > Mem_layout::Physmem_max_size)
     requested_size = Mem_layout::Physmem_max_size; // maximum mappable memory
 
-  requested_size = cxx::ceil_lsb(requested_size, Config::PAGE_SHIFT);
+  requested_size = Pg::round(requested_size);
 
   if (0)
     {
@@ -77,7 +78,7 @@ Kmem_alloc_arch::base_init()
         {
           // next block is sufficient
           base = map[i - 1].end - size + 1;
-          sp_base = cxx::mask_lsb(base, Config::SUPERPAGE_SHIFT);
+          sp_base = Super_pg::trunc(base);
           if (end - sp_base + 1 > Mem_layout::Physmem_max_size)
             {
               // Too much virtual memory. This happens typically if there are
@@ -126,7 +127,7 @@ Kmem_alloc_arch::base_init()
                                       Mem_desc::Kernel_tmp));
 
   Mem_layout::kphys_base(sp_base);
-  Mem_layout::pmem_size = cxx::ceil_lsb(end + 1 - sp_base, Config::SUPERPAGE_SHIFT);
+  Mem_layout::pmem_size = Super_pg::round(end + 1 - sp_base);
   assert(Mem_layout::pmem_size <= Config::kernel_mem_max);
 
   return true;

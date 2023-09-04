@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <mem_layout-ia32-bits.h>
+#include <paging_bits.h>
 
 class Mem_layout_arch : public Mem_layout_ia32_bits
 {
@@ -12,7 +13,7 @@ public:
 
   static inline Address alloc_io_vmem(unsigned long bytes)
   {
-    bytes = (bytes + Config::PAGE_SIZE - 1) & ~(Config::PAGE_SIZE - 1);
+    bytes = Pg::round(bytes);
     if (_io_map_ptr - bytes < Registers_map_start)
       return 0;
 

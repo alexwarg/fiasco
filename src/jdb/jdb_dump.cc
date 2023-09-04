@@ -18,6 +18,7 @@
 #include "static_init.h"
 #include "types.h"
 #include "task.h"
+#include "paging_bits.h"
 
 class Jdb_dump : public Jdb_module, public Jdb_table
 {
@@ -99,12 +100,12 @@ public:
             if (v.is_null())
               return Handled;
 
-            if ((v.addr() & ~Config::PAGE_MASK) == 0)
+            if (Pg::offset(v.addr()) == 0)
               row -= Config::PAGE_SIZE / 32;
             else
               {
                 col = 1;
-                row = (v.addr() & Config::PAGE_MASK) / 32;
+                row = Pg::trunc(v.addr()) / 32;
               }
             return Redraw;
           }
@@ -113,12 +114,12 @@ public:
       case KEY_CURSOR_END:
           {
             Jdb_addr<Mword> v = virt(row, col);
-            if ((v.addr() & ~Config::PAGE_MASK) >> 2 == 0x3ff)
+            if (Pg::offset(v.addr()) >> 2 == 0x3ff)
               row += Config::PAGE_SIZE / 32;
             else
               {
                 col = Jdb_screen::cols() - 1;
-                row = ((v.addr() & Config::PAGE_MASK) + Config::PAGE_SIZE - 4) / 32;
+                row = (Pg::trunc(v.addr()) + (Config::PAGE_SIZE - 4)) / 32;
               }
           }
         return Redraw;

@@ -5,6 +5,7 @@
 #include "linking.h"
 #include "template_math.h"
 #include <mem_layout-defaults.h>
+#include <paging_bits.h>
 
 #include <cassert>
 
@@ -69,8 +70,9 @@ public:
 
   enum Phys_addrs
   {
-    Kernel_image_phys = FIASCO_IMAGE_PHYS_START & Config::SUPERPAGE_MASK,
-    Adap_image_phys   = 0,
+    Kernel_image_phys
+      = Super_pg::trunc(FIASCO_U_CONST(FIASCO_IMAGE_PHYS_START)),
+    Adap_image_phys = 0,
   };
 
   template<typename T> static T* boot_data(T const *addr);

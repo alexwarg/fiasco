@@ -2,6 +2,7 @@
 #include <globalconfig.h>
 #include <kmem.h>
 #include <cassert>
+#include <paging_bits.h>
 
 #ifdef CONFIG_NONCONT_MEM
 
@@ -10,8 +11,8 @@ Kmem::mmio_remap(Address phys, Address size)
 {
   static Address ndev = 0;
 
-  Address phys_page = cxx::mask_lsb(phys, Config::SUPERPAGE_SHIFT);
-  Address phys_end = Mem_layout::round_superpage(phys + size);
+  Address phys_page = Super_pg::trunc(phys);
+  Address phys_end = Super_pg::round(phys + size);
   bool needs_remap = false;
 
   for (Address p = phys_page; p < phys_end; p += Config::SUPERPAGE_SIZE)

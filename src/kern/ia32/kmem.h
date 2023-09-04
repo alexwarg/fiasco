@@ -8,6 +8,7 @@
 #include <bitmap.h>
 #include <simple_alloc.h>
 #include <cpu.h>
+#include <paging_bits.h>
 
 #include <cstring>
 
@@ -47,12 +48,13 @@ public:
   }
 
   static Address kcode_start()
-  { return virt_to_phys(&Mem_layout::start) & Config::PAGE_MASK; }
+  {
+    return Pg::trunc(virt_to_phys(&Mem_layout::start));
+  }
 
   static Address kcode_end()
   {
-    return (virt_to_phys(&Mem_layout::end) + Config::PAGE_SIZE)
-           & Config::PAGE_MASK;
+    return Pg::trunc(virt_to_phys(&Mem_layout::end) + Config::PAGE_SIZE);
   }
 
   static Address virt_to_phys(const void *addr)
@@ -85,7 +87,9 @@ public:
   static Address map_phys_page_tmp(Address phys, Mword idx);
 
   static Address kernel_image_start()
-  { return virt_to_phys(&Mem_layout::image_start) & Config::PAGE_MASK; }
+  {
+    return Pg::trunc(virt_to_phys(&Mem_layout::image_start));
+  }
 
   static void map_phys_page(Address phys, Address virt,
                             bool cached, bool global, Address *offs = 0);

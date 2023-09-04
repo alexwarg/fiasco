@@ -14,6 +14,7 @@
 #include <watchdog.h>
 #include <cxx/cxx_int>
 #include <push_console.h>
+#include <paging_bits.h>
 
 #include <arch_time_source.h>
 
@@ -266,7 +267,7 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   Mem_unit::tlb_flush_kernel();
 
   return (unsigned char *)(Mem_layout::Jdb_tmp_map_area
-                           + (phys & (Config::SUPERPAGE_SIZE - 1)));
+                           + Super_pg::offset(phys));
 }
 
 void

@@ -8,6 +8,7 @@
 #include "l4_types.h"
 #include "kmem_alloc.h"
 #include "paging.h"
+#include <paging_bits.h>
 
 #include <cassert>
 #include <cstring>
@@ -84,7 +85,7 @@ Generic_io_space_base::io_insert(Mem_space *m, Ram_quota *q, Address port_number
       Mem_space::Status status =
 	m->v_insert(
 	    Mem_space::Phys_addr(Mem_layout::pmem_to_phys(page)),
-	    Virt_addr(port_virt & Config::PAGE_MASK),
+	    Virt_addr(Pg::trunc(port_virt)),
 	    Mem_space::Page_order(Config::PAGE_SHIFT),
             Mem_space::Attr(L4_fpage::Rights::RW()));
 

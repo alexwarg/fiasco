@@ -10,12 +10,6 @@ class Kpdir;
 class Mem_layout : public Mem_layout_arch
 {
 public:
-  static inline unsigned long round_superpage(unsigned long addr)
-  { return (addr + Config::SUPERPAGE_SIZE - 1) & ~(Config::SUPERPAGE_SIZE - 1); }
-
-  static inline unsigned long trunc_superpage(unsigned long addr)
-  { return addr & ~(Config::SUPERPAGE_SIZE - 1); }
-
   static const char load             asm ("_load");
   static const char image_start      asm ("_kernel_image_start");
   static const char start            asm ("_start");

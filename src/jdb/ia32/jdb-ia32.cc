@@ -44,6 +44,7 @@
 #include <trap_state.h>
 #include <vkey.h>
 #include <watchdog.h>
+#include <paging_bits.h>
 
 #include <doublefault.h>
 #include <dbg_stack.h>
@@ -204,13 +205,12 @@ Jdb::restore_irqs(Cpu_number cpu)
 
 static inline bool same_page(Address a1, Address a2)
 {
-  return (a1 & Config::PAGE_MASK) == (a2 & Config::PAGE_MASK);
+  return Pg::trunc(a1) == Pg::trunc(a2);
 }
 
 static inline bool consecutive_pages(Address a1, Address a2)
 {
-  return (a1 & Config::PAGE_MASK) + Config::PAGE_SIZE
-      == (a2 & Config::PAGE_MASK);
+  return Pg::trunc(a1) + Config::PAGE_SIZE == Pg::trunc(a2);
 }
 
 static inline bool same_or_consecutive_pages(Address a1, Address a2)

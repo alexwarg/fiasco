@@ -3,6 +3,7 @@
 #include "static_init.h"
 #include <types.h>
 #include <jdb.h>
+#include <paging_bits.h>
 
 class Jdb_kern_info_mtrr : public Jdb_kern_info_module
 {
@@ -55,7 +56,7 @@ Jdb_kern_info_mtrr::get_var_mtrr(int reg, Address *ret_base,
 
   *ret_size = (-(size_or_mask | mask >> Config::PAGE_SHIFT))
                << Config::PAGE_SHIFT;
-  *ret_base = base & Config::PAGE_MASK;
+  *ret_base = Pg::trunc(base);
   *ret_type = base & 0x0f;
 }
 

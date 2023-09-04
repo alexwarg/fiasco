@@ -15,6 +15,7 @@
 #include "jdb_kobject.h"
 #include "jdb_kobject_names.h"
 #include "dbg_page_info.h"
+#include "paging_bits.h"
 
 // access to private mapdb instances from map_util...
 extern Static_object<Mapdb> mapdb_mem;
@@ -422,7 +423,7 @@ Jdb_mapdb::print_obj_mapping(Obj::Mapping *m)
   Dbg_page_info *pi = Dbg_page_info::table()[Virt_addr(e)];
 
   Mword space_id = ~0UL;
-  Address cap_idx = ((Address)e % Config::PAGE_SIZE) / sizeof(Obj::Entry);
+  Address cap_idx = Pg::offset((Address)e) / sizeof(Obj::Entry);
 
   String_buf<20> task_descr;
   if (pi)

@@ -17,6 +17,7 @@
 #include "kmem_alloc.h"
 #include "kmem.h"
 #include "mem_layout.h"
+#include <paging_bits.h>
 
 template<typename SPACE>
 class Obj_space_virt
@@ -270,7 +271,7 @@ private:
         return 0;
       };
 
-    unsigned long cap = (cv & (Config::PAGE_SIZE - 1)) | (unsigned long)mem;
+    unsigned long cap = (unsigned long)mem | Pg::offset(cv);
 
     return reinterpret_cast<Entry*>(cap);
   }

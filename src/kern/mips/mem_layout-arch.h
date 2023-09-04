@@ -50,12 +50,6 @@ public:
 
 #endif
 
-  static inline unsigned long round_page(unsigned long addr)
-  { return (addr + Config::PAGE_SIZE - 1) & ~(Config::PAGE_SIZE - 1); }
-
-  static inline unsigned long trunc_page(unsigned long addr)
-  { return addr & ~(Config::PAGE_SIZE - 1); }
-
   static inline Address phys_to_pmem(Address addr)
   { return addr + KSEG0; }
 

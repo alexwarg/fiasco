@@ -10,11 +10,9 @@ namespace Config
  enum {
     PAGE_SHIFT          = ARCH_PAGE_SHIFT,
     PAGE_SIZE           = 1 << PAGE_SHIFT,
-    PAGE_MASK           = ~( PAGE_SIZE - 1),
 
     SUPERPAGE_SHIFT     = 22,
     SUPERPAGE_SIZE      = 1 << SUPERPAGE_SHIFT,
-    SUPERPAGE_MASK      = ~( SUPERPAGE_SIZE - 1 ),
 
     Irq_shortcut        = 1,
   };
@@ -23,11 +21,9 @@ namespace Config
   enum {
     PAGE_SHIFT = ARCH_PAGE_SHIFT,
     PAGE_SIZE  = 1 << PAGE_SHIFT,
-    PAGE_MASK  = ~( PAGE_SIZE - 1),
 
     SUPERPAGE_SHIFT = 21,
     SUPERPAGE_SIZE  = 1 << SUPERPAGE_SHIFT,
-    SUPERPAGE_MASK  = ~( SUPERPAGE_SIZE -1 ),
 
     PDP_SIZE		= 1LL << 30,
     PML4_SIZE		= 1LL << 39,

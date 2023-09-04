@@ -50,7 +50,7 @@ Kmem::map_phys_page(Address phys, Address virt,
 {
   auto i = kdir->walk(Virt_addr(virt), Pdir::Depth, false,
                       pdir_alloc(Kmem_alloc::allocator()));
-  Mword pte = phys & Config::PAGE_MASK;
+  Mword pte = Pg::trunc(phys);
 
   assert(i.level == Pdir::Depth);
 
@@ -82,17 +82,17 @@ Address
 Kmem::mmio_remap(Address phys, Address size, bool cache, bool with_exec)
 {
   static Address ndev = 0;
-  Address phys_page = cxx::mask_lsb(phys, Config::SUPERPAGE_SHIFT);
-  Address phys_end  = Mem_layout::round_superpage(phys + size);
+  Address phys_page = Super_pg::trunc(phys);
+  Address phys_end  = Super_pg::round(phys + size);
 
   for (Address a = Mem_layout::Registers_map_start;
        a < Mem_layout::Registers_map_end; a += Config::SUPERPAGE_SIZE)
     {
       if (cont_mapped(phys_page, phys_end, a))
-        return (phys & ~Config::SUPERPAGE_MASK) | (a & Config::SUPERPAGE_MASK);
+        return Super_pg::offset(phys) | Super_pg::trunc(a);
     }
 
-  static_assert((Mem_layout::Registers_map_start & ~Config::SUPERPAGE_MASK) == 0,
+  static_assert(Super_pg::aligned(Mem_layout::Registers_map_start),
                 "Registers_map_start must be superpage-aligned");
   Address map_addr = Mem_layout::Registers_map_start + ndev;
 
@@ -116,7 +116,7 @@ Kmem::mmio_remap(Address phys, Address size, bool cache, bool with_exec)
       Mem_unit::tlb_flush_kernel(dm);
     }
 
-  return (phys & ~Config::SUPERPAGE_MASK) | map_addr;
+  return Super_pg::offset(phys) | map_addr;
 }
 
 FIASCO_INIT
@@ -205,7 +205,7 @@ Kmem::init_mmu()
   // The service page directory entry points to an universal usable
   // page table which is currently used for the Local APIC and the
   // jdb adapter page.
-  assert((Mem_layout::Service_page & ~Config::SUPERPAGE_MASK) == 0);
+  assert(Super_pg::aligned(Mem_layout::Service_page));
 
   kdir->walk(Virt_addr(Mem_layout::Service_page), Pdir::Depth,
              false, pdir_alloc(alloc));
@@ -220,8 +220,7 @@ Kmem::init_mmu()
 
 
   // did we really get the first byte ??
-  assert((reinterpret_cast<Address>(io_bitmap_delimiter)
-          & ~Config::PAGE_MASK) == 0);
+  assert(Pg::aligned(reinterpret_cast<Address>(io_bitmap_delimiter)));
   *io_bitmap_delimiter = 0xff;
 }
 
@@ -316,8 +315,8 @@ Kmem::init_cpu(Cpu &cpu)
       write_now(dst.pte, *src.pte);
     }
 
-  static_assert((Physmem & (Config::SUPERPAGE_SIZE - 1)) == 0, "Physmem area must be superpage aligned");
-  static_assert((Physmem_end& (Config::SUPERPAGE_SIZE - 1)) == 0, "Physmem_end area must be superpage aligned");
+  static_assert(Super_pg::aligned(Physmem), "Physmem area must be superpage aligned");
+  static_assert(Super_pg::aligned(Physmem_end), "Physmem_end area must be superpage aligned");
 
   for (unsigned i = 0; i < ((Physmem_end - Physmem) >> Config::SUPERPAGE_SHIFT);)
     {
@@ -474,8 +473,8 @@ Kmem::setup_cpu_structures_isolation(Cpu &cpu, Kpdir *cpu_dir, cxx::Simple_alloc
   // map kernel code to user space dir
   extern char _kernel_text_start[];
   extern char _kernel_text_entry_end[];
-  Address ki_page = ((Address)_kernel_text_start) & ~(Config::PAGE_SIZE - 1);
-  Address kie_page = (((Address)_kernel_text_entry_end) + (Config::PAGE_SIZE - 1)) & ~(Config::PAGE_SIZE - 1);
+  Address ki_page = Pg::trunc((Address)_kernel_text_start);
+  Address kie_page = Pg::round((Address)_kernel_text_entry_end);
 
   if (Print_info)
     printf("kernel code: %p(%lx)-%p(%lx)\n", _kernel_text_start,
@@ -518,7 +517,7 @@ void
 Kmem::setup_global_cpu_structures(bool superpages)
 {
   auto *alloc = Kmem_alloc::allocator();
-  assert((Mem_layout::Io_bitmap & ~Config::SUPERPAGE_MASK) == 0);
+  assert(Super_pg::aligned(Mem_layout::Io_bitmap));
 
   enum { Tss_mem_size = 0x10 + Config::Max_num_cpus * cxx::ceil_lsb(sizeof(Tss) + 256, 4) };
 
@@ -535,38 +534,38 @@ Kmem::setup_global_cpu_structures(bool superpages)
   printf("Kmem:: TSS mem at %lx (%uBytes)\n", tss_mem_pm, tss_mem_size);
 
   if (superpages
-      && Config::SUPERPAGE_SIZE - (tss_mem_pm & ~Config::SUPERPAGE_MASK) < 0x10000)
+      && Config::SUPERPAGE_SIZE - Super_pg::offset(tss_mem_pm) < 0x10000)
     {
       // can map as 4MB page because the cpu_page will land within a
       // 16-bit range from io_bitmap
       auto e = kdir->walk(Virt_addr(Mem_layout::Io_bitmap - Config::SUPERPAGE_SIZE),
                           Pdir::Super_level, false, pdir_alloc(alloc));
 
-      e.set_page(tss_mem_pm & Config::SUPERPAGE_MASK,
+      e.set_page(Super_pg::trunc(tss_mem_pm),
                  Pt_entry::Writable | Pt_entry::Referenced
                  | Pt_entry::Dirty | Pt_entry::global());
 
-      tss_mem_vm = cxx::Simple_alloc(
-          (tss_mem_pm & ~Config::SUPERPAGE_MASK)
-          + (Mem_layout::Io_bitmap - Config::SUPERPAGE_SIZE),
-          tss_mem_size);
+      tss_mem_vm = cxx::Simple_alloc(Super_pg::offset(tss_mem_pm)
+                                     + (Mem_layout::Io_bitmap
+                                     - Config::SUPERPAGE_SIZE),
+                                     tss_mem_size);
     }
   else
     {
       unsigned i;
-      for (i = 0; (i << Config::PAGE_SHIFT) < tss_mem_size; ++i)
+      for (i = 0; Pg::size(i) < tss_mem_size; ++i)
         {
-          auto e = kdir->walk(Virt_addr(Mem_layout::Io_bitmap - Config::PAGE_SIZE * (i+1)),
+          auto e = kdir->walk(Virt_addr(Mem_layout::Io_bitmap
+                                        - Pg::size(i+1)),
                               Pdir::Depth, false, pdir_alloc(alloc));
 
-          e.set_page(tss_mem_pm + i * Config::PAGE_SIZE,
+          e.set_page(tss_mem_pm + Pg::size(i),
                      Pt_entry::Writable | Pt_entry::Referenced | Pt_entry::Dirty
                      | Pt_entry::global());
         }
 
-      tss_mem_vm = cxx::Simple_alloc(
-          Mem_layout::Io_bitmap - Config::PAGE_SIZE * i,
-          tss_mem_size);
+      tss_mem_vm = cxx::Simple_alloc(Mem_layout::Io_bitmap - Pg::size(i),
+                                     tss_mem_size);
     }
 
   // the IO bitmap must be followed by one byte containing 0xff

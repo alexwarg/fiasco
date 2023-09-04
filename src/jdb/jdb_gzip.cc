@@ -9,6 +9,7 @@
 #include "kmem_alloc.h"
 #include "panic.h"
 #include "static_init.h"
+#include "paging_bits.h"
 
 class Jdb_gzip : public Console
 {
@@ -54,10 +55,10 @@ private:
   Jdb_gzip() : Console(DISABLED)
   {
     char *heap = (char*)Kmem_alloc::allocator()->
-      alloc(Bytes(heap_pages * Config::PAGE_SIZE));
+      alloc(Bytes(Pg::size(heap_pages)));
     if (!heap)
       panic("No memory for gzip heap");
-    gz_init(heap, heap_pages * Config::PAGE_SIZE, raw_write);
+    gz_init(heap, Pg::size(heap_pages), raw_write);
   }
 
   static void raw_write(const char *s, size_t len)

@@ -17,7 +17,6 @@ namespace Config
   {
     PAGE_SHIFT = ARCH_PAGE_SHIFT,
     PAGE_SIZE  = 1 << PAGE_SHIFT,
-    PAGE_MASK  = ~(PAGE_SIZE - 1),
 
     hlt_works_ok = 1,
     Irq_shortcut = 1,
@@ -36,7 +35,7 @@ namespace Config
 #endif
   };
 
-  enum
+  enum : unsigned long
   {
     KMEM_SIZE = 16 << 20,
   };
@@ -80,14 +79,12 @@ namespace Config
   {
     SUPERPAGE_SHIFT = 21,
     SUPERPAGE_SIZE  = 1 << SUPERPAGE_SHIFT,
-    SUPERPAGE_MASK  = ~(SUPERPAGE_SIZE -1)
   };
 #else
   enum
   {
     SUPERPAGE_SHIFT = 20,
     SUPERPAGE_SIZE  = 1 << SUPERPAGE_SHIFT,
-    SUPERPAGE_MASK  = ~(SUPERPAGE_SIZE -1)
   };
 #endif
 

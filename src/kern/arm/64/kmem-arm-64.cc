@@ -2,6 +2,7 @@
 #include <globalconfig.h>
 #include <kmem.h>
 #include <cassert>
+#include "paging_bits.h"
 
 #ifndef CONFIG_NONCONT_MEM
 
@@ -24,17 +25,18 @@ Address
 Kmem::mmio_remap(Address phys, Address size)
 {
   static Address ndev = 0;
-  Address phys_page = cxx::mask_lsb(phys, Config::SUPERPAGE_SHIFT);
-  Address phys_end  = Mem_layout::round_superpage(phys + size);
+  Address phys_page = Super_pg::trunc(phys);
+  Address phys_end  = Super_pg::round(phys + size);
 
   for (Address a = Mem_layout::Registers_map_start;
        a < Mem_layout::Registers_map_end; a += Config::SUPERPAGE_SIZE)
     {
       if (cont_mapped(phys_page, phys_end, a))
-        return (phys & ~Config::SUPERPAGE_MASK) | (a & Config::SUPERPAGE_MASK);
+        return Super_pg::trunc(a) | Super_pg::offset(phys);
     }
 
-
+  static_assert(Super_pg::aligned(Mem_layout::Registers_map_start),
+                "Registers_map_start must be superpage-aligned");
   Address map_addr = Mem_layout::Registers_map_start + ndev;
 
   for (Address p = phys_page; p < phys_end; p+= Config::SUPERPAGE_SIZE)
@@ -55,7 +57,7 @@ Kmem::mmio_remap(Address phys, Address size)
       m.write_back_if(true, Mem_unit::Asid_kernel);
     }
 
-  return (phys & ~Config::SUPERPAGE_MASK) | (map_addr & Config::SUPERPAGE_MASK);
+  return map_addr | Super_pg::offset(phys);
 }
 
 #endif
