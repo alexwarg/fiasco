@@ -222,6 +222,14 @@ public:
   {
     return Mem_layout::pmem_to_phys(Kmem::dir());
   }
+
+  static Pseudo_descriptor
+  get_realmode_startup_gdt_pdesc()
+  {
+    Gdt *_boot_gdt = Cpu::boot_cpu()->get_gdt();
+    return Pseudo_descriptor(reinterpret_cast<Address>(_boot_gdt),
+                             Gdt::gdt_max - 1);
+  }
 #endif
 #ifdef CONFIG_BIT64
   static void init_cpu_arch(Cpu &, cxx::Simple_alloc *)
@@ -238,6 +246,28 @@ public:
     memcpy(_boot_pdir_page, pd, sizeof(_boot_pdir_page));
 
     return Kmem::virt_to_phys(_boot_pdir_page);
+  }
+
+  /**
+   * Get real mode startup Global Descriptor Table pseudo descriptor.
+   *
+   * This GDT pseudo descriptor is used for the startup code of application CPUs
+   * until the proper GDT is established. To avoid issues, a copy of the
+   * bootstrap CPU's GDT that is accessible via the \ref kdir mapping is
+   * provided.
+   *
+   * \return Real mode startup Global Descriptor Table pseudo descriptor.
+   */
+  static Pseudo_descriptor
+  get_realmode_startup_gdt_pdesc()
+  {
+    // For amd64, we need to make sure that our boot-up Global Descriptor Table
+    // is accessible via the kdir mapping.
+    static char _boot_gdt[Gdt::gdt_max] __attribute__((aligned(0x10)));
+
+    memcpy(_boot_gdt, Cpu::boot_cpu()->get_gdt(), sizeof(_boot_gdt));
+    return Pseudo_descriptor(reinterpret_cast<Address>(&_boot_gdt),
+                             Gdt::gdt_max - 1);
   }
 
 #endif
