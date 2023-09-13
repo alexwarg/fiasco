@@ -9,6 +9,8 @@
 class Kmem : public Mem_layout
 {
 public:
+  static Kpdir *kdir;
+
   static bool is_kmem_page_fault(Mword pfa, Mword error)
   {
     if (IS_ENABLED(CONFIG_CPU_VIRT) && !PF::is_usermode_error(error))

@@ -6,11 +6,12 @@
 #ifdef CONFIG_NONCONT_MEM
 
 #include <kmem_space.h>
+#include <kmem.h>
 #include <paging.h>
 namespace Kmem_alloc_arch {
   inline Address to_phys(void *v)
   {
-    return Mem_layout::kdir->virt_to_phys((Address)v);
+    return Kmem::kdir->virt_to_phys((Address)v);
   }
 }
 #else

@@ -21,8 +21,6 @@ public:
   static const char initcall_start[] asm ("_initcall_start");
   static const char initcall_end[]   asm ("_initcall_end");
 
-  static Kpdir *kdir;
-
   static inline Mword in_kernel(Address a)
   { return a > User_max; }
 

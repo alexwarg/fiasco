@@ -35,6 +35,7 @@ private:
   Kmem (const Kmem&);
 
 public:
+  static Kpdir *kdir;
 
   static bool is_kmem_page_fault(Address addr, Mword /*error*/)
   {

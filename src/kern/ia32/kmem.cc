@@ -14,7 +14,7 @@ Unsigned8    *Kmem::io_bitmap_delimiter;
 Address Kmem::kphys_start, Kmem::kphys_end;
 
 // static class variables
-Kpdir *Mem_layout::kdir;
+Kpdir *Kmem::kdir;
 
 // Only used for initialization and kernel debugger
 Address
