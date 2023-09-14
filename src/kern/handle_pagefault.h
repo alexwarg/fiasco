@@ -13,7 +13,7 @@ bool handle_sigma0_page_fault(Context *c, Address pfa)
   Mem_space::Page_order size = m->sigma0_page_size();
   Virt_addr va = cxx::mask_lsb(Virt_addr(pfa), size);
   return m->v_insert(Mem_space::Phys_addr(va), va, size,
-                     Mem_space::Attr(L4_fpage::Rights::URWX()))
+                     Mem_space::Attr::space_local(L4_fpage::Rights::URWX()))
     != Mem_space::Insert_err_nomem;
 }
 

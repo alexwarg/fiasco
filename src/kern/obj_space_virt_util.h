@@ -253,7 +253,7 @@ private:
         Mem_space::Phys_addr(Kmem::kdir->virt_to_phys((Address)mem)),
         cxx::mask_lsb(Virt_addr(cv), Mem_space::Page_order(Config::PAGE_SHIFT)),
         Mem_space::Page_order(Config::PAGE_SHIFT),
-        Mem_space::Attr(L4_fpage::Rights::RW()));
+        Mem_space::Attr::space_local(L4_fpage::Rights::RW()));
         //| Mem_space::Page_referenced | Mem_space::Page_dirty);
 
     switch (s)

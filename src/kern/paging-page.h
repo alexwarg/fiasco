@@ -32,10 +32,10 @@ namespace Page
     cxx::int_null_chk<Kern>
   {
     Kern() = default;
-    explicit Kern(Value v) : cxx::int_type_base<unsigned char, Kern>(v) {}
+    explicit constexpr Kern(Value v) : cxx::int_type_base<unsigned char, Kern>(v) {}
 
-    static Kern None() { return Kern::None(); }
-    static Kern Global() { return Kern(1); }
+    static constexpr Kern None() { return Kern(0); }
+    static constexpr Kern Global() { return Kern(1); }
   };
 
   typedef L4_fpage::Rights Rights;
@@ -47,8 +47,16 @@ namespace Page
     Kern kern;
 
     Attr() = default;
-    explicit Attr(Rights r, Type t = Type::Normal(), Kern k = Kern(0))
+    explicit constexpr Attr(Rights r, Type t = Type::Normal(), Kern k = Kern(0))
     : rights(r), type(t), kern(k) {}
+
+    // per-space local mapping, "normally" cached
+    static constexpr Attr space_local(Rights r)
+    { return Attr(r, Type::Normal(), Kern::None()); }
+
+    // global kernel mapping, "normally" cached
+    static constexpr Attr kern_global(Rights r)
+    { return Attr(r, Type::Normal(), Kern::Global()); }
 
     Attr apply(Attr o) const
     {

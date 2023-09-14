@@ -107,7 +107,7 @@ check_io_bitmap_delimiter_fault(Thread *ct, Trap_state *ts)
 	    Mem_space::Phys_addr(m->virt_to_phys_s0((void*)Kmem::io_bitmap_delimiter_page())),
 	    Virt_addr(Mem_layout::Io_bitmap + Mem_layout::Io_port_max / 8),
 	    Mem_space::Page_order(Config::PAGE_SHIFT),
-	    Page::Attr(Page::Rights::R(), Page::Type::Normal(), Page::Kern::Global()));
+	    Page::Attr::kern_global(Page::Rights::R()));
 
       switch (result)
 	{

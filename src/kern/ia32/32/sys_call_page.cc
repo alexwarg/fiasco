@@ -63,9 +63,7 @@ setup_sys_call_page()
     COPY_SYSCALL(invoke);
 
   Kernel_task::kernel_task()->set_attributes(
-      Virt_addr(Mem_layout::Syscalls),
-      Page::Attr(Page::Rights::UR(), Page::Type::Normal(),
-                 Page::Kern::Global()));
+      Virt_addr(Mem_layout::Syscalls), Page::Attr::kern_global(Page::Rights::UR()));
 }
 
 STATIC_INITIALIZER(setup_sys_call_page);
