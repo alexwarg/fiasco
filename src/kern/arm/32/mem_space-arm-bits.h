@@ -56,7 +56,7 @@ Mem_space_arm_bits<M>::sync_kernel()
 
   Phys_mem_addr pa((Address)kern_lib_start - Mem_layout::Map_base
                    + Mem_layout::Sdram_phys_base);
-  pte.set_page(pte.make_page(pa, Page::Attr::space_local(Page::Rights::URX())));
+  pte.set_page(pa, Page::Attr::space_local(Page::Rights::URX()));
 
   pte.write_back_if(true, _ths()->c_asid());
 
@@ -67,7 +67,7 @@ Mem_space_arm_bits<M>::sync_kernel()
     return -1;
 
   pa = Phys_mem_addr(__mem_space_syscall_page);
-  pte.set_page(pte.make_page(pa, Page::Attr::space_local(Page::Rights::URX())));
+  pte.set_page(pa, Page::Attr::space_local(Page::Rights::URX()));
 
   pte.write_back_if(true, _ths()->c_asid());
 
@@ -116,8 +116,8 @@ Mem_space_arm_bits<M>::set_syscall_page(void *p)
     panic("FATAL: Error mapping syscall page to %p\n",
           (void *)Kmem_space::Syscalls);
 
-  pte.set_page(pte.make_page(Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)p)),
-                             Page::Attr::kern_global(Page::Rights::URX())));
+  pte.set_page(Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)p)),
+               Page::Attr::kern_global(Page::Rights::URX()));
   pte.write_back_if(true, Mem_unit::Asid_kernel);
 }
 

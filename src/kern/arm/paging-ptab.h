@@ -203,6 +203,11 @@ public:
     write_now(_this()->pte, p);
   }
 
+  void set_page(Phys_mem_addr addr, Page::Attr attr)
+  {
+    set_page(make_page(addr, attr));
+  }
+
   void set_attribs(Page::Attr attr)
   {
     auto p = access_once(_this()->pte);

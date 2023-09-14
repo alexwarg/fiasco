@@ -25,9 +25,9 @@ void Kern_lib_page::init()
   if (pte.level == 0) // allocation of second level faild
     panic("Error mapping kernel-lib page to %p", (void *)Kmem_space::Kern_lib_base);
 
-  pte.set_page(pte.make_page(Phys_mem_addr((Address)&kern_lib_start - Mem_layout::Map_base
-                                           + Mem_layout::Sdram_phys_base),
-                             Page::Attr::kern_global(Page::Rights::URX())));
+  pte.set_page(Phys_mem_addr((Address)&kern_lib_start - Mem_layout::Map_base
+                             + Mem_layout::Sdram_phys_base),
+               Page::Attr::kern_global(Page::Rights::URX()));
   pte.write_back_if(true, Mem_unit::Asid_kernel);
 }
 

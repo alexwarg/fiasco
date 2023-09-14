@@ -37,8 +37,8 @@ map_pmem(unsigned long phy, unsigned long size)
   for (unsigned long i = 0; i <size; i += Config::SUPERPAGE_SIZE)
     {
       auto pte = Kmem::kdir->walk(Virt_addr(next_map + i), Kpdir::Super_level);
-      pte.set_page(pte.make_page(Phys_mem_addr(phy + i),
-                                 Page::Attr(Page::Rights::RW())));
+      pte.set_page(Phys_mem_addr(phy + i),
+                   Page::Attr(Page::Rights::RW()));
       pte.write_back_if(true, Mem_unit::Asid_kernel);
     }
   Mem_layout::add_pmem(phy, next_map, size);

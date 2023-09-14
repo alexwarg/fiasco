@@ -95,8 +95,8 @@ Cpu_arm_bits_generic::init_supervisor_mode(bool is_boot_cpu)
                               Kpdir::Depth, true,
                               Kmem_alloc::q_allocator(Ram_quota::root));
 
-  pte.set_page(pte.make_page(Phys_mem_addr((unsigned long)&ivt_start),
-                             Page::Attr::kern_global(Page::Rights::RWX())));
+  pte.set_page(Phys_mem_addr((unsigned long)&ivt_start),
+               Page::Attr::kern_global(Page::Rights::RWX()));
   pte.write_back_if(true, Mem_unit::Asid_kernel);
 }
 
