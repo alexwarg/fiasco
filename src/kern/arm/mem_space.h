@@ -32,7 +32,7 @@ class Mem_space :
   friend class Mem_space_arm_bits<Mem_space>;
 
 public:
-  static constexpr bool Need_insert_tlb_flush = true;
+  static constexpr bool Need_insert_tlb_flush = false;
   static constexpr bool Need_upgrade_tlb_flush = true;
 
   explicit Mem_space(Ram_quota *q) : Mem_space_x<Mem_space>(q) {}
