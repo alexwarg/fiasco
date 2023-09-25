@@ -242,6 +242,10 @@ private:
   Mword         _dbg_id;
   Mword         _label;
   L4_timeout_pair _timeout;     ///< timeout
+#ifdef CONFIG_BIT64
+  Unsigned64  _to_abs_rcv;      ///< absolute receive timeout
+#endif
+
 public:
   Tb_entry_ipc() : _timeout(0) {}
   void print(String_buffer *buf) const;
@@ -286,6 +290,25 @@ public:
 
   Mword dword(unsigned index) const
   { return _dword[index]; }
+
+#ifdef CONFIG_BIT64
+  void set_abs_timeout(Utcb *utcb)
+  {
+    if (_timeout.rcv.is_absolute())
+      _to_abs_rcv = _timeout.rcv.microsecs_abs(utcb);
+  }
+
+  Unsigned64 timeout_abs_rcv() const
+  { return _to_abs_rcv; }
+#else
+  void set_abs_timeout(Utcb *)
+  {
+    // ignore absolute timeouts due to lack of space
+  }
+
+  Unsigned64 timeout_abs_rcv() const
+  { return 0ULL; }
+#endif
 };
 
 /** logged ipc result. */
