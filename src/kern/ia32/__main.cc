@@ -19,7 +19,6 @@ __main(unsigned checksum_ro)
   /* set global to be used in the constructors */
   Boot_info::set_checksum_ro(checksum_ro);
 
-  atexit(&static_destruction);
   static_construction();
 
   kernel_main();
