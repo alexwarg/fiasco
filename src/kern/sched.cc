@@ -160,9 +160,7 @@ public:
   {
     Migration *inf = reinterpret_cast<Migration *>(p);
     Context *v = static_cast<Context::Kernel_drq*>(rq)->src;
-    Cpu_number target_cpu = access_once(&inf->cpu);
-    migrate_away(v, inf, false);
-    migrate_to(v, target_cpu, false);
+    do_migration_not_current(v, inf);
     return Drq::no_answer_resched();
   }
 
@@ -182,12 +180,7 @@ public:
         return c->kernel_context_drq(handle_migration_helper, inf.get());
       }
     else
-      {
-        Cpu_number target_cpu = access_once(&inf.get()->cpu);
-        bool resched = migrate_away(c, inf.get(), false);
-        resched |= migrate_to(c, target_cpu, false);
-        return resched; // we already are chosen by the scheduler...
-      }
+      return do_migration_not_current(c, inf.get()); // we already are chosen by the scheduler...
   }
 
   [[gnu::flatten]]
@@ -201,12 +194,20 @@ public:
       return inf.resched();
 
     c->spill_fpu_if_owner();
+    return do_migration_not_current(c, inf.get());
+  }
 
-    Cpu_number target_cpu = access_once(&inf.get()->cpu);
-    bool resched = migrate_away(c, inf.get(), false);
-    resched |= migrate_to(c, target_cpu, false);
+private:
+  [[gnu::flatten]]
+  static bool
+  do_migration_not_current(Context *v, Migration *m)
+  {
+    Cpu_number target_cpu = access_once(&m->cpu);
+    bool resched = migrate_away(v, m, false);
+    resched |= migrate_to(v, target_cpu, false);
     return resched;
   }
+
 };
 
 
