@@ -10,9 +10,14 @@ public:
 
   void lock_arch() noexcept
   {
+    static_assert(   sizeof(typename SL::Lock_type) == 1
+                  || sizeof(typename SL::Lock_type) == 2
+                  || sizeof(typename SL::Lock_type) == 4,
+                  "unsupported spin-lock type for ARM");
+
     typename SL::Lock_type dummy, tmp;
 
-#define L(z) \
+#define LOCK_ARCH(z) \
     __asm__ __volatile__ ( \
         "1: ldr" #z "     %[d], [%[lock]]           \n" \
         "   tst     %[d], #2                  \n" /* Arch_lock == #2 */ \
@@ -28,22 +33,22 @@ public:
         : [lock] "r" (&static_cast<SL *>(this)->_lock) \
         : "cc" \
         )
-    extern char __use_of_invalid_type_for_Spin_lock__sizeof_is_invalid;
+
     switch(sizeof(typename SL::Lock_type))
       {
-      case 1: L(b); break;
-      case 2: L(h); break;
-      case 4: L(); break;
-      default: __use_of_invalid_type_for_Spin_lock__sizeof_is_invalid = 10; break;
+      case 1: LOCK_ARCH(b); break;
+      case 2: LOCK_ARCH(h); break;
+      case 4: LOCK_ARCH(); break;
       }
 
-#undef L
+#undef LOCK_ARCH
   }
 
   void unlock_arch() noexcept
   {
     typename SL::Lock_type tmp;
-#define UNL(z) \
+
+#define UNLOCK_ARCH(z) \
     __asm__ __volatile__( \
         "ldr"#z " %[tmp], %[lock]             \n" \
         "bic %[tmp], %[tmp], #2          \n" /* Arch_lock == #2 */ \
@@ -51,15 +56,14 @@ public:
         : [lock] "=m" (static_cast<SL *>(this)->_lock), [tmp] "=&r" (tmp)); \
     Mem::dsb(); \
     __asm__ __volatile__("sev")
-    extern char __use_of_invalid_type_for_Spin_lock__sizeof_is_invalid;
+
     switch (sizeof(typename SL::Lock_type))
       {
-      case 1: UNL(b); break;
-      case 2: UNL(h); break;
-      case 4: UNL(); break;
-      default: __use_of_invalid_type_for_Spin_lock__sizeof_is_invalid = 11; break;
+      case 1: UNLOCK_ARCH(b); break;
+      case 2: UNLOCK_ARCH(h); break;
+      case 4: UNLOCK_ARCH(); break;
       }
-#undef UNL
+
+#undef UNLOCK_ARCH
   }
 };
-
