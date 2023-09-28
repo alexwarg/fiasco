@@ -294,9 +294,6 @@ L4_msg_tag
 Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
                                 Utcb const *utcb, Utcb * /* out */)
 {
-  if (!space())
-    return commit_result(-L4_err::EInval);
-
   User<Vcpu_state>::Ptr vcpu(0);
 
   if (tag.words() >= 2)
@@ -356,9 +353,6 @@ Thread_object::ex_regs(Address ip, Address sp,
                 Address *o_ip, Address *o_sp, Mword *o_flags,
                 Mword ops)
 {
-  if (!space())
-    return false;
-
   if (current() == this)
     spill_user_state();
 
