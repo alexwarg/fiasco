@@ -25,12 +25,14 @@
 #include <kmem.h>
 
 static bool
-map_pmem(unsigned long phys, unsigned long size)
+map_pmem(unsigned long phys, unsigned long size,
+         unsigned long *map_addr)
 {
   static unsigned long next_map = Mem_layout::Pmem_start;
   size = Super_pg::ceil(size + Super_pg::offset(phys));
   phys = Super_pg::trunc(phys);
 
+  *map_addr = next_map;
   if (next_map + size > Mem_layout::Pmem_end)
     return false;
 
@@ -80,10 +82,11 @@ Kmem_alloc::Kmem_alloc()
       Kip::k()->add_mem_region(Mem_desc(f.start, f.end, Mem_desc::Reserved));
       if (0)
 	printf("Kmem_alloc: [%08lx; %08lx] sz=%ld\n", f.start, f.end, f.size());
+      unsigned long map_addr;
       if (Mem_layout::phys_to_pmem(f.start) == ~0UL)
-	if (!map_pmem(f.start, f.size()))
-        panic("Kmem_alloc: cannot map heap memory [%08lx; %08lx]",
-              f.start, f.end);
+        if (!map_pmem(f.start, f.size(), &map_addr))
+          panic("Kmem_alloc: cannot map heap memory [%08lx; %08lx]",
+                f.start, f.end);
 
       a->add_mem((void *)Mem_layout::phys_to_pmem(f.start), f.size());
       alloc_size -= f.size();
