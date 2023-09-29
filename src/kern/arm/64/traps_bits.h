@@ -53,17 +53,9 @@ inline Arm_esr get_esr()
   return esr;
 }
 
-constexpr inline bool
-is_syscall_pc(Address)
-{
-  return false;
-}
-
-constexpr inline Mword
-get_lr_for_mode(Return_frame const *rf)
-{
-  return rf->r[30];
-}
+inline bool
+check_and_handle_undef_syscall(Return_frame *)
+{ return false; }
 
 #ifdef CONFIG_CPU_VIRT
 

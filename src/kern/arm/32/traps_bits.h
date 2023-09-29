@@ -202,6 +202,20 @@ inline void handle_svc(Context *c, Trap_state *ts)
   sys_call_table[(-pc) / 4]();
 }
 
+inline bool
+check_and_handle_undef_syscall(Return_frame *rf)
+{
+  Mword pc = rf->pc;
+  if (!is_syscall_pc(pc + 4))
+    return false;
+
+  rf->pc = get_lr_for_mode(rf);
+  typedef void Syscall(void);
+  extern Syscall *sys_call_table[];
+  sys_call_table[-(pc + 4) / 4]();
+  return true;
+}
+
 static bool
 handle_fpu_trap(Trap_state *ts)
 {
