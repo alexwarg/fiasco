@@ -7,6 +7,7 @@
 #include <lock_guard.h>
 #include <mem_layout.h>
 #include <kmem_alloc_arch.h>
+#include <initcalls.h>
 
 #include <cassert>
 
@@ -23,7 +24,7 @@ class Kmem_alloc
 public:
   typedef Buddy_alloc Alloc;
 
-  Kmem_alloc();
+  Kmem_alloc() FIASCO_INIT;
 
   static void init();
 
