@@ -25,11 +25,11 @@
 #include <kmem.h>
 
 static bool
-map_pmem(unsigned long phy, unsigned long size)
+map_pmem(unsigned long phys, unsigned long size)
 {
   static unsigned long next_map = Mem_layout::Pmem_start;
-  size = Super_pg::ceil(size + Super_pg::offset(phy));
-  phy = Super_pg::trunc(phy);
+  size = Super_pg::ceil(size + Super_pg::offset(phys));
+  phys = Super_pg::trunc(phys);
 
   if (next_map + size > Mem_layout::Pmem_end)
     return false;
@@ -37,11 +37,11 @@ map_pmem(unsigned long phy, unsigned long size)
   for (unsigned long i = 0; i <size; i += Config::SUPERPAGE_SIZE)
     {
       auto pte = Kmem::kdir->walk(Virt_addr(next_map + i), Kpdir::Super_level);
-      pte.set_page(Phys_mem_addr(phy + i),
+      pte.set_page(Phys_mem_addr(phys + i),
                    Page::Attr(Page::Rights::RW()));
       pte.write_back_if(true, Mem_unit::Asid_kernel);
     }
-  Mem_layout::add_pmem(phy, next_map, size);
+  Mem_layout::add_pmem(phys, next_map, size);
   next_map += size;
   return true;
 }
