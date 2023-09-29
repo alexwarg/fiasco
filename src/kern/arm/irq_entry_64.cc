@@ -8,7 +8,7 @@
 extern "C" void irq_handler();
 
 void irq_handler()
-{ panic("INVALID IRQ HANDLER"); }
+{ panic("Invalid IRQ handler."); }
 
 
 
