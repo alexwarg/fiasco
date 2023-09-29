@@ -14,6 +14,7 @@
 class Buddy_alloc;
 class Mem_region_map_base;
 class Kip;
+class Mem_desc;
 
 template<typename Q> class Kmem_q_alloc;
 
@@ -148,6 +149,25 @@ private:
   {
     return _orig_free;
   }
+
+  /**
+   * Add a "Kernel_tmp" KIP memory region marked to the kernel memory except a
+   * "remaining" part of size `skip` which shall be not considered, change the
+   * descriptor type to "Reserved" and update _orig_free.
+   */
+  static FIASCO_INIT
+  void add_kip_md_tmp_to_kmem_sans_size(Mem_desc *md, unsigned long skip);
+
+  /**
+   * Add all "Kernel_tmp" KIP memory regions completely to the kernel memory,
+   * change the descriptor types to "Reserved" and update _orig_free.
+   */
+  static FIASCO_INIT
+  void add_kip_md_tmp_to_kmem();
+
+  static FIASCO_INIT
+  void setup_kmem_from_kip_md_tmp(unsigned long freemap_size,
+                                  unsigned long min_addr_kern);
 };
 
 
