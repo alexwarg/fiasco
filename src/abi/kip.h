@@ -43,6 +43,9 @@ public:
   Address end() const noexcept
   { return _h | 0x3ffUL; }
 
+  Address size() const noexcept
+  { return end() - start() + 1; }
+
   void type(Mem_type t) noexcept
   { _l = (_l & ~0x0f) | (t & 0x0f); }
 

@@ -177,7 +177,7 @@ Kmem_alloc::Kmem_alloc()
       if (!md.valid() || md.is_virtual() || md.type() != Mem_desc::Kernel_tmp)
         continue;
 
-      bmmd_size = md.end() - md.start() + 1;
+      bmmd_size = md.size();
       if (bmmd_size >= freemap_size)
         {
           bmmd = &md;
@@ -221,7 +221,7 @@ Kmem_alloc::Kmem_alloc()
       if (!md.valid() || md.is_virtual() || md.type() != Mem_desc::Kernel_tmp)
         continue;
 
-      unsigned long md_start = md.start(), md_size = md.end() - md.start() + 1;
+      unsigned long md_start = md.start(), md_size = md.size();
       unsigned long md_kern = Mem_layout::phys_to_pmem(md_start);
 
       if (0)
