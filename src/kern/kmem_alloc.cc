@@ -227,3 +227,12 @@ Kmem_alloc::create_free_map(Kip const *kip, Mem_region_map_base *map)
   return available_size;
 }
 
+void Kmem_alloc::debug_dump() const
+{
+  a->dump();
+
+  unsigned long free = a->avail();
+  printf("Used %llu%%, %luKiB out of %luKiB of Kmem\n",
+         100ULL * (_orig_free - free) / _orig_free,
+         (_orig_free - free + 1023) / 1024, (_orig_free + 1023) / 1024);
+}

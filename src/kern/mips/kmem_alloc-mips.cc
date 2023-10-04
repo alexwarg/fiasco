@@ -73,13 +73,3 @@ Kmem_alloc::Kmem_alloc()
 
   setup_kmem_from_kip_md_tmp(freemap_size, min_addr_kern);
 }
-
-void Kmem_alloc::debug_dump() const
-{
-  a->dump();
-
-  unsigned long free = a->avail();
-  printf("Used %ldKB out of %ldKB of Kmem\n",
-         (_orig_free - free + 1023) / 1024,
-         (_orig_free + 1023) / 1024);
-}
