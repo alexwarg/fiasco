@@ -104,38 +104,5 @@ public:
   {}
 #endif // CONFIG_ARM_V6PLUS
 
-  class Kernel_mem_op
-  {
-  public:
-    void set_ignore(bool ignore)
-    {
-      _ignore = ignore;
-      Mem::barrier();
-    }
-
-    bool is_ignore() const
-    {
-      return _ignore;
-    }
-
-    void set_hit()
-    {
-      _hit = true;
-    }
-
-    bool hit_and_clear()
-    {
-      bool h = _hit;
-      if (EXPECT_FALSE(h))
-        _hit = false;
-      return EXPECT_FALSE(h);
-    }
-
-  private:
-    bool _ignore:1;
-    bool _hit:1;
-  };
-
-  Kernel_mem_op kernel_mem_op;
 };
 

@@ -191,6 +191,10 @@ handle_svc(Context *c, Trap_state *ts)
   do_syscall();
 }
 
+inline bool check_and_handle_linux_cache_api(Trap_state *)
+{
+  return false;
+}
 
 extern "C" void arm_kernel_sync_entry(Trap_state *ts);
 void arm_kernel_sync_entry(Trap_state *ts)

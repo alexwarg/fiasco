@@ -1,5 +1,19 @@
 #include "mem_op.h"
 #include "mem_unit.h"
+#include <context.h>
+
+void
+Mem_op::arm_mem_cache_maint(int op, void const *start, void const *end)
+{
+  if (EXPECT_FALSE(start > end))
+    return;
+
+  Context *c = current();
+
+  c->kernel_mem_op.set_ignore(true);
+  __arm_mem_cache_maint(op, start, end);
+  c->kernel_mem_op.set_ignore(false);
+}
 
 void
 Mem_op::inv_icache(Address start, Address end)
