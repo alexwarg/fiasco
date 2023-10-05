@@ -134,6 +134,10 @@ public:
   static unsigned long
   create_free_map(Kip const *kip, Mem_region_map_base *map);
 
+  static FIASCO_INIT
+  unsigned long determine_kmem_alloc_size(unsigned long available_size,
+                                          unsigned long alignment = Config::PAGE_SIZE);
+
 protected:
   static void allocator(Kmem_alloc *a)
   {

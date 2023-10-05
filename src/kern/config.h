@@ -108,14 +108,16 @@ namespace Config
 
 #if defined (CONFIG_BIT32)
   // 8 percent of total RAM, >=750MB RAM => 60MB kmem
-  constexpr unsigned kernel_mem_per_cent = 8;
-  constexpr unsigned long kernel_mem_max = 60 << 20;
+  constexpr unsigned kmem_per_cent() { return 8; };
+  constexpr unsigned long kmem_max() { return 60UL << 20; }
 #endif
 #if defined(CONFIG_BIT64)
   // 6 percent of total RAM, >=55466MB RAM => 3328MB kmem
-  constexpr unsigned kernel_mem_per_cent = 6;
-  constexpr unsigned long kernel_mem_max = 3328UL << 20;
+  constexpr unsigned kmem_per_cent() { return 6; }
+  constexpr unsigned long kmem_max() { return 3328UL << 20; }
 #endif
+
+  unsigned long kmem_size(unsigned long available_size);
 
 #if defined (CONFIG_SERIAL)
   extern int serial_esc;

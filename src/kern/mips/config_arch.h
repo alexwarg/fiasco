@@ -25,12 +25,6 @@ namespace Config
 
   enum
   {
-    Kmem_per_cent = 6,
-    Kmem_max_mb   = 32,
-  };
-
-  enum
-  {
     Scheduler_one_shot		= 0,
     Scheduler_granularity	= 1000UL,
     Default_time_slice	        = 10 * Scheduler_granularity,
@@ -44,4 +38,3 @@ namespace Config
     default_console_uart_baudrate = 115200
   };
 }
-

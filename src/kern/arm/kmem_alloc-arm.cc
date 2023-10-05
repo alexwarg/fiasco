@@ -58,14 +58,11 @@ Kmem_alloc::Kmem_alloc()
 {
   // The -Wframe-larger-than= warning for this function is known and
   // no problem, because the function runs only on our boot stack.
-  Mword alloc_size = Config::KMEM_SIZE;
   Mem_region_map<64> map;
   unsigned long available_size = create_free_map(Kip::k(), &map);
 
-  // sanity check whether the KIP has been filled out, number is arbitrary
-  if (available_size < (1 << 18))
-    panic("Kmem_alloc: No kernel memory available (%ld)", available_size);
 
+  unsigned long alloc_size = determine_kmem_alloc_size(available_size); //, Config::SUPERPAGE_SIZE);
   // Walk through all KIP memory regions of conventional memory minus the
   // reserved memory and find one or more regions suitable for the kernel
   // memory.

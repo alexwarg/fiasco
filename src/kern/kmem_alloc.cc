@@ -13,6 +13,7 @@
 
 #include <config.h>
 #include <kip.h>
+#include <koptions.h>
 #include <mem_layout.h>
 #include <mem_region.h>
 #include <buddy_alloc.h>
@@ -28,6 +29,25 @@ Kmem_alloc *Kmem_alloc::_alloc;
 Kmem_alloc_reaper::Reaper_list Kmem_alloc_reaper::mem_reapers;
 
 static Static_object<Kmem_alloc> _kmem_alloc;
+
+FIASCO_INIT
+unsigned long
+Kmem_alloc::determine_kmem_alloc_size(unsigned long available_size,
+                                      unsigned long alignment)
+{
+  // sanity check whether the KIP has been filled out, number is arbitrary
+  if (available_size < 1 << 18)
+    panic("Kmem_alloc: No kernel memory available (%ld)\n", available_size);
+
+  unsigned long alloc_size = Koptions::o()->kmemsize << 10;
+  if (!alloc_size)
+    alloc_size = Config::kmem_size(available_size);
+
+  alloc_size = (alloc_size + alignment - 1) & ~(alignment - 1);
+
+  printf("Reserved %lu MiB as kernel memory.\n", alloc_size >> 20);
+  return alloc_size;
+}
 
 /**
  * Find a suitable "Kernel_tmp" KIP memory region with a minimal size.
