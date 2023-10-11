@@ -60,8 +60,7 @@ Kmem_alloc::Kmem_alloc()
 
   // sanity check whether the KIP has been filled out, number is arbitrary
   if (available_size < (1 << 18))
-    panic("Kmem_alloc: No kernel memory available (%ld)\n",
-          available_size);
+    panic("Kmem_alloc: No kernel memory available (%ld)", available_size);
 
   Mem_region last = map[map.length() - 1];
   if (last.end - Mem_layout::Sdram_phys_base < Config::kernel_mem_max)
@@ -83,14 +82,16 @@ Kmem_alloc::Kmem_alloc()
 	printf("Kmem_alloc: [%08lx; %08lx] sz=%ld\n", f.start, f.end, f.size());
       if (Mem_layout::phys_to_pmem(f.start) == ~0UL)
 	if (!map_pmem(f.start, f.size()))
-	  panic("Kmem_alloc: cannot map physical memory %p\n", (void*)f.start);
+        panic("Kmem_alloc: cannot map heap memory [%08lx; %08lx]",
+              f.start, f.end);
 
       a->add_mem((void *)Mem_layout::phys_to_pmem(f.start), f.size());
       alloc_size -= f.size();
     }
 
   if (alloc_size)
-    WARNX(Warning, "Kmem_alloc: cannot allocate sufficient kernel memory\n");
+    panic("Kmem_alloc: cannot allocate sufficient kernel memory (missing %ld)",
+          alloc_size);
 }
 
 #else // CONFIG_NONCONT_MEM
@@ -106,8 +107,7 @@ Kmem_alloc::Kmem_alloc()
 
   // sanity check whether the KIP has been filled out, number is arbitrary
   if (available_size < (1 << 18))
-    panic("Kmem_alloc: No kernel memory available (%ld)\n",
-          available_size);
+    panic("Kmem_alloc: No kernel memory available (%ld)", available_size);
 
   for (int i = map.length() - 1; i >= 0 && alloc_size > 0; --i)
     {
@@ -143,7 +143,7 @@ Kmem_alloc::Kmem_alloc()
     }
 
   if (freemap_addr == ~0UL)
-    panic("could not allocate freemap for buddy allocator\n");
+    panic("could not allocate freemap for buddy allocator");
 
   a->init(map[0].start + offset);
   a->setup_free_map((unsigned long *)freemap_addr, freemap_size);
