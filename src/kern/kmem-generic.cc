@@ -20,6 +20,7 @@ bool cont_mapped(Address phys_beg, Address phys_end, Address virt, bool cache)
       auto e = Kmem::kdir->walk(Virt_addr(v), Kmem::kdir->Super_level);
       if (!e.is_valid() || p != e.page_addr())
         return false;
+      (void)cache;
       assert(   (!cache && e.attribs().type == Page::Type::Uncached())
              || (cache && e.attribs().type == Page::Type::Normal()));
     }
