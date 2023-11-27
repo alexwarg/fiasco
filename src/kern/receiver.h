@@ -127,8 +127,7 @@ public:
 
   void reset_caller()
   {
-    if (_caller.load(cxx::memory_order_relaxed))
-      _caller.store(0);
+    _caller.store(0);
   }
 
   /** Return a reference to receiver's IPC registers.
