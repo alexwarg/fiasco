@@ -173,12 +173,13 @@ public:
   }
 
   /// lookup_local
-  Kobject_iface *lookup_local(Cap_index virt, L4_fpage::Rights *rights)
+  Kobject_iface * __attribute__((nonnull))
+  lookup_local(Cap_index virt, L4_fpage::Rights *rights)
   {
     virt &= Cap_index(~(~0UL << Whole_space));
     Capability *c = reinterpret_cast<Capability*>(cap_virt(virt));
     Capability cap = Mem_layout::read_special_safe(c);
-    if (rights) *rights = L4_fpage::Rights(cap.rights());
+    *rights = L4_fpage::Rights(cap.rights());
     return cap.obj();
   }
 

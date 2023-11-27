@@ -142,8 +142,8 @@ public:
   void caps_free() FIASCO_FLATTEN
   { Base::caps_free(); }
 
-  Kobject_iface *lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0)
-  FIASCO_FLATTEN
+  Kobject_iface * FIASCO_FLATTEN __attribute__((nonnull))
+  lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0)
   { return Base::lookup_local(virt, rights); }
 
   inline V_pfn map_max_address() const

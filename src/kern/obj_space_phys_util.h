@@ -117,7 +117,8 @@ public:
   }
 
 
-  Kobject_iface *lookup_local(Cap_index virt, L4_fpage::Rights *rights)
+  Kobject_iface *  __attribute__((nonnull))
+  lookup_local(Cap_index virt, L4_fpage::Rights *rights)
   {
     Entry *c = get_cap(virt);
 
@@ -126,8 +127,7 @@ public:
 
     Capability cap = *c;
 
-    if (rights)
-      *rights = L4_fpage::Rights(cap.rights());
+    *rights = L4_fpage::Rights(cap.rights());
 
     return cap.obj();
   }
