@@ -656,6 +656,11 @@ void
 Thread_ipc<THREAD>::ipc_send_msg(Receiver *recv, bool open_wait)
 {
   Syscall_frame *regs = _snd_regs;
+
+  if (EXPECT_FALSE(_this()->home_cpu() != recv->home_cpu()
+        && regs->tag().transfer_fpu()))
+    clear_fpu_before_receive(nonull_static_cast<Thread*>(recv));
+
   sender_dequeue(recv->sender_list());
   recv->vcpu_update_state();
   bool success = transfer_msg(regs->tag(), nonull_static_cast<Thread*>(recv),
