@@ -2,6 +2,7 @@
 
 #include <mem.h>
 #include <mem_unit.h>
+#include <mem_layout.h>
 
 #include <cassert>
 
@@ -25,7 +26,7 @@ public:
   { return static_cast<T *>(_va); }
 
   inline Address phys_addr() const
-  { return to_phys(virt_addr()); }
+  { return Mem_layout::pmem_to_phys(virt_addr()); }
 
   unsigned size() const
   { return _size; }
