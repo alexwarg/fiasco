@@ -97,6 +97,7 @@ public:
     if (&o == this)
       return *this;
 
+    reset();
     _o = o._o;
     o._o = 0;
 
