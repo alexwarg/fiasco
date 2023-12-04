@@ -8,6 +8,8 @@
 
 class Semaphore : public Kobject_h<Semaphore, Irq>
 {
+  Semaphore() = delete;
+
 public:
   friend class Jdb_kobject_irq;
   enum Op {
@@ -21,7 +23,8 @@ public:
   }
 #endif // CONFIG_JDB
 
-  explicit Semaphore(Ram_quota *q = 0)
+  explicit __attribute__((nonnull))
+  Semaphore(Ram_quota *q)
   : Kobject_h<Semaphore, Irq>(q), _queued(0)
   {
     hit_func = &hit_edge_irq;

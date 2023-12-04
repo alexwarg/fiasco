@@ -29,6 +29,7 @@ class Irq : public Irq_base, public cxx::Dyn_castable<Irq, Kobject>
 {
   MEMBER_OFFSET();
   typedef Slab_cache Allocator;
+  Irq() = delete;
 
 public:
   enum Op
@@ -56,7 +57,8 @@ public:
     return 0;
   }
 
-  explicit Irq(Ram_quota *q = 0) : _q(q) {}
+  explicit __attribute__((nonnull))
+  Irq(Ram_quota *q = 0) : _q(q) {}
 
   void destroy(Kobject ***rl) override;
 

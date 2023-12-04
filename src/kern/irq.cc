@@ -226,10 +226,8 @@ void
 Irq::operator delete (void *_l) noexcept
 {
   Irq *l = reinterpret_cast<Irq*>(_l);
-  if (l->_q)
-    allocator()->q_free(l->_q, l);
-  else
-    allocator()->free(l);
+  assert(l->_q);
+  allocator()->q_free(l->_q, l);
 }
 
 void
