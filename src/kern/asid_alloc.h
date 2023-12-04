@@ -388,9 +388,6 @@ private:
     return new_asid | generation.a;
   }
 
-public:
-  Asid_alloc_t(Asids const &asids) : _asids(asids) {}
-
   /**
    * Check validity of given ASID.
    *
@@ -418,6 +415,9 @@ public:
   {
     return EXPECT_TRUE(active_asid->exchange(asid).is_valid());
   }
+
+public:
+  Asid_alloc_t(Asids const &asids) : _asids(asids) {}
 
   /**
    * Allocate a new ASID, if necessary, and set it as the active ASID of the
