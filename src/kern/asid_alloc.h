@@ -269,6 +269,8 @@ template<typename ASID_TYPE, unsigned ASID_BITS, unsigned ASID_BASE,
          Asid_num_fn ASID_NUM = nullptr>
 class Asid_alloc_t
 {
+  friend struct Asid_alloc_test;
+
 public:
   using Asid = Asid_t<ASID_TYPE, ASID_BITS>;
   using Atomic_asid = Atomic_asid_t<ASID_TYPE, ASID_BITS>;
