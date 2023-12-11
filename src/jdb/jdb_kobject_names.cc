@@ -26,7 +26,7 @@ Jdb_kobject_name *Jdb_kobject_name::_names;
 static Spin_lock<> allocator_lock;
 
 void *
-Jdb_kobject_name::operator new (size_t) throw()
+Jdb_kobject_name::operator new (size_t) noexcept
 {
   Jdb_kobject_name *n = _names;
   while (1)

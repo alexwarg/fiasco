@@ -14,7 +14,7 @@ public:
 
   ~Jdb_kobject_name() {}
 
-  void *operator new (size_t) throw();
+  void *operator new (size_t) noexcept;
   void operator delete (void *);
 
   int max_len() { return sizeof(_name); }
