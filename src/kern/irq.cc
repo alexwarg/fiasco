@@ -133,7 +133,7 @@ Irq_sender::hit_edge_irq(Irq_base *i, Upstream_irq const *ui)
 
 L4_msg_tag
 Irq_sender::sys_bind(L4_msg_tag tag, L4_fpage::Rights rights, Utcb const *utcb,
-                     Syscall_frame *)
+                     Utcb *utcb_out)
 {
   if (EXPECT_FALSE(!(rights & L4_fpage::Rights::CS())))
     return commit_result(-L4_err::EPerm);
@@ -149,20 +149,13 @@ Irq_sender::sys_bind(L4_msg_tag tag, L4_fpage::Rights rights, Utcb const *utcb,
     return commit_result(-L4_err::EPerm);
 
   Reap_list rl;
-  int res = alloc(thread, rl.list());
-
-  // note: this is a possible race on user-land
-  // where the label of an IRQ might become inconsistent with the attached
-  // thread. The user is responsible to synchronize Irq::attach calls to prevent
-  // this.
-  if (res == 0)
-    _irq_id = access_once(&utcb->values[1]);
+  L4_msg_tag res = alloc(thread, utcb, utcb_out, rl.list());
 
   cpu_lock.clear();
   rl.del();
   cpu_lock.lock();
 
-  return commit_result(res);
+  return res;
 }
 
 L4_msg_tag
@@ -182,7 +175,7 @@ Irq_sender::sys_detach(L4_fpage::Rights rights)
 
 L4_msg_tag
 Irq_sender::kinvoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f,
-                    Utcb const *utcb, Utcb *)
+                    Utcb const *utcb, Utcb *utcb_out)
 {
   L4_msg_tag tag = f->tag();
   int op = get_irq_opcode(tag, utcb);
@@ -196,7 +189,7 @@ Irq_sender::kinvoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f,
       switch (op)
         {
         case Op_bind: // the Rcv_endpoint opcode (equal to Ipc_gate::bind_thread)
-          return sys_bind(tag, rights, utcb, f);
+          return sys_bind(tag, rights, utcb, utcb_out);
         default:
           return commit_result(-L4_err::ENosys);
         }
