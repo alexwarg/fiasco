@@ -65,12 +65,20 @@ public:
   : _lock(l), _state(Policy::test_and_set(l))
     {}
 
+  /**
+   * Acquire the lock and release it on destruction.
+   */
   void lock(Lock *l) noexcept
   {
     _lock = l;
     _state = Policy::test_and_set(l);
   }
 
+  /**
+   * Acquire the lock, release it on destruction and return `false` if the lock is
+   * invalid. The function will fail if the lock is invalid, otherwise it will
+   * (eventually) acquire the lock and return `true`.
+   */
   bool check_and_lock(Lock *l) noexcept
   {
     _lock = l;
@@ -78,26 +86,19 @@ public:
     return _state != Lock::Invalid;
   }
 
-  bool try_lock(Lock *l) noexcept
-  {
-    _state = Policy::test_and_set(l);
-    switch (_state)
-      {
-      case Lock::Locked:
-        return true;
-      case Lock::Not_locked:
-        _lock = l;			// Was not locked -- unlock.
-        return true;
-      default:
-        return false; // Error case -- lock not existent
-      }
-  }
 
+  /**
+   * Detach from the lock.
+   */
   void release() noexcept
   {
     _lock = nullptr;
   }
 
+  /**
+   * Restore the lock state to the state before the lock was taken and detach from
+   * the lock.
+   */
   void reset() noexcept
   {
     if (_lock)
@@ -107,6 +108,9 @@ public:
       }
   }
 
+  /**
+   * Restore the lock state to the state before the lock was taken.
+   */
   ~Lock_guard() noexcept
   {
     if (_lock)
@@ -180,18 +184,32 @@ public:
 };
 
 
+/**
+ * Attach to a lock, acquire it and release it on destruction.
+ */
 template<template<typename L> class POLICY = Lock_guard_regular_policy, typename LOCK>
 constexpr Lock_guard<LOCK, POLICY> lock_guard(LOCK &lock)
 { return Lock_guard<LOCK, POLICY>(&lock); }
 
+/**
+ * Attach to a lock, acquire it and release it on destruction.
+ */
 template<template<typename L> class POLICY = Lock_guard_regular_policy, typename LOCK>
 constexpr Lock_guard<LOCK, POLICY> lock_guard(LOCK *lock)
 { return Lock_guard<LOCK, POLICY>(lock); }
 
+/**
+ * Create a lock guard without attaching to the actual lock. This is normally
+ * used together with check_and_lock().
+ */
 template<template<typename L> class POLICY = Lock_guard_regular_policy, typename LOCK>
 constexpr Lock_guard<LOCK, POLICY> lock_guard_dont_lock(LOCK &)
 { return Lock_guard<LOCK, POLICY>(); }
 
+/**
+ * Create a lock guard without attaching to the actual lock. This is normally
+ * used together with check_and_lock().
+ */
 template<template<typename L> class POLICY = Lock_guard_regular_policy, typename LOCK>
 constexpr Lock_guard<LOCK, POLICY> lock_guard_dont_lock(LOCK *)
 { return Lock_guard<LOCK, POLICY>(); }
