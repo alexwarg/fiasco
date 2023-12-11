@@ -94,7 +94,7 @@ public:
 
   struct Cbaser
   {
-    Unsigned64 raw;
+    Unsigned64 raw = 0;
     Cbaser() = default;
     explicit Cbaser(Unsigned64 v) : raw(v) {}
     CXX_BITFIELD_MEMBER          ( 0,  7, size, raw);
@@ -106,7 +106,7 @@ public:
 
   struct Baser
   {
-    Unsigned64 raw;
+    Unsigned64 raw = 0;
     Baser() = default;
     explicit Baser(Unsigned64 v) : raw(v) {}
     CXX_BITFIELD_MEMBER          ( 0,  7, size, raw);
@@ -139,7 +139,7 @@ public:
 
   struct L1_entry
   {
-    Unsigned64 raw;
+    Unsigned64 raw = 0;
     L1_entry() = default;
     explicit L1_entry(Unsigned64 v) : raw(v) {}
     CXX_BITFIELD_MEMBER_UNSHIFTED(12, 51, pa, raw);

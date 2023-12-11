@@ -157,7 +157,7 @@ private:
 
   struct Propbaser
   {
-    Unsigned64 raw;
+    Unsigned64 raw = 0;
     Propbaser() = default;
     explicit Propbaser(Unsigned64 v) : raw(v) {}
     CXX_BITFIELD_MEMBER          ( 0,  4, id_bits, raw);
@@ -168,7 +168,7 @@ private:
 
   struct Pendbaser
   {
-    Unsigned64 raw;
+    Unsigned64 raw = 0;
     Pendbaser() = default;
     explicit Pendbaser(Unsigned64 v) : raw(v) {}
     CXX_BITFIELD_MEMBER          ( 7,  9, cacheability, raw);
