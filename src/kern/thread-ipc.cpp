@@ -167,10 +167,10 @@ void
 Thread::ipc_send_msg(Receiver *recv, bool open_wait) override
 {
   Syscall_frame *regs = _snd_regs;
-  bool success = transfer_msg(regs->tag(), nonull_static_cast<Thread*>(recv),
-                              _ipc_send_rights, open_wait);
   sender_dequeue(recv->sender_list());
   recv->vcpu_update_state();
+  bool success = transfer_msg(regs->tag(), nonull_static_cast<Thread*>(recv),
+                              _ipc_send_rights, open_wait);
   //printf("  done\n");
 
   Mword state_del;
