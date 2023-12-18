@@ -209,7 +209,7 @@ public:
     return true;
   }
 
-  void tlb_flush(bool) override;
+  void tlb_flush_current_cpu() override;
   Page_number mem_space_map_max_address() const override;
   int resume_vcpu(Context *, Vcpu_state *, bool) override
   {

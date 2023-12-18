@@ -90,7 +90,7 @@ Dmar_space::create_identity_map()
 }
 
 void
-Dmar_space::tlb_flush(bool)
+Dmar_space::tlb_flush_current_cpu()
 {
   if (_did)
     Intel::Io_mmu::queue_and_wait_on_all_iommus(

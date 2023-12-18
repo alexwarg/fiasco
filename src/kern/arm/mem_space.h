@@ -50,15 +50,12 @@ public:
     return Mem_layout::pmem_to_phys(virt);
   }
 
-  void tlb_flush(bool force) FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void tlb_flush_current_cpu() FIASCO_VIRT_OBJ_SPACE_OVERRIDE
   {
     if (!Have_asids)
       Mem_unit::tlb_flush();
-    else if (force && c_asid() != Mem_unit::Asid_invalid)
+    else if (c_asid() != Mem_unit::Asid_invalid)
       Mem_unit::tlb_flush(c_asid());
-
-    // else do nothing, we manage ASID local flushes in v_* already
-    // Mem_unit::tlb_flush();
   }
 
   void v_set_access_flags(Vaddr, L4_fpage::Rights) FIASCO_VIRT_OBJ_SPACE_OVERRIDE

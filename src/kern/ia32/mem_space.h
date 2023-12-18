@@ -77,7 +77,7 @@ public:
     return true;
   }
 
-  void tlb_flush(bool) FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void tlb_flush_current_cpu() FIASCO_VIRT_OBJ_SPACE_OVERRIDE
   {
     tlb_flush_this_();
   }

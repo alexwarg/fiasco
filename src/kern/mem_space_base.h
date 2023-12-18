@@ -82,7 +82,7 @@ public:
 
 
   FIASCO_SPACE_VIRTUAL
-  void tlb_flush(bool);
+  void tlb_flush_current_cpu();
 
   /** Insert a page-table entry, or upgrade an existing entry with new
    *  attributes.

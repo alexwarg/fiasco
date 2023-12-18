@@ -77,7 +77,7 @@ struct Auto_tlb_flush<Mem_space>
       }
 
     for (unsigned i = 0; i < N_spaces && spaces[i]; ++i)
-      spaces[i]->tlb_flush(true);
+      spaces[i]->tlb_flush_current_cpu();
   }
 
   void global_flush()

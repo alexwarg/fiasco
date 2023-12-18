@@ -88,11 +88,8 @@ public:
 
   static void init();
 
-  void tlb_flush(bool force = false) FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void tlb_flush_current_cpu() FIASCO_VIRT_OBJ_SPACE_OVERRIDE
   {
-    if (!force)
-      return;
-
 #ifdef CONFIG_CPU_VIRT
     Cpu_number cpu = current_cpu();
     Mem_unit::tlb_flush(Asid_ops::get_id(this, cpu),
