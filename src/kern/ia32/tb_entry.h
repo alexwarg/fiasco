@@ -22,10 +22,10 @@ struct Tb_entry_arch
 class Tb_entry_trap : public Tb_entry
 {
 private:
-  Unsigned8	_trapno;
-  Unsigned16	_error;
-  Mword	_bp, _cr2, _ax, _flags, _sp;
-  Unsigned16	_cs,  _ds;
+  Unsigned8  _trapno;
+  Unsigned16 _error;
+  Mword      _bp, _cr2, _ax, _flags, _sp;
+  Unsigned16 _cs,  _ds;
 public:
   void print(String_buffer *buf) const;
 

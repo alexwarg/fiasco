@@ -48,14 +48,14 @@ extern Tb_log_table_entry _jdb_log_table_end;
 class Tb_entry : public Tb_entry_arch
 {
 protected:
-  Mword		_number;	///< event number
-  Address	_ip;		///< instruction pointer
-  Unsigned64	_tsc;		///< time stamp counter
-  Context const *_ctx;		///< Context
-  Unsigned32	_pmc1;		///< performance counter value 1
-  Unsigned32	_pmc2;		///< performance counter value 2
-  Unsigned32	_kclock;	///< lower 32 bits of kernel clock
-  Unsigned8	_type;		///< type of entry
+  Mword         _number;        ///< event number
+  Address       _ip;            ///< instruction pointer
+  Unsigned64    _tsc;           ///< time stamp counter
+  Context const *_ctx;          ///< Context
+  Unsigned32    _pmc1;          ///< performance counter value 1
+  Unsigned32    _pmc2;          ///< performance counter value 2
+  Unsigned32    _kclock;        ///< lower 32 bits of kernel clock
+  Unsigned8     _type;          ///< type of entry
   Unsigned8     _cpu;           ///< CPU
 
   static Mword (*rdcnt1)();
@@ -236,12 +236,12 @@ Tb_entry_formatter_t<T> const Tb_entry_formatter_t<T>::singleton;
 class Tb_entry_ipc : public Tb_entry
 {
 private:
-  L4_msg_tag	_tag;           ///< message tag
-  Mword	_dword[2];	///< first two message words
-  L4_obj_ref	_dst;		///< destination id
-  Mword       _dbg_id;
-  Mword       _label;
-  L4_timeout_pair _timeout;	///< timeout
+  L4_msg_tag    _tag;           ///< message tag
+  Mword         _dword[2];      ///< first two message words
+  L4_obj_ref    _dst;           ///< destination id
+  Mword         _dbg_id;
+  Mword         _label;
+  L4_timeout_pair _timeout;     ///< timeout
 public:
   Tb_entry_ipc() : _timeout(0) {}
   void print(String_buffer *buf) const;
@@ -292,13 +292,13 @@ public:
 class Tb_entry_ipc_res : public Tb_entry
 {
 private:
-  L4_msg_tag	_tag;		///< message tag
-  Mword	_dword[2];	///< first two dwords
-  L4_error	_result;	///< result
-  Mword	_from;		///< receive descriptor
-  Mword	_pair_event;	///< referred event
-  Unsigned8	_have_snd;	///< ipc had send part
-  Unsigned8	_is_np;		///< next period bit set
+  L4_msg_tag    _tag;           ///< message tag
+  Mword         _dword[2];      ///< first two dwords
+  L4_error      _result;        ///< result
+  Mword         _from;          ///< receive descriptor
+  Mword          _pair_event;   ///< referred event
+  Unsigned8     _have_snd;      ///< IPC had send part
+  Unsigned8     _is_np;         ///< next period bit set
 public:
   void print(String_buffer *buf) const;
 
@@ -347,9 +347,9 @@ public:
 class Tb_entry_pf : public Tb_entry
 {
 private:
-  Address	_pfa;		///< pagefault address
-  Mword	_error;		///< pagefault error code
-  Space	*_space;
+  Address       _pfa;           ///< pagefault address
+  Mword         _error;         ///< pagefault error code
+  Space         *_space;
 public:
   // Unused because PF logging type < Tbuf_dynentries, see formatter_default()
   void print(String_buffer *) const {}
@@ -429,10 +429,10 @@ public:
 class Tb_entry_bp : public Tb_entry
 {
 private:
-  Address	_address;	///< breakpoint address
-  int		_len;		///< breakpoint length
-  Mword	_value;		///< value at address
-  int		_mode;		///< breakpoint mode
+  Address       _address;       ///< breakpoint address
+  int           _len;           ///< breakpoint length
+  Mword         _value;         ///< value at address
+  int           _mode;          ///< breakpoint mode
 public:
   void print(String_buffer *buf) const;
 
