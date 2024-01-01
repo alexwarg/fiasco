@@ -608,9 +608,10 @@ private:
 
     if (EXPECT_FALSE(snd_t.is_finite()))
       {
-        Unsigned64 tval = snd_t.microsecs(System_clock::clock(), _this()->utcb().access(true));
+        Unsigned64 system_clock = System_clock::clock();
+        Unsigned64 tval = snd_t.microsecs(system_clock, _this()->utcb().access(true));
         // Zero timeout or timeout expired already -- give up
-        if (tval == 0)
+        if (tval == 0 || tval <= system_clock)
           return !abort_send(L4_error::Timeout, partner);
 
         _this()->set_timeout(&timeout, tval);

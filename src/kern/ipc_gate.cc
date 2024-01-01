@@ -204,11 +204,12 @@ inline
 L4_error
 Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
 {
-  Unsigned64 t = 0;
+  Unsigned64 tval = 0;
   if (!to.is_never())
     {
-      t = to.microsecs(System_clock::clock(), u);
-      if (!t)
+      Unsigned64 system_clock = System_clock::clock();
+      tval = to.microsecs(system_clock, u);
+      if (tval == 0 || tval <= system_clock)
         return L4_error::Timeout;
     }
 
@@ -220,11 +221,12 @@ Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
   ct->state.change_dirty(~Thread_ready, Thread_send_wait);
 
   IPC_timeout timeout;
-  if (t)
+  if (tval)
     {
-      timeout.set(t, current_cpu());
+      timeout.set(tval, current_cpu());
       ct->set_timeout(&timeout);
     }
+  // else infinite timeout
 
   ct->schedule();
 
