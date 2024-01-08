@@ -5,6 +5,7 @@
 #include <std_macros.h>
 #include <fpu.h>
 #include <kdb_ke.h>
+#include <infinite_loop.h>
 
 inline bool
 pagein_tcb_request(Return_frame *regs)
@@ -303,6 +304,9 @@ void hyp_mode_fault(Mword abort_type, Trap_state *ts)
   ts->dump();
 
   kdb_ke("In-kernel fault");
+
+  printf("Return from debugger -- halting!\n");
+  L4::infinite_loop();
 }
 #ifdef CONFIG_FPU
 
