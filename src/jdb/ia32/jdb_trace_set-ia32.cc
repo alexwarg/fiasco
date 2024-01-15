@@ -78,12 +78,12 @@ set_fast_entry(Cpu_number cpu, void (*func)())
 #include "jdb.h"
 #include "pm.h"
 #include "jdb_trace.h"
+#include "entry-ia32.h"
 
 extern "C" void sys_ipc_wrapper (void);
 extern "C" void sys_ipc_log_wrapper (void);
 
 extern "C" void entry_sys_fast_ipc_log (void);
-extern "C" void entry_sys_fast_ipc_c (void);
 extern void (*syscall_table[])();
 
 static void set_ipc_vector()

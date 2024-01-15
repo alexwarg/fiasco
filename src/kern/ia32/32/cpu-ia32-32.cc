@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "entry-ia32.h"
 
 extern "C" void entry_vec08_dbf();
 extern "C" Address dbf_stack_top;
@@ -65,10 +66,6 @@ Cpu_ia32_bits::init_gdt(Address gdt_mem, Address user_max)
                     Gdt_entry::User, Gdt_entry::Code_undef,
                     Gdt_entry::Size_32);
 }
-
-
-
-extern "C" void entry_sys_fast_ipc_c (void);
 
 void
 Cpu_ia32_bits::init_sysenter()

@@ -3,8 +3,8 @@
 #include "mem_layout.h"
 #include "syscall_entry.h"
 #include "tss.h"
+#include "entry-ia32.h"
 
-extern "C" void entry_sys_fast_ipc_c();
 extern "C" Address dbf_stack_top;
 
 #ifndef CONFIG_KERNEL_ISOLATION

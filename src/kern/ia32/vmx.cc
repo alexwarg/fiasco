@@ -8,6 +8,8 @@
 #include <idt.h>
 #include <panic.h>
 #include <warn.h>
+#include <vm_vmx_asm.h>
+#include <entry-ia32.h>
 
 class Vmx_init_host_state
 {
@@ -21,9 +23,6 @@ public:
 
     if (cpu == Cpu::invalid() || !c.vmx() || !v.vmx_enabled())
       return;
-
-    extern char entry_sys_fast_ipc_c[];
-    extern char vm_vmx_exit_vec[];
 
     v.vmwrite(Vmx::F_host_es_selector, GDT_DATA_KERNEL);
     v.vmwrite(Vmx::F_host_cs_selector, GDT_CODE_KERNEL);
