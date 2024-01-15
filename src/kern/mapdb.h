@@ -7,6 +7,7 @@
 #include "mapping_tree.h"
 #include "auto_quota.h"
 #include "assert_opt.h"
+#include <unique_ptr.h>
 
 #include <cassert>
 
@@ -491,11 +492,8 @@ public:
   using Order =   Treemap::Order;
   using Frame =   Treemap::Frame;
 
-  ~Mapdb()
-  { delete _treemap; }
-
   Treemap *dbg_treemap() const
-  { return _treemap; }
+  { return _treemap.get(); }
 
   bool valid_address(Pfn phys) const
   {
@@ -506,7 +504,7 @@ public:
 
 private:
   // DATA
-  Treemap *const _treemap;
+  cxx::unique_ptr<Treemap> const _treemap;
 
   template<typename F> static
   void _for_full_subtree(unsigned min_depth,
