@@ -394,7 +394,7 @@ ipc_gate_factory(Ram_quota *q, Space *space,
   return Ipc_gate::create(q, thread, id);
 }
 
-static inline void __attribute__((constructor)) FIASCO_INIT
+static inline void __attribute__((constructor)) FIASCO_INIT_SFX(ipc_gate_register_factory)
 register_factory()
 {
   Kobject_iface::set_factory(0, ipc_gate_factory);

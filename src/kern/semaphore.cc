@@ -304,7 +304,7 @@ semaphore_factory(Ram_quota *q, Space *,
   return Irq::allocate<Semaphore>(q);
 }
 
-static inline void __attribute__((constructor)) FIASCO_INIT
+static inline void __attribute__((constructor)) FIASCO_INIT_SFX(semaphore_register_factory)
 register_factory()
 {
   Kobject_iface::set_factory(L4_msg_tag::Label_semaphore, semaphore_factory);

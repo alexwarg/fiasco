@@ -649,7 +649,9 @@ Vm_svm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 }
 
 namespace {
-static inline void __attribute__((constructor)) FIASCO_INIT
+
+static inline
+void __attribute__((constructor)) FIASCO_INIT_SFX(vm_svm_register_factory)
 register_factory()
 {
   if (!Svm::cpu_svm_available(Cpu_number::boot_cpu()))
@@ -658,6 +660,7 @@ register_factory()
   Kobject_iface::set_factory(L4_msg_tag::Label_vm,
                              Task::generic_factory<Vm_svm>);
 }
+
 }
 
 #if defined (CONFIG_JDB)

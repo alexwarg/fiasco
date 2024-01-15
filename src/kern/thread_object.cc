@@ -625,6 +625,7 @@ Thread_object::invoke(L4_obj_ref self, L4_fpage::Rights rights,
 }
 
 namespace {
+
 static Kobject_iface * FIASCO_FLATTEN
 thread_factory(Ram_quota *q, Space *,
                L4_msg_tag, Utcb const *,
@@ -634,9 +635,11 @@ thread_factory(Ram_quota *q, Space *,
   return new (q) Thread_object(q);
 }
 
-static inline void __attribute__((constructor)) FIASCO_INIT
+static inline
+void __attribute__((constructor)) FIASCO_INIT_SFX(thread_register_factory)
 register_factory()
 {
   Kobject_iface::set_factory(L4_msg_tag::Label_thread, thread_factory);
 }
+
 }

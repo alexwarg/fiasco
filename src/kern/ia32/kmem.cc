@@ -406,6 +406,7 @@ Kmem::setup_global_cpu_structures(bool superpages)
                                         ->alloc(Config::page_order());
 }
 
+FIASCO_INIT_CPU_SFX(setup_cpu_structures_isolation)
 void
 Kmem::setup_cpu_structures_isolation(Cpu &cpu, Kpdir *cpu_dir, cxx::Simple_alloc *cpu_m)
 {

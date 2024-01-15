@@ -145,6 +145,7 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 }
 
 namespace {
+
 static Kobject_iface * FIASCO_FLATTEN
 vm_factory(Ram_quota *q, Space *,
            L4_msg_tag t, Utcb const *u,
@@ -153,11 +154,13 @@ vm_factory(Ram_quota *q, Space *,
   return Task::create<Vm>(q, t, u, err);
 }
 
-static inline void __attribute__((constructor)) FIASCO_INIT
+static inline
+void __attribute__((constructor)) FIASCO_INIT_SFX(vm_register_factory)
 register_factory()
 {
   Kobject_iface::set_factory(L4_msg_tag::Label_vm, vm_factory);
 }
+
 }
 
 #ifdef CONFIG_FPU

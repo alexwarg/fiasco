@@ -34,7 +34,8 @@ void init()
   read_pmc[1] = read_counter_1;
 }
 
-void FIASCO_INIT_CPU init_ap()
+FIASCO_INIT_CPU_SFX(arm_perf_init_ap)
+void init_ap()
 {
   Perf_cnt_arch_mpcore::init_cpu();
 }

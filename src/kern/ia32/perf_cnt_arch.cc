@@ -956,7 +956,7 @@ void init()
       // counters in usermode. PMC were introduced in Pentium MMX and
       // PPro processors.
       if (cpu.local_features() & Cpu::Lf_rdpmc)
-        cpu.enable_rdpmc(); printf("RDPMC enabled\n");
+        cpu.enable_rdpmc();
     }
 
   if (pcnt && !pcnt->init())
@@ -979,7 +979,8 @@ void init()
 
 }
 
-void FIASCO_INIT_CPU init_ap()
+FIASCO_INIT_CPU_SFX(perf_cnt_init_ap)
+void init_ap()
 {
   if (Perf_cnt::pcnt)
     {
