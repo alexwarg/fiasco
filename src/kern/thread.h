@@ -149,7 +149,7 @@ public:
   }
 
   // bind the thread to a task (incl. UTCB)
-  bool bind(Task *t, User<Utcb>::Ptr utcb);
+  bool bind(Task *t, User_ptr<Utcb> utcb);
 
   // unbind the thread from its task
   void unbind();

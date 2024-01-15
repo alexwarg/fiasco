@@ -44,7 +44,7 @@ Thread::Thread(Ram_quota *q)
 }
 
 bool
-Thread::bind(Task *t, User<Utcb>::Ptr utcb)
+Thread::bind(Task *t, User_ptr<Utcb> utcb)
 {
   // _utcb == 0 for all kernel threads
   Space::Ku_mem const *u = t->find_ku_mem(utcb, sizeof(Utcb));

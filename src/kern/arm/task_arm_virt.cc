@@ -24,7 +24,7 @@ map_gicc_page(Task *t, L4_msg_tag tag, Utcb *utcb)
       || gicc_page.order() < Config::PAGE_SHIFT)
     return Ko::commit_result(-L4_err::EInval);
 
-  User<void>::Ptr u_addr((void *)gicc_page.mem_address());
+  User_ptr<void> u_addr((void *)gicc_page.mem_address());
 
   Mem_space *ms = static_cast<Mem_space *>(t);
   Mem_space::Status res =

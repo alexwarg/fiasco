@@ -99,9 +99,9 @@ private:
   void map_utcb_ptr_page() {}
   bool invoke_arch(L4_msg_tag &tag, Utcb *utcb);
 
-  int alloc_ku_mem_chunk(User<void>::Ptr u_addr, unsigned size, void **k_addr);
+  int alloc_ku_mem_chunk(User_ptr<void> u_addr, unsigned size, void **k_addr);
   void free_ku_mem(Ku_mem *m);
-  void free_ku_mem_chunk(void *k_addr, User<void>::Ptr u_addr, unsigned size,
+  void free_ku_mem_chunk(void *k_addr, User_ptr<void> u_addr, unsigned size,
                          unsigned mapped_size);
   void free_ku_mem();
 

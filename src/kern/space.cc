@@ -1,7 +1,7 @@
 #include <space.h>
 
 Space::Ku_mem const *
-Space::find_ku_mem(User<void>::Ptr p, unsigned size)
+Space::find_ku_mem(User_ptr<void> p, unsigned size)
 {
   Address const pa = (Address)p.get();
 

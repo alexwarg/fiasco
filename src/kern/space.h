@@ -52,7 +52,7 @@ public:
 
   struct Ku_mem : public cxx::S_list_item
   {
-    User<void>::Ptr u_addr;
+    User_ptr<void> u_addr;
     void *k_addr;
     unsigned size;
 
@@ -83,7 +83,7 @@ public:
   Ram_quota *ram_quota() const
   { return Mem_space::ram_quota(); }
 
-  Ku_mem const *find_ku_mem(User<void>::Ptr p, unsigned size);
+  Ku_mem const *find_ku_mem(User_ptr<void> p, unsigned size);
 
   static bool is_user_memory(Address address, Mword len)
   {
