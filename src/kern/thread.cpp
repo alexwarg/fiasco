@@ -297,6 +297,9 @@ Thread::Thread(Ram_quota *q, Context_mode_kernel)
 PUBLIC virtual
 Thread::~Thread()		// To be called in locked state.
 {
+  // Thread::do_kill() already unregistered deletion IRQ, but in the meantime a
+  // deletion IRQ might have been bound again.
+  unregister_delete_irq();
 
   unsigned long *init_sp = reinterpret_cast<unsigned long*>
     (reinterpret_cast<unsigned long>(this) + Size - sizeof(Entry_frame));
@@ -362,6 +365,23 @@ Thread::register_delete_irq(Irq_base *irq)
 
   irq->unbind();
   return false;
+}
+
+PUBLIC
+void
+Thread::unregister_delete_irq()
+{
+  auto irq = _del_observer.load();
+
+  do
+    {
+      if (!irq)
+        break;
+
+      auto g = lock_guard(irq->irq_lock());
+      irq->unbind();
+    }
+  while (!_del_observer.compare_exchange_weak(irq, nullptr));
 }
 
 PUBLIC
@@ -550,16 +570,7 @@ Thread::do_kill()
   // dequeue from system queues
   Sched_context::rq.current().ready_dequeue(sched());
 
-  auto irq = _del_observer.load();
-
-  do
-    {
-      if (!irq)
-        break;
-
-      irq->unbind();
-    }
-  while (!_del_observer.compare_exchange_weak(irq, nullptr));
+  unregister_delete_irq();
 
   rcu_wait();
 
