@@ -267,8 +267,7 @@ public:
         if (EXPECT_FALSE(_this()->space()->is_sigma0()))
           {
             ts->dump();
-            WARNX(Error, "Sigma0 raised an exception --> HALT\n");
-            panic("...");
+            panic("Sigma0 raised an exception");
           }
 
         handler = _this(); // block on ourselves
