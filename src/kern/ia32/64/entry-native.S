@@ -233,6 +233,9 @@ syscall_entry_code_end:
 	.global safe_sysret
 safe_sysret:
 	mov	%rax, %cr3
+	/* make RIP canonical, workaround for Intel IA32e flaw */
+	shl     $16, %rcx
+	sar     $16, %rcx
 	sysretq
 
 	.section ".entry.text.safe_iret"

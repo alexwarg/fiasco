@@ -87,6 +87,9 @@ vcpu_return_to_kernel(Context *, Mword ip, Mword sp, T arg)
   asm volatile
     ("mov %[sp], %%rsp \t\n"
      "mov %[flags], %%r11 \t\n"
+     /* make RIP canonical, workaround for Intel IA32e flaw */
+     "  shl     $16, %%rcx  \n"
+     "  sar     $16, %%rcx  \n"
      "sysretq \t\n"
      :
      : [flags] "i" (EFLAGS_IF), "c" (ip), [sp] "r" (sp), "D"(arg)
