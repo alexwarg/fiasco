@@ -165,6 +165,14 @@ public:
     return 0;
   }
 
+  /**
+   * Provide raw access to underlying storage.
+   */
+  unsigned long const *raw() const
+  {
+    return this->_bits;
+  }
+
 protected:
   template< bool BIG, unsigned BTS > friend class Bitmap_base;
 
@@ -276,6 +284,14 @@ public:
       return r + bit;
 
     return 0;
+  }
+
+  /**
+   * Provide raw access to underlying storage.
+   */
+  unsigned long const *raw() const
+  {
+    return this->_bits;
   }
 
 protected:
