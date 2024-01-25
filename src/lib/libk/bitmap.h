@@ -118,6 +118,15 @@ public:
     __atomic_and_fetch(&this->_bits[idx], ~(1UL << b), __ATOMIC_SEQ_CST);
   }
 
+  /**
+   * Invert all bits.
+   */
+  void invert()
+  {
+    for (unsigned i = 0; i < Nr_elems; ++i)
+      this->_bits[i] = ~this->_bits[i];
+  }
+
   void clear_all()
   {
     for (unsigned i = 0; i < Nr_elems; ++i)
@@ -233,6 +242,14 @@ public:
   void atomic_clear_bit(unsigned long bit)
   {
     __atomic_and_fetch(&_bits, ~(1UL << bit), __ATOMIC_SEQ_CST);
+  }
+
+  /**
+   * Invert all bits.
+   */
+  void invert()
+  {
+    _bits = ~_bits;
   }
 
   void clear_all()
