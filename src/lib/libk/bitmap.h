@@ -331,6 +331,12 @@ public:
     return *this;
   }
 
+  /**
+   * Get the number of bits the bitmap can store.
+   */
+  static constexpr unsigned size()
+  { return BITS; }
+
   template<unsigned SBITS>
   Bitmap &operator = (Bitmap<SBITS> const &o)
   {
