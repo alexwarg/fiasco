@@ -58,6 +58,9 @@ public:
   unsigned is_virtual() const noexcept
   { return _l & 0x200; }
 
+  unsigned eager_map() const
+  { return _l & 0x100; }
+
   bool contains(Address addr) const noexcept
   {
     return start() <= addr && end() >= addr;
