@@ -26,7 +26,8 @@ public:
 inline void
 Fpu_state_simd::save()
 {
-  asm volatile("stp     q0, q1,   [%[s], #16 *  0]        \n"
+  asm volatile(".arch_extension fp                        \n"
+               "stp     q0, q1,   [%[s], #16 *  0]        \n"
                "stp     q2, q3,   [%[s], #16 *  2]        \n"
                "stp     q4, q5,   [%[s], #16 *  4]        \n"
                "stp     q6, q7,   [%[s], #16 *  6]        \n"
@@ -53,7 +54,8 @@ Fpu_state_simd::save()
 inline void
 Fpu_state_simd::restore() const
 {
-  asm volatile("ldp     q0, q1,   [%[s], #16 *  0]        \n"
+  asm volatile(".arch_extension fp                        \n"
+               "ldp     q0, q1,   [%[s], #16 *  0]        \n"
                "ldp     q2, q3,   [%[s], #16 *  2]        \n"
                "ldp     q4, q5,   [%[s], #16 *  4]        \n"
                "ldp     q6, q7,   [%[s], #16 *  6]        \n"
