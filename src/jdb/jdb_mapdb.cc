@@ -438,9 +438,9 @@ Jdb_mapdb::print_obj_mapping(Obj::Mapping *m)
     }
 
   printf(L4_PTR_FMT "[C:%lx]: space=D:%lx%.*s rights=%x flags=%lx obj=%p",
-         (Address)m, cap_idx, space_id, task_descr.length(), task_descr.begin(),
-         (unsigned)cxx::int_value<Obj::Attr>(e->rights()),
-         (unsigned long)e->_flags, e->obj());
+         reinterpret_cast<Address>(m), cap_idx, space_id, task_descr.length(),
+         task_descr.begin(), cxx::int_value<Obj::Attr>(e->rights()),
+         static_cast<unsigned long>(e->_flags), static_cast<void *>(e->obj()));
 }
 
 bool
