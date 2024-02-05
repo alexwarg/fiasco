@@ -79,7 +79,8 @@ public:
   }
 
 protected:
-  bool startup(L4::Io_register_block const *reg, int irq, Unsigned32 base_baud)
+  bool startup(L4::Io_register_block const *reg, int irq, Unsigned32 base_baud,
+               bool /*resume*/)
   {
     _irq = irq;
     set_base_rate(base_baud);

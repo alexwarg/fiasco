@@ -45,10 +45,10 @@ private:
    * @param uart, the instantiation to start.
    * @param port, the com port number.
    */
-  bool startup(unsigned port, int irq=-1);
-  bool setup_uart_io_port(void *r, Address base, int irq);
+  bool startup(unsigned port, int irq, bool resume);
+  bool setup_uart_io_port(void *r, Address base, int irq, bool resume);
 
-  void setup()
+  void setup(bool resume)
   {
     unsigned           n = Config::default_console_uart_baudrate;
     ::Uart::TransferMode m = ::Uart::MODE_8N1;
@@ -64,7 +64,7 @@ private:
     if (Koptions::o()->opt(Koptions::F_uart_irq))
       i = Koptions::o()->uart.irqno;
 
-    if (!startup(p, i))
+    if (!startup(p, i, resume))
       printf("Comport/base 0x%04llx is not accepted by the uart driver!\n", p);
     else if (!change_mode(m, n))
       panic("Something is wrong with the baud rate (%u)!\n", n);
@@ -73,7 +73,7 @@ private:
 public:
   Kuart()
   {
-    setup();
+    setup(false);
   }
 
   int write(char const *d, size_t len) override
@@ -106,7 +106,7 @@ public:
   {
     (void)cpu;
     assert (cpu == Cpu_number::boot_cpu());
-    static_cast<Kuart*>(Kernel_uart::uart())->setup();
+    static_cast<Kuart*>(Kernel_uart::uart())->setup(true);
     Kernel_uart::uart()->state(Console::ENABLED);
 
     if(Config::serial_esc != Config::SERIAL_ESC_NOIRQ)
@@ -149,21 +149,22 @@ union Regs
 
 
 bool
-Kuart::setup_uart_io_port(void *r, Address base, int irq)
+Kuart::setup_uart_io_port(void *r, Address base, int irq, bool resume)
 {
 #ifdef HAVE_PORTIO
   Regs *regs = static_cast<Regs *>(r);
-  regs->io.construct(base);
+  if (!resume)
+    regs->io.construct(base);
   return ::Uart::startup(regs->io.get(), irq,
-                         Koptions::o()->uart.base_baud);
+                         Koptions::o()->uart.base_baud, resume);
 #else
-  (void)r; (void)base; (void)irq;
+  (void)r; (void)base; (void)irq; (void)resume;
   panic ("cannot use IO-Port based uart\n");
 #endif
 }
 
 bool
-Kuart::startup(unsigned, int irq)
+Kuart::startup(unsigned, int irq, bool resume)
 {
   static Regs regs;
 
@@ -173,7 +174,7 @@ Kuart::startup(unsigned, int irq)
       switch (Koptions::o()->uart.access_type)
         {
         case Koptions::Uart_type_ioport:
-          return setup_uart_io_port(&regs, base, irq);
+          return setup_uart_io_port(&regs, base, irq, resume);
 
         case Koptions::Uart_type_mmio:
             {
@@ -184,27 +185,39 @@ Kuart::startup(unsigned, int irq)
               switch (Koptions::o()->uart.reg_shift)
                 {
                 case 0: // no shift use natural access width
-                  r = regs.mem.construct(Kmem::mmio_remap(base, size),
-                                         Koptions::o()->uart.reg_shift);
+                  if (resume)
+                    r = regs.mem;
+                  else
+                    r = regs.mem.construct(Kmem::mmio_remap(base, size),
+                                           Koptions::o()->uart.reg_shift);
                   break;
                 case 1: // 1 bit shift, assume fixed 16bit access width
-                  r = regs.mem16.construct(Kmem::mmio_remap(base, size),
-                                           Koptions::o()->uart.reg_shift);
+                  if (resume)
+                    r = regs.mem16;
+                  else
+                    r = regs.mem16.construct(Kmem::mmio_remap(base, size),
+                                             Koptions::o()->uart.reg_shift);
                   break;
                 case 2: // 2 bit shift, assume fixed 32bit access width
-                  r = regs.mem32.construct(Kmem::mmio_remap(base, size),
-                                           Koptions::o()->uart.reg_shift);
+                  if (resume)
+                    r = regs.mem32;
+                  else
+                    r = regs.mem32.construct(Kmem::mmio_remap(base, size),
+                                             Koptions::o()->uart.reg_shift);
                   break;
                 case 3: // 3 bit shift, assume fixed 64bit access width
-                  r = regs.mem64.construct(Kmem::mmio_remap(base, size),
-                                           Koptions::o()->uart.reg_shift);
+                  if (resume)
+                    r = regs.mem64;
+                  else
+                    r = regs.mem64.construct(Kmem::mmio_remap(base, size),
+                                             Koptions::o()->uart.reg_shift);
                   break;
                 default:
                   panic("UART: illegal reg shift value: %d",
                         Koptions::o()->uart.reg_shift);
                   break;
                 }
-              return ::Uart::startup(r, irq, Koptions::o()->uart.base_baud);
+              return ::Uart::startup(r, irq, Koptions::o()->uart.base_baud, resume);
             }
         default:
           return false;
