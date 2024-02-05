@@ -21,6 +21,13 @@ public:
   static const char initcall_start[] asm ("_initcall_start");
   static const char initcall_end[]   asm ("_initcall_end");
 
+  /**
+   * Return the number of bytes between initcall_start (inclusive) and
+   * initcall_end(exclusive).
+   */
+  static size_t initcall_size()
+  { return static_cast<size_t>(initcall_end - initcall_start); }
+
   static inline Mword in_kernel(Address a)
   { return a > User_max; }
 
