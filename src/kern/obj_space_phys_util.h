@@ -48,7 +48,7 @@ public:
         return false;
       }
 
-    Capability c = *cap;
+    Capability c = cap->capability();
 
     Obj::set_entry(virt, cap);
     if (phys) *phys = c.obj();
@@ -108,12 +108,12 @@ public:
 
   Capability lookup(Cap_index virt) FIASCO_FLATTEN
   {
-    Capability *c = get_cap(virt);
+    Entry *c = get_cap(virt);
 
     if (EXPECT_FALSE(!c))
       return Capability(0); // void
 
-    return *c;
+    return c->capability();
   }
 
 
@@ -125,7 +125,7 @@ public:
     if (EXPECT_FALSE(!c))
       return 0;
 
-    Capability cap = *c;
+    Capability cap = c->capability();
 
     *rights = L4_fpage::Rights(cap.rights());
 
