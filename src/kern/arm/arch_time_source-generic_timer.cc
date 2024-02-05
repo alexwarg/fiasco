@@ -80,20 +80,20 @@ Arch_time_source_generic_timer::init_system_clock()
 
 #ifdef CONFIG_BIT64
 #if defined(CONFIG_CPU_VIRT)
-        /* Generic_timer::T<Hyp>: R1=physical, R2=virtual:
+        /* Generic_timer::T<Hyp>:
          * CNTKCTL_EL1: EL0VTEN=1, EL0PTEN=1.
          * CNTHCTL_EL2: EL0VCTEN=0, EL0PCTEN=1.
          * Kernel uses physical counter.
          * Access to physical counter from non-secure PL0/PL1 allowed. */
 #define READ_TIMER_COUNTER "mrs     x0, CNTPCT_EL0"
 #elif defined(CONFIG_ARM_EM_TZ)
-        /* Generic_timer::T<Physical>: R1=hyp, R2=virtual:
+        /* Generic_timer::T<Physical>:
          * CNTKCTL_EL1: EL0VTEN=1, EL0PTEN=1.
          * Kernel uses physical counter.
          * Access to physical counter from PL0 allowed. */
 #define READ_TIMER_COUNTER "mrs     x0, CNTPCT_EL0"
 #else
-        /* Generic_timer::T<Virtual>: R1=physical, R2=hyp:
+        /* Generic_timer::T<Virtual>:
          * CNTKCTL_EL1: EL0VTEN=1, EL0PTEN=0.
          * Kernel uses virtual counter.
          * Access to virtual counter from PL0 allowed. */
@@ -137,20 +137,20 @@ _kip_time_code: )" KIP_CODE_HDR(1f, 2f, 0, 2f) R"(
 
 #ifdef CONFIG_BIT32
 #if defined(CONFIG_CPU_VIRT)
-        /* Generic_timer::T<Hyp>: R1=physical, R2=virtual:
+        /* Generic_timer::T<Hyp>:
          * CNTKCTL: PL0VCTEN=1, PL0PCTEN=1.
          * CNTHCTL: PL1PCEN=0, PL1PCTEN=1.
          * Kernel uses physical counter.
          * Access to physical counter from non-secure PL0/PL1 allowed. */
 #define READ_TIMER_COUNTER "mrrc    p15, 0, r0, r1, c14"
 #elif defined(CONFIG_ARM_EM_TZ)
-        /* Generic_timer::T<Physical>: R1=hyp, R2=virtual:
+        /* Generic_timer::T<Physical>:
          * CNTKCTL: PL0VCTEN=1, PL0PCTEN=1.
          * Kernel uses physical counter.
          * Access to physical counter from PL0 allowed. */
 #define READ_TIMER_COUNTER "mrrc    p15, 0, r0, r1, c14"
 #else
-        /* Generic_timer::T<Virtual>: R1=physical, R2=hyp:
+        /* Generic_timer::T<Virtual>:
          * CNTKCTL: PL0VCTEN=1, PL0PCTEN=0.
          * Kernel uses virtual counter.
          * Access to virtual counter from PL0 allowed. */
