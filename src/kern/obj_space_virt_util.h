@@ -163,7 +163,7 @@ public:
     virt &= Cap_index(~(~0UL << Whole_space));
 
     if (SPACE::mem_space(this) == Mem_space::current_mem_space(current_cpu()))
-      c = reinterpret_cast<Capability*>(cap_virt(virt));
+      c = cap_virt(virt);
     else
       c = get_cap(virt);
 
@@ -178,7 +178,7 @@ public:
   lookup_local(Cap_index virt, L4_fpage::Rights *rights)
   {
     virt &= Cap_index(~(~0UL << Whole_space));
-    Capability *c = reinterpret_cast<Capability*>(cap_virt(virt));
+    Capability *c = cap_virt(virt);
     Capability cap = Mem_layout::read_special_safe(c);
     *rights = L4_fpage::Rights(cap.rights());
     return cap.obj();
