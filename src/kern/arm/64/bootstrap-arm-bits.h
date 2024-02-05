@@ -375,13 +375,37 @@ switch_from_el3_to_el1()
       : "cc", "x4");
 }
 
+static inline void
+switch_from_el2_to_el1()
+{
+  Mword tmp;
+
+  // flush all E1 TLBs
+  asm volatile ("tlbi alle1");
+  // set HCR (RW and HCD)
+  asm volatile ("msr HCR_EL2, %0" : : "r"(Hcr_default_bits));
+  Bootstrap::config_feature_traps(Bootstrap::read_pfr0(), false, true);
+  asm volatile ("   mrs %[tmp], MIDR_EL1    \n"
+                "   msr VPIDR_EL2, %[tmp]   \n"
+                "   mrs %[tmp], MPIDR_EL1   \n"
+                "   msr VMPIDR_EL2, %[tmp]  \n"
+                "   mov %[tmp], sp          \n"
+                "   msr spsr_el2, %[psr]    \n"
+                "   adr x4, 1f              \n"
+                "   msr elr_el2, x4         \n"
+                "   eret                    \n"
+                "1: mov sp, %[tmp]          \n"
+                : [tmp]"=&r"(tmp)
+                : [psr]"r"((0xfUL << 6) | 5UL)
+                : "cc", "x4");
+}
+
 static void leave_hyp_mode()
 {
   Mword cel;
   asm volatile ("mrs %0, CurrentEL" : "=r"(cel));
   cel >>= 2;
   cel &= 3;
-  Mword tmp;
 
   switch (cel)
     {
@@ -390,20 +414,7 @@ static void leave_hyp_mode()
       break;
 
     case 2:
-      // flush all E1 TLBs
-      asm volatile ("tlbi alle1");
-      // set HCR (RW and HCD)
-      asm volatile ("msr HCR_EL2, %0" : : "r"(Hcr_default_bits));
-      Bootstrap::config_feature_traps(read_pfr0(), false, true);
-      asm volatile ("   mov %[tmp], sp       \n"
-                    "   msr spsr_el2, %[psr] \n"
-                    "   adr x4, 1f           \n"
-                    "   msr elr_el2, x4      \n"
-                    "   eret                 \n"
-                    "1: mov sp, %[tmp]       \n"
-                    : [tmp]"=&r"(tmp)
-                    : [psr]"r"((0xfUL << 6) | 5UL)
-                    : "cc", "x4");
+      switch_from_el2_to_el1();
       break;
     case 1:
     default:
