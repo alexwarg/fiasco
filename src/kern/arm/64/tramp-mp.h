@@ -55,7 +55,7 @@ tramp_mp_prepare()
 
   _tmp->sctlr = Proc::sctlr();
   _tmp->mair  = Page::Mair0_prrr_bits;
-  _tmp->ttbr_kern = Kmem::kdir->virt_to_phys((Address)Kmem::kdir);
+  _tmp->ttbr_kern = Kmem::kdir->virt_to_phys(reinterpret_cast<Address>(Kmem::kdir));
   if (!Proc::Is_hyp)
     _tmp->ttbr_usr = cxx::int_value<Phys_mem_addr>(Kernel_task::kernel_task()->dir_phys());
 
@@ -64,7 +64,7 @@ tramp_mp_prepare()
   asm volatile ("dsb sy" : : : "memory");
   Mem_unit::clean_dcache();
 
-  return Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry);
+  return Kmem::kdir->virt_to_phys(reinterpret_cast<Address>(_tramp_mp_entry));
 }
 
 #endif

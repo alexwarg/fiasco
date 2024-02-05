@@ -50,7 +50,7 @@ public:
   { _l = (_l & ~0x0f) | (t & 0x0f); }
 
   Mem_type type() const noexcept
-  { return (Mem_type)(_l & 0x0f); }
+  { return static_cast<Mem_type>(_l & 0x0f); }
 
   unsigned ext_type() const noexcept
   { return (_l >> 4) & 0x0f; }
@@ -194,10 +194,10 @@ public:
   }
 
   Mem_desc *mem_descs() noexcept
-  { return (Mem_desc*)(((Address)this) + (_mem_info >> (MWORD_BITS/2))); }
+  { return offset_cast<Mem_desc*>(this, _mem_info >> (MWORD_BITS/2)); }
 
   Mem_desc const *mem_descs() const noexcept
-  { return (Mem_desc const *)(((Address)this) + (_mem_info >> (MWORD_BITS/2))); }
+  { return offset_cast<Mem_desc const *>(this, _mem_info >> (MWORD_BITS/2)); }
 
   unsigned num_mem_descs() const noexcept
   { return _mem_info & ((1UL << (MWORD_BITS/2))-1); }

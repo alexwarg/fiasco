@@ -64,7 +64,7 @@ public:
     for (Iterator l = _kobjects.begin(); l != _kobjects.end(); ++l)
       {
         auto ti = l->_cxx_dyn_type();
-        Mword a = (Mword)ti.base;
+        Mword a = reinterpret_cast<Mword>(ti.base);
         if (a <= Mword(p) && Mword(p) < (a + ti.type->size))
           return l;
       }

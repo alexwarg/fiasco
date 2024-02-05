@@ -50,9 +50,9 @@ public:
             printf("    wait for quiescent state: %s\n", d->_pending?"yes":"no");
             printf("    batch=");
             print_batch(d->_batch); puts("");
-            printf("    next list:    h=%p len=%ld\n", d->_n.front(), d->_len);
-            printf("    current list: h=%p \n", d->_c.front());
-            printf("    done list:    h=%p\n", d->_d.front());
+            printf("    next list:    h=%p len=%ld\n", static_cast<void *>(d->_n.front()), d->_len);
+            printf("    current list: h=%p \n", static_cast<void *>(d->_c.front()));
+            printf("    done list:    h=%p\n", static_cast<void *>(d->_d.front()));
           }
       }
     return NOTHING;

@@ -296,7 +296,8 @@ private:
   template<typename T = Mword> inline
   Jdb_addr<T> virt(unsigned long row, unsigned long col)
   {
-    return Jdb_addr<T>((T*)((col-1) * elb + row * (cols()-1) * elb), task);
+    Address dump_addr = (col-1) * elb + row * (cols()-1) * elb;
+    return Jdb_addr<T>(reinterpret_cast<T*>(dump_addr), task);
   }
 };
 
@@ -314,7 +315,7 @@ Jdb_dump::draw_entry(unsigned long row, unsigned long col)
 {
   if (col == 0)
     {
-      printf("%0*lx", (int)col_width(col), row * (cols()-1) * elb);
+      printf("%0*lx", col_width(col), row * (cols()-1) * elb);
       return;
     }
 
@@ -332,9 +333,9 @@ Jdb_dump::draw_entry(unsigned long row, unsigned long col)
 	  if (dump_type==D_MODE)
 	    {
 	      if (mword == 0)
-		printf("%*lu", (int)Jdb_screen::Mword_size_bmode, mword);
+		printf("%*lu", Jdb_screen::Mword_size_bmode, mword);
 	      else if (mword == (Mword)~0UL)
-		printf("%*d", (int)Jdb_screen::Mword_size_bmode, -1);
+		printf("%*d", Jdb_screen::Mword_size_bmode, -1);
 	      else
 	        {
 		  if (highlight_start <= mword && mword <= highlight_end)
@@ -359,14 +360,14 @@ Jdb_dump::draw_entry(unsigned long row, unsigned long col)
         }
       else // !mapped
         printf("%.*s",
-               dump_type == C_MODE ? (int)Jdb_screen::Mword_size_cmode
-                                   : (int)Jdb_screen::Mword_size_bmode,
+               dump_type == C_MODE ? Jdb_screen::Mword_size_cmode
+                                   : Jdb_screen::Mword_size_bmode,
                Jdb_screen::Mword_not_mapped);
     }
   else // is_adapter_memory
     printf("%.*s",
-           dump_type == C_MODE ? (int)Jdb_screen::Mword_size_cmode
-                               : (int)Jdb_screen::Mword_size_bmode,
+           dump_type == C_MODE ? Jdb_screen::Mword_size_cmode
+                               : Jdb_screen::Mword_size_bmode,
            Jdb_screen::Mword_adapter);
 
   if (&ignore_invalid_apic_reg_access)

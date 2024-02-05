@@ -151,7 +151,7 @@ public:
 
   static bool
   is_full_flush(L4_fpage::Rights rights)
-  { return (bool)(rights & L4_fpage::Rights::CR()); }
+  { return static_cast<bool>(rights & L4_fpage::Rights::CR()); }
 
   ~Generic_obj_space()
   {

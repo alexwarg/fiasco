@@ -323,7 +323,7 @@ private:
 
     if (nx)
       {
-        len = min((int)nx->max_len(), len);
+        len = min(nx->max_len(), len);
         printf("%-*.*s", len, len, nx->name());
       }
     else
@@ -561,7 +561,7 @@ Jdb_thread_list::list_threads_show_thread(Thread *t)
   print_thread_name(t, 15);
   plen += 15;
 
-  plen += printf("  %2lx ", (unsigned long)get_prio(t));
+  plen += printf("  %2lx ", get_prio(t));
 
   if (get_space_dbgid(t) == ~0L)
     plen += printf(" ----- ");
@@ -594,7 +594,7 @@ Jdb_thread_list::list_threads_show_thread(Thread *t)
 	    strcpy(to, " >99s");
 	  else
 	    {
-	      int us = (int)diff;
+	      int us = diff;
 	      if (us < 0)
 		us = 0;
 	      if (us >= 1000000)
@@ -619,7 +619,7 @@ Jdb_thread_list::list_threads_show_thread(Thread *t)
       if (Config::Stack_depth)
 	{
 	  Mword i, stack_depth;
-	  char *c  = (char*)t + sizeof (Thread);
+	  char *c  = reinterpret_cast<char*>(t) + sizeof (Thread);
 	  for (i = sizeof (Thread), stack_depth = Context::Size;
 	      i < Context::Size;
 	      i++, stack_depth--, c++)
@@ -629,7 +629,7 @@ Jdb_thread_list::list_threads_show_thread(Thread *t)
 	  plen += printf("(%4lu) ", stack_depth - sizeof (Thread));
 	}
 
-      if ((int)Jdb_screen::width() > plen)
+      if (static_cast<int>(Jdb_screen::width()) > plen)
 	Jdb_thread::print_state_long(t, Jdb_screen::width() - plen);
       putstr("\033[K\n");
     }

@@ -45,7 +45,7 @@ public:
 
     void reset_mp_safe()
     {
-      set_monitored_address(&_f, (Func)0);
+      set_monitored_address(&_f, Func{nullptr});
     }
 
     void set_mp_safe(cxx::functor<void (Cpu_number)> const &rf)

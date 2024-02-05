@@ -294,7 +294,7 @@ void
 Jdb_list::show_header()
 {
   Jdb::cursor();
-  printf("%.*s\033[K\n", (int)Jdb_screen::width(), show_head());
+  printf("%.*s\033[K\n", Jdb_screen::width(), show_head());
 }
 
 void

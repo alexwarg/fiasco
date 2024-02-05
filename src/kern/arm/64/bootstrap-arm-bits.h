@@ -25,7 +25,7 @@ namespace Bootstrap
   struct Bs_alloc
   {
     Bs_alloc(void *base, Mword &free_map)
-    : _p((Address)base), _free_map(free_map)
+    : _p(reinterpret_cast<Address>(base)), _free_map(free_map)
     {}
 
     static Address to_phys(void *v)
@@ -33,9 +33,8 @@ namespace Bootstrap
 
     static bool valid() { return true; }
 
-    void *alloc(Bytes size)
+    void *alloc(Bytes /* size */)
     {
-      (void) size;
       // assert (size == Config::PAGE_SIZE);
       // test that size is a power of two
       // assert (((size - 1) ^ size) == (size - 1));

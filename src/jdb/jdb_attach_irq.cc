@@ -31,7 +31,7 @@ public:
     if (cmd)
       return NOTHING;
 
-    if ((char*)args == &subcmd)
+    if (static_cast<char*>(args) == &subcmd)
       {
         switch (subcmd)
           {
@@ -87,7 +87,7 @@ class Jdb_kobject_irq : public Jdb_kobject_handler
 {
 public:
   inline Jdb_kobject_irq()
-    : Jdb_kobject_handler((Irq*)0)
+    : Jdb_kobject_handler(static_cast<Irq *>(nullptr))
   {
     Jdb_kobject::module()->register_handler(this);
   }
@@ -115,7 +115,7 @@ public:
 
     buf->printf(" I=%3lx %s F=%x cnt=%u:%u",
                 i->pin(), i->chip()->chip_type(),
-                (unsigned)i->flags(), i->cnt(), i->xcpu_cnt());
+                static_cast<unsigned>(i->flags()), i->cnt(), i->xcpu_cnt());
 
     i->dbg_print(buf, w != o ? w : nullptr);
   }

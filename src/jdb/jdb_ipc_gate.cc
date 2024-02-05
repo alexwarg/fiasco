@@ -39,7 +39,7 @@ public:
 };
 
 Jdb_ipc_gate::Jdb_ipc_gate()
-  : Jdb_kobject_handler((Ipc_gate_obj*)0)
+  : Jdb_kobject_handler(static_cast<Ipc_gate_obj *>(nullptr))
 {
   Jdb_kobject::module()->register_handler(this);
 }

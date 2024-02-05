@@ -30,8 +30,8 @@ protected:
   {
     Context *self = static_cast<Context *>(this);
     Context_arch_bits *to_a = to;
-    register Mword _old_this asm("x1") = (Mword)self;
-    register Mword _new_this asm("x0") = (Mword)to;
+    register Mword _old_this asm("x1") = reinterpret_cast<Mword>(self);
+    register Mword _new_this asm("x0") = reinterpret_cast<Mword>(to);
     register unsigned long dummy1 asm ("x9");
     register unsigned long dummy2 asm ("x10");
 

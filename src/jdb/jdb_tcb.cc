@@ -71,9 +71,9 @@ Jdb_stack_view::init(Address ksp, Jdb_entry_frame *_ef, bool _is_current)
 void
 Jdb_stack_view::print_value(Jdb_tcb_ptr const &p, bool highl)
 {
-  if (!p.valid() || !Jdb_util::is_mapped((void const*)p.addr()))
+  if (!p.valid() || !Jdb_util::is_mapped(reinterpret_cast<void const*>(p.addr())))
     {
-      printf(" %.*s", (int)Jdb_screen::Mword_size_bmode, Jdb_screen::Mword_not_mapped);
+      printf(" %.*s", Jdb_screen::Mword_size_bmode, Jdb_screen::Mword_not_mapped);
       return;
     }
 
@@ -219,7 +219,7 @@ Jdb_stack_view::edit_stack(bool *redraw)
       int c;
 
       Jdb::cursor(posy(), posx());
-      printf(" %.*s", (int)Jdb_screen::Mword_size_bmode, Jdb_screen::Mword_blank);
+      printf(" %.*s", Jdb_screen::Mword_size_bmode, Jdb_screen::Mword_blank);
       Jdb::printf_statline("tcb",
           is_current ? "<Space>=edit registers" : 0,
           "edit <" ADDR_FMT "> = " ADDR_FMT,
@@ -274,7 +274,7 @@ static void at_jdb_enter()
 }
 
 Jdb_tcb::Jdb_tcb()
-  : Jdb_module("INFO"), Jdb_kobject_handler((Thread*)0)
+  : Jdb_module("INFO"), Jdb_kobject_handler(static_cast<Thread *>(nullptr))
 {
   static Jdb_handler enter(at_jdb_enter);
 
@@ -348,7 +348,7 @@ Jdb_tcb::show(Thread *t, int level, bool dump_only)
     }
 
   Address ksp  = is_current(t) ? ef->ksp()
-                               : (Address)t->get_kernel_sp();
+                               : reinterpret_cast<Address>(t->get_kernel_sp());
 
 #if 0
   Address tcb  = (Address)context_of((void*)ksp);
@@ -371,8 +371,7 @@ whole_screen:
   printf("\tCPU: %u:%u ", cxx::int_value<Cpu_number>(t->home_cpu()),
                           cxx::int_value<Cpu_number>(t->get_current_cpu()));
 
-  printf("\tprio: %02x\n",
-         (unsigned)t->sched()->prio());
+  printf("\tprio: %02x\n", t->sched()->prio());
 
   printf("state   : %03lx ", t->state());
   Jdb_thread::print_state_long(t);
@@ -428,7 +427,8 @@ whole_screen:
   print_kobject(t, t->_exc_handler.raw());
 
   printf("\tUTCB     : %08lx/%08lx",
-         (Mword)t->utcb().kern(), (Mword)t->utcb().usr().get());
+         reinterpret_cast<Mword>(t->utcb().kern()),
+         reinterpret_cast<Mword>(t->utcb().usr().get()));
 
 #if 0
   putstr("\tready  lnk: ");
@@ -460,7 +460,8 @@ whole_screen:
       char st1[7];
       char st2[7];
       Vcpu_state *v = t->vcpu_state().kern();
-      printf("%08lx/%08lx S=", (Mword)v, (Mword)t->vcpu_state().usr().get());
+      printf("%08lx/%08lx S=", reinterpret_cast<Mword>(v),
+             reinterpret_cast<Mword>(t->vcpu_state().usr().get()));
       print_kobject(static_cast<Task*>(t->vcpu_user_space()));
       putchar('\n');
       printf("vCPU    : c=%s s=%s sf=%c e-ip=%08lx e-sp=%08lx\n",
@@ -700,7 +701,7 @@ Jdb_tcb::action(int cmd, void *&args, char const *&fmt, int &next_char)
           putchar('\n');
         }
       else if (args == &tcb_addr)
-        show((Thread*)tcb_addr, 0, false);
+        show(reinterpret_cast<Thread*>(tcb_addr), 0, false);
       else
         {
           Thread *t = cxx::dyn_cast<Thread *>(threadid);
@@ -818,7 +819,8 @@ Jdb_tcb::print_kobject(Thread *t, Cap_index capidx)
 
   if (Kobject_dbg::pointer_to_obj(c->obj()) == Kobject_dbg::end())
     {
-      printf("[C:%4lx] NOB: %p\n", cxx::int_value<Cap_index>(capidx), c->obj());
+      printf("[C:%4lx] NOB: %p\n", cxx::int_value<Cap_index>(capidx),
+             static_cast<void *>(c->obj()));
       return;
     }
 

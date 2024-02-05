@@ -48,7 +48,7 @@ Delay::delay(unsigned ms)
       unsigned c = cyc_count;
       while (c--)
         {
-          (void)k->clock();
+          static_cast<void>(k->clock());
           Proc::pause();
         }
     }

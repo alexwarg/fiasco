@@ -92,7 +92,7 @@ bootstrap()
   // (compare "objdump -p fiasco.image")
   if (reinterpret_cast<Address>(_start) < Mem_layout::Kernel_image)
     panic("Fiasco kernel occupies memory below %014lx",
-          reinterpret_cast<unsigned long>(Mem_layout::Kernel_image));
+          static_cast<unsigned long>(Mem_layout::Kernel_image));
 
   if (reinterpret_cast<Address>(&_end) - Mem_layout::Kernel_image > Mem_layout::Kernel_image_size)
     panic("Fiasco boot system occupies more than %luMB",

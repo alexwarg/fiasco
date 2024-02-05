@@ -37,7 +37,7 @@ Jdb_kobject_name::operator new (size_t) noexcept
           auto g = lock_guard(allocator_lock);
           if (!*o)
             {
-              *o = (void*)10;
+              *o = reinterpret_cast<void*>(10);
               return n;
             }
         }
@@ -146,7 +146,7 @@ public:
 void FIASCO_INIT
 Jdb_kobject_name::init()
 {
-  _names = (Jdb_kobject_name*)Kmem_alloc::allocator()->alloc(Bytes(Name_buffer_size));
+  _names = static_cast<Jdb_kobject_name*>(Kmem_alloc::allocator()->alloc(Bytes(Name_buffer_size)));
   if (!_names)
     panic("No memory for thread names");
 

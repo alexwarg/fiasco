@@ -106,7 +106,7 @@ public:
     _type   = type;
     _ctx    = ctx;
     _ip     = ip;
-    _kclock = (Unsigned32)Kip::k()->clock();
+    _kclock = static_cast<Unsigned32>(Kip::k()->clock());
     _cpu    = cxx::int_value<Cpu_number>(current_cpu());
   }
 
@@ -251,9 +251,8 @@ public:
   void print(String_buffer *buf) const;
 
   void set(Context const *ctx, Mword ip, Syscall_frame *ipc_regs, Utcb *utcb,
-           Mword dbg_id, Unsigned64 left)
+           Mword dbg_id, Unsigned64 /* left */)
   {
-    (void)left;
     set_global(Tbuf_ipc, ctx, ip);
     _dst       = ipc_regs->ref();
     _label     = ipc_regs->from_spec();

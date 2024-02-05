@@ -27,7 +27,7 @@ Trap_state::dump() const
      /* 3C */ 0, 0, "<TrExc>", "<IPC>"};
 
   printf("EXCEPTION: (%02x) %s pfa=%08lx, error=%08lx pstate=%08lx\n",
-         (unsigned)esr.ec(), excpts[esr.ec()] ? excpts[esr.ec()] : "",
+         static_cast<unsigned>(esr.ec()), excpts[esr.ec()] ? excpts[esr.ec()] : "",
          pf_address, esr.raw(), pstate);
 
   printf("R[ 0]: %016lx %016lx %016lx %016lx\n"
@@ -50,8 +50,8 @@ Trap_state::dump() const
          usp, pc);
 
   extern char virt_address[] asm ("virt_address");
-  Mword lower_limit = (Mword)&virt_address;
-  Mword upper_limit = (Mword)&Mem_layout::initcall_end;
+  Mword lower_limit = reinterpret_cast<Mword>(&virt_address);
+  Mword upper_limit = reinterpret_cast<Mword>(&Mem_layout::initcall_end);
   if (lower_limit <= pc && pc < upper_limit)
     {
       printf("Data around PC at 0x%lx:\n", pc);

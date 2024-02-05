@@ -46,9 +46,8 @@ static void tz_switch_to_ns(Mword *nonsecure_state)
 JDB_DEFINE_TYPENAME(Vm, "\033[33;1mVm\033[m");
 
 void *
-Vm::operator new(size_t size, void *p) noexcept
+Vm::operator new([[maybe_unused]] size_t size, void *p) noexcept
 {
-  (void)size;
   assert (size == sizeof(Vm));
   return p;
 }
@@ -61,9 +60,8 @@ Vm::operator delete(void *ptr)
 }
 
 int
-Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
+Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, [[maybe_unused]] bool user_mode)
 {
-  (void)user_mode;
   assert(user_mode);
 
   assert(cpu_lock.test());

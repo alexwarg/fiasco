@@ -34,10 +34,10 @@ public:
   { return _base + _offs; }
 
   inline Mword value() const
-  { return *(Mword*)(_base + _offs); }
+  { return *reinterpret_cast<Mword*>(_base + _offs); }
 
   inline void value(Mword v)
-  { *(Mword*)(_base + _offs) = v; }
+  { *reinterpret_cast<Mword*>(_base + _offs) = v; }
 
   inline bool is_user_value() const
   {
@@ -55,7 +55,7 @@ public:
   }
 
   inline Mword const *top_value_ptr(int offs) const
-  { return (Mword*)(Cpu::stack_align(_base + Context::Size)) + offs; }
+  { return reinterpret_cast<Mword*>(Cpu::stack_align(_base + Context::Size)) + offs; }
 
   inline Mword top_value(int offs) const
   { return *top_value_ptr(offs); }
@@ -70,8 +70,8 @@ public:
   { _offs = offs; }
 
   inline bool is_kern_code() const
-  { return (Address)&Mem_layout::image_start <= value()
-           && value() <= (Address)&Mem_layout::ecode;  };
+  { return reinterpret_cast<Address>(&Mem_layout::image_start) <= value()
+           && value() <= reinterpret_cast<Address>(&Mem_layout::ecode);  };
 
   inline bool is_kobject() const
   { return Kobject_dbg::is_kobj(reinterpret_cast<void *>(value())); }

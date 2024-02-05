@@ -32,7 +32,7 @@ public:
 };
 
 Jdb_factory::Jdb_factory()
-  : Jdb_kobject_handler((Factory*)0)
+  : Jdb_kobject_handler(static_cast<Factory*>(nullptr))
 {
   Jdb_kobject::module()->register_handler(this);
 }

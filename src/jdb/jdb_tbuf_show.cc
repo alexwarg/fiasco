@@ -103,7 +103,7 @@ private:
 
   enum
   {
-    Nil               = (Mword)-1,
+    Nil               = static_cast<Mword>(-1)
   };
 
   static void error(const char * const msg);
@@ -478,9 +478,11 @@ Jdb_tbuf_show::show_events(Mword n, Mword ref, Mword count, Unsigned8 mode,
               else
                 {
                   if (time_mode != 1)
-                    Jdb::write_ll_hex(&s, (Signed64)kclock - ref_kclock, true);
+                    Jdb::write_ll_hex(
+                      &s, static_cast<Signed64>(kclock) - ref_kclock, true);
                   else
-                    s.printf("%+12lld", (Signed64)kclock - ref_kclock);
+                    s.printf("%+12lld",
+                             static_cast<Signed64>(kclock) - ref_kclock);
                 }
               break;
             case Kclock_start_mode:
@@ -490,15 +492,15 @@ Jdb_tbuf_show::show_events(Mword n, Mword ref, Mword count, Unsigned8 mode,
             case Pmc2_delta_mode:
               if (!Jdb_tbuf::diff_pmc(n, mode - Pmc1_delta_mode, &dpmc))
                 dpmc = 0;
-              Jdb::write_ll_dec(&s, (Signed64)dpmc, false);
+              Jdb::write_ll_dec(&s, dpmc, false);
               break;
             case Pmc1_ref_mode:
               dpmc = (n == ref) ? 0 : upmc1 - ref_pmc1;
-              Jdb::write_ll_dec(&s, (Signed64)dpmc, true);
+              Jdb::write_ll_dec(&s, dpmc, true);
               break;
             case Pmc2_ref_mode:
               dpmc = (n == ref) ? 0 : upmc2 - ref_pmc2;
-              Jdb::write_ll_dec(&s, (Signed64)dpmc, true);
+              Jdb::write_ll_dec(&s, dpmc, true);
               break;
             }
 
@@ -515,7 +517,7 @@ Jdb_tbuf_show::show_events(Mword n, Mword ref, Mword count, Unsigned8 mode,
                   }
             }
           printf("%s%-*.*s %12s\033[m%s",
-                 c, (int)Jdb_screen::width() - 13, (int)Jdb_screen::width() - 13,
+                 c, Jdb_screen::width() - 13, Jdb_screen::width() - 13,
                 _buffer_str.begin() + y_offset, s.begin(),
                 count != 1 ? "\n" : "");
         }
@@ -675,7 +677,7 @@ restart:
   Mword max_absy = entries > lines ? entries - lines : 0;
 
   // Search reference element. If not found, use last entry.
-  if ((refy = Jdb_tbuf::search_to_idx(_nr_ref)) >= (Mword)-2)
+  if ((refy = Jdb_tbuf::search_to_idx(_nr_ref)) >= static_cast<Mword>(-2))
     {
       if (entries)
         refy = entries - 1;
@@ -728,7 +730,7 @@ restart:
       Jdb::cursor(1, Jdb_screen::width()-9);
       printf("%10s\n"
              "%24s 2=" L4_PTR_FMT "(%s%s\033[m%s%s%s\033[m)\033[K\n",
-              mode_str[(int)mode], "",
+              mode_str[mode], "",
               perf_event[1], Jdb::esc_emph, perf_mode[1],
               perf_name[1] && *perf_name[1] ? ":" : "",
               mode==Pmc2_delta_mode || mode==Pmc2_ref_mode ? Jdb::esc_emph : "",
@@ -904,7 +906,7 @@ restart:
                   edge  = perf_edge[nr];
                   Jdb::printf_statline("tbuf", "d=duration e=edge u=user "
                                        "k=kern +=both -=none ?=event",
-                                       "P%c", (char)'1' + nr);
+                                       "P%c", '1' + nr);
 
                   Jdb::cursor(Jdb_screen::height(), 9);
                   switch (c = Jdb_core::getchar())
@@ -1029,7 +1031,7 @@ restart:
                   error("Mark unset");
                   goto status_line;
                 }
-              else if (n == (Mword)-2)
+              else if (n == static_cast<Mword>(-2))
                 {
                   error("Mark not visible within current filter");
                   goto status_line;

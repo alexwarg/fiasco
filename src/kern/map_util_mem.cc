@@ -58,7 +58,7 @@ mem_map(Space *from, L4_fpage fp_from,
                         from, from, snd_addr,
                         Pfc(1) << so, to, to,
                         rcv_addr, control.is_grant(), attribs, tlb,
-                        (Mem_space::Reap_list**)0);
+                        static_cast<Mem_space::Reap_list**>(nullptr));
 }
 
 /** Unmap the mappings in the region described by "fp" from the address
@@ -86,8 +86,8 @@ mem_fpage_unmap(Space *space, L4_fpage fp, L4_map_mask mask)
   start = cxx::mask_lsb(start, o);
   Mu::Auto_tlb_flush<Mem_space> tlb;
   return unmap<Mem_space>(mapdb_mem.get(), space, space,
-               start, size,
-               fp.rights(), mask, tlb, (Mem_space::Reap_list**)0);
+               start, size, fp.rights(), mask, tlb,
+               static_cast<Mem_space::Reap_list**>(nullptr));
 }
 
 
@@ -107,7 +107,7 @@ init_mapdb_mem(Space *sigma0)
   Page_order const *ps = Mem_space::get_global_page_sizes();
   unsigned idx = 0;
   unsigned phys_bits(Cpu::boot_cpu()->phys_bits());
-  phys_bits = min(phys_bits, (unsigned)MWORD_BITS);
+  phys_bits = min<unsigned>(phys_bits, MWORD_BITS);
 
   Page_order last_bits(phys_bits);
 

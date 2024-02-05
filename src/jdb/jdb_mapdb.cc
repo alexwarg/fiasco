@@ -41,7 +41,7 @@ private:
         size >>= 10;
         mult++;
       }
-    snprintf(scratchbuf, 6, "%hu%c", (unsigned short)size, "BKMGTPX"[mult]);
+    snprintf(scratchbuf, sizeof(scratchbuf), "%lu%c", size, "BKMGTPX"[mult]);
     return scratchbuf;
   }
 
@@ -107,7 +107,8 @@ Jdb_mapdb::show_tree(Treemap* pages, Mapping::Pcnt offset, Mdb_types::Order base
   puts("\033[K");
 
   printf(" frame number 0x%lx, header at " L4_PTR_FMT ", info: lock=%u\033[K\n",
-         cxx::int_value<Mapping::Page>(page), (Address)t, f->lock.test());
+         cxx::int_value<Mapping::Page>(page), reinterpret_cast<Address>(t),
+         f->lock.test());
 
   screenline += 2;
 
@@ -129,14 +130,15 @@ Jdb_mapdb::show_tree(Treemap* pages, Mapping::Pcnt offset, Mdb_types::Order base
       if (m->submap())
         printf("%*u: %lx  subtree@" L4_PTR_FMT,
                indent + c_depth > 10
-                 ? 0 : (int)(indent + c_depth),
-               i+1, (Address) *m, (Mword) m->submap());
+                 ? 0 : indent + c_depth,
+               i+1, reinterpret_cast<Address>(*m),
+               reinterpret_cast<Mword>(m->submap()));
       else
         {
           c_depth = m->depth();
           printf("%*u: %lx  va=%012llx  task=",
-                 indent + c_depth > 10 ? 0 : (int)(indent + c_depth),
-                 i+1, (Address) *m,
+                 indent + c_depth > 10 ? 0 : indent + c_depth,
+                 i+1, reinterpret_cast<Address>(*m),
                  val(pages->vaddr(*m), base_size));
           show_space(m->space());
 
@@ -295,7 +297,7 @@ Jdb_mapdb::action(int cmd, void *&args, char const *&fmt, int &next_char)
   if (cmd == 1)
     {
       const char *tag = nullptr;
-      if (args == (void*) dump_tag)
+      if (args == static_cast<void*>(dump_tag))
         tag = dump_tag;
       dump_all_obj_mappings(tag);
       return NOTHING;
@@ -304,7 +306,7 @@ Jdb_mapdb::action(int cmd, void *&args, char const *&fmt, int &next_char)
   if (cmd != 0)
     return NOTHING;
 
-  if (args == (void*) &subcmd)
+  if (args == static_cast<void*>(&subcmd))
     {
       switch (subcmd)
         {
@@ -340,7 +342,7 @@ Jdb_mapdb::action(int cmd, void *&args, char const *&fmt, int &next_char)
       return EXTRA_INPUT;
     }
 
-  else if (args != (void*) &pagenum)
+  else if (args != static_cast<void*>(&pagenum))
     return NOTHING;
 
  doit:
@@ -423,7 +425,7 @@ Jdb_mapdb::print_obj_mapping(Obj::Mapping *m)
   Dbg_page_info *pi = Dbg_page_info::table()[Virt_addr(e)];
 
   Mword space_id = ~0UL;
-  Address cap_idx = Pg::offset((Address)e) / sizeof(Obj::Entry);
+  Address cap_idx = Pg::offset(reinterpret_cast<Address>(e)) / sizeof(Obj::Entry);
 
   String_buf<20> task_descr;
   if (pi)
@@ -438,18 +440,15 @@ Jdb_mapdb::print_obj_mapping(Obj::Mapping *m)
       cap_idx += pi->info<Obj::Cap_page_dbg_info>()->offset;
     }
 
-  printf(L4_PTR_FMT "[C:%lx]: space=D:%lx%.*s rights=%x flags=%lx obj=%p",
+  printf(L4_PTR_FMT "[C:%lx]: space=D:%lx%.*s rights=%x flags=%x obj=%p",
          reinterpret_cast<Address>(m), cap_idx, space_id, task_descr.length(),
          task_descr.begin(), cxx::int_value<Obj::Attr>(e->rights()),
-         static_cast<unsigned long>(e->_flags), static_cast<void *>(e->obj()));
+         e->_flags, static_cast<void *>(e->obj()));
 }
 
 bool
-Jdb_mapdb::show_simple_tree(Kobject_common *f, unsigned indent)
+Jdb_mapdb::show_simple_tree(Kobject_common *f, unsigned /*indent*/)
 {
-  (void)indent;
-  (void)f;
-
   unsigned      screenline = 0;
   int           c;
 
@@ -461,14 +460,14 @@ Jdb_mapdb::show_simple_tree(Kobject_common *f, unsigned indent)
   if (!f || f->map_root()->_root.empty())
     {
       printf(" no mapping tree registered for frame number 0x%lx\033[K\n",
-             (unsigned long) f);
+             reinterpret_cast<unsigned long>(f));
       screenline++;
       Jdb::line();
       return true;
     }
 
   printf(" mapping tree for object D:%lx (%p) ref_cnt=%ld\033[K\n",
-         f->dbg_info()->dbg_id(), f, f->map_root()->_cnt);
+         f->dbg_info()->dbg_id(), static_cast<void *>(f), f->map_root()->_cnt);
 
   screenline += 2;
 

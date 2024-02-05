@@ -28,7 +28,7 @@ Jdb_tcb::info_thread_state(Thread *t)
          "Cause=%08lx Status=%08lx Epc=%08lx\n"
          "BadVaddr=%08lx Asid=%lx Hi=%lx Lo=%lx\n",
          current.top_value(-3), current.top_value(-2), current.top_value(-1),
-         current.top_value(-4), s->c_asid(), current.top_value(-5),
+         current.top_value(-4), static_cast<unsigned long>(s->c_asid()), current.top_value(-5),
          current.top_value(-6));
 
   for (unsigned i = 0; i < 32; ++i)
@@ -61,7 +61,7 @@ void Jdb_tcb::print_entry_frame_regs(Thread *t)
          ef->r[20], ef->r[21], ef->r[22], ef->r[23], ef->r[24],
          ef->r[25], ef->r[26], ef->r[27], ef->r[28], ef->r[29],
          ef->r[30], ef->r[31], ef->hi, ef->lo, ef->bad_v_addr,
-         ef->cause, ef->status, ef->epc, s->c_asid());
+         ef->cause, ef->status, ef->epc, static_cast<unsigned long>(s->c_asid()));
 }
 
 #endif
@@ -77,7 +77,7 @@ Jdb_tcb::info_thread_state(Thread *t)
   printf("Ca=%08lx St=%08lx Epc=%08lx\n"
          "BadVA=%08lx Asid=%hx Hi=%lx Lo=%lx\n",
          current.top_value(-3), current.top_value(-2), current.top_value(-1),
-         current.top_value(-4), s->c_asid(), current.top_value(-5),
+         current.top_value(-4), static_cast<unsigned long>(s->c_asid()), current.top_value(-5),
          current.top_value(-6));
 
   unsigned cols = Jdb_screen::cols(5, 17) - 1;

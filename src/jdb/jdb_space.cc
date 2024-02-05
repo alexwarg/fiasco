@@ -53,15 +53,16 @@ private:
 
   static void print_space(Space *s)
   {
-    printf("%p", s);
+    printf("%p", static_cast<void *>(s));
   }
 
   void show(Task *t)
   {
     Jdb::cursor(3, 1);
     Jdb::line();
-    printf("\nSpace %p (Kobject*)%p%s\n",
-           t, static_cast<Kobject*>(t), Jdb::clear_to_eol_str());
+    printf("\nSpace %p (Kobject*)%p%s\n", static_cast<void *>(t),
+           static_cast<void *>(static_cast<Kobject*>(t)),
+           Jdb::clear_to_eol_str());
 
     for (Space::Ku_mem_list::Const_iterator m = t->_ku_mem.begin(); m != t->_ku_mem.end();
          ++m)
@@ -75,8 +76,8 @@ private:
     else
       {
         unsigned long l = t->ram_quota()->limit();
-        printf("of %lu (%luKB) @%p%s\n",
-               l, l/1024, t->ram_quota(), Jdb::clear_to_eol_str());
+        printf("of %lu (%luKB) @%p%s\n", l, l/1024,
+               static_cast<void *>(t->ram_quota()), Jdb::clear_to_eol_str());
       }
     Jdb::line();
   }
@@ -86,7 +87,7 @@ private:
 Task *Jdb_space::task;
 
 Jdb_space::Jdb_space()
-  : Jdb_module("INFO"), Jdb_kobject_handler((Task*)0)
+  : Jdb_module("INFO"), Jdb_kobject_handler(static_cast<Task *>(nullptr))
 {
   Jdb_kobject::module()->register_handler(this);
 }

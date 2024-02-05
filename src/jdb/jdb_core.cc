@@ -24,7 +24,7 @@ void (*Jdb_core::wait_for_input)();
 bool
 Jdb_core::add_fmt_handler(char fmt, Input_fmt* hdlr)
 {
-  if (fmt < 'a' || (fmt - 'a') >= (int)(sizeof(_fmt_list)/sizeof(_fmt_list[0])))
+  if (fmt < 'a' || (fmt - 'a') >= int{cxx::size(_fmt_list)})
     return false;
 
   if (_fmt_list[fmt - 'a'])
@@ -225,7 +225,7 @@ int Jdb_core::exec_cmd(Cmd const cmd, char const *str, int push_next_char)
   char const* f1;
 
   //char args[256];
-  void *argbuf = (void*)cmd.cmd->argbuf;
+  void *argbuf = cmd.cmd->argbuf;
 
   enum {
     NORMAL,
@@ -243,7 +243,7 @@ int Jdb_core::exec_cmd(Cmd const cmd, char const *str, int push_next_char)
 
   do {
 
-    char *next_arg = (char*)argbuf;
+    char *next_arg = static_cast<char*>(argbuf);
     char const *old_f = f;
     while(*f)
       {
@@ -469,7 +469,7 @@ int Jdb_core::exec_cmd(Cmd const cmd, char const *str, int push_next_char)
 		      if (fm=='S')
 			{
 			  int oldlen = num_pos;
-			  (**(Jdb_module::Gotkey**)(next_arg+max_len))
+			  (**offset_cast<Jdb_module::Gotkey**>(next_arg, max_len))
 			    (next_arg, max_len, c);
 			  int newlen = strlen(next_arg);
 			  if (newlen > oldlen)
@@ -487,7 +487,7 @@ int Jdb_core::exec_cmd(Cmd const cmd, char const *str, int push_next_char)
 
 		default:
 		  if (fm > 'a'
-		      && (fm - 'a') < (int)(sizeof(_fmt_list)/sizeof(_fmt_list[0]))
+		      && (fm - 'a') < int{cxx::size(_fmt_list)}
 		      && _fmt_list[fm -'a'])
 		    {
 		      int size = sizeof(int);
@@ -513,38 +513,38 @@ int Jdb_core::exec_cmd(Cmd const cmd, char const *str, int push_next_char)
 	  int_done:
 	    if(negative) val = -val;
 
-	    if(next_arg)
-	      switch(long_fmt)
-		{
-		default:
-		    {
-		      int *v = (int*)next_arg;
-		      *v = val;
-		      next_arg += sizeof(int);
-		    }
-		  break;
-		case 1:
-		    {
-		      long int *v = (long int*)next_arg;
-		      *v = val;
-		      next_arg += sizeof(long int);
-		    }
-		  break;
-		case 2:
-		    {
-		      long long int *v = (long long int*)next_arg;
-		      *v = val;
-		      next_arg += sizeof(long long int);
-		    }
-		  break;
-		case -1:
-		    {
-		      short int *v = (short int*)next_arg;
-		      *v = val;
-		      next_arg += sizeof(short int);
-		    }
-		  break;
-		}
+            if(next_arg)
+              switch(long_fmt)
+                {
+                default:
+                  {
+                    int *v = reinterpret_cast<int*>(next_arg);
+                    *v = val;
+                    next_arg += sizeof(int);
+                    break;
+                  }
+                case 1:
+                  {
+                    long int *v = reinterpret_cast<long int*>(next_arg);
+                    *v = val;
+                    next_arg += sizeof(long int);
+                    break;
+                  }
+                case 2:
+                  {
+                    long long int *v = reinterpret_cast<long long int*>(next_arg);
+                    *v = val;
+                    next_arg += sizeof(long long int);
+                    break;
+                  }
+                case -1:
+                  {
+                    short int *v = reinterpret_cast<short int*>(next_arg);
+                    *v = val;
+                    next_arg += sizeof(short int);
+                    break;
+                  }
+                }
 	  }
 	else
 	  break;

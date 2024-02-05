@@ -64,7 +64,7 @@ Jdb_trap_state_module::print_trap_state(Cpu_number cpu)
 Jdb_module::Action_code
 Jdb_trap_state_module::action(int cmd, void *&argbuf, char const *&fmt, int &next)
 {
-  char const *c = (char const *)argbuf;
+  char const *c = static_cast<char const *>(argbuf);
   static Cpu_number cpu;
 
   if (cmd != 0)

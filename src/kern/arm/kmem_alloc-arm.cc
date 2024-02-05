@@ -120,8 +120,8 @@ static void add_initial_pmem()
   // on 1:1 mapping of the kernel image, or rather that the pages for
   // initial/boot paging directory lie in the kernel image (see
   // kmem_space-arm-32/64.cpp).
-  Address virt = Super_pg::trunc((unsigned long)_kernel_image_start);
-  Address size = Super_pg::ceil((unsigned long)_initcall_end) - virt;
+  Address virt = Super_pg::trunc(reinterpret_cast<unsigned long>(_kernel_image_start));
+  Address size = Super_pg::ceil(reinterpret_cast<unsigned long>(_initcall_end)) - virt;
   auto pte = Kmem::kdir->walk(Virt_addr(virt),
                               Kpdir::Super_level, false,
                               Ptab::Null_alloc(), Identity_map());

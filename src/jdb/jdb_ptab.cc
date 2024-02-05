@@ -25,7 +25,7 @@ char Jdb_ptab_m::first_char;
 Jdb_ptab::Jdb_ptab(void *pt_base, Space *task,
                    unsigned char pt_level, unsigned entries,
                    Address virt_base, int level)
-  : base((Address)pt_base), virt_base(virt_base), _level(level),
+  : base(reinterpret_cast<Address>(pt_base)), virt_base(virt_base), _level(level),
     _task(task), entries(entries), cur_pt_level(pt_level), dump_raw(0)
 {
   if (entries == 0)
@@ -90,7 +90,7 @@ Jdb_ptab::entry_phys(Pdir::Pte_ptr const &entry)
 void *
 Jdb_ptab::entry_virt(Pdir::Pte_ptr const &entry)
 {
-  return (void*)Mem_layout::phys_to_pmem(entry_phys(entry));
+  return reinterpret_cast<void *>(Mem_layout::phys_to_pmem(entry_phys(entry)));
 }
 
 unsigned
@@ -113,13 +113,13 @@ Jdb_ptab::entry_is_pt_ptr(Pdir::Pte_ptr const &entry,
 void
 Jdb_ptab::print_head(void *entry)
 {
-  printf(L4_PTR_FMT, (Address)entry);
+  printf(L4_PTR_FMT, reinterpret_cast<Address>(entry));
 }
 
 Address
 Jdb_ptab::disp_virt(int idx)
 {
-  Pdir::Va e((Mword)idx << Pdir::lsb_for_level(cur_pt_level));
+  Pdir::Va e(static_cast<Mword>(idx) << Pdir::lsb_for_level(cur_pt_level));
   return cxx::int_value<Virt_addr>(e) + virt_base;
 }
 
@@ -304,7 +304,7 @@ Jdb_ptab_m::action(int cmd, void *&args, char const *&fmt, int &next_char)
         s = Jdb::get_space(Jdb::current_cpu);
 
       void *ptab_base;
-      if (!(ptab_base = ((void*)static_cast<Mem_space*>(s)->dir())))
+      if (!(ptab_base = (static_cast<void*>(static_cast<Mem_space*>(s)->dir()))))
         return Jdb_module::NOTHING;
 
       Jdb::clear_screen();

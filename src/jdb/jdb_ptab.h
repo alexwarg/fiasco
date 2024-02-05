@@ -51,7 +51,7 @@ private:
 
   inline void *pte(int index)
   {
-    return (void*)(base + index * Pdir::Levels::entry_size(cur_pt_level));
+    return reinterpret_cast<void *>(base + index * Pdir::Levels::entry_size(cur_pt_level));
   }
 };
 

@@ -312,9 +312,9 @@ public:
                       | (Page::Tcr_attribs << 8)
                       | Page::vtcr_bits(pa_range())));
 
-    asm volatile ("msr MDCR_EL2, %x0" : : "r"((Mword)Mdcr_bits));
+    asm volatile ("msr MDCR_EL2, %x0" : : "r"(Mword{Mdcr_bits}));
 
-    asm volatile ("msr SCTLR_EL1, %x0" : : "r"((Mword)Sctlr_el1_generic));
+    asm volatile ("msr SCTLR_EL1, %x0" : : "r"(Mword{Sctlr_el1_generic}));
     asm volatile ("msr HCR_EL2, %x0" : : "r" (Hcr_non_vm_bits));
     asm volatile ("msr HSTR_EL2, %x0" : : "r" (D::Hstr_non_vm));
 

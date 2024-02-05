@@ -20,7 +20,7 @@ protected:
 
     static void link(cxx::H_list<Head> &h, void *b, unsigned long idx)
     {
-      Head *n = (Head*)b;
+      Head *n = static_cast<Head*>(b);
       n->index = idx;
       h.add(n);
     }
@@ -53,13 +53,13 @@ private:
     unsigned long const n_size = size << 1;
     if (index + 1 >= Num_sizes)
       return 0;
-    unsigned long b = (unsigned long)block;
+    unsigned long b = reinterpret_cast<unsigned long>(block);
     unsigned long _buddy = b & ~(n_size-1);
-    *new_block = (Head*)_buddy;
+    *new_block = reinterpret_cast<Head*>(_buddy);
     if (_buddy == b)
       _buddy += size;
 
-    Head * const _buddy_h = (Head*)_buddy;
+    Head * const _buddy_h = reinterpret_cast<Head*>(_buddy);
 
     // this test may access one bit behind our maximum, this is safe because
     // we allocated an extra bit
@@ -75,8 +75,8 @@ private:
     //printf("Buddy::split(%p, %d, %d)\n", b, size_index, i);
     for (; i > size_index; ++size_index)
       {
-        unsigned long buddy = (unsigned long)b + (Min_size << size_index);
-        Head::link(_free[size_index], (void*)buddy, size_index);
+        unsigned long buddy = reinterpret_cast<unsigned long>(b) + (Min_size << size_index);
+        Head::link(_free[size_index], reinterpret_cast<void*>(buddy), size_index);
         _free_map.set_bit((buddy - _base) / Min_size);
       }
 
@@ -110,18 +110,18 @@ public:
 
   void free(void *block, unsigned long size)
   {
-    assert ((unsigned long)block >= _base);
+    assert (reinterpret_cast<unsigned long>(block) >= _base);
     //assert ((unsigned long)block - _base < Max_mem);
-    assert (!_free_map[((unsigned long)block - _base) / Min_size]);
+    assert (!_free_map[(reinterpret_cast<unsigned long>(block) - _base) / Min_size]);
     //bool _b = 0;
     //if (_debug) printf("Buddy::free(%p, %ld)\n", block, size);
     unsigned size_index = 0;
-    while (((unsigned long)Min_size << size_index) < size)
+    while ((Min_size << size_index) < size)
       ++size_index;
 
-    if (size != (unsigned long)Min_size << size_index)
+    if (size != Min_size << size_index)
       WARNX(Info, "Buddy::free: Size mismatch: %lx v %lx\n",
-            size, (unsigned long)Min_size << size_index);
+            size, Min_size << size_index);
 
 
     // no need to look for a buddy if we already have the biggest block size
@@ -144,13 +144,13 @@ public:
 
     //printf("  link free %p\n", block);
     Head::link(_free[size_index], block, size_index);
-    _free_map.set_bit(((unsigned long)block - _base) / Min_size);
+    _free_map.set_bit((reinterpret_cast<unsigned long>(block) - _base) / Min_size);
     //if (_b && _debug) dump();
   }
 
   void add_mem(void *b, unsigned long size)
   {
-    unsigned long start = (unsigned long)b;
+    unsigned long start = reinterpret_cast<unsigned long>(b);
     unsigned long al_start;
     al_start = (start + Min_size - 1) & ~(Min_size - 1);
 
@@ -176,12 +176,12 @@ public:
   void *alloc(unsigned long size)
   {
     unsigned size_index = 0;
-    while (((unsigned long)Min_size << size_index) < size)
+    while ((Min_size << size_index) < size)
       ++size_index;
 
-    if (size != (unsigned long)Min_size << size_index)
+    if (size != Min_size << size_index)
       WARNX(Info, "Buddy::alloc: Size mismatch: %lx v %lx\n",
-            size, (unsigned long)Min_size << size_index);
+            size, Min_size << size_index);
 
     //printf("[%u]: Buddy::alloc(%ld)[ret=%p]: size_index=%d\n", Proc::cpu_id(), size, __builtin_return_address(0), size_index);
 
@@ -192,7 +192,7 @@ public:
           {
             B_list::remove(f);
             split(f, size_index, i);
-            _free_map.clear_bit(((unsigned long)f - _base) / Min_size);
+            _free_map.clear_bit((reinterpret_cast<unsigned long>(f) - _base) / Min_size);
             //printf("[%u]: =%p\n", Proc::cpu_id(), f);
             return f;
           }
@@ -203,13 +203,13 @@ public:
   void dump() const
   {
     unsigned long total = 0;
-    printf("Buddy_alloc [%ld,%ld]\n", (unsigned long)Min_size, (unsigned long)Num_sizes);
+    printf("Buddy_alloc [%ld,%ld]\n", Min_size, Num_sizes);
     for (unsigned i = 0; i < Num_sizes; ++i)
       {
         unsigned long c = 0;
         unsigned long avail = 0;
         B_list::Const_iterator h = _free[i].begin();
-        printf("  [%ld] %p(%lu)", (unsigned long)Min_size << i, *h, h != _free[i].end() ? h->index : 0UL);
+        printf("  [%ld] %p(%lu)", Min_size << i, *h, h != _free[i].end() ? h->index : 0UL);
         while (h != _free[i].end())
           {
             ++h;

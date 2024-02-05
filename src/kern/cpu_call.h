@@ -45,7 +45,7 @@ public:
   void done()
   {
     Mem::mp_mb();
-    write_now(&_wait, (Mword)false);
+    write_now(&_wait, Mword{false});
   }
 
   bool run(Cpu_number cpu, bool done = true)

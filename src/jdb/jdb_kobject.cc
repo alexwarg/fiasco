@@ -41,7 +41,7 @@ public:
     if (utcb->values[0] == Op_global_id)
       utcb->values[0] = o->dbg_info()->dbg_id();
     else
-      utcb->values[0] = Kobject_dbg::pointer_to_id((void *)utcb->values[1]);
+      utcb->values[0] = Kobject_dbg::pointer_to_id(reinterpret_cast<void *>(utcb->values[1]));
     f->tag(Kobject_iface::commit_result(0, 1));
     return true;
   }
@@ -266,7 +266,8 @@ Jdb_kobject::find_handler(Kobject_common *o)
       // XXX: may be we should sort the handlers: most derived first
       cxx::uintptr_t delta;
       if (r.type->do_cast(h->kobj_type, cxx::Typeid<Kobject_common>::get(),
-                          (cxx::uintptr_t)o - (cxx::uintptr_t)r.base, &delta))
+                          reinterpret_cast<cxx::uintptr_t>(o)
+                          - reinterpret_cast<cxx::uintptr_t>(r.base), &delta))
         return *h;
     }
 
@@ -299,8 +300,8 @@ Jdb_kobject::obj_description(String_buffer *buffer, String_buffer *help_text,
   Kobject *k = Kobject::from_dbg(o);
 
   if (buffer)
-    buffer->printf(dense ? "%lx %lx [%-*s]" : "%8lx %08lx [%-*s]",
-                   o->dbg_id(), (Mword)k, dense ? 0 : 7, kobject_type(k));
+    buffer->printf(dense ? "%lx %lx [%-*s]" : "%8lx %08lx [%-*s]", o->dbg_id(),
+                   reinterpret_cast<Mword>(k), dense ? 0 : 7, kobject_type(k));
 
   char const *ht;
 
@@ -392,7 +393,7 @@ Jdb_kobject::fmt_handler(char /*fmt*/, int *size, char const *cmd_str, void *arg
           continue;
 	}
 
-      if (pos < (int)sizeof(buffer) - 1
+      if (pos < int{sizeof(buffer)} - 1
           && (   (c >= '0' && c <= '9')
               || (c >= 'a' && c <= 'f')
               || (c >= 'A' && c <= 'F')
@@ -404,7 +405,7 @@ Jdb_kobject::fmt_handler(char /*fmt*/, int *size, char const *cmd_str, void *arg
 	}
     }
 
-  Kobject **a = (Kobject**)arg;
+  Kobject **a = static_cast<Kobject**>(arg);
 
   if (!pos)
     {
@@ -423,7 +424,7 @@ Jdb_kobject::fmt_handler(char /*fmt*/, int *size, char const *cmd_str, void *arg
   if (buffer[0] != 'P')
     ko = Kobject_dbg::id_to_obj(n);
   else
-    ko = Kobject_dbg::pointer_to_obj((void*)n);
+    ko = Kobject_dbg::pointer_to_obj(reinterpret_cast<void*>(n));
 
   if (ko != Kobject_dbg::end())
     *a = Kobject::from_dbg(ko);
@@ -469,7 +470,7 @@ Jdb_kobject::print_uid(Kobject_common *o, int task_format)
       return;
     }
 
-  printf("\033[31;1m%*s%p\033[m", task_format, "???", o);
+  printf("\033[31;1m%*s%p\033[m", task_format, "???", static_cast<void *>(o));
   return;
 }
 

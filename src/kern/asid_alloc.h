@@ -37,9 +37,9 @@ public:
 
   enum Special_values : Value_type
   {
-    Generation_inc = ((Value_type)1) << ASID_BITS,
+    Generation_inc = Value_type{1} << ASID_BITS,
     Mask           = Generation_inc - 1,
-    Invalid        = (Value_type)(~0ULL),
+    Invalid        = static_cast<Value_type>(~0ULL),
   };
 
   ASID_TYPE a;
@@ -53,7 +53,7 @@ public:
     if (sizeof(a) == sizeof(Mword))
       return a != Invalid;
     else
-      return ((Unsigned32)(a >> 32) & (Unsigned32)a) != Unsigned32(~0);
+      return (static_cast<Unsigned32>(a >> 32) & static_cast<Unsigned32>(a)) != static_cast<Unsigned32>(~0UL);
   }
 
   bool is_invalid_generation() const
@@ -76,7 +76,6 @@ public:
 using Asid_num_fn = unsigned (*)();
 
 /**
-<<<<<<< HEAD
  * Type for storing Asid_t<> values in memory, and provide
  * atomic load, store, and exchange operations on them.
  */
@@ -126,9 +125,6 @@ public:
 
 /**
  * Keep track of reserved Asids
-=======
- * Keep track of reserved ASIDs.
->>>>>>> 61706ccfd (asid_alloc: cosmetic changes and fix typos)
  *
  * If a generation roll over happens we have to keep track of ASIDs active on
  * other CPUs. These ASIDs are marked as reserved in the bitmap.

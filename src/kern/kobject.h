@@ -246,7 +246,7 @@ protected:
     Mword       ram;
     void print(String_buffer *buf) const
     {
-      buf->printf("obj=%lx [%p] (%p) ram=%lx", id, type, obj, ram);
+      buf->printf("obj=%lx [%p] (%p) ram=%lx", id, type, static_cast<void *>(obj), ram);
     }
   };
 

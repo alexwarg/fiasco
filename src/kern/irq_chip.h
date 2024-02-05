@@ -300,12 +300,12 @@ public:
     {
       Kobject_dbg::Const_iterator irq = Kobject_dbg::pointer_to_obj(obj);
 
-      buf->printf("0x%lx/%lu @ chip %s(%p) ", pin, pin, chip->chip_type(), chip);
+      buf->printf("0x%lx/%lu @ chip %s(%p) ", pin, pin, chip->chip_type(), static_cast<void *>(chip));
 
       if (irq != Kobject_dbg::end())
         buf->printf("D:%lx", irq->dbg_id());
       else
-        buf->printf("irq=%p", obj);
+        buf->printf("irq=%p", static_cast<void *>(obj));
     }
   };
   void log()

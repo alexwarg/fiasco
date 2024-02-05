@@ -49,7 +49,7 @@ public:
   template< typename T >
   T *construct() noexcept(noexcept(T()))
   {
-    BASE *test = reinterpret_cast<T*>(10); (void)test;
+    BASE *test = reinterpret_cast<T*>(10); static_cast<void>(test);
     static_assert(sizeof(T) <= sizeof(_d), "dynamic type of union too big");
     return new ((void*)_d) T;
   }
@@ -57,7 +57,7 @@ public:
   template< typename T, typename ...ARGS >
   T *construct(ARGS ...args) noexcept(noexcept(T(cxx::forward<ARGS>(args)...)))
   {
-    BASE *test = reinterpret_cast<T*>(10); (void)test;
+    BASE *test = reinterpret_cast<T*>(10); static_cast<void>(test);
     static_assert(sizeof(T) <= sizeof(_d), "dynamic type of union too big");
     return new ((void*)_d) T(cxx::forward<ARGS>(args)...);
   }

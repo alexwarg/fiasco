@@ -7,8 +7,8 @@
 #include "tb_entry.h"
 #include "jdb_tbuf.h"
 
-static Mword read_kcnt1() { return (Mword)*Kern_cnt::kcnt[0]; }
-static Mword read_kcnt2() { return (Mword)*Kern_cnt::kcnt[1]; }
+static Mword read_kcnt1() { return *Kern_cnt::kcnt[0]; }
+static Mword read_kcnt2() { return *Kern_cnt::kcnt[1]; }
 
 Unsigned32 *Kern_cnt::kcnt[Max_slot];
 Mword (*Kern_cnt::read_kcnt_fn[Max_slot])() = { read_kcnt1, read_kcnt2 };

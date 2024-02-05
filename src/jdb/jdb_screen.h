@@ -34,7 +34,7 @@ public:
   { return cols(Col_head_size, Mword_size_bmode); }
 
   static inline unsigned long rows()
-  { return ((unsigned long)-1) / ((cols() - 1) * 4) + 1; }
+  { return ~0UL / ((cols() - 1) * 4) + 1; }
 
   static inline void enable_direct(bool enable) { _direct_enabled = enable; }
   static inline bool direct_enabled()           { return _direct_enabled; }

@@ -48,7 +48,7 @@ Jdb_kern_info::action(int cmd, void *&args, char const *&, int &)
   if (cmd != 0)
     return NOTHING;
 
-  char c = *(char*)(args);
+  char c = *static_cast<char*>(args);
 
   for (auto const &&kim: modules)
     {
