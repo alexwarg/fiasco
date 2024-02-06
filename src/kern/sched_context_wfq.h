@@ -30,6 +30,11 @@ public:
   typedef D Wfq_sc;
   typedef Ready_queue_wfq<D> Ready_queue_base;
 
+  constexpr static unsigned max_param_size()
+  {
+    return sizeof(Sp);
+  }
+
   constexpr static Mword sched_classes()
   {
     return 1UL << (-L4_sched_param_wfq::Class);

@@ -146,6 +146,10 @@ public:
     D *_current_sched;
   };
 
+  constexpr static unsigned max_param_size()
+  {
+    return sizeof(Sp);
+  }
 
   constexpr static Mword sched_classes()
   {
