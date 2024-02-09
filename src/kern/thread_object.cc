@@ -309,7 +309,7 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
         {
           if (!Thread_vcpu::ext_vcpu_available())
             return commit_result(-L4_err::ENosys);
-          size = Config::PAGE_SIZE;
+          size = Config::ext_vcpu_size();
           add_state.vcpu_enabled() = true;
         }
 

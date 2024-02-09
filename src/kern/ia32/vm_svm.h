@@ -42,8 +42,7 @@ private:
 
   static Vmcb *ext_state(Vcpu_state *s)
   {
-    // 0x400: offset into vCPU state page for VMCB start.
-    return reinterpret_cast<Vmcb *>(reinterpret_cast<char *>(s) + 0x400);
+    return offset_cast<Vmcb *>(s, Config::Ext_vcpu_state_offset);
   }
 
   void restore_segments(Context *, Unsigned16 fs, Unsigned16 gs);

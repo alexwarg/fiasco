@@ -110,7 +110,7 @@ public:
   }
 
   static Vz::State *vm_state(Vcpu_state *vs)
-  { return reinterpret_cast<Vz::State *>(reinterpret_cast<char *>(vs) + 0x400); }
+  { return offset_cast<Vz::State *>(vs, Config::Ext_vcpu_state_offset); }
 
   [[gnu::flatten]]
   void vz_save_state(int guest_id)

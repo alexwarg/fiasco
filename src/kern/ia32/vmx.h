@@ -470,7 +470,7 @@ public:
 
   void init_vmcs_infos(void *vcpu_state) const
   {
-    Vmx_user_info *i = reinterpret_cast<Vmx_user_info*>((char*)vcpu_state + 0x200);
+    Vmx_user_info *i = offset_cast<Vmx_user_info*>(vcpu_state, Config::Ext_vcpu_infos_offset);
     i->basic = info.basic;
     i->pinbased = info.pinbased_ctls;
     i->procbased = info.procbased_ctls;
@@ -492,8 +492,8 @@ public:
     i->exit_dfl1 = info.exit_ctls_default1;
     i->entry_dfl1 = info.entry_ctls_default1;
 
-    Vmx_user_info::Fo_table *infos = reinterpret_cast<Vmx_user_info::Fo_table *>((char*)vcpu_state + 0x420);
-    Unsigned32 *inf = reinterpret_cast<Unsigned32 *>((char*)vcpu_state + 0x410);
+    Vmx_user_info::Fo_table *infos = offset_cast<Vmx_user_info::Fo_table *>(vcpu_state, Config::Ext_vcpu_state_offset + 0x20);
+    Unsigned32 *inf = offset_cast<Unsigned32 *>(vcpu_state, Config::Ext_vcpu_state_offset + 0x10);
     inf[0] = F_sw_guest_cr2;
     infos->init();
   }

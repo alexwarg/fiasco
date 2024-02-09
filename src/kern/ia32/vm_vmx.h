@@ -171,7 +171,7 @@ public:
         return -L4_err::EInval;
       }
 
-    void *vmcs_s = reinterpret_cast<char *>(vcpu) + 0x400;
+    void *vmcs_s = offset_cast<void *>(vcpu, Config::Ext_vcpu_state_offset);
 
     for (;;)
       {

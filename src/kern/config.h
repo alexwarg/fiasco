@@ -121,6 +121,16 @@ namespace Config
 
   unsigned long kmem_size(unsigned long available_size);
 
+  // Attention: this enum is used by the Lauterbach Trace32 OS awareness.
+  enum Ext_vcpu_info
+  {
+    Ext_vcpu_infos_offset = 0x200,
+    Ext_vcpu_state_offset = 0x400,
+  };
+
+  static constexpr Mword ext_vcpu_size()
+  { return PAGE_SIZE; }
+
 #if defined (CONFIG_SERIAL)
   extern int serial_esc;
 #else

@@ -127,7 +127,7 @@ protected:
   {}
 
   static Vm_state *vm_state(Vcpu_state *vs)
-  { return reinterpret_cast<Vm_state *>(reinterpret_cast<char *>(vs) + 0x400); }
+  { return offset_cast<Vm_state *>(vs, Config::Ext_vcpu_state_offset); }
 
   void arch_vcpu_ext_shutdown()
   {

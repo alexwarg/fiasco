@@ -22,7 +22,7 @@ public:
     using Vm_state = Hyp_vm_state;
 
     Vm_state::Vm_info *info
-      = reinterpret_cast<Vm_state::Vm_info *>((char *)vcpu_state + 0x200);
+      = offset_cast<Vm_state::Vm_info *>(vcpu_state, Config::Ext_vcpu_state_offset);
 
     info->setup();
 
