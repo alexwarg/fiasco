@@ -54,7 +54,7 @@ public:
     __asm__ __volatile__ (
         "dc cvac, %0       \n"
         :
-        : "r" ((unsigned long)va & ~(dcache_line_size() - 1))
+        : "r" (va)
         : "memory");
   }
 
