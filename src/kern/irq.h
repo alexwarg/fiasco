@@ -58,7 +58,7 @@ public:
   }
 
   explicit __attribute__((nonnull))
-  Irq(Ram_quota *q = 0) : _q(q) {}
+  Irq(Ram_quota *q) : _q(q) {}
 
   void destroy(Kobject ***rl) override;
 
