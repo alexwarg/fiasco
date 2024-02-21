@@ -22,6 +22,9 @@ namespace Intel {
 class Io_mmu : public Pm_object
 {
 public:
+  /// Maximum number of IOMMUs.
+  enum { Max_iommus = 16 };
+
   /// Command and status register bits
   enum Cmd_bits
   {
@@ -543,7 +546,7 @@ public:
   template<typename... Inv_descs>
   static void queue_and_wait_on_iommus(bool const *need_inv, Inv_descs... descs)
   {
-    Unsigned32 volatile wait_flags[iommus.size()];
+    Unsigned32 volatile wait_flags[Max_iommus];
     for (unsigned i = 0; i < iommus.size(); i++)
       {
         // Skip if this IOMMU does not need invalidation.

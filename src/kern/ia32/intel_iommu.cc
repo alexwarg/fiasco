@@ -82,6 +82,9 @@ Intel::Io_mmu::init(Cpu_number cpu)
     if (de.cast<ACPI::Dmar_drhd>())
       ++units;
 
+  if (units > Max_iommus)
+    panic("Cannot handle more than %d IOMMUs", Max_iommus);
+
   // need to take a copy of the DMAR into the kernel AS as the ACPI
   // are mapped only into IDLE AS!
   void *dmar = Boot_alloced::alloc(d->len);
