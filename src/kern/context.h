@@ -165,11 +165,15 @@ public:
   { return _drq_q.first(); }
 
   /**
-   * \brief Handle all pending DRQs.
-   * \pre cpu_lock.test() (The CPU lock must be held).
-   * \pre current() == this (only the currently running context is allowed to
-   *      call this function).
-   * \return true if re-scheduling is needed (ready queue has changed),
+   * Handle all pending DRQs for this context.
+   *
+   * \pre The CPU lock must be held: `cpu_lock.test()`
+   * \pre The context must be either on the current CPU or on an offline CPU:
+   *      `current_cpu() == home_cpu() || !Cpu::online(home_cpu())`
+   * \pre If `!Cpu::online(home_cpu())`, the lock of the home CPU's _pending_rqq
+   *      must be held: `_pending_rqq.cpu(home_cpu()).q_lock()->test()`
+   *
+   * \return True if re-scheduling is needed (ready queue has changed),
    *         false if not.
    */
   bool handle_drq();

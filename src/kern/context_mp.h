@@ -303,6 +303,22 @@ public:
       }
   }
 
+  /**
+   * Dequeue given DRQ from DRQ queue of this context, must be on current or
+   * offline CPU, update the context's DRQ ready state and execute the DRQ.
+   *
+   * \param rq           DRQ to execute.
+   * \param offline_cpu  Whether home CPU of context is an offline CPU.
+   * \pre The context must be either on the current CPU or on an offline CPU:
+   *      `home_cpu() == current_cpu() || offline_cpu`
+   * \pre if (offline_cpu) _pending_rqq.cpu(home_cpu()).q_lock() must be held.
+   *
+   * \return True if re-scheduling is needed (ready queue has changed),
+   *         false if not.
+   *
+   * \post The DRQ function might be preemptible for local DRQ execution, i.e.
+   *       `home_cpu() == current_cpu()`, in that case the home CPU can change.
+   */
   bool _deq_exec_drq(Drq *rq, bool offline_cpu = false)
   {
     CONTEXT *self = _ctxt();
