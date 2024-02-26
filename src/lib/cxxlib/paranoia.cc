@@ -2,8 +2,9 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
-#include "panic.h"
-#include "types.h"
+#include <panic.h>
+#include <types.h>
+#include <std_macros.h>
 
 // Required for Clang which lacks a builtin definition of std::align_val_t.
 namespace std { enum class align_val_t : size_t {}; }
@@ -11,6 +12,7 @@ namespace std { enum class align_val_t : size_t {}; }
 
 char __dso_handle __attribute__((weak));
 
+// Required by older versions of GCC and by Clang.
 extern "C" void __cxa_pure_virtual();
 extern "C" void __cxa_pure_virtual()
 {
@@ -18,14 +20,6 @@ extern "C" void __cxa_pure_virtual()
         L4_PTR_ARG(__builtin_return_address(0)));
 }
 
-extern "C" void __pure_virtual();
-extern "C" void __pure_virtual()
-{
-  panic("pure virtual function called from " L4_PTR_FMT,
-        L4_PTR_ARG(__builtin_return_address(0)));
-}
-
-void operator delete(void *) noexcept;
 void operator delete(void *) noexcept
 {
   // This must not happen: We never delete an object of the abstract class
@@ -36,6 +30,7 @@ void operator delete(void *) noexcept
       L4_PTR_ARG(__builtin_return_address(0)));
 }
 
+#if defined FIASCO_GCC
 void operator delete(void *, std::align_val_t)
 {
   // This must not happen -- same as above.
@@ -52,3 +47,4 @@ void operator delete(void *, std::align_val_t)
   panic("operator delete (aka __builtin_delete) called from " L4_PTR_FMT,
       L4_PTR_ARG(__builtin_return_address(0)));
 }
+#endif
