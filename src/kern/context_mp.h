@@ -66,7 +66,7 @@ protected:
      */
     bool try_to_help()
     {
-      if (_s.load(cxx::memory_order_relaxed))
+      if (_s.load(cxx::memory_order_relaxed) != Not_running)
         return false; // either running or already trying
 
       State not_running = Not_running;
@@ -87,7 +87,7 @@ protected:
      */
     bool try_dispatch()
     {
-      if (_s.load(cxx::memory_order_relaxed))
+      if (_s.load(cxx::memory_order_relaxed) != Not_running)
         return false;
 
       State not_running = Not_running;
@@ -126,7 +126,7 @@ protected:
     }
 
     /// Check the current running under lock state.
-    operator bool () const { return _s.load(cxx::memory_order_relaxed); }
+    explicit operator bool () const { return _s.load(cxx::memory_order_relaxed) != Not_running; }
   };
 
   using Pending_rqq = Remote_ready_queue;
