@@ -33,6 +33,12 @@ public:
   static void clear_actrl(Mword bit_mask)
   { modify_actrl(0, bit_mask); }
 
+  static Mword dfr1()
+  { Mword v; asm volatile ("mrc p15, 0, %0, c0, c3, 5": "=r" (v)); return v; }
+
+  static bool has_hpmn0()
+  { return ((dfr1() >> 4) & 0xf) == 1; }
+
   static Mword midr() noexcept
   {
     Mword m;
@@ -405,6 +411,12 @@ public:
   }
 #endif
 #ifdef CONFIG_CPU_VIRT
+  enum : Mword
+  {
+    Hdcr_bits = D::Mdcr_tpmcr | D::Mdcr_tpm   | D::Mdcr_tde
+                | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra,
+  };
+
   static void init_hyp_mode()
   {
     extern char hyp_vector_base[];
@@ -413,10 +425,7 @@ public:
     asm volatile ("mcr p15, 4, %0, c12, c0, 0 \n" : : "r"(hyp_vector_base));
 
     asm volatile (
-          "mrc p15, 4, r0, c1, c1, 1 \n"
-          "orr r0, #(0xf << 8) \n" // enable TDE, TDA, TDOSA, TDRA
-          "orr r0, #(0x3 << 5) \n" // enable TPMCR, TPM
-          "mcr p15, 4, r0, c1, c1, 1 \n"
+          "mcr p15, 4, %0, c1, c1, 1 \n"
 
           "mcr p15, 4, %0, c2, c1, 2 \n"
 
@@ -424,8 +433,9 @@ public:
           "bic r0, #1 \n"
           "mcr p15, 0, r0, c1, c0, 0 \n"
 
-          "mcr p15, 4, %1, c1, c1, 0 \n"
+          "mcr p15, 4, %2, c1, c1, 0 \n"
           : :
+          "r" (Mword{Hdcr_bits} | (D::has_hpmn0() ? 0 : 1)),
           "r" ((1UL << 31) | (Page::Tcr_attribs << 8) | (1 << 6)),
           "r" (Hcr_non_vm_bits)
           : "r0" );

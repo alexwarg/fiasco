@@ -54,6 +54,18 @@ public:
     Hcr_rw     = 1UL << 31, ///< EL1 is AArch64
   };
 
+enum : Mword
+  {
+    // HDCR[31:0] (arm32) is architecturally mapped to MDCR_EL2[31:0] (arm64).
+    Mdcr_hpmn_mask = 0xf,
+    Mdcr_tpmcr     = 1UL << 5,
+    Mdcr_tpm       = 1UL << 6,
+    Mdcr_hpme      = 1UL << 7,
+    Mdcr_tde       = 1UL << 8,
+    Mdcr_tda       = 1UL << 9,
+    Mdcr_tdosa     = 1UL << 10,
+    Mdcr_tdra      = 1UL << 11,
+  };
 };
 
 class Cpu_arm_v5 : public Cpu_arm_generic
