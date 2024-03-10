@@ -4,15 +4,22 @@
 
 namespace cxx
 {
-  typedef enum memory_order
+  typedef enum class memory_order : int
   {
-    memory_order_relaxed = __ATOMIC_RELAXED,   // relaxed
-    memory_order_consume = __ATOMIC_CONSUME,   // consume
-    memory_order_acquire = __ATOMIC_ACQUIRE,   // acquire
-    memory_order_release = __ATOMIC_RELEASE,   // release
-    memory_order_acq_rel = __ATOMIC_ACQ_REL,   // acquire/release
-    memory_order_seq_cst = __ATOMIC_SEQ_CST    // sequentially consistent
+    relaxed = __ATOMIC_RELAXED,   // relaxed
+    consume = __ATOMIC_CONSUME,   // consume
+    acquire = __ATOMIC_ACQUIRE,   // acquire
+    release = __ATOMIC_RELEASE,   // release
+    acq_rel = __ATOMIC_ACQ_REL,   // acquire/release
+    seq_cst = __ATOMIC_SEQ_CST    // sequentially consistent
   } memory_oprder;
+
+  static constexpr memory_order memory_order_relaxed = memory_order::relaxed;
+  static constexpr memory_order memory_order_consume = memory_order::consume;
+  static constexpr memory_order memory_order_acquire = memory_order::acquire;
+  static constexpr memory_order memory_order_release = memory_order::release;
+  static constexpr memory_order memory_order_acq_rel = memory_order::acq_rel;
+  static constexpr memory_order memory_order_seq_cst = memory_order::seq_cst;
 
   static constexpr memory_order
   memory_order_failure(memory_order success) noexcept
@@ -60,49 +67,49 @@ namespace cxx
   inline T_
   atomic_fetch_or(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
-    return __atomic_fetch_or(v, a, order);
+    return __atomic_fetch_or(v, a, (int)order);
   }
 
   template<typename T_>
   inline T_
   atomic_or_fetch(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
-    return __atomic_or_fetch(v, a, order);
+    return __atomic_or_fetch(v, a, (int)order);
   }
 
   template<typename T_>
   inline T_
   atomic_fetch_and(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
-    return __atomic_fetch_and(v, a, order);
+    return __atomic_fetch_and(v, a, (int)order);
   }
 
   template<typename T_>
   inline T_
   atomic_and_fetch(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
-    return __atomic_and_fetch(v, a, order);
+    return __atomic_and_fetch(v, a, (int)order);
   }
 
   template<typename T_>
   inline T_
   atomic_fetch_add(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
-    return __atomic_fetch_add(v, a, order);
+    return __atomic_fetch_add(v, a, (int)order);
   }
 
   template<typename T_>
   inline T_
   atomic_add_fetch(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
-    return __atomic_add_fetch(v, a, order);
+    return __atomic_add_fetch(v, a, (int)order);
   }
 
   template<typename T_>
   inline void
   atomic_store(T_ *ptr, T_ v, memory_order order = memory_order_seq_cst) noexcept
   {
-    __atomic_store_n(ptr, v, order);
+    __atomic_store_n(ptr, v, (int)order);
   }
 
 
@@ -252,22 +259,22 @@ namespace cxx
 
     T_ fetch_add(T_ a, memory_order order = memory_order_seq_cst) noexcept
     {
-      return __atomic_fetch_add(&v_, a, order);
+      return __atomic_fetch_add(&v_, a, (int)order);
     }
 
     T_ fetch_add(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
     {
-      return __atomic_fetch_add(&v_, a, order);
+      return __atomic_fetch_add(&v_, a, (int)order);
     }
 
     T_ fetch_sub(T_ a, memory_order order = memory_order_seq_cst) noexcept
     {
-      return __atomic_fetch_sub(&v_, a, order);
+      return __atomic_fetch_sub(&v_, a, (int)order);
     }
 
     T_ fetch_sub(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
     {
-      return __atomic_fetch_sub(&v_, a, order);
+      return __atomic_fetch_sub(&v_, a, (int)order);
     }
 
     T_ operator += (T_ a) noexcept
