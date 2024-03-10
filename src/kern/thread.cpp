@@ -141,7 +141,7 @@ protected:
 
 protected:
   Ram_quota *_quota;
-  Irq_base *_del_observer;
+  cxx::atomic<Irq_base *> _del_observer;
 
 
   // Debugging facilities
@@ -340,22 +340,22 @@ Thread::ipc_gate_deleted(Mword id)
 {
   (void) id;
   auto g = lock_guard(cpu_lock);
-  if (_del_observer)
-    _del_observer->hit(0);
+  if (auto irq = _del_observer.load(cxx::memory_order_relaxed))
+    irq->hit(0);
 }
 
 PUBLIC
 bool
 Thread::register_delete_irq(Irq_base *irq)
 {
-  if (_del_observer)
+  if (_del_observer.load(cxx::memory_order_relaxed))
     return false;
 
   auto g = lock_guard(irq->irq_lock());
   irq->unbind();
   Del_irq_chip::chip.bind(irq, (Mword)this);
   Irq_base *none = nullptr;
-  if (cxx::atomic_compare_exchange_strong(&_del_observer, none, irq))
+  if (_del_observer.compare_exchange_strong(none, irq))
     return true;
 
   irq->unbind();
@@ -366,7 +366,7 @@ PUBLIC
 void
 Thread::remove_delete_irq(Irq_base *irq)
 {
-  cxx::atomic_compare_exchange_strong(&_del_observer, irq, (Irq_base *)nullptr);
+  _del_observer.compare_exchange_strong(irq, (Irq_base *)nullptr);
 }
 
 // end of: IPC-gate deletion stuff -------------------------------
@@ -548,11 +548,16 @@ Thread::do_kill()
   // dequeue from system queues
   Sched_context::rq.current().ready_dequeue(sched());
 
-  if (_del_observer)
+  auto irq = _del_observer.load();
+
+  do
     {
-      _del_observer->unbind();
-      _del_observer = 0;
+      if (!irq)
+        break;
+
+      irq->unbind();
     }
+  while (!_del_observer.compare_exchange_strong(irq, nullptr));
 
   rcu_wait();
 
