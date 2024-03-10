@@ -2,6 +2,7 @@ INTERFACE:
 
 #include <cstddef>
 #include <types.h>
+#include <cxx/atomic>
 
 class Ram_quota
 {
@@ -11,7 +12,7 @@ public:
 
 private:
   Ram_quota *_parent;
-  Mword _current;
+  cxx::atomic<Mword> _current;
 
   enum : Mword
   { Invalid = 1UL << ((sizeof(Mword) * 8) - 1) };
@@ -21,8 +22,6 @@ private:
 
 
 IMPLEMENTATION:
-
-#include <cxx/atomic>
 
 Ram_quota *Ram_quota::root;
 
@@ -58,7 +57,7 @@ Ram_quota::Ram_quota(Ram_quota *p, Mword max)
 PUBLIC inline
 Mword
 Ram_quota::current() const
-{ return _current & ~Invalid; }
+{ return _current.load(cxx::memory_order_relaxed) & ~Invalid; }
 
 PUBLIC
 bool
@@ -71,7 +70,7 @@ Ram_quota::alloc(Mword bytes)
   if (unlimited())
     return true;
 
-  Mword o = access_once(&_current);
+  Mword o = _current.load(cxx::memory_order_relaxed);
   for (;;)
     {
       if (o & Invalid)
@@ -81,7 +80,7 @@ Ram_quota::alloc(Mword bytes)
       if (n > _max)
         return false;
 
-      if (cxx::atomic_compare_exchange_strong(&_current, o, n))
+      if (_current.compare_exchange_strong(o, n))
         return true;
     }
 }
@@ -100,7 +99,7 @@ Ram_quota::_free_bytes(Mword bytes)
   if (unlimited())
     return false;
 
-  Mword r = cxx::atomic_add_fetch(&_current, -bytes);
+  Mword r = _current -= bytes;
 
   return r == Invalid;
 }
@@ -131,12 +130,12 @@ Ram_quota::take_and_invalidate()
   if (unlimited())
     return;
 
-  Mword o = access_once(&_current);
+  Mword o = _current.load(cxx::memory_order_relaxed);
   for (;;)
     {
       Mword n = (o + 1) | Invalid;
 
-      if (cxx::atomic_compare_exchange_strong(&_current, o, n))
+      if (_current.compare_exchange_strong(o, n))
         return;
     }
 }
