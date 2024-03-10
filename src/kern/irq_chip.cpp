@@ -2,7 +2,7 @@ INTERFACE:
 
 #include <cxx/bitfield>
 
-#include "atomic.h"
+#include <cxx/atomic>
 #include "types.h"
 #include "spin_lock.h"
 
@@ -176,15 +176,14 @@ public:
    */
   bool __mask()
   {
-    Mword old;
+    Mword old = _flags;
     // Replace by atomic_fetch_and()!
     do
       {
-        old = _flags;
         if (!(old & F_enabled))
           return true;
       }
-    while (!mp_cas(&_flags, old, old & ~F_enabled));
+    while (!cxx::atomic_compare_exchange_strong(&_flags, old, old & ~F_enabled));
     return false;
   }
 
@@ -203,7 +202,7 @@ public:
         if (old & F_enabled)
           return false;
       }
-    while (!mp_cas(&_flags, old, old | F_enabled));
+    while (!cxx::atomic_compare_exchange_strong(&_flags, old, old | F_enabled));
     return true;
   }
 

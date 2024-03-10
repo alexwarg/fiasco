@@ -1,5 +1,7 @@
 INTERFACE:
 
+#include <cxx/atomic>
+
 #include "ipc_sender.h"
 #include "irq_chip.h"
 #include "kobject_helper.h"
@@ -58,8 +60,8 @@ protected:
   static bool is_valid_thread(Thread const *t)
   { return t > detach_in_progress(); }
 
-  Smword _queued;
-  Thread *_irq_thread;
+  cxx::atomic<Smword> _queued;
+  cxx::atomic<Thread *> _irq_thread;
 
 private:
   Mword _irq_id;
@@ -70,7 +72,6 @@ private:
 IMPLEMENTATION:
 
 #include "assert_opt.h"
-#include "atomic.h"
 #include "config.h"
 #include "cpu_lock.h"
 #include "entry_frame.h"
@@ -149,7 +150,7 @@ Irq::dispatch_irq_proto(Unsigned16 op, bool may_unmask)
  * \retval -EBUSY   if another detach operation is in progress or object already
  *                  destroyed.
  */
-PUBLIC inline NEEDS ["atomic.h", "cpu_lock.h", "lock_guard.h"]
+PUBLIC inline NEEDS ["cpu_lock.h", "lock_guard.h"]
 int
 Irq_sender::alloc(Thread *t, Kobject ***rl)
 {
@@ -160,10 +161,9 @@ Irq_sender::alloc(Thread *t, Kobject ***rl)
   if (!guard.check_and_lock(&existence_lock))
     return -L4_err::EBusy;
 
-  Thread *old;
+  Thread *old = _irq_thread.load(cxx::memory_order_relaxed);
   for (;;)
     {
-      old = access_once(&_irq_thread);
 
       if (old == t)
         return 0;
@@ -171,11 +171,10 @@ Irq_sender::alloc(Thread *t, Kobject ***rl)
       if (EXPECT_FALSE(old == detach_in_progress()))
         return -L4_err::EBusy;
 
-      if (mp_cas(&_irq_thread, old, t))
+      if (_irq_thread.compare_exchange_strong(old, t, cxx::memory_order_acquire))
         break;
     }
 
-  Mem::mp_acquire();
 
   auto g = lock_guard(cpu_lock);
   bool reinject = false;
@@ -208,7 +207,7 @@ Irq_sender::alloc(Thread *t, Kobject ***rl)
   if (reinject)
     {
       // might have changed between the CAS and taking the lock
-      t = access_once(&_irq_thread);
+      t = _irq_thread.load();
       if (EXPECT_TRUE(is_valid_thread(t)))
         send(t);
     }
@@ -218,7 +217,8 @@ Irq_sender::alloc(Thread *t, Kobject ***rl)
 
 PUBLIC
 Receiver *
-Irq_sender::owner() const { return _irq_thread; }
+Irq_sender::owner() const
+{ return _irq_thread.load(cxx::memory_order_relaxed); }
 
 /**
  * Release an interrupt.
@@ -236,10 +236,9 @@ int
 Irq_sender::free(Kobject ***rl)
 {
   Mem::mp_release();
-  Thread *t;
+  Thread *t = _irq_thread.load(cxx::memory_order_relaxed);
   for (;;)
     {
-      t = access_once(&_irq_thread);
 
       if (t == detach_in_progress())
         return -L4_err::EBusy;
@@ -247,7 +246,7 @@ Irq_sender::free(Kobject ***rl)
       if (t == nullptr)
         return -L4_err::ENoent;
 
-      if (EXPECT_TRUE(mp_cas(&_irq_thread, t, detach_in_progress())))
+      if (EXPECT_TRUE(_irq_thread.compare_exchange_strong(t, detach_in_progress())))
         break;
     }
 
@@ -256,8 +255,7 @@ Irq_sender::free(Kobject ***rl)
 
   t->Receiver::abort_send(this);
 
-  Mem::mp_release();
-  write_now(&_irq_thread, nullptr);
+  _irq_thread.store(nullptr, cxx::memory_order_release);
   // release cpu-lock early, actually before delete
   guard.reset();
 
@@ -295,18 +293,13 @@ Irq_sender::destroy(Kobject ***rl) override
 /** Consume all interrupts.
     @return number of IRQs that are still pending -- this is always 0.
  */
-PRIVATE inline NEEDS ["atomic.h"]
+PRIVATE inline
 Smword
 Irq_sender::consume()
 {
-  Smword old;
-
-  do
-    {
-      old = _queued;
-    }
-  while (!mp_cas (&_queued, old, 0L));
-  Mem::mp_acquire();
+  Smword old = _queued.load(cxx::memory_order_relaxed);
+  while (!_queued.compare_exchange_strong(old, 0L, cxx::memory_order_acquire))
+    ;
 
   if (old >= 2 && hit_func == &hit_edge_irq)
     unmask();
@@ -318,7 +311,7 @@ PUBLIC inline
 int
 Irq_sender::queued()
 {
-  return _queued;
+  return _queued.load(cxx::memory_order_relaxed);
 }
 
 
@@ -380,7 +373,7 @@ Irq_sender::handle_remote_hit(Context::Drq *, Context *target, void *arg)
 {
   Irq_sender *irq = (Irq_sender*)arg;
   irq->set_cpu(current_cpu());
-  auto t = access_once(&irq->_irq_thread);
+  auto t = irq->_irq_thread.load(cxx::memory_order_acquire);
   if (EXPECT_TRUE(t == target))
     {
       if (EXPECT_TRUE(irq->send_msg(t, false)))
@@ -397,11 +390,7 @@ PRIVATE inline
 Smword
 Irq_sender::queue()
 {
-  Smword old;
-  do
-    old = _queued;
-  while (!mp_cas(&_queued, old, old + 1));
-  return old;
+  return _queued.fetch_add(1);
 }
 
 
@@ -434,7 +423,7 @@ Irq_sender::_hit_level_irq(Upstream_irq const *ui)
   mask_and_ack();
   Upstream_irq::ack(ui);
 
-  auto t = access_once(&_irq_thread);
+  auto t = _irq_thread.load(cxx::memory_order_acquire);
   if (EXPECT_FALSE(!is_valid_thread(t)))
     return;
 
@@ -462,7 +451,7 @@ Irq_sender::_hit_edge_irq(Upstream_irq const *ui)
 
   assert (cpu_lock.test());
 
-  auto t = access_once(&_irq_thread);
+  auto t = _irq_thread.load(cxx::memory_order_acquire);
   if (EXPECT_FALSE(!is_valid_thread(t)))
     {
       mask_and_ack();
@@ -566,7 +555,7 @@ Irq_sender::kinvoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f,
         }
 
     case L4_msg_tag::Label_irq:
-      return dispatch_irq_proto(op, _queued < 1);
+      return dispatch_irq_proto(op, _queued.load(cxx::memory_order_relaxed) < 1);
 
     case L4_msg_tag::Label_irq_sender:
       switch (op)

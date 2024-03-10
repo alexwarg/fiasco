@@ -42,7 +42,6 @@ private:
 //---------------------------------------------------------------------------
 IMPLEMENTATION:
 
-#include "atomic.h"
 #include "config.h"
 #include "entry_frame.h"
 #include "globals.h"
@@ -186,7 +185,7 @@ Task::alloc_ku_mem(L4_fpage ku_area)
   m->k_addr = p;
   m->size = sz;
 
-  _ku_mem.add(m, mp_cas<cxx::S_list_item*>);
+  _ku_mem.atomic_add(m);
 
   return 0;
 }

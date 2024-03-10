@@ -172,7 +172,7 @@ IMPLEMENTATION:
 #include <cassert>
 #include <cstdlib>		// panic()
 #include <cstring>
-#include "atomic.h"
+#include <cxx/atomic>
 #include "entry_frame.h"
 #include "fpu_alloc.h"
 #include "globals.h"
@@ -354,7 +354,8 @@ Thread::register_delete_irq(Irq_base *irq)
   auto g = lock_guard(irq->irq_lock());
   irq->unbind();
   Del_irq_chip::chip.bind(irq, (Mword)this);
-  if (mp_cas(&_del_observer, (Irq_base *)nullptr, irq))
+  Irq_base *none = nullptr;
+  if (cxx::atomic_compare_exchange_strong(&_del_observer, none, irq))
     return true;
 
   irq->unbind();
@@ -365,7 +366,7 @@ PUBLIC
 void
 Thread::remove_delete_irq(Irq_base *irq)
 {
-  mp_cas(&_del_observer, irq, (Irq_base *)nullptr);
+  cxx::atomic_compare_exchange_strong(&_del_observer, irq, (Irq_base *)nullptr);
 }
 
 // end of: IPC-gate deletion stuff -------------------------------
@@ -705,7 +706,7 @@ Thread::start_migration()
 
   assert (!((Mword)m & 0x3)); // ensure alignment
 
-  if (!m || !mp_cas(&_migration, m, (Migration*)0))
+  if (!m || !cxx::atomic_compare_exchange_strong(&_migration, m, (Migration*)0))
     return reinterpret_cast<Migration*>(0x2); // bit one == 0 --> no need to reschedule
 
   if (m->cpu == home_cpu())
@@ -1080,10 +1081,10 @@ Thread::migrate(Migration *info)
       l->user_ip = regs()->ip();
   );
     {
-      Migration *old;
-      do
-        old = _migration;
-      while (!mp_cas(&_migration, old, info));
+      Migration *old = _migration;
+      while (!cxx::atomic_compare_exchange_strong(&_migration, old, info))
+        ;
+
       // flag old migration to be done / stale
       if (old)
         write_now(&old->in_progress, true);

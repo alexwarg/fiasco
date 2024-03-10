@@ -33,7 +33,6 @@ IMPLEMENTATION:
 
 #include <cassert>
 
-#include "atomic.h"
 #include "cpu_lock.h"
 #include "lock_guard.h"
 #include "mem.h"

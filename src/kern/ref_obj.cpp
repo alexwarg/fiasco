@@ -1,13 +1,15 @@
 INTERFACE:
 
 #include "types.h"
+#include <cxx/atomic>
 
 class Ref_cnt_obj
 {
 public:
   Ref_cnt_obj() : _ref_cnt(0) {}
+
 private:
-  Smword _ref_cnt;
+  cxx::atomic<Smword> _ref_cnt;
 };
 
 template<typename T>
@@ -87,36 +89,35 @@ private:
 // -------------------------------------------------------------------------
 IMPLEMENTATION:
 
-#include "atomic.h"
 
 PUBLIC inline
 Smword
 Ref_cnt_obj::ref_cnt() const
-{ return _ref_cnt; }
+{ return _ref_cnt.load(cxx::memory_order_relaxed); }
 
-PUBLIC inline NEEDS["atomic.h"]
+PUBLIC inline
 bool
 Ref_cnt_obj::inc_ref(bool from_zero = true)
 {
-  Smword old;
+  if (from_zero)
+    {
+      _ref_cnt.fetch_add(1);
+      return true;
+    }
+
+  Smword old = _ref_cnt.load(cxx::memory_order_relaxed);
   do
     {
-      old = _ref_cnt;
-      if (!from_zero && !old)
+      if (!old)
         return false;
     }
-  while (!mp_cas(&_ref_cnt, old, old + 1));
+  while (!_ref_cnt.compare_exchange_strong(old, old + 1));
   return true;
 }
 
-PUBLIC inline NEEDS["atomic.h"]
+PUBLIC inline
 Smword
 Ref_cnt_obj::dec_ref()
 {
-  Smword old;
-  do
-    old = _ref_cnt;
-  while (!mp_cas(&_ref_cnt, old, old - 1));
-
-  return old - 1;
+  return _ref_cnt.fetch_sub(1) - 1;
 }

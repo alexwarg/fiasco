@@ -1,6 +1,6 @@
 #include <libc_backend.h>
 
-#include <atomic.h>
+#include <cxx/atomic>
 #include <cpu_lock.h>
 #include "mem.h"
 #include "processor.h"
@@ -25,14 +25,17 @@ unsigned long __libc_backend_printf_lock()
   if (__libc_backend_printf_spinlock == pid)
     return r | 2;
 
+  auto x = access_once(&__libc_backend_printf_spinlock);
   for (;;)
     {
-      Proc::pause();
-      auto x = access_once(&__libc_backend_printf_spinlock);
       if (x != ~0UL)
-        continue;
+        {
+          Proc::pause();
+          x = access_once(&__libc_backend_printf_spinlock);
+          continue;
+        }
 
-      if (mp_cas(&__libc_backend_printf_spinlock, (Mword)~0UL, pid))
+      if (cxx::atomic_compare_exchange_strong(&__libc_backend_printf_spinlock, x, pid))
         return r;
     }
 }
@@ -40,10 +43,8 @@ unsigned long __libc_backend_printf_lock()
 void __libc_backend_printf_unlock(unsigned long state)
 {
   if (!(state & 2))
-    write_now(&__libc_backend_printf_spinlock, ~0UL);
+    cxx::atomic_store(&__libc_backend_printf_spinlock, ~0UL);
 
   if (!(state & 1))
     cpu_lock.clear();
-
-  Mem::mp_wmb();
 }

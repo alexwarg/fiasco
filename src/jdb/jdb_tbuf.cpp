@@ -1,5 +1,7 @@
 INTERFACE:
 
+#include <cxx/atomic>
+
 #include "globalconfig.h"
 #include "jdb_ktrace.h"
 #include "l4_types.h"
@@ -29,7 +31,7 @@ public:
 protected:
   static Mword		_max_entries;	// maximum number of entries
   static Mword          _filter_enabled;// !=0 if filter is active
-  static Mword		_number;	// current event number
+  static cxx::atomic<Mword> _number;	// current event number
   static Address        _size;		// size of memory area for tbuffer
   static Tracebuffer_status *_status;
   static Tb_entry_union *_buffer;
@@ -56,7 +58,6 @@ protected:
 
 IMPLEMENTATION:
 
-#include "atomic.h"
 #include "config.h"
 #include "cpu_lock.h"
 #include "initcalls.h"
@@ -75,7 +76,7 @@ Mword Jdb_tbuf::_max_entries;
 Mword Jdb_tbuf::_filter_enabled;
 
 // modified often (for each new entry)
-Mword Jdb_tbuf::_number;
+cxx::atomic<Mword> Jdb_tbuf::_number;
 
 
 static void direct_log_dummy(Tb_entry*, const char*)
@@ -97,7 +98,7 @@ Jdb_tbuf::clear_tbuf()
   for (i = 0; i < _max_entries; i++)
     buffer()[i].clear();
 
-  _number = 0;
+  _number.store(0);
 }
 
 /** Return pointer to new tracebuffer entry. */
@@ -105,11 +106,7 @@ PUBLIC static
 Tb_entry*
 Jdb_tbuf::new_entry()
 {
-  Mword n;
-  // use atomic_add() when available!
-  do
-    n = access_once(&_number);
-  while (!mp_cas(&_number, n, n + 1));
+  Mword n = _number.fetch_add(1);
 
   Tb_entry_union *tb = buffer() + (n & (_max_entries - 1));
   // As long as not all information is written, write an invalid number which
@@ -150,7 +147,7 @@ PUBLIC static inline
 Mword
 Jdb_tbuf::unfiltered_entries()
 {
-  return _number > _max_entries ? _max_entries : _number;
+  return _number.load() > _max_entries ? _max_entries : _number.load();
 }
 
 PUBLIC static
@@ -202,7 +199,7 @@ Jdb_tbuf::unfiltered_lookup(Mword idx)
   if (!event_valid(idx))
     return 0;
 
-  return buffer() + ((_number - idx - 1) & (_max_entries - 1));
+  return buffer() + ((_number.load() - idx - 1) & (_max_entries - 1));
 }
 
 /** Return pointer to tracebuffer event.
@@ -238,7 +235,7 @@ Mword
 Jdb_tbuf::unfiltered_idx(Tb_entry const *e)
 {
   auto *ef = static_cast<Tb_entry_union const *>(e);
-  return (_number - (ef - buffer()) - 1) & (_max_entries - 1);
+  return (_number.load() - (ef - buffer()) - 1) & (_max_entries - 1);
 }
 
 /** Tb_entry => tracebuffer index. */
@@ -249,7 +246,7 @@ Jdb_tbuf::idx(Tb_entry const *e)
   if (!_filter_enabled)
     return unfiltered_idx(e);
 
-  Tb_entry_union const *ef_next = buffer() + (_number & (_max_entries - 1));
+  Tb_entry_union const *ef_next = buffer() + (_number.load() & (_max_entries - 1));
   Tb_entry_union const *ef = static_cast<Tb_entry_union const*>(e);
   Mword idx = (Mword) - 1;
 
@@ -346,7 +343,7 @@ Jdb_tbuf::event(Mword idx, Mword *number, Unsigned32 *kclock,
   if (pmc2)
     *pmc2 = e->pmc2();
   if (committed)
-    *committed = (e->number() < _number);
+    *committed = (e->number() < _number.load());
   return true;
 }
 

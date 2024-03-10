@@ -1,5 +1,6 @@
 INTERFACE:
 
+#include <cxx/atomic>
 #include <cxx/function>
 #include <cxx/type_traits>
 
@@ -108,7 +109,7 @@ private:
   static Per_cpu<bool> running;
   static bool in_service;
   static bool leave_barrier;
-  static unsigned long cpus_in_debugger;
+  static cxx::atomic<unsigned long> cpus_in_debugger;
   static bool never_break;
   static bool jdb_active;
 
@@ -196,7 +197,7 @@ bool Jdb::never_break;		// never enter JDB
 bool Jdb::jdb_active;
 bool Jdb::in_service;
 bool Jdb::leave_barrier;
-unsigned long Jdb::cpus_in_debugger;
+cxx::atomic<unsigned long> Jdb::cpus_in_debugger;
 
 
 IMPLEMENT_DEFAULT inline template< typename T >
@@ -1352,7 +1353,7 @@ retry:
   for (;;)
     {
       bool all_there = true;
-      cpus_in_debugger = 0;
+      cpus_in_debugger.store(0);
       // skip boot cpu 0
       for (Cpu_number c = Cpu_number::second(); c < Config::max_num_cpus(); ++c)
 	{
@@ -1361,7 +1362,7 @@ retry:
 	      if (!running.cpu(c))
 		all_there = false;
 	      else
-		++cpus_in_debugger;
+		cpus_in_debugger.fetch_add(1);
 	    }
 	}
 
@@ -1453,7 +1454,7 @@ Jdb::stop_all_cpus(Cpu_number current_cpu)
 
       // Signal CPU 0, that we are ready to leve the debugger
       // This is the second door of the airlock
-      atomic_mp_add(&cpus_in_debugger, -1UL);
+      cpus_in_debugger.fetch_sub(1UL);
 
       // Wait for CPU 0 to leave us out
       while (access_once(&leave_barrier))
@@ -1499,11 +1500,8 @@ Jdb::leave_wait_for_others()
       break;
     }
 
-  while (access_once(&cpus_in_debugger))
-    {
-      Mem::mp_mb();
-      Proc::pause();
-    }
+  while (cpus_in_debugger.load())
+    Proc::pause();
 
   Mem::barrier();
   leave_barrier = 0;

@@ -121,8 +121,8 @@ IMPLEMENTATION [io]:
 
 #include <cassert>
 #include <cstring>
+#include <cxx/atomic>
 
-#include "atomic.h"
 #include "config.h"
 #include "l4_types.h"
 #include "kmem_alloc.h"
@@ -329,9 +329,9 @@ Generic_io_space<SPACE>::get_io_counter() const
 template< typename SPACE >
 inline NEEDS["paging.h"]
 void
-Generic_io_space<SPACE>::addto_io_counter(int incr)
+Generic_io_space<SPACE>::addto_io_counter(Smword incr)
 {
-  atomic_add (&_io_counter, incr);
+  cxx::atomic_fetch_add(&_io_counter, (Mword)incr);
 }
 
 

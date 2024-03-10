@@ -53,8 +53,8 @@ IMPLEMENTATION:
 
 #include <cstring>
 #include <cassert>
+#include <cxx/atomic>
 
-#include "atomic.h"
 #include "config.h"
 #include "cpu.h"
 #include "kmem_alloc.h"

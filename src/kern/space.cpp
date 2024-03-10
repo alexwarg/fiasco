@@ -112,7 +112,6 @@ protected:
 IMPLEMENTATION:
 
 #include "assert.h"
-#include "atomic.h"
 #include "lock_guard.h"
 #include "config.h"
 #include "globalconfig.h"

@@ -78,8 +78,8 @@ private:
 IMPLEMENTATION:
 
 #include <cassert>
+#include <cxx/atomic>
 
-#include "atomic.h"
 #include "config.h"
 #include "kip.h"
 #include "mem_layout.h"
@@ -320,11 +320,11 @@ Kmem_alloc::q_free(Q *quota, Bytes size, void *obj)
 
 Kmem_alloc_reaper::Reaper_list Kmem_alloc_reaper::mem_reapers;
 
-PUBLIC inline NEEDS["atomic.h"]
+PUBLIC inline
 Kmem_alloc_reaper::Kmem_alloc_reaper(size_t (*reap)(bool desperate))
 : _reap(reap)
 {
-  mem_reapers.add(this, mp_cas<cxx::S_list_item *>);
+  mem_reapers.atomic_add(this);
 }
 
 PUBLIC static

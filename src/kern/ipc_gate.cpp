@@ -1,5 +1,7 @@
 INTERFACE:
 
+#include <cxx/atomic>
+
 #include "kobject.h"
 #include "kobject_helper.h"
 #include "slab_cache.h"
@@ -25,8 +27,9 @@ class Ipc_gate : public cxx::Dyn_castable<Ipc_gate, Kobject>
   friend class Jdb_sender_list;
 protected:
 
-  Thread *_thread;
-  Mword _id;
+  cxx::atomic<Thread *> _thread;
+  cxx::atomic<Mword> _id;
+
   Ram_quota *_quota;
   Locked_prio_list _wait_q;
 };
@@ -40,13 +43,13 @@ class Ipc_gate_obj :
 public:
   bool put() override { return Ipc_gate::put(); }
 
-  Thread *thread() const { return _thread; }
-  Mword id() const { return _id; }
-  Mword obj_id() const override { return _id; }
+  Thread *thread() const { return _thread.load(cxx::memory_order_relaxed); }
+  Mword id() const { return _id.load(cxx::memory_order_relaxed); }
+  Mword obj_id() const override { return id(); }
 
   bool is_local(Space *s) const override
   {
-    Thread *t = access_once(&_thread);
+    Thread *t = _thread.load(cxx::memory_order_acquire);
     return t && t->space() == s;
   }
 };
@@ -110,7 +113,7 @@ Ipc_gate::Ipc_gate(Ram_quota *q, Thread *t, Mword id)
   if (t)
     {
       t->inc_ref();
-      _thread = t;
+      _thread.store(t);
     }
 }
 
@@ -143,8 +146,8 @@ PUBLIC virtual
 void
 Ipc_gate_obj::initiate_deletion(Kobject ***r) override
 {
-  if (_thread)
-    _thread->ipc_gate_deleted(_id);
+  if (Thread *t = _thread.load(cxx::memory_order_acquire))
+    t->ipc_gate_deleted(id());
 
   Kobject::initiate_deletion(r);
 }
@@ -154,10 +157,10 @@ void
 Ipc_gate_obj::destroy(Kobject ***r) override
 {
   Kobject::destroy(r);
-  Thread *tmp = access_once(&_thread);
+  Thread *tmp = _thread.load(cxx::memory_order_acquire);
   if (tmp)
     {
-      _thread = 0;
+      _thread.store(0, cxx::memory_order_release);
       unblock_all();
       tmp->put_n_reap(r);
     }
@@ -232,17 +235,12 @@ Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
     return commit_result(-L4_err::EPerm);
 
   Ipc_gate_obj *g = static_cast<Ipc_gate_obj*>(this);
-  g->_id = in->values[1];
+  g->_id.store(in->values[1]);
   t->inc_ref();
 
-  Mem::mp_wmb(); // Ensure visibility of _id before _thread
-
-  Thread *old;
-  do
-    {
-      old = access_once(&g->_thread);
-    }
-  while (!mp_cas(&g->_thread, old, t));
+  Thread *old = g->_thread.load(cxx::memory_order_relaxed);
+  while (!g->_thread.compare_exchange_strong(old, t))
+    ;
 
   Kobject::Reap_list r;
   if (old)
@@ -273,7 +271,7 @@ Ipc_gate_ctl::get_infos(L4_obj_ref, L4_fpage::Rights,
                         Syscall_frame *, Utcb const *, Utcb *out)
 {
   Ipc_gate_obj *g = static_cast<Ipc_gate_obj*>(this);
-  out->values[0] = g->_id;
+  out->values[0] = g->id();
   return commit_result(0, 1);
 }
 
@@ -370,7 +368,7 @@ Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
   Thread *partner = 0;
   bool have_rcv = false;
 
-  Thread *t = access_once(&_thread);
+  Thread *t = _thread.load(cxx::memory_order_acquire);
   if (EXPECT_FALSE(!t))
     {
       L4_error e = block(ct, f->timeout().snd, utcb);
@@ -380,7 +378,7 @@ Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
 	  return;
 	}
 
-      t = access_once(&_thread);
+      t = _thread.load(cxx::memory_order_acquire);
       if (EXPECT_FALSE(!t))
 	{
 	  f->tag(commit_error(utcb, L4_error::Not_existent));
@@ -390,19 +388,18 @@ Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
 
   bool ipc = t->check_sys_ipc(f->ref().op(), &partner, &sender, &have_rcv);
 
-  Mem::mp_rmb(); // Ensure that _id is initialized.
-
   LOG_TRACE("IPC Gate invoke", "gate", current(), Log_ipc_gate_invoke,
       l->gate_dbg_id = dbg_id();
       l->thread_dbg_id = t->dbg_id();
-      l->label = _id | cxx::int_value<L4_fpage::Rights>(rights);
+      l->label = _id.load(cxx::memory_order_relaxed) | cxx::int_value<L4_fpage::Rights>(rights);
   );
 
   if (EXPECT_FALSE(!ipc))
     f->tag(commit_error(utcb, L4_error::Not_existent));
   else
     {
-      Mword const from_spec = _id | cxx::int_value<L4_fpage::Rights>(rights);
+      Mword const from_spec = _id.load()
+                            | cxx::int_value<L4_fpage::Rights>(rights);
       ct->do_ipc(f->tag(), from_spec, partner, have_rcv, sender, f->timeout(), f, rights);
     }
 }

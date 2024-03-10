@@ -1,6 +1,8 @@
-INTERFACE:
+//vi: ft=cpp
 
-#include "atomic.h"
+#pragma once
+
+#include <cxx/atomic>
 #include <cxx/type_traits>
 
 template< bool LARGE, unsigned BITS >
@@ -80,16 +82,13 @@ public:
 
     unsigned long idx = bit / Bpl;
     unsigned long b   = bit % Bpl;
-    unsigned long v;
 
     if (!(this->_bits[idx] & (1UL << b)))
       return false;
 
-    do
-      {
-        v = this->_bits[idx];
-      }
-    while (!mp_cas(&this->_bits[idx], v, v & ~(1UL << b)));
+    unsigned long v = this->_bits[idx];
+    while (!__atomic_compare_exchange_n(&this->_bits[idx], &v, v & ~(1UL << b), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST))
+      ;
 
     return v & (1UL << b);
   }
@@ -98,12 +97,9 @@ public:
   {
     unsigned long idx = bit / Bpl;
     unsigned long b   = bit % Bpl;
-    unsigned long v;
-    do
-      {
-        v = this->_bits[idx];
-      }
-    while (!mp_cas(&this->_bits[idx], v, v | (1UL << b)));
+    unsigned long v = this->_bits[idx];
+    while (!__atomic_compare_exchange_n(&this->_bits[idx], &v, v | (1UL << b), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST))
+      ;
 
     return v & (1UL << b);
   }
@@ -112,14 +108,14 @@ public:
   {
     unsigned long idx = bit / Bpl;
     unsigned long b   = bit % Bpl;
-    atomic_mp_or(&this->_bits[idx], 1UL << b);
+    __atomic_or_fetch(&this->_bits[idx], 1UL << b, __ATOMIC_SEQ_CST);
   }
 
   void atomic_clear_bit(unsigned long bit)
   {
     unsigned long idx = bit / Bpl;
     unsigned long b   = bit % Bpl;
-    atomic_mp_and(&this->_bits[idx], ~(1UL << b));
+    __atomic_and_fetch(&this->_bits[idx], ~(1UL << b), __ATOMIC_SEQ_CST);
   }
 
   void clear_all()
@@ -139,7 +135,7 @@ public:
   void atomic_or(Bitmap_base const &r)
   {
     for (unsigned i = 0; i < Nr_elems; ++i)
-      atomic_mp_or(&this->_bits[i], r._bits[i]);
+      __atomic_or_fetch(&this->_bits[i], r._bits[i], __ATOMIC_SEQ_CST);
   }
 
   unsigned ffs(unsigned bit) const
@@ -213,36 +209,30 @@ public:
     if (!(_bits & (1UL << bit)))
       return false;
 
-    unsigned long v;
-    do
-      {
-        v = _bits;
-      }
-    while (!mp_cas(&_bits, v, v & ~(1UL << bit)));
+    unsigned long v = _bits;
+    while (!__atomic_compare_exchange_n(&_bits, &v, v & ~(1UL << bit), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST))
+      ;
 
     return v & (1UL << bit);
   }
 
   bool atomic_get_and_set(unsigned long bit)
   {
-    unsigned long v;
-    do
-      {
-        v = _bits;
-      }
-    while (!mp_cas(&_bits, v, v | (1UL << bit)));
+    unsigned long v = _bits;
+    while (!__atomic_compare_exchange_n(&_bits, &v, v | (1UL << bit), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST))
+      ;
 
     return v & (1UL << bit);
   }
 
   void atomic_set_bit(unsigned long bit)
   {
-    atomic_mp_or(&_bits, 1UL << bit);
+    __atomic_or_fetch(&_bits, 1UL << bit, __ATOMIC_SEQ_CST);
   }
 
   void atomic_clear_bit(unsigned long bit)
   {
-    atomic_mp_and(&_bits, ~(1UL << bit));
+    __atomic_and_fetch(&_bits, ~(1UL << bit), __ATOMIC_SEQ_CST);
   }
 
   void clear_all()
@@ -257,7 +247,7 @@ public:
 
   void atomic_or(Bitmap_base const &r)
   {
-    atomic_mp_or(&_bits, r._bits);
+    __atomic_or_fetch(&_bits, r._bits, __ATOMIC_SEQ_CST);
   }
 
   unsigned ffs(unsigned bit) const

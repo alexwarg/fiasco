@@ -94,10 +94,10 @@ IMPLEMENTATION [mips]:
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <cxx/atomic>
 #include <new>
 
 #include "asm_mips.h"
-#include "atomic.h"
 #include "config.h"
 #include "globals.h"
 #include "kdb_ke.h"

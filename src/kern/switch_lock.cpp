@@ -67,8 +67,8 @@ public:
 IMPLEMENTATION:
 
 #include <cassert>
+#include <cxx/atomic>
 
-#include "atomic.h"
 #include "cpu_lock.h"
 #include "lock_guard.h"
 #include "context.h"
@@ -266,7 +266,7 @@ PRIVATE inline
 void NO_INSTRUMENT
 Switch_lock::clear_lock_owner()
 {
-  atomic_mp_and(&_lock_owner, 1);
+  cxx::atomic_fetch_and(&_lock_owner, (Address)1);
 }
 
 PRIVATE inline
@@ -284,15 +284,11 @@ Switch_lock::set_lock_owner(Context *o)
   else
     assert (o->_running_under_lock);
 
-  Mem::mp_wmb();
-
-  if (EXPECT_FALSE(!mp_cas(&_lock_owner, Mword(0), Address(o))))
+  Mword none = 0;
+  if (EXPECT_FALSE(!cxx::atomic_compare_exchange_strong(&_lock_owner, none, Address(o))))
     {
       if (have_no_locks)
-        {
-          Mem::mp_wmb();
-          o->_running_under_lock.reset();
-        }
+        o->_running_under_lock.reset();
       return false;
     }
 
@@ -437,7 +433,7 @@ void NO_INSTRUMENT
 Switch_lock::invalidate()
 {
   auto guard = lock_guard(cpu_lock);
-  atomic_mp_or(&_lock_owner, 1);
+  cxx::atomic_fetch_or(&_lock_owner, (Address)1);
 }
 
 PUBLIC

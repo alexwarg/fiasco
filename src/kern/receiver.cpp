@@ -1,5 +1,7 @@
 INTERFACE:
 
+#include <cxx/atomic>
+
 #include "context.h"
 #include "l4_error.h"
 #include "member_offs.h"
@@ -69,7 +71,7 @@ private:
   // DATA
   void const *_partner;     // IPC partner I'm waiting for/involved with
   Syscall_frame *_rcv_regs; // registers used for receive
-  Mword _caller;
+  cxx::atomic<Mword> _caller;
   Iterable_prio_list _sender_list;
 };
 
@@ -77,7 +79,7 @@ typedef Context_ptr_base<Receiver> Receiver_ptr;
 
 IMPLEMENTATION:
 
-#include "atomic.h"
+#include <cxx/atomic>
 #include "l4_types.h"
 #include <cassert>
 
@@ -102,12 +104,12 @@ Receiver::Receiver()
 PUBLIC inline
 Receiver *
 Receiver::caller() const
-{ return reinterpret_cast<Receiver*>(_caller & ~0x03UL); }
+{ return reinterpret_cast<Receiver*>(_caller.load(cxx::memory_order_relaxed) & ~0x03UL); }
 
 PUBLIC inline
 L4_fpage::Rights
 Receiver::caller_rights() const
-{ return L4_fpage::Rights(_caller & 0x3); }
+{ return L4_fpage::Rights(_caller.load(cxx::memory_order_relaxed) & 0x3); }
 
 
 PUBLIC inline
@@ -115,30 +117,30 @@ void
 Receiver::set_caller(Receiver *caller, L4_fpage::Rights rights)
 {
   Mword nv = Mword(caller) | (cxx::int_value<L4_fpage::Rights>(rights) & 0x3);
-  reinterpret_cast<Mword volatile &>(_caller) = nv;
+  _caller.store(nv);
 }
 
 /**
  * Reset the caller field to 0 iff the current value is `old_caller`.
  */
-PUBLIC inline NEEDS["atomic.h"]
+PUBLIC inline NEEDS[<cxx/atomic>]
 void
 Receiver::reset_caller(Receiver const *old_caller)
 {
-  Mword ov = Mword(old_caller) | (_caller & 0x3);
+  Mword ov = Mword(old_caller) | (_caller.load(cxx::memory_order_relaxed) & 0x3);
   // avoid exclusive access (do test, test-and-set)
-  if (_caller != ov)
+  if (_caller.load(cxx::memory_order_relaxed) != ov)
     return;
 
-  mp_cas(&_caller, ov, 0UL);
+  _caller.compare_exchange_strong(ov, 0UL);
 }
 
 PUBLIC inline
 void
 Receiver::reset_caller()
 {
-  if (_caller)
-    _caller = 0;
+  if (_caller.load(cxx::memory_order_relaxed))
+    _caller.store(0);
 }
 
 PROTECTED inline

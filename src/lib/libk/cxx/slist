@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <cxx/atomic>
 #include "bits/list_basics.h"
 
 namespace cxx {
@@ -71,14 +72,12 @@ public:
     this->_f = e;
   }
 
-  template< typename CAS >
-  void add(T *e, CAS const &c)
+  void atomic_add(T *e, memory_order order = memory_order_seq_cst)
   {
-    do
-      {
-        e->_n = this->_f;
-      }
-    while (!c(&this->_f, e->_n, e));
+    S_list_item *e_ = e;
+    e_->_n = this->_f;
+    while (!cxx::atomic_compare_exchange_strong(&this->_f, e_->_n, e_, order))
+      ;
   }
 
   void push_front(T *e) { add(e); }

@@ -284,7 +284,8 @@ Dmar_space::get_did()
       if (EXPECT_FALSE(ndid == ~0U))
         return ~0UL;
 
-      if (!mp_cas(&_did, (unsigned long)0, (unsigned long)ndid))
+      unsigned long none = 0;
+      if (!cxx::atomic_compare_exchange_strong(&_did, none, (unsigned long)ndid))
         free_did(ndid);
     }
   return _did;
@@ -495,7 +496,7 @@ Dmar_space::remove_from_all_iommus()
     return;
 
   // someone else changed the did
-  if (!mp_cas(&_did, did, 0ul))
+  if (!cxx::atomic_compare_exchange_strong(&_did, did, 0ul))
     return;
 
   bool need_wait[Intel::Io_mmu::iommus.size()];

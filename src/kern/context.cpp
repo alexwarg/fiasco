@@ -424,7 +424,8 @@ public:
 IMPLEMENTATION:
 
 #include <cassert>
-#include "atomic.h"
+#include <cxx/atomic>
+
 #include "cpu.h"
 #include "cpu_lock.h"
 #include "entry_frame.h"
@@ -467,7 +468,7 @@ Context_ptr::ptr(Space *s, L4_fpage::Rights *rights) const
  *
  * \pre (_kernel_sp == 0)  &&  (* (stack end) == 0)
  */
-PUBLIC inline NEEDS ["atomic.h", "entry_frame.h", <cstdio>]
+PUBLIC inline NEEDS ["entry_frame.h", <cstdio>]
 Context::Context()
 : _kernel_sp(reinterpret_cast<Mword*>(regs())),
   // TCBs are zero initialized. Thus, members not explictly initialized can be
@@ -561,12 +562,12 @@ Context::is_invalid(bool check_cpu_local = false) const
  * @param bits bits to be added to state flags
  * @return 1 if none of the bits that were added had been set before
  */
-PUBLIC inline NEEDS ["atomic.h"]
+PUBLIC inline NEEDS [<cxx/atomic>]
 void
 Context::state_add(Mword bits)
 {
   assert(check_for_current_cpu());
-  atomic_or(&_state, bits);
+  cxx::atomic_or_fetch(&_state, bits);
 }
 
 /**
@@ -589,12 +590,12 @@ Context::state_add_dirty(Mword bits, bool check = true)
  * @param bits bits to be removed from state flags
  * @return 1 if all of the bits that were removed had previously been set
  */
-PUBLIC inline NEEDS ["atomic.h"]
+PUBLIC inline NEEDS [<cxx/atomic>]
 void
 Context::state_del(Mword bits)
 {
   assert (check_for_current_cpu());
-  atomic_and(&_state, ~bits);
+  cxx::atomic_and_fetch(&_state, ~bits);
 }
 
 /**
@@ -621,20 +622,19 @@ Context::state_del_dirty(Mword bits, bool check = true)
  * @param bits Bits to be added to state flags
  * @return 1 if state was changed, 0 otherwise
  */
-PUBLIC inline NEEDS ["atomic.h"]
+PUBLIC inline NEEDS [<cxx/atomic>]
 Mword
 Context::state_change_safely(Mword mask, Mword bits)
 {
   assert (check_for_current_cpu());
-  Mword old;
+  Mword old = _state;
 
   do
     {
-      old = _state;
       if ((old & bits & mask) | (~old & ~mask))
         return 0;
     }
-  while (!cas(&_state, old, (old & mask) | bits));
+  while (!cxx::atomic_compare_exchange_strong(&_state, old, (old & mask) | bits));
 
   return 1;
 }
@@ -644,12 +644,16 @@ Context::state_change_safely(Mword mask, Mword bits)
  * @param mask bits not set in mask shall be deleted from state flags
  * @param bits bits to be added to state flags
  */
-PUBLIC inline NEEDS ["atomic.h"]
+PUBLIC inline NEEDS [<cxx/atomic>]
 Mword
 Context::state_change(Mword mask, Mword bits)
 {
   assert (check_for_current_cpu());
-  return atomic_change(&_state, mask, bits);
+  Mword old = _state;
+  while (!cxx::atomic_compare_exchange_strong(&_state, old, (old & mask) | bits))
+    ;
+
+  return old;
 }
 
 /**
@@ -1651,7 +1655,7 @@ private:
       Running     = 2,
     };
 
-    State _s;
+    cxx::atomic<State> _s;
 
   public:
     /**
@@ -1670,13 +1674,11 @@ private:
      */
     bool try_to_help()
     {
-      if (_s)
+      if (_s.load(cxx::memory_order_relaxed))
         return false; // either running or already trying
 
-      bool ret = mp_cas(&_s, Not_running, Trying);
-      if (ret)
-        Mem::mp_acquire();
-      return ret;
+      State not_running = Not_running;
+      return _s.compare_exchange_strong(not_running, Trying, cxx::memory_order_acquire);
     }
 
     /**
@@ -1693,13 +1695,11 @@ private:
      */
     bool try_dispatch()
     {
-      if (access_once(&_s))
+      if (_s.load(cxx::memory_order_relaxed))
         return false;
 
-      bool ret = mp_cas(&_s, Not_running, Running);
-      if (ret)
-        Mem::mp_acquire();
-      return ret;
+      State not_running = Not_running;
+      return _s.compare_exchange_strong(not_running, Running, cxx::memory_order_acquire);
     }
 
     /**
@@ -1708,7 +1708,7 @@ private:
      * Before calling this method Running_under_lock::try_to_help() must
      * have returned success.
      */
-    void help() { write_now(&_s, Running); }
+    void help() { _s.store(Running, cxx::memory_order_relaxed); }
 
     /**
      * Dirty transition to Not_running.
@@ -1718,8 +1718,7 @@ private:
      */
     void reset()
     {
-      Mem::mp_release();
-      write_now(&_s, Not_running);
+      _s.store(Not_running, cxx::memory_order_release);
     }
 
     /**
@@ -1730,15 +1729,12 @@ private:
      */
     void preempt()
     {
-      if (_s == Running)
-        {
-          Mem::mp_release();
-          write_now(&_s, Not_running);
-        }
+      if (_s.load(cxx::memory_order_relaxed) == Running)
+        _s.store(Not_running, cxx::memory_order_release);
     }
 
     /// Check the current running under lock state.
-    operator bool () const { return _s; }
+    operator bool () const { return _s.load(cxx::memory_order_relaxed); }
   };
 
   /**
@@ -1814,7 +1810,7 @@ bool
 Context::running_on_different_cpu()
 {
   if (   EXPECT_TRUE(access_once(&_lock_cnt) == 0)
-      && EXPECT_TRUE(!access_once(&_running_under_lock)))
+      && EXPECT_TRUE(!_running_under_lock))
     return false;
 
   if (EXPECT_FALSE(!_running_under_lock.try_dispatch()))

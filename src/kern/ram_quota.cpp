@@ -22,7 +22,7 @@ private:
 
 IMPLEMENTATION:
 
-#include "atomic.h"
+#include <cxx/atomic>
 
 Ram_quota *Ram_quota::root;
 
@@ -71,9 +71,9 @@ Ram_quota::alloc(Mword bytes)
   if (unlimited())
     return true;
 
+  Mword o = access_once(&_current);
   for (;;)
     {
-      Mword o = access_once(&_current);
       if (o & Invalid)
         return false;
 
@@ -81,7 +81,7 @@ Ram_quota::alloc(Mword bytes)
       if (n > _max)
         return false;
 
-      if (mp_cas(&_current, o, n))
+      if (cxx::atomic_compare_exchange_strong(&_current, o, n))
         return true;
     }
 }
@@ -93,21 +93,14 @@ Ram_quota::alloc(Bytes size)
   return alloc(cxx::int_value<Bytes>(size));
 }
 
-PRIVATE inline NEEDS["atomic.h"]
+PRIVATE inline NEEDS[<cxx/atomic>]
 bool
 Ram_quota::_free_bytes(Mword bytes)
 {
   if (unlimited())
     return false;
 
-  //Mword r = atomic_add_fetch(&_current, -bytes);
-  Mword o,r;
-  do
-    {
-      o = access_once(&_current);
-      r = o - bytes;
-    }
-  while (!mp_cas(&_current, o, r));
+  Mword r = cxx::atomic_add_fetch(&_current, -bytes);
 
   return r == Invalid;
 }
@@ -131,19 +124,19 @@ Ram_quota::free(Bytes size)
  * Allocate one byte to prevent immediate deletion, and
  * mark the object as invalid.
  */
-PROTECTED inline NEEDS["atomic.h"]
+PROTECTED inline NEEDS[<cxx/atomic>]
 void
 Ram_quota::take_and_invalidate()
 {
   if (unlimited())
     return;
 
+  Mword o = access_once(&_current);
   for (;;)
     {
-      Mword o = access_once(&_current);
       Mword n = (o + 1) | Invalid;
 
-      if (mp_cas(&_current, o, n))
+      if (cxx::atomic_compare_exchange_strong(&_current, o, n))
         return;
     }
 }

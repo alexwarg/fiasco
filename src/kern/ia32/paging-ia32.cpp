@@ -35,7 +35,7 @@ public:
 //---------------------------------------------------------------------------
 IMPLEMENTATION [ia32 || amd64]:
 
-#include "atomic.h"
+#include <cxx/atomic>
 
 bool Pt_entry::_have_superpages;
 unsigned  Pt_entry::_super_level;
@@ -182,7 +182,7 @@ unsigned char
 Pte_ptr::page_order() const
 { return Pdir::page_order_for_level(level); }
 
-PUBLIC inline NEEDS["atomic.h"]
+PUBLIC inline NEEDS[<cxx/atomic>]
 L4_fpage::Rights
 Pte_ptr::access_flags() const
 {
@@ -202,7 +202,7 @@ Pte_ptr::access_flags() const
       else
         return L4_fpage::Rights(0);
 
-      if (mp_cas(pte, raw, raw & ~(Dirty | Referenced)))
+      if (cxx::atomic_compare_exchange_strong(pte, raw, raw & ~(Dirty | Referenced)))
         return r;
     }
 }

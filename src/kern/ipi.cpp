@@ -1,5 +1,6 @@
 INTERFACE:
 
+#include <cxx/atomic>
 #include "types.h"
 
 class Ipi
@@ -72,21 +73,20 @@ Ipi::stat_received(Cpu_number on_cpu)
 // ------------------------------------------------------------------------
 IMPLEMENTATION[mp && debug]:
 
-#include "atomic.h"
 #include "globals.h"
 
 EXTENSION class Ipi
 {
 private:
   friend class Jdb_ipi_module;
-  Mword _stat_sent;
+  cxx::atomic<Mword> _stat_sent;
   Mword _stat_received;
 };
 
-PUBLIC static inline NEEDS["atomic.h"]
+PUBLIC static inline
 void
 Ipi::stat_sent(Cpu_number from_cpu)
-{ atomic_mp_add(&_ipi.cpu(from_cpu)._stat_sent, 1); }
+{ _ipi.cpu(from_cpu)._stat_sent.fetch_add(1); }
 
 PUBLIC static inline
 void

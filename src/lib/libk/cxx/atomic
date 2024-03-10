@@ -1,0 +1,189 @@
+// vi: ft=cpp
+
+#pragma once
+
+namespace cxx
+{
+  typedef enum memory_order
+  {
+    memory_order_relaxed = __ATOMIC_RELAXED,   // relaxed
+    memory_order_consume = __ATOMIC_CONSUME,   // consume
+    memory_order_acquire = __ATOMIC_ACQUIRE,   // acquire
+    memory_order_release = __ATOMIC_RELEASE,   // release
+    memory_order_acq_rel = __ATOMIC_ACQ_REL,   // acquire/release
+    memory_order_seq_cst = __ATOMIC_SEQ_CST    // sequentially consistent
+  } memory_oprder;
+
+  static constexpr memory_order
+  memory_order_failure(memory_order success) noexcept
+  {
+    return (success == memory_order_acq_rel)
+      ? memory_order_acquire
+      : ((success == memory_order_release)
+          ? memory_order_relaxed
+          : success);
+  }
+
+  template<typename T_>
+  inline bool
+  atomic_compare_exchange_strong(T_ *v, T_ &exp, T_ desired,
+                                 memory_order success, memory_order failure) noexcept
+  {
+    return __atomic_compare_exchange_n(v, &exp, desired, false, (int)success, (int)failure);
+  }
+
+  template<typename T_>
+  inline bool
+  atomic_compare_exchange_strong(T_ *v, T_ &exp, T_ desired,
+                                 memory_order order = memory_order_seq_cst) noexcept
+  {
+    return atomic_compare_exchange_strong(v, exp, desired, order, memory_order_failure(order));
+  }
+
+  template<typename T_>
+  inline T_
+  atomic_fetch_or(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
+  {
+    return __atomic_fetch_or(v, a, order);
+  }
+
+  template<typename T_>
+  inline T_
+  atomic_or_fetch(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
+  {
+    return __atomic_or_fetch(v, a, order);
+  }
+
+  template<typename T_>
+  inline T_
+  atomic_fetch_and(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
+  {
+    return __atomic_fetch_and(v, a, order);
+  }
+
+  template<typename T_>
+  inline T_
+  atomic_and_fetch(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
+  {
+    return __atomic_and_fetch(v, a, order);
+  }
+
+  template<typename T_>
+  inline T_
+  atomic_fetch_add(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
+  {
+    return __atomic_fetch_add(v, a, order);
+  }
+
+  template<typename T_>
+  inline T_
+  atomic_add_fetch(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
+  {
+    return __atomic_add_fetch(v, a, order);
+  }
+
+  template<typename T_>
+  inline void
+  atomic_store(T_ *ptr, T_ v, memory_order order = memory_order_seq_cst) noexcept
+  {
+    __atomic_store_n(ptr, v, order);
+  }
+
+
+  template<typename T_>
+  class atomic
+  {
+  private:
+    T_ v_;
+
+
+  public:
+    using value_type = T_;
+
+    atomic() noexcept = default;
+    atomic(T_ v) noexcept : v_(v) {}
+
+    T_ load(memory_order order = memory_order_seq_cst) const noexcept
+    {
+      return __atomic_load_n(&v_, (int)order);
+    }
+
+    T_ load(memory_order order = memory_order_seq_cst) const volatile noexcept
+    {
+      return __atomic_load_n(&v_, (int)order);
+    }
+
+    void store(T_ desired, memory_order order = memory_order_seq_cst) noexcept
+    {
+      __atomic_store_n(&v_, desired, (int)order);
+    }
+
+    void store(T_ desired, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      __atomic_store_n(&v_, desired, (int)order);
+    }
+
+    T_ operator = (T_ desired) noexcept
+    {
+      store(desired);
+      return v_;
+    }
+
+    T_ operator = (T_ desired) volatile noexcept
+    {
+      store(desired);
+      return v_;
+    }
+
+    atomic &operator = (atomic const &) = delete;
+    atomic &operator = (atomic const &) volatile = delete;
+
+    bool compare_exchange_strong(T_ &expected, T_ desired,
+                                 memory_order success,
+                                 memory_order failure) noexcept
+    {
+      return __atomic_compare_exchange_n(&v_, &expected, desired, false, (int)success, (int)failure);
+    }
+
+    bool compare_exchange_strong(T_ &expected, T_ desired,
+                                 memory_order success,
+                                 memory_order failure) volatile noexcept
+    {
+      return __atomic_compare_exchange_n(&v_, &expected, desired, false, (int)success, (int)failure);
+    }
+
+    bool compare_exchange_strong(T_ &expected, T_ desired,
+                                 memory_order order = memory_order_seq_cst) noexcept
+    {
+      return compare_exchange_strong(expected, desired, order, memory_order_failure(order));
+    }
+
+    bool compare_exchange_strong(T_ &expected, T_ desired,
+                                 memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return compare_exchange_strong(expected, desired, order, memory_order_failure(order));
+    }
+
+    T_ fetch_add(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_fetch_add(&v_, a, order);
+    }
+
+    T_ fetch_add(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_fetch_add(&v_, a, order);
+    }
+
+    T_ fetch_sub(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_fetch_sub(&v_, a, order);
+    }
+
+    T_ fetch_sub(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_fetch_sub(&v_, a, order);
+    }
+
+  };
+}
+

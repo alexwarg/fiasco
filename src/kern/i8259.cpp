@@ -1,6 +1,7 @@
 INTERFACE [i8259]:
 
-#include "atomic.h"
+#include <cxx/atomic>
+
 #include "lock_guard.h"
 #include "irq_chip.h"
 #include "spin_lock.h"
@@ -175,7 +176,8 @@ public:
     if (_irqs[pin])
       return false;
 
-    if (!mp_cas(&_irqs[pin], (Irq_base *)0, irq))
+    Irq_base *none = nullptr;
+    if (!cxx::atomic_compare_exchange_strong(&_irqs[pin], none, irq))
       return false;
 
     this->bind(irq, pin, !init);

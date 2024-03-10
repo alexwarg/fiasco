@@ -82,8 +82,9 @@ IMPLEMENTATION:
 
 #include <cstdio>
 #include <panic.h>
+#include <cxx/atomic>
+
 #include "cpu.h"
-#include "atomic.h"
 #include "gdt.h"
 #include "regdefs.h"
 #include "mem.h"
@@ -212,10 +213,10 @@ void
 Trap_state::value3(Mword value)
 { _dx = value; }
 
-PUBLIC inline NEEDS["atomic.h"] 
+PUBLIC inline NEEDS[<cxx/atomic>]
 void
 Trap_state::consume_instruction(unsigned count)
-{ cas ((Address*)(&_ip), _ip, _ip + count); }
+{ cxx::atomic_compare_exchange_strong((Address*)(&_ip), _ip, _ip + count); }
 
 PUBLIC
 void
