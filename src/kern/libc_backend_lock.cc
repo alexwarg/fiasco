@@ -5,13 +5,13 @@
 #include "mem.h"
 #include "processor.h"
 
-static Mword __libc_backend_printf_spinlock = ~0UL;
+static cxx::atomic<Mword> __libc_backend_printf_spinlock{~0UL};
 
 void __libc_backend_printf_local_force_unlock()
 {
   Mword pid = cxx::int_value<Cpu_phys_id>(Proc::cpu_id());
-  if (__libc_backend_printf_spinlock == pid)
-    write_now(&__libc_backend_printf_spinlock, ~0UL);
+  if (__libc_backend_printf_spinlock.load(cxx::memory_order_relaxed) == pid)
+    __libc_backend_printf_spinlock.store(~0UL, cxx::memory_order_release);
 }
 
 unsigned long __libc_backend_printf_lock()
@@ -20,22 +20,22 @@ unsigned long __libc_backend_printf_lock()
   cpu_lock.lock();
 
   Mword pid = cxx::int_value<Cpu_phys_id>(Proc::cpu_id());
+  Mword x = __libc_backend_printf_spinlock.load(cxx::memory_order_acquire);
 
   // support nesting
-  if (__libc_backend_printf_spinlock == pid)
+  if (x == pid)
     return r | 2;
 
-  auto x = access_once(&__libc_backend_printf_spinlock);
   for (;;)
     {
       if (x != ~0UL)
         {
           Proc::pause();
-          x = access_once(&__libc_backend_printf_spinlock);
+          x = __libc_backend_printf_spinlock.load(cxx::memory_order_relaxed);
           continue;
         }
 
-      if (cxx::atomic_compare_exchange_strong(&__libc_backend_printf_spinlock, x, pid))
+      if (__libc_backend_printf_spinlock.compare_exchange_strong(x, pid))
         return r;
     }
 }
@@ -43,7 +43,7 @@ unsigned long __libc_backend_printf_lock()
 void __libc_backend_printf_unlock(unsigned long state)
 {
   if (!(state & 2))
-    cxx::atomic_store(&__libc_backend_printf_spinlock, ~0UL);
+    __libc_backend_printf_spinlock.store(~0UL, cxx::memory_order_release);
 
   if (!(state & 1))
     cpu_lock.clear();
