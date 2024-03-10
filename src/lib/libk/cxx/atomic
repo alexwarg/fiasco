@@ -41,6 +41,22 @@ namespace cxx
   }
 
   template<typename T_>
+  inline bool
+  atomic_compare_exchange_weak(T_ *v, T_ &exp, T_ desired,
+                               memory_order success, memory_order failure) noexcept
+  {
+    return __atomic_compare_exchange_n(v, &exp, desired, true, (int)success, (int)failure);
+  }
+
+  template<typename T_>
+  inline bool
+  atomic_compare_exchange_weak(T_ *v, T_ &exp, T_ desired,
+                               memory_order order = memory_order_seq_cst) noexcept
+  {
+    return atomic_compare_exchange_weak(v, exp, desired, order, memory_order_failure(order));
+  }
+
+  template<typename T_>
   inline T_
   atomic_fetch_or(T_ *v, T_ a, memory_order order = memory_order_seq_cst) noexcept
   {
@@ -182,6 +198,32 @@ namespace cxx
       return *_r;
     }
 
+    bool compare_exchange_weak(T_ &expected, T_ desired,
+                               memory_order success,
+                               memory_order failure) noexcept
+    {
+      return __atomic_compare_exchange(&v_, &expected, &desired, true, (int)success, (int)failure);
+    }
+
+    bool compare_exchange_weak(T_ &expected, T_ desired,
+                               memory_order order = memory_order_seq_cst) noexcept
+    {
+      return compare_exchange_weak(expected, desired, order, memory_order_failure(order));
+    }
+
+    bool compare_exchange_weak(T_ &expected, T_ desired,
+                               memory_order success,
+                               memory_order failure) volatile noexcept
+    {
+      return __atomic_compare_exchange(&v_, &expected, &desired, true, (int)success, (int)failure);
+    }
+
+    bool compare_exchange_weak(T_ &expected, T_ desired,
+                               memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return compare_exchange_weak(expected, desired, order, memory_order_failure(order));
+    }
+
     bool compare_exchange_strong(T_ &expected, T_ desired,
                                  memory_order success,
                                  memory_order failure) noexcept
@@ -190,16 +232,16 @@ namespace cxx
     }
 
     bool compare_exchange_strong(T_ &expected, T_ desired,
+                                 memory_order order = memory_order_seq_cst) noexcept
+    {
+      return compare_exchange_strong(expected, desired, order, memory_order_failure(order));
+    }
+
+    bool compare_exchange_strong(T_ &expected, T_ desired,
                                  memory_order success,
                                  memory_order failure) volatile noexcept
     {
       return __atomic_compare_exchange(&v_, &expected, &desired, false, (int)success, (int)failure);
-    }
-
-    bool compare_exchange_strong(T_ &expected, T_ desired,
-                                 memory_order order = memory_order_seq_cst) noexcept
-    {
-      return compare_exchange_strong(expected, desired, order, memory_order_failure(order));
     }
 
     bool compare_exchange_strong(T_ &expected, T_ desired,
