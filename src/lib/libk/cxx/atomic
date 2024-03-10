@@ -94,33 +94,53 @@ namespace cxx
   class atomic
   {
   private:
-    T_ v_;
+    static constexpr int _min_align
+      = (sizeof(T_) & (sizeof(T_) - 1)) || sizeof (T_) > 16
+      ? 0 : sizeof(T_);
+    static constexpr int _align
+      = _min_align > alignof(T_) ? _min_align : alignof(T_);
 
+    alignas(_align) T_ v_;
 
   public:
     using value_type = T_;
 
-    atomic() noexcept = default;
-    atomic(T_ v) noexcept : v_(v) {}
+    atomic() = default;
+    ~atomic() noexcept = default;
+    atomic(atomic const &) = delete;
+    atomic(atomic &&) = delete;
+
+    atomic &operator = (atomic const &) = delete;
+    atomic &operator = (atomic const &) volatile = delete;
+    atomic &operator = (atomic &&) = delete;
+    atomic &operator = (atomic &&) volatile = delete;
+
+    constexpr atomic(T_ v) noexcept : v_(v) {}
 
     T_ load(memory_order order = memory_order_seq_cst) const noexcept
     {
-      return __atomic_load_n(&v_, (int)order);
+      alignas(T_) unsigned char _b[sizeof(T_)];
+      T_ *_p = reinterpret_cast<T_*>(_b);
+      __atomic_load(&v_, _p, (int)order);
+      return *_p;
     }
 
     T_ load(memory_order order = memory_order_seq_cst) const volatile noexcept
     {
-      return __atomic_load_n(&v_, (int)order);
+      alignas(T_) unsigned char _b[sizeof(T_)];
+      T_ *_p = reinterpret_cast<T_*>(_b);
+      __atomic_load(&v_, _p, (int)order);
+      return *_p;
     }
 
     void store(T_ desired, memory_order order = memory_order_seq_cst) noexcept
     {
-      __atomic_store_n(&v_, desired, (int)order);
+      __atomic_store(&v_, &desired, (int)order);
     }
 
     void store(T_ desired, memory_order order = memory_order_seq_cst) volatile noexcept
     {
-      __atomic_store_n(&v_, desired, (int)order);
+      __atomic_store(&v_, &desired, (int)order);
     }
 
     T_ operator = (T_ desired) noexcept
@@ -135,21 +155,45 @@ namespace cxx
       return v_;
     }
 
-    atomic &operator = (atomic const &) = delete;
-    atomic &operator = (atomic const &) volatile = delete;
+    operator T_ () const noexcept
+    {
+      return load();
+    }
+
+    operator T_ () const volatile noexcept
+    {
+      return load();
+    }
+
+
+    T_ exchange(T_ desired, memory_order order = memory_order_seq_cst) noexcept
+    {
+      alignas(T_) unsigned char _b[sizeof(T_)];
+      T_ *_r = reinterpret_cast<T_ *>(_b);
+      __atomic_exchange(&v_, &desired, _r, (int)order);
+      return *_r;
+    }
+
+    T_ exchange(T_ desired, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      alignas(T_) unsigned char _b[sizeof(T_)];
+      T_ *_r = reinterpret_cast<T_ *>(_b);
+      __atomic_exchange(&v_, &desired, _r, (int)order);
+      return *_r;
+    }
 
     bool compare_exchange_strong(T_ &expected, T_ desired,
                                  memory_order success,
                                  memory_order failure) noexcept
     {
-      return __atomic_compare_exchange_n(&v_, &expected, desired, false, (int)success, (int)failure);
+      return __atomic_compare_exchange(&v_, &expected, &desired, false, (int)success, (int)failure);
     }
 
     bool compare_exchange_strong(T_ &expected, T_ desired,
                                  memory_order success,
                                  memory_order failure) volatile noexcept
     {
-      return __atomic_compare_exchange_n(&v_, &expected, desired, false, (int)success, (int)failure);
+      return __atomic_compare_exchange(&v_, &expected, &desired, false, (int)success, (int)failure);
     }
 
     bool compare_exchange_strong(T_ &expected, T_ desired,
