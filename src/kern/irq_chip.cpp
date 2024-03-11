@@ -183,7 +183,7 @@ public:
         if (!(old & F_enabled))
           return true;
       }
-    while (!cxx::atomic_compare_exchange_strong(&_flags, old, old & ~F_enabled));
+    while (!cxx::atomic_compare_exchange_weak(&_flags, old, old & ~F_enabled));
     return false;
   }
 
@@ -202,7 +202,7 @@ public:
         if (old & F_enabled)
           return false;
       }
-    while (!cxx::atomic_compare_exchange_strong(&_flags, old, old | F_enabled));
+    while (!cxx::atomic_compare_exchange_weak(&_flags, old, old | F_enabled));
     return true;
   }
 
