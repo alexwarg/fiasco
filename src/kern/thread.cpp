@@ -1,5 +1,7 @@
 INTERFACE:
 
+#include <cxx/atomic>
+
 #include "l4_types.h"
 #include "config.h"
 #include "continuation.h"
@@ -557,7 +559,7 @@ Thread::do_kill()
 
       irq->unbind();
     }
-  while (!_del_observer.compare_exchange_strong(irq, nullptr));
+  while (!_del_observer.compare_exchange_weak(irq, nullptr));
 
   rcu_wait();
 
@@ -1087,7 +1089,7 @@ Thread::migrate(Migration *info)
   );
     {
       Migration *old = _migration;
-      while (!cxx::atomic_compare_exchange_strong(&_migration, old, info))
+      while (!cxx::atomic_compare_exchange_weak(&_migration, old, info))
         ;
 
       // flag old migration to be done / stale
