@@ -277,6 +277,26 @@ namespace cxx
       return __atomic_fetch_sub(&v_, a, (int)order);
     }
 
+    T_ add_fetch(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_add_fetch(&v_, a, (int)order);
+    }
+
+    T_ add_fetch(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_add_fetch(&v_, a, (int)order);
+    }
+
+    T_ sub_fetch(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_sub_fetch(&v_, a, (int)order);
+    }
+
+    T_ sub_fetch(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_sub_fetch(&v_, a, (int)order);
+    }
+
     T_ operator += (T_ a) noexcept
     {
       return __atomic_add_fetch(&v_, a, (int)memory_order_seq_cst);
