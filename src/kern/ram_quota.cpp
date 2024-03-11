@@ -80,7 +80,7 @@ Ram_quota::alloc(Mword bytes)
       if (n > _max)
         return false;
 
-      if (_current.compare_exchange_strong(o, n))
+      if (_current.compare_exchange_weak(o, n))
         return true;
     }
 }
@@ -135,7 +135,7 @@ Ram_quota::take_and_invalidate()
     {
       Mword n = (o + 1) | Invalid;
 
-      if (_current.compare_exchange_strong(o, n))
+      if (_current.compare_exchange_weak(o, n))
         return;
     }
 }
