@@ -55,8 +55,8 @@ IMPLEMENTATION [arm]:
 #include <cassert>
 #include <cstring>
 #include <new>
+#include <cxx/atomic>
 
-#include "atomic.h"
 #include "config.h"
 #include "globals.h"
 #include "l4_types.h"
@@ -354,6 +354,8 @@ EXTENSION class Mem_space
 //----------------------------------------------------------------------------
 INTERFACE [arm_v6 || arm_v7 || arm_v8]:
 
+#include <cxx/atomic>
+
 #include "types.h"
 #include "spin_lock.h"
 #include <asid_alloc.h>
@@ -367,7 +369,7 @@ EXTENSION class Mem_space
 {
 public:
   using Asid_alloc = Asid_alloc_t<Unsigned64, Mem_unit::Asid_bits, Asid_base>;
-  using Asid = Asid_alloc::Asid;
+  using Asid = Asid_alloc::Atomic_asid;
   using Asids = Asid_alloc::Asids_per_cpu;
   enum { Have_asids = 1 };
 
@@ -377,7 +379,7 @@ private:
   static Asid_alloc _asid_alloc;
 
   /// current ASID of mem_space, provided by _asid_alloc
-  Asid _asid = Asid::Invalid;
+  Asid _asid;
 };
 
 //----------------------------------------------------------------------------
@@ -386,11 +388,11 @@ IMPLEMENTATION [arm_v6 || arm_v7 || arm_v8]:
 #include "cpu_lock.h"
 
 
-PUBLIC inline NEEDS["atomic.h"]
+PUBLIC inline
 unsigned long
 Mem_space::c_asid() const
 {
-  Asid asid = atomic_load(&_asid);
+  auto asid = _asid.load();
 
   if (EXPECT_TRUE(asid.is_valid()))
     return asid.asid();
@@ -408,7 +410,7 @@ Mem_space::asid()
       Mem::dsb();
     }
 
-  return _asid.asid();
+  return _asid.load().asid();
 };
 
 DEFINE_PER_CPU Per_cpu<Mem_space::Asids> Mem_space::_asids;

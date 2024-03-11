@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atomic.h>
+#include <cxx/atomic>
 #include <types.h>
 #include <bitmap.h>
 #include <spin_lock.h>
@@ -34,17 +34,18 @@ class Asid_t
 public:
   using Value_type = ASID_TYPE;
 
-  enum
+  enum Special_values : Value_type
   {
-    Generation_inc = ((ASID_TYPE)1) << ASID_BITS,
+    Generation_inc = ((Value_type)1) << ASID_BITS,
     Mask           = Generation_inc - 1,
-    Invalid        = (ASID_TYPE)(~0ULL),
+    Invalid        = (Value_type)(~0ULL),
   };
 
-  Value_type a;
+  ASID_TYPE a;
 
   Asid_t() = default;
-  Asid_t(Value_type a) : a(a) {}
+  constexpr Asid_t(Value_type a) noexcept : a(a) {}
+  constexpr Asid_t(Special_values a) noexcept : a((Value_type)a) {}
 
   bool is_valid() const
   {
@@ -70,6 +71,54 @@ public:
   bool operator != (Asid_t o) const
   { return a != o.a; }
 };
+
+/**
+ * Type for storing Asid_t<> values in memory, and provide
+ * atomic load, store, and exchange operations on them.
+ */
+template<typename ASID_TYPE, unsigned ASID_BITS>
+class Atomic_asid_t
+{
+private:
+  cxx::atomic<ASID_TYPE> _v;
+
+public:
+  using value_type = Asid_t<ASID_TYPE, ASID_BITS>;
+
+  constexpr Atomic_asid_t() noexcept : _v(value_type::Invalid) {}
+  constexpr Atomic_asid_t(value_type v) noexcept : _v(v.a) {}
+  Atomic_asid_t(Atomic_asid_t const &) = delete;
+  Atomic_asid_t(Atomic_asid_t &&) = delete;
+  Atomic_asid_t operator = (Atomic_asid_t const &) = delete;
+  Atomic_asid_t operator = (Atomic_asid_t &&) = delete;
+
+  value_type operator = (value_type v) noexcept
+  {
+    _v.store(v.a, cxx::memory_order_relaxed);
+    return v;
+  }
+
+  value_type load() const noexcept
+  {
+    return value_type(_v.load(cxx::memory_order_relaxed));
+  }
+
+  ASID_TYPE asid() const noexcept
+  {
+    return load().asid();
+  }
+
+  operator value_type () const noexcept
+  {
+    return load();
+  }
+
+  value_type exchange(value_type o) noexcept
+  {
+    return value_type(_v.exchange(o.a, cxx::memory_order_relaxed));
+  }
+};
+
 
 /**
  * Keep track of reserved Asids
@@ -130,13 +179,14 @@ class Asids_per_cpu_t
 {
 public:
   using Asid = Asid_t<ASID_TYPE, ASID_BITS>;
+  using Atomic_asid = Atomic_asid_t<ASID_TYPE, ASID_BITS>;
   /**
    * Currently active ASID on a CPU.
    *
    * written using atomic_xchg outside of spinlock and
    * atomic_write under protection of spinlock
    */
-  Asid active = Asid::Invalid;
+  Atomic_asid active;
 
   /**
    * reserved ASID on a CPU, active during last generation change.
@@ -210,6 +260,7 @@ class Asid_alloc_t
 {
 public:
   using Asid = Asid_t<ASID_TYPE, ASID_BITS>;
+  using Atomic_asid = Atomic_asid_t<ASID_TYPE, ASID_BITS>;
   using Asids_per_cpu = Asids_per_cpu_t<ASID_TYPE, ASID_BITS>;
   using Asids = Per_cpu_ptr<Asids_per_cpu>;
   using Asid_bitmap = Asid_bitmap_t<ASID_BITS, ASID_BASE>;
@@ -256,7 +307,7 @@ private:
           continue;
 
         auto &a = _asids.cpu(cpu);
-        Asid asid = atomic_exchange(&a.active, Asid::Invalid);
+        Asid asid = a.active.exchange(Asid::Invalid);
 
         // keep reserved asid, if there already was a roll over
         if (asid.is_valid())
@@ -305,14 +356,15 @@ private:
     unsigned new_asid = _reserved.find_next();
     if (EXPECT_FALSE(new_asid == Asid_bitmap::Asid_num))
       {
-        generation = atomic_add_fetch(&_gen, Asid::Generation_inc);
+        generation.a += Asid::Generation_inc;
 
         if (EXPECT_FALSE(generation.is_invalid_generation()))
           {
             // Skip problematic generation value
-            generation = atomic_add_fetch(&_gen, Asid::Generation_inc);
+            generation.a += Asid::Generation_inc;
           }
 
+        _gen = generation;
         roll_over();
         new_asid = _reserved.find_next();
       }
@@ -331,12 +383,12 @@ public:
    *
    * \return True if the given ASID is valid.
    */
-  bool can_use_asid(Asid *asid, Asid *active_asid)
+  bool can_use_asid(Atomic_asid const *asid, Atomic_asid *active_asid)
   {
-    Asid a = atomic_load(asid);
+    Asid a = *asid;
     // is_same_generation implicitely checks for asid != Asid_invalid
-    return EXPECT_TRUE(a.is_same_generation(atomic_load(&_gen)))
-           && EXPECT_TRUE(atomic_exchange(active_asid, a).is_valid());
+    return EXPECT_TRUE(a.is_same_generation(_gen))
+           && EXPECT_TRUE(active_asid->exchange(a).is_valid());
   }
 
   /**
@@ -348,13 +400,13 @@ public:
    *
    * \return True if TLB invalidation is required.
    */
-  bool alloc_asid(Asid *asid, Asid *active_asid)
+  bool alloc_asid(Atomic_asid *asid, Atomic_asid *active_asid)
   {
     auto guard = lock_guard(_lock);
 
     // Re-read data
-    Asid a = atomic_load(asid);
-    Asid generation = atomic_load(&_gen);
+    Asid a = *asid;
+    Asid generation = _gen;
 
     // We either have an older generation or a roll over happened on
     // another cpu - find out which one it was
@@ -362,12 +414,10 @@ public:
       {
         // We have an asid from an older generation - get a fresh one
         a = new_asid(a, generation);
-        atomic_store(asid, a);
+        *asid = a;
       }
 
-    // Set active asid, needs to be atomic since this value is written
-    // above using atomic_xchg()
-    atomic_store(active_asid, a);
+    *active_asid = a;
 
     // Is a tlb flush pending?
     return _tlb_flush_pending.atomic_get_and_clear(current_cpu());
@@ -383,9 +433,9 @@ public:
    *
    * \return True if TLB invalidation is required.
    */
-  bool get_or_alloc_asid(Asid *asid)
+  bool get_or_alloc_asid(Atomic_asid *asid)
   {
-    Asid *active_asid = get_active_asid();
+    auto *active_asid = get_active_asid();
     if (can_use_asid(asid, active_asid))
       return false;
 
@@ -395,11 +445,11 @@ public:
   /**
    * \return The active ASID on the current CPU.
    */
-  Asid *get_active_asid() { return &_asids.current().active; }
+  Atomic_asid *get_active_asid() { return &_asids.current().active; }
 
 private:
   /// current ASID generation, protected by _lock
-  Asid _gen = Asid::Generation_inc;
+  Atomic_asid _gen{Asid::Generation_inc};
   /// Protect elements changed during generation roll over
   Spin_lock<> _lock;
   /// active/reserved ASID (per CPU)
