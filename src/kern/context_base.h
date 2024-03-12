@@ -3,7 +3,6 @@
 #include "types.h"
 #include "config.h"
 #include "config_tcbsize.h"
-#include "fiasco_defs.h"
 #include "processor.h"
 
 class Context;
@@ -54,8 +53,8 @@ Context *current()
   return context_of((void *)Proc::stack_pointer());
 }
 
-inline
-Cpu_number FIASCO_PURE current_cpu()
+[[gnu::pure]] inline
+Cpu_number current_cpu()
 {
   return reinterpret_cast<Context_base *>(current())->_cpu;
 }
