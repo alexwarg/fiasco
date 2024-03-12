@@ -6,7 +6,7 @@ include $(srcdir)/test/utest/Modules.utest
 
 PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
-INTERFACES_KERNEL	:= cpu_mask rcupdate kobject_mapdb context_base pm \
+INTERFACES_KERNEL	:= rcupdate kobject_mapdb context_base pm \
 			   mem_region per_cpu_data startup                   \
 			   queue queue_item l4_buf_iter               \
 			   mapping spin_lock mapping_tree                    \

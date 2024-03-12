@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "bitmap.h"
 #include "config.h"
