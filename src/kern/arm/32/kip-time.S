@@ -47,6 +47,14 @@
 #error "Adapt read_64bit to big endian!"
 #endif
 
+#if defined (__clang__)
+.macro adrl reg:req, label:req
+        sub \reg, pc, #((-(\label - 4711\@f) - 0x800))
+        sub \reg, \reg, #0x800
+        4711\@:
+.endm
+#endif
+
 /* Reads 64-bit value into r1:r0. Scrambles r2. */
 .macro read_64bit mem
 #if (defined(CONFIG_ARM_V7) && defined(CONFIG_ARM_LPAE)) || defined(CONFIG_ARM_V8PLUS)
