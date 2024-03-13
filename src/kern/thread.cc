@@ -202,18 +202,6 @@ Thread::handle_kill_helper(Drq *src, Context *, void *)
   return Drq::no_answer_resched();
 }
 
-void
-Thread::put_n_reap(Kobject ***reap_list)
-{
-  if (dec_ref() != 0)
-    return;
-
-  // we need to re-add the reference
-  // that is released during Reap_list::del
-  inc_ref();
-  initiate_deletion(reap_list);
-}
-
 bool
 Thread::do_kill()
 {

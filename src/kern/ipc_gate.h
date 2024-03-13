@@ -29,7 +29,7 @@ class Ipc_gate_obj;
 class Ipc_gate_if : public Kobject_iface
 {
 public:
-  virtual void del(Kobject_iface *, Kobject ***) = 0;
+  virtual void del(Kobject_iface *) = 0;
   virtual void del_notify() = 0;
 };
 
@@ -52,7 +52,7 @@ public:
   void initiate_deletion(Kobject***) override;
   Kobject_mappable* map_root() override;
   Kobject_iface* downgrade(long unsigned int) override;
-  void del(Kobject_iface *, Kobject ***) override;
+  void del(Kobject_iface *) override;
   void del_notify() override;
 #if defined (CONFIG_JDB)
   Kobject_dbg* dbg_info() const override;
@@ -77,7 +77,7 @@ public:
   void initiate_deletion(Kobject***) override;
   Kobject_mappable* map_root() override;
   Kobject_iface* downgrade(long unsigned int) override { return this; }
-  void del(Kobject_iface *, Kobject ***) override {}
+  void del(Kobject_iface *) override {}
   void del_notify() override {}
 #if defined (CONFIG_JDB)
   Kobject_dbg* dbg_info() const override;

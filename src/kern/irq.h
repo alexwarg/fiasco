@@ -133,10 +133,6 @@ public:
    *                    IRQ
    * \param utcb        The input UTCB
    * \param utcb_out    The output UTCB
-   * \param rl[in,out]  the list of objects that have to be destroyed. The
-   *                    operation might append objects to this list if it is in
-   *                    charge of deleting the old receiver that used to be
-   *                    attached to this IRQ.
    *
    * \retval 0        on success, `t` is the new IRQ handler thread
    * \retval -EINVAL  if `t` is not a valid thread.
@@ -145,7 +141,7 @@ public:
    *
    * \retval L4_error::Not_existent  Irq_sender object was deleted
    */
-  L4_msg_tag alloc(Thread *t, Utcb const *utcb, Utcb *utcb_out, Kobject ***rl)
+  L4_msg_tag alloc(Thread *t, Utcb const *utcb, Utcb *utcb_out)
   {
     if (t == nullptr)
       return commit_result(-L4_err::EInval);
@@ -197,7 +193,8 @@ public:
             panic("IRQ IPC flagged as in progress");
           }
 
-        old->put_n_reap(rl);
+        if (old->dec_ref() == 0)
+          delete old;
       }
 
     t->inc_ref();
@@ -230,7 +227,7 @@ public:
     // Must be done _after_ returning from Irq::destroy() to make sure that the
     // existence lock was finally released by the last owner (the existence lock
     // was already invalidated before) -- see also Irq_sender::alloc().
-    (void)free(rl);
+    (void)free();
   }
 
   int queued() const
@@ -307,16 +304,12 @@ private:
 
   /**
    * Release an interrupt.
-   * \param rl[in,out]  The list of objects that have to be destroyed.
-   *                    The operation might append objects to this list if it is
-   *                    in charge of deleting the receiver that used to be
-   *                    attached to this IRQ.
    *
    * \retval 0        on success.
    * \retval -ENOENT  if there was no receiver attached.
    * \retval -EBUSY   when there is another detach operation in progress.
    */
-  int free(Kobject ***rl)
+  int free()
   {
     Mem::mp_release();
     Thread *t = _irq_thread.load(cxx::memory_order_relaxed);
@@ -342,7 +335,9 @@ private:
     // release cpu-lock early, actually before delete
     guard.reset();
 
-    t->put_n_reap(rl);
+    if (t->dec_ref() == 0)
+      delete t;
+
     return 0;
   }
 

@@ -53,25 +53,12 @@ Ipc_gate_obj::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
   if (!old)
     poly() = x;
 
-  Kobject::Reap_list rl;
-  if (old)
-    poly()->del(old, rl.list());
-
-  if (EXPECT_FALSE(!rl.empty()))
-    {
-      auto l = lock_guard<Lock_guard_inverse_policy>(cpu_lock);
-      rl.del_1();
-    }
-
   unblock_all();
   current()->rcu_wait();
   unblock_all();
 
-  if (EXPECT_FALSE(!rl.empty()))
-    {
-      auto l = lock_guard<Lock_guard_inverse_policy>(cpu_lock);
-      rl.del_2();
-    }
+  if (old)
+    poly()->del(old);
 
   return commit_result(0);
 }
@@ -121,7 +108,7 @@ Ipc_gate_obj::destroy(Kobject ***r)
     {
       _tgt.store(nullptr, cxx::memory_order_release);
       unblock_all();
-      poly()->del(tmp, r);
+      poly()->del(tmp);
       poly().construct<Ipc_gate_unbound>();
     }
 }
@@ -301,9 +288,11 @@ Ipc_gate::downgrade(long unsigned int)
 { return this; }
 
 void
-Ipc_gate::del(Kobject_iface *o, Kobject ***rl)
+Ipc_gate::del(Kobject_iface *o)
 {
-  nonull_static_cast<Thread *>(o)->put_n_reap(rl);
+  auto t = nonull_static_cast<Thread *>(o);
+  if (t->dec_ref() == 0)
+    delete t;
 }
 
 void

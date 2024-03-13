@@ -222,8 +222,6 @@ public:
   static Drq::Result handle_kill_helper(Drq *src, Context *, void *);
   static Drq::Result handle_migration_helper(Drq *rq, Context *, void *p);
 
-  void put_n_reap(Kobject ***reap_list);
-
   bool kill();
 
   long control(Thread_ptr const &pager, Thread_ptr const &exc_handler);
