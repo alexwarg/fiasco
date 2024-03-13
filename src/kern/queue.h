@@ -54,18 +54,29 @@ private:
                   "Lock_n_ptr uses 3 LSBs of item pointer");
 
   public:
-    Queue_item *item() const
-    { return get_unused(); }
+    Queue_item *item() const noexcept
+    {
+      return get_unused();
+    }
 
-    void set_item(Queue_item *i)
-    { set_unused(i); }
+    void set_item(Queue_item *i) noexcept
+    {
+      set_unused(i);
+    }
   };
 
   struct Queue_head_policy
   {
     typedef Lock_n_ptr Head_type;
-    static Queue_item *head(Head_type const &h) { return h.item(); }
-    static void set_head(Head_type &h, Queue_item *v) { h.set_item(v); }
+    static Queue_item *head(Head_type const &h) noexcept
+    {
+      return h.item();
+    }
+
+    static void set_head(Head_type &h, Queue_item *v) noexcept
+    {
+      h.set_item(v);
+    }
   };
 
   typedef cxx::Sd_list<Queue_item, cxx::D_list_item_policy, Queue_head_policy> List;
