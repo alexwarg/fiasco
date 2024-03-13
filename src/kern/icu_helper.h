@@ -203,6 +203,10 @@ public:
   {
     L4_msg_tag tag = f->tag();
 
+    // Ko::check_basics()
+    if (EXPECT_FALSE(tag.words() < 1))
+      return Kobject_iface::commit_result(-L4_err::EMsgtooshort);
+
     switch (utcb->values[0])
       {
       case Op_bind:
@@ -233,6 +237,8 @@ public:
       }
   }
 
+  // This function is actually never used because all users of Icu_h implement
+  // their own kinvoke() method.
   L4_msg_tag kinvoke(L4_obj_ref ref, L4_fpage::Rights rights,
                      Syscall_frame *f,
                      Utcb const *in, Utcb *out)
