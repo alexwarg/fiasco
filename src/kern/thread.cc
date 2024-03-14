@@ -135,7 +135,10 @@ public:
   { return reinterpret_cast<Mword>(t); }
 
   void unbind(Irq_base *irq) override
-  { thread(irq->pin())->remove_delete_irq(irq); }
+  {
+    thread(irq->pin())->remove_delete_irq(irq);
+    Irq_chip_soft::unbind(irq);
+  }
 
 };
 
