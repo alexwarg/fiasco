@@ -110,11 +110,13 @@ namespace Config
   // 8 percent of total RAM, >=750MB RAM => 60MB kmem
   constexpr unsigned kmem_per_cent() { return 8; };
   constexpr unsigned long kmem_max() { return 60UL << 20; }
+# define TARGET_WORD_LEN "32"
 #endif
 #if defined(CONFIG_BIT64)
   // 6 percent of total RAM, >=55466MB RAM => 3328MB kmem
   constexpr unsigned kmem_per_cent() { return 6; }
   constexpr unsigned long kmem_max() { return 3328UL << 20; }
+# define TARGET_WORD_LEN "64"
 #endif
 
   unsigned long kmem_size(unsigned long available_size);
@@ -129,17 +131,16 @@ namespace Config
 #define GREETING_COLOR_ANSI_TITLE  "\033[1;32m"
 #define GREETING_COLOR_ANSI_INFO   "\033[0;32m"
 
-#if defined (CONFIG_IA32)
-#define TARGET_NAME "x86-32"
+#if defined (CONFIG_IA32) || defined (CONFIG_AMD64)
+#define DISPLAY_ARCH "x86"
+#else
+#define DISPLAY_ARCH CONFIG_XARCH
 #endif
 
-#if defined (CONFIG_AMD64)
-#define TARGET_NAME "x86-64"
-#endif
 
 #define CONFIG_KERNEL_VERSION_STRING \
   GREETING_COLOR_ANSI_TITLE "Welcome to the L4Re Microkernel!\\n"         \
-  GREETING_COLOR_ANSI_INFO "L4Re Microkernel on " CONFIG_XARCH "\\n"      \
+  GREETING_COLOR_ANSI_INFO "L4Re Microkernel on " DISPLAY_ARCH "-" TARGET_WORD_LEN "\\n"      \
                            "Rev: " CODE_VERSION " compiled with " COMPILER \
                            TARGET_NAME_PHRASE "    [" CONFIG_LABEL "]\\n"    \
                            "Build: #" BUILD_NR " " BUILD_DATE "\\n"            \
