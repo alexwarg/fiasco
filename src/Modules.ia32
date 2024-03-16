@@ -205,7 +205,6 @@ INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
 
 
-CXXSRC_KERNEL		:= kernel_panic.cc libc_backend_lock.cc
 ASSRC_KERNEL		:= entry.S entry-native.S sys_call_page-asm.S \
 			   kip-time.S
 

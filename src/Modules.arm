@@ -248,7 +248,6 @@ thread_IMPL		+= thread-debug
 
 endif
 
-CXXSRC_KERNEL		:= kernel_panic.cc libc_backend_lock.cc
 ASSRC_KERNEL	  	:= $(if $(CONFIG_MP),tramp-mp.S)
 ASSRC_KERNEL            += $(if $(CONFIG_BIT32),$(if $(CONFIG_CPU_VIRT),hvt.S,ivt.S),ivt.S)
 ASSRC_KERNEL            += kip-time.S

@@ -6,7 +6,7 @@ include $(srcdir)/test/utest/Modules.utest
 
 PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
-INTERFACES_KERNEL	:= rcupdate kobject_mapdb pm \
+INTERFACES_KERNEL	:= kobject_mapdb pm \
 			   per_cpu_data startup                   \
 			   mapping mapping_tree                    \
 			   dbg_page_info mapdb pic kobject_dbg koptions      \
@@ -34,6 +34,9 @@ INTERFACES_KERNEL	:= rcupdate kobject_mapdb pm \
 			   buddy_alloc vkey kdb_ke prio_list ipi scheduler   \
 			   clock sys_call_page boot_alloc                    \
 			   assertion semaphore jdb_object
+
+CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc
+CXXSRC_KERNEL += rcupdate.cc
 
 OBJ_SPACE_TYPE = $(if $(CONFIG_VIRT_OBJ_SPACE),virt,phys)
 PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
