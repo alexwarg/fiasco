@@ -136,7 +136,6 @@ sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 sigma0_task_IMPL	:= sigma0_task sigma0_task-io
 space_IMPL		:= space space-ia32 space-io
-spin_lock_IMPL		:= spin_lock spin_lock-ia32
 startup_IMPL		:= startup startup-ia32
 sys_call_page_IMPL	:= sys_call_page sys_call_page-abs-ia32
 task_IMPL		:= task task-ia32-amd64

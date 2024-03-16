@@ -152,7 +152,6 @@ pic_IMPL		:= pic
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 space_IMPL		:= space
-spin_lock_IMPL		:= spin_lock spin_lock-mips
 startup_IMPL		:= startup startup-mips
 sys_call_page_IMPL	:= sys_call_page
 task_IMPL		:= task task-mips
