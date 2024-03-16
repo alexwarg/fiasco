@@ -36,7 +36,9 @@ INTERFACES_KERNEL	:= kobject_mapdb pm \
 			   assertion semaphore jdb_object
 
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc
-CXXSRC_KERNEL += rcupdate.cc per_cpu_data.cc
+CXXSRC_KERNEL += rcupdate.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc
+CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
 
 OBJ_SPACE_TYPE = $(if $(CONFIG_VIRT_OBJ_SPACE),virt,phys)
 PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
