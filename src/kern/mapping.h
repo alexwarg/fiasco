@@ -1,8 +1,10 @@
-INTERFACE:
+#pragma once
 
 #include "types.h"
 #include "mapdb_types.h"
-#include "cxx/slist"
+#include "config.h"
+
+#include <cxx/slist>
 
 class Space;
 class Treemap;
@@ -69,77 +71,56 @@ public:
   Space *space() const { return _space; }
   unsigned long depth() const { return _virt & 0xff; }
   bool has_max_depth() const { return depth() == 0xff; }
+
+  /** Set address space.
+      @param space the address space into which the frame is mapped.
+   */
+  void set_space(Space *space)
+  {
+    // assert (space);
+    _space = space;
+  }
+
+  /** Virtual address.
+      @return the virtual address at which the frame is mapped.
+   */
+  Page page() const
+  {
+    return Page(_virt >> 8);
+  }
+
+  Pfn pfn(Mapping::Order order) const
+  {
+    return Pfn(_virt >> 8) << order;
+  }
+
+  /** Set virtual address.
+      @param address the virtual address at which the frame is mapped.
+   */
+  void set_page(Page address)
+  {
+    _virt = (_virt & 0xff) | (cxx::int_value<Page>(address) << 8);
+  }
+
+  /** Set depth of mapping in mapping tree. */
+  void set_depth(unsigned char depth)
+  {
+    _virt = (_virt & ~0xffUL) | depth;
+  }
+
+  bool is_root() const
+  {
+    return depth() == 0;
+  }
+
+  Treemap *submap() const
+  {
+    return _space ? 0 : _submap;
+  }
+
+  void set_submap(Treemap *treemap)
+  {
+    _submap = treemap;
+    _space = 0;
+  }
 };
-
-
-IMPLEMENTATION:
-
-#include "config.h"
-
-/** Set address space.
-    @param space the address space into which the frame is mapped.
- */
-PUBLIC inline
-void
-Mapping::set_space(Space *space)
-{
-  // assert (space);
-  _space = space;
-}
-
-/** Virtual address.
-    @return the virtual address at which the frame is mapped.
- */
-PUBLIC inline
-Mapping::Page
-Mapping::page() const
-{
-  return Page(_virt >> 8);
-}
-
-PUBLIC inline
-Mapping::Pfn
-Mapping::pfn(Mapping::Order order) const
-{
-  return Pfn(_virt >> 8) << order;
-}
-
-/** Set virtual address.
-    @param address the virtual address at which the frame is mapped.
- */
-PUBLIC inline
-void
-Mapping::set_page(Page address)
-{
-  _virt = (_virt & 0xff) | (cxx::int_value<Page>(address) << 8);
-}
-
-/** Set depth of mapping in mapping tree. */
-PUBLIC inline
-void
-Mapping::set_depth(unsigned char depth)
-{
-  _virt = (_virt & ~0xffUL) | depth;
-}
-
-PUBLIC inline
-bool
-Mapping::is_root() const
-{
-  return depth() == 0;
-}
-
-PUBLIC inline
-Treemap *
-Mapping::submap() const
-{
-  return _space ? 0 : _submap;
-}
-
-PUBLIC inline
-void
-Mapping::set_submap(Treemap *treemap)
-{
-  _submap = treemap;
-  _space = 0;
-}

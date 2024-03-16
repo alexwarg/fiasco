@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "config.h"
 #include "l4_types.h"
@@ -7,6 +7,13 @@ INTERFACE:
 #include "space.h"
 #include "types.h"
 #include <cxx/slist>
+
+#include <cassert>
+#include <cstring>
+
+#include "globals.h"
+#include "kdb_ke.h"
+
 
 class Ram_quota;
 
@@ -124,6 +131,65 @@ public:
 
   static Iterator insertion_head() { return Iterator(); }
   static Ram_quota *quota(Space *space) { return space->ram_quota(); }
+
+  void erase(Space *owner);
+  Iterator allocate_submap(Ram_quota *payer, Iterator parent);
+  Iterator allocate(Ram_quota *payer, Iterator parent);
+  Iterator free_mapping(Ram_quota *q, Iterator m);
+  template< typename SUBMAP_OPS >
+  void flush(Iterator m, int p_depth, bool me_too,
+             Pcnt offs_begin, Pcnt offs_end,
+             SUBMAP_OPS const &submap_ops = SUBMAP_OPS());
+  template< typename SUBMAP_OPS >
+  void flush(Iterator parent, bool me_too,
+             Pcnt offs_begin, Pcnt offs_end,
+             SUBMAP_OPS &&submap_ops = SUBMAP_OPS());
+
+  Treemap *find_submap(Const_iterator parent) const
+  {
+    // We need just one step to find a possible submap, because they are
+    // always a parent's first child.
+
+    if (!*parent) // == insertion_head())
+      parent = begin();
+    else
+      ++parent;
+
+    if (*parent)
+      return parent->submap();
+
+    return nullptr;
+  }
+  template< typename SUBMAP_OPS >
+  bool grant(Iterator const &m, Space *new_space, Page page,
+             SUBMAP_OPS const &submap_ops = SUBMAP_OPS())
+  {
+    unsigned long _quota = sizeof(Mapping);
+    Treemap* submap = find_submap(m);
+
+    Space *old_space = m->space();
+
+    if (old_space != new_space)
+      {
+        if (submap)
+          _quota += submap_ops.mem_size(submap);
+
+        if (!quota(new_space)->alloc(_quota))
+          return false;
+
+        quota(old_space)->free(_quota);
+
+        m->set_space(new_space);
+      }
+
+    m->set_page(page);
+
+    if (submap)
+      submap_ops.grant(submap, old_space, new_space, page);
+
+    return true;
+  }
+
 };
 
 //
@@ -163,148 +229,41 @@ public:
   unsigned min_depth() const { return 0; }
   Iterator first() const
   { return const_cast<Mapping_tree &>(_tree).begin(); }
+
+  /**
+   * Grant the mapping `m` of this mappable to a new destination.
+   */
+  template< typename SUBMAP_OPS >
+  bool grant(Mapping_tree::Iterator m, Space *new_space, Page page,
+             SUBMAP_OPS &&submap_ops)
+  {
+    return _tree.grant(m, new_space, page, cxx::forward<SUBMAP_OPS>(submap_ops));
+  }
+
+  template< typename SUBMAP_OPS >
+  void flush(Pcnt offs_begin, Pcnt offs_end,
+             SUBMAP_OPS &&submap_ops)
+  {
+    _tree.flush(first(), min_depth() - 1, false, offs_begin, offs_end,
+                cxx::forward<SUBMAP_OPS>(submap_ops));
+  }
+
+  template< typename SUBMAP_OPS >
+  void flush(Mapping_tree::Iterator parent, bool me_too,
+             Pcnt offs_begin, Pcnt offs_end,
+             SUBMAP_OPS &&submap_ops)
+  {
+    _tree.flush(parent, me_too, offs_begin, offs_end,
+                cxx::forward<SUBMAP_OPS>(submap_ops));
+  }
 };
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
 
-#include <cassert>
-#include <cstring>
-
-#include "config.h"
-#include "globals.h"
-#include "kdb_ke.h"
-#include "kmem_slab.h"
-#include "ram_quota.h"
-#include "space.h"
-#include "std_macros.h"
-
-
-// Helpers
-
-static Kmem_slab_t<Mapping> _mapping_allocator("Mapping");
-
-//
-// class Mapping_tree
-//
-
-PUBLIC
-void
-Mapping_tree::erase(Space *owner)
-{
-  if (!front())
-    return;
-
-  Ram_quota *q = quota(owner);
-  for (Iterator d = begin(); *d;)
-    {
-      // space is nullptr if the Mapping references a submap and
-      // in this case trhe predecessor is the parent mapping that
-      // contains the space pointer for this submap, so just use
-      // the quota from the previous iteration.
-      if (d->space())
-        q = quota(d->space());
-
-      assert(q);
-
-      Mapping *m = *d;
-      d = Mappings::erase(d);
-      _mapping_allocator.q_del(q, m);
-    }
-}
-
-PUBLIC inline NEEDS[<cassert>]
-Treemap *
-Mapping_tree::find_submap(Const_iterator parent) const
-{
-  // We need just one step to find a possible submap, because they are
-  // always a parent's first child.
-
-  if (!*parent) // == insertion_head())
-    parent = begin();
-  else
-    ++parent;
-
-  if (*parent)
-    return parent->submap();
-
-  return nullptr;
-}
-
-PUBLIC
-Mapping_tree::Iterator
-Mapping_tree::allocate_submap(Ram_quota *payer, Iterator parent)
-{
-  Mapping *m = _mapping_allocator.q_new(payer);
-  if (!m)
-    return end();
-
-  if (*parent)
-    {
-      insert(m, parent);
-      return ++parent;
-    }
-  else
-    {
-      push_front(m);
-      return begin();
-    }
-}
-
-PUBLIC
-Mapping_tree::Iterator
-Mapping_tree::allocate(Ram_quota *payer, Iterator parent)
-{
-  if (*parent && parent->has_max_depth())
-    return end();
-
-  Mapping *m = _mapping_allocator.q_new(payer);
-  if (!m)
-    return end();
-
-  Iterator test = parent;
-  if (*test)
-    {
-      m->set_depth(parent->depth() + 1);
-      ++test;
-    }
-  else
-    {
-      m->set_depth(0);
-      test = begin();
-    }
-
-
-  if (*test && test->submap())
-    parent = test;
-
-  if (*parent)
-    {
-      insert(m, parent);
-      return ++parent;
-    }
-  else
-    {
-      push_front(m);
-      return begin();
-    }
-}
-
-PUBLIC
-Mapping_tree::Iterator
-Mapping_tree::free_mapping(Ram_quota *q, Iterator m)
-{
-  auto d = *m;
-  m = Mappings::erase(m);
-  _mapping_allocator.q_del(q, d);
-  return m;
-}
-
-PUBLIC template< typename SUBMAP_OPS >
+template< typename SUBMAP_OPS >
 void
 Mapping_tree::flush(Iterator m, int p_depth, bool me_too,
                     Pcnt offs_begin, Pcnt offs_end,
-                    SUBMAP_OPS const &submap_ops = SUBMAP_OPS())
+                    SUBMAP_OPS const &submap_ops)
 {
   int m_depth = p_depth;
 
@@ -339,11 +298,11 @@ Mapping_tree::flush(Iterator m, int p_depth, bool me_too,
     }
 }
 
-PUBLIC template< typename SUBMAP_OPS >
+template< typename SUBMAP_OPS >
 void
 Mapping_tree::flush(Iterator parent, bool me_too,
                     Pcnt offs_begin, Pcnt offs_end,
-                    SUBMAP_OPS &&submap_ops = SUBMAP_OPS())
+                    SUBMAP_OPS &&submap_ops)
 {
   int p_depth;
   Iterator m = parent;
@@ -366,63 +325,3 @@ Mapping_tree::flush(Iterator parent, bool me_too,
         cxx::forward<SUBMAP_OPS>(submap_ops));
 }
 
-PUBLIC template< typename SUBMAP_OPS > inline
-bool
-Mapping_tree::grant(Iterator const &m, Space *new_space, Page page,
-                    SUBMAP_OPS const &submap_ops = SUBMAP_OPS())
-{
-  unsigned long _quota = sizeof(Mapping);
-  Treemap* submap = find_submap(m);
-
-  Space *old_space = m->space();
-
-  if (old_space != new_space)
-    {
-      if (submap)
-        _quota += submap_ops.mem_size(submap);
-
-      if (!quota(new_space)->alloc(_quota))
-        return false;
-
-      quota(old_space)->free(_quota);
-
-      m->set_space(new_space);
-    }
-
-  m->set_page(page);
-
-  if (submap)
-    submap_ops.grant(submap, old_space, new_space, page);
-
-  return true;
-}
-
-/**
- * Grant the mapping `m` of this mappable to a new destination.
- */
-PUBLIC template< typename SUBMAP_OPS > inline
-bool
-Base_mappable::grant(Mapping_tree::Iterator m, Space *new_space, Page page,
-                     SUBMAP_OPS &&submap_ops)
-{
-  return _tree.grant(m, new_space, page, cxx::forward<SUBMAP_OPS>(submap_ops));
-}
-
-PUBLIC template< typename SUBMAP_OPS > inline
-void
-Base_mappable::flush(Pcnt offs_begin, Pcnt offs_end,
-                     SUBMAP_OPS &&submap_ops)
-{
-  _tree.flush(first(), min_depth() - 1, false, offs_begin, offs_end,
-              cxx::forward<SUBMAP_OPS>(submap_ops));
-}
-
-PUBLIC template< typename SUBMAP_OPS > inline
-void
-Base_mappable::flush(Mapping_tree::Iterator parent, bool me_too,
-                     Pcnt offs_begin, Pcnt offs_end,
-                     SUBMAP_OPS &&submap_ops)
-{
-  _tree.flush(parent, me_too, offs_begin, offs_end,
-              cxx::forward<SUBMAP_OPS>(submap_ops));
-}
