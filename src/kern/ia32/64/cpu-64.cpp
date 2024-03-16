@@ -1,6 +1,7 @@
 INTERFACE [amd64 && !kernel_isolation]:
 
 #include "syscall_entry.h"
+#include "per_cpu_array.h"
 
 EXTENSION class Cpu
 {
