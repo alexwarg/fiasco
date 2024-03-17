@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "kobject.h"
 #include "thread.h"
@@ -66,9 +66,4 @@ public:
   }
 
 };
-
-
-IMPLEMENTATION:
-
-Mword Kobject_helper_base::_utcb_dummy[(sizeof(Utcb) + sizeof(Mword) - 1) / sizeof(Mword)];
 
