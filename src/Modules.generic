@@ -15,7 +15,6 @@ INTERFACES_KERNEL	:= \
 			   vlog kmem kmem_alloc slab_cache mem_layout        \
 			   kmem_slab switch_lock kip_init   \
 			   helping_lock cpu_lock timer   \
-			   per_cpu_data_alloc  \
 			   vcpu_host_regs                                    \
 			   vcpu    \
 			   context sender receiver mem_unit factory cpu_call \
@@ -38,7 +37,7 @@ CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 
-CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
 

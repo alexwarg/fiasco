@@ -1,32 +1,12 @@
-INTERFACE:
-
-#include "per_cpu_data.h"
-
-class Per_cpu_data_alloc : public Per_cpu_data
-{
-public:
-  static bool alloc(Cpu_number cpu);
-};
-
-
-IMPLEMENTATION [!mp]:
-
-IMPLEMENT inline
-bool Per_cpu_data_alloc::alloc(Cpu_number)
-{ return true; }
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mp]:
 
 #include <cstdio>
 #include <cstring>
 
+#include "per_cpu_data_alloc.h"
 #include "config.h"
 #include "kmem_alloc.h"
 #include "warn.h"
 
-IMPLEMENT
 bool Per_cpu_data_alloc::alloc(Cpu_number cpu)
 {
   if (cpu >= Cpu_number(Num_cpus) || valid(cpu))
@@ -63,6 +43,5 @@ bool Per_cpu_data_alloc::alloc(Cpu_number cpu)
            _per_cpu_data_end + _offsets[cpu]);
 
   return true;
-
 }
 
