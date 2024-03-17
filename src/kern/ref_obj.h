@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "types.h"
 #include <cxx/atomic>
@@ -7,6 +7,32 @@ class Ref_cnt_obj
 {
 public:
   Ref_cnt_obj() : _ref_cnt(0) {}
+
+  Smword ref_cnt() const
+  { return _ref_cnt.load(cxx::memory_order_relaxed); }
+
+  bool inc_ref(bool from_zero = true)
+  {
+    if (from_zero)
+      {
+        _ref_cnt.fetch_add(1);
+        return true;
+      }
+
+    Smword old = _ref_cnt.load(cxx::memory_order_relaxed);
+    do
+      {
+        if (!old)
+          return false;
+      }
+    while (!_ref_cnt.compare_exchange_strong(old, old + 1));
+    return true;
+  }
+
+  Smword dec_ref()
+  {
+    return _ref_cnt.fetch_sub(1) - 1;
+  }
 
 private:
   cxx::atomic<Smword> _ref_cnt;
@@ -85,39 +111,3 @@ private:
   T *_o;
 };
 
-
-// -------------------------------------------------------------------------
-IMPLEMENTATION:
-
-
-PUBLIC inline
-Smword
-Ref_cnt_obj::ref_cnt() const
-{ return _ref_cnt.load(cxx::memory_order_relaxed); }
-
-PUBLIC inline
-bool
-Ref_cnt_obj::inc_ref(bool from_zero = true)
-{
-  if (from_zero)
-    {
-      _ref_cnt.fetch_add(1);
-      return true;
-    }
-
-  Smword old = _ref_cnt.load(cxx::memory_order_relaxed);
-  do
-    {
-      if (!old)
-        return false;
-    }
-  while (!_ref_cnt.compare_exchange_strong(old, old + 1));
-  return true;
-}
-
-PUBLIC inline
-Smword
-Ref_cnt_obj::dec_ref()
-{
-  return _ref_cnt.fetch_sub(1) - 1;
-}
