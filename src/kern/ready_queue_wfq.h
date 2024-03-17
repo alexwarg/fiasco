@@ -1,8 +1,12 @@
-INTERFACE[sched_wfq || sched_fp_wfq]:
+#pragma once
 
 #include "member_offs.h"
 #include "types.h"
 #include "globals.h"
+#include "cpu_lock.h"
+#include "std_macros.h"
+
+#include <cassert>
 
 struct L4_sched_param_wfq : public L4_sched_param
 {
@@ -31,13 +35,78 @@ public:
   }
 
   void enqueue(E *, bool is_current);
+  void requeue(E *i);
+
   void dequeue(E *);
-  E *next_to_run() const;
+  E *next_to_run() const
+  {
+    if (_cnt)
+      return _heap[0];
+
+    if (_current_sched)
+      _e(idle)->_dl = _e(_current_sched)->_dl;
+
+    return idle;
+  }
+
+  void deblock_refill(E *sc)
+  {
+    Unsigned64 da = 0;
+    if (EXPECT_TRUE(_current_sched != 0))
+      da = _e(_current_sched)->_dl;
+
+    if (_e(sc)->_dl >= da)
+      return;
+
+    _e(sc)->_left += (da - _e(sc)->_dl) * _e(sc)->_w;
+    if (_e(sc)->_left > _e(sc)->_q)
+      _e(sc)->_left = _e(sc)->_q;
+    _e(sc)->_dl = da;
+  }
 
 private:
-  void swap(unsigned a, unsigned b);
-  void heap_up(unsigned a);
-  void heap_down(unsigned a);
+  void swap(unsigned a, unsigned b)
+  {
+    _e(_heap[a])->_ready_link = &_heap[b];
+    _e(_heap[b])->_ready_link = &_heap[a];
+    E *s = _heap[a];
+    _heap[a] = _heap[b];
+    _heap[b] = s;
+  }
+
+  void heap_up(unsigned a)
+  {
+    for (;a > 0;)
+      {
+        unsigned p = (a-1)/2;
+        if (*_e(_heap[p]) < *_e(_heap[a]))
+          return;
+        swap(p, a);
+        a = p;
+      }
+  }
+
+  void heap_down(unsigned a)
+  {
+    for (;;)
+      {
+        unsigned c1 = 2*a + 1;
+        unsigned c2 = 2*a + 2;
+
+        if (_cnt <= c1)
+          return;
+
+        if (_cnt > c2 && *_e(_heap[c2]) <= *_e(_heap[c1]))
+          c1 = c2;
+
+        if (*_e(_heap[a]) <= *_e(_heap[c1]))
+          return;
+
+        swap(c1, a);
+
+        a = c1;
+      }
+  }
 
   E *_current_sched;
   unsigned _cnt;
@@ -62,85 +131,9 @@ private:
 };
 
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_wfq || sched_fp_wfq]:
-
-#include <cassert>
-#include "config.h"
-#include "cpu_lock.h"
-#include "std_macros.h"
-
-
-IMPLEMENT inline
-template<typename E>
-E *
-Ready_queue_wfq<E>::next_to_run() const
-{
-  if (_cnt)
-    return _heap[0];
-
-  if (_current_sched)
-    _e(idle)->_dl = _e(_current_sched)->_dl;
-
-  return idle;
-}
-
-IMPLEMENT inline
-template<typename E>
-void
-Ready_queue_wfq<E>::swap(unsigned a, unsigned b)
-{
-  _e(_heap[a])->_ready_link = &_heap[b];
-  _e(_heap[b])->_ready_link = &_heap[a];
-  E *s = _heap[a];
-  _heap[a] = _heap[b];
-  _heap[b] = s;
-}
-
-IMPLEMENT inline
-template<typename E>
-void
-Ready_queue_wfq<E>::heap_up(unsigned a)
-{
-  for (;a > 0;)
-    {
-      unsigned p = (a-1)/2;
-      if (*_e(_heap[p]) < *_e(_heap[a]))
-	return;
-      swap(p, a);
-      a = p;
-    }
-}
-
-IMPLEMENT inline
-template<typename E>
-void
-Ready_queue_wfq<E>::heap_down(unsigned a)
-{
-  for (;;)
-    {
-      unsigned c1 = 2*a + 1;
-      unsigned c2 = 2*a + 2;
-
-      if (_cnt <= c1)
-	return;
-
-      if (_cnt > c2 && *_e(_heap[c2]) <= *_e(_heap[c1]))
-	c1 = c2;
-
-      if (*_e(_heap[a]) <= *_e(_heap[c1]))
-	return;
-
-      swap(c1, a);
-
-      a = c1;
-    }
-}
-
 /**
  * Enqueue context in ready-list.
  */
-IMPLEMENT
 template<typename E>
 void
 Ready_queue_wfq<E>::enqueue(E *i, bool /*is_current_sched**/)
@@ -166,7 +159,6 @@ Ready_queue_wfq<E>::enqueue(E *i, bool /*is_current_sched**/)
 /**
  * Remove context from ready-list.
  */
-IMPLEMENT inline NEEDS ["cpu_lock.h", <cassert>, "std_macros.h"]
 template<typename E>
 void
 Ready_queue_wfq<E>::dequeue(E *i)
@@ -193,7 +185,6 @@ Ready_queue_wfq<E>::dequeue(E *i)
 /**
  * Enqueue context in ready-list.
  */
-PUBLIC
 template<typename E>
 void
 Ready_queue_wfq<E>::requeue(E *i)
@@ -202,23 +193,5 @@ Ready_queue_wfq<E>::requeue(E *i)
     enqueue(i, false);
 
   heap_down(_e(i)->_ready_link - _heap);
-}
-
-
-PUBLIC template< typename E > inline
-void
-Ready_queue_wfq<E>::deblock_refill(E *sc)
-{
-  Unsigned64 da = 0;
-  if (EXPECT_TRUE(_current_sched != 0))
-    da = _e(_current_sched)->_dl;
-
-  if (_e(sc)->_dl >= da)
-    return;
-
-  _e(sc)->_left += (da - _e(sc)->_dl) * _e(sc)->_w;
-  if (_e(sc)->_left > _e(sc)->_q)
-    _e(sc)->_left = _e(sc)->_q;
-  _e(sc)->_dl = da;
 }
 

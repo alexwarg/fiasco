@@ -9,9 +9,8 @@ PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 INTERFACES_KERNEL	:= \
 			   startup                   \
 			   pic   \
-			   ready_queue_wfq             \
                            obj_space_types obj_space_phys_util \
-			   ready_queue_fp obj_space ptab_base ram_quota      \
+			   obj_space ptab_base ram_quota      \
 			   ref_obj mem_space space string_buffer \
 			   vlog kmem kmem_alloc slab_cache mem_layout        \
 			   kmem_slab switch_lock kip_init   \
