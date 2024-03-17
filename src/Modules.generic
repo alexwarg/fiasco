@@ -15,10 +15,10 @@ INTERFACES_KERNEL	:= \
 			   ref_obj mem_space space string_buffer \
 			   vlog kmem kmem_alloc slab_cache mem_layout        \
 			   kmem_slab switch_lock kip_init   \
-			   helping_lock cpu_lock timer timeout   \
-			   ipc_timeout timeslice_timeout per_cpu_data_alloc  \
+			   helping_lock cpu_lock timer   \
+			   per_cpu_data_alloc  \
 			   vcpu_host_regs                                    \
-			   vcpu thread_state       \
+			   vcpu    \
 			   context sender receiver mem_unit factory cpu_call \
 			   lock ipc_sender thread thread_object syscalls     \
 			   kernel_thread map_util irq banner warn            \
@@ -36,7 +36,9 @@ INTERFACES_KERNEL	:= \
 
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc
 CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
-		 kobject_helper.cc
+		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
+		 timeout.cc \
+
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)

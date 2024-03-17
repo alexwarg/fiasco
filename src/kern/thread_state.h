@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 enum Thread_state
 {
