@@ -1,14 +1,4 @@
-INTERFACE:
-
-#include "koptions-def.h"
-
-namespace Koptions {
-  using namespace L4_kernel_options;
-
-  Options *o();
-};
-
-IMPLEMENTATION:
+#include "koptions.h"
 
 namespace Koptions_ns
 {
@@ -27,4 +17,5 @@ namespace Koptions_ns
 
 namespace Koptions {
   Options *o() { return &Koptions_ns::o; }
-};
+}
+
