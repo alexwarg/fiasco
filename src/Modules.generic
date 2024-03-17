@@ -8,7 +8,7 @@ PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
 INTERFACES_KERNEL	:= \
 			   startup                   \
-			   mapdb pic   \
+			   pic   \
 			   ready_queue_wfq             \
                            obj_space_types obj_space_phys_util \
 			   ready_queue_fp obj_space ptab_base ram_quota      \
@@ -37,7 +37,7 @@ INTERFACES_KERNEL	:= \
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc
 CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
-		 timeout.cc kobject_iface.cc kobject.cc \
+		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc

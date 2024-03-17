@@ -9,7 +9,6 @@ IMPLEMENTATION:
 #include "kobject.h"
 #include "keycodes.h"
 #include "mapdb.h"
-#include "mapdb_i.h"
 #include "map_util.h"
 #include "simpleio.h"
 #include "static_init.h"
