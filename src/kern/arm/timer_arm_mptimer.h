@@ -16,7 +16,7 @@ struct Timer_arm_mptimer
 
   static Irq_chip::Mode irq_mode()
   {
-    return Irq_chip::Mode::F_raising_edge;
+    return Irq_chip::Mode::F_level_high;
   }
 
   static void enable()
