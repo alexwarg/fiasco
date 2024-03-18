@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "types.h"
 #include "irq_chip.h"
@@ -62,13 +62,54 @@ public:
   virtual int msg(Mword irqnum, Unsigned64, Msi_info *) const
   { (void)irqnum; return -L4_err::ENosys; }
 
-  virtual void set_cpu(Mword irqnum, Cpu_number cpu) const;
+  virtual void set_cpu(Mword irqnum, Cpu_number cpu) const
+  {
+    Irq i = chip(irqnum);
+    if (!i.chip)
+      return;
+
+    return i.chip->set_cpu(i.pin, cpu);
+  }
 
   /// The pointer to the single global instance of the actual IRQ manager.
   static Irq_mgr *mgr;
 
   /// Prevent generation of a real virtual delete function
   virtual ~Irq_mgr() = 0;
+
+  bool alloc(Irq_base *irq, Mword global_irq, bool init = true)
+  {
+    Irq i = chip(global_irq);
+    if (!i.chip)
+      return false;
+
+    if (!i.chip->alloc(irq, i.pin, init))
+      return false;
+
+    if (init)
+      i.chip->set_cpu(i.pin, Cpu_number::boot_cpu());
+
+    return true;
+  }
+
+  bool reserve(Mword irqnum)
+  {
+    Irq i = chip(irqnum);
+    if (!i.chip)
+      return false;
+
+    return i.chip->reserve(i.pin);
+  }
+
+  Irq_base *irq(Mword irqnum) const
+  {
+    Irq i = chip(irqnum);
+    if (!i.chip)
+      return 0;
+
+    return i.chip->irq(i.pin);
+  }
+
 };
 
 template< typename CHIP >
@@ -86,61 +127,5 @@ public:
   mutable CHIP c;
 };
 
-//--------------------------------------------------------------------------
-IMPLEMENTATION:
+inline Irq_mgr::~Irq_mgr() {}
 
-#include "warn.h"
-
-Irq_mgr *Irq_mgr::mgr;
-
-IMPLEMENT inline Irq_mgr::~Irq_mgr() {}
-
-PUBLIC inline
-bool
-Irq_mgr::alloc(Irq_base *irq, Mword global_irq, bool init = true)
-{
-  Irq i = chip(global_irq);
-  if (!i.chip)
-    return false;
-
-  if (!i.chip->alloc(irq, i.pin, init))
-    return false;
-
-  if (init)
-    i.chip->set_cpu(i.pin, Cpu_number::boot_cpu());
-
-  return true;
-}
-
-PUBLIC inline
-bool
-Irq_mgr::reserve(Mword irqnum)
-{
-  Irq i = chip(irqnum);
-  if (!i.chip)
-    return false;
-
-  return i.chip->reserve(i.pin);
-}
-
-PUBLIC inline
-Irq_base *
-Irq_mgr::irq(Mword irqnum) const
-{
-  Irq i = chip(irqnum);
-  if (!i.chip)
-    return 0;
-
-  return i.chip->irq(i.pin);
-}
-
-IMPLEMENT
-void
-Irq_mgr::set_cpu(Mword irqnum, Cpu_number cpu) const
-{
-  Irq i = chip(irqnum);
-  if (!i.chip)
-    return;
-
-  return i.chip->set_cpu(i.pin, cpu);
-}
