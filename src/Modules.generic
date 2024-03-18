@@ -11,7 +11,7 @@ INTERFACES_KERNEL	:= \
 			   pic   \
                            obj_space_types obj_space_phys_util \
 			   obj_space ptab_base ram_quota      \
-			   mem_space space string_buffer \
+			   mem_space space \
 			   vlog kmem kmem_alloc mem_layout        \
 			   kip_init   \
 			   timer   \
