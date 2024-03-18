@@ -12,7 +12,7 @@ INTERFACES_KERNEL	:= \
                            obj_space_types obj_space_phys_util \
 			   obj_space ptab_base ram_quota      \
 			   mem_space space string_buffer \
-			   vlog kmem kmem_alloc slab_cache mem_layout        \
+			   vlog kmem kmem_alloc mem_layout        \
 			   kip_init   \
 			   timer   \
 			   vcpu_host_regs                                    \
@@ -37,7 +37,7 @@ CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
-		 irq_chip.cc factory.cc
+		 irq_chip.cc factory.cc slab_cache.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
