@@ -4,7 +4,6 @@ IMPLEMENTATION:
 
 #include "irq_chip.h"
 #include "irq.h"
-#include "semaphore.h"
 #include "irq_mgr.h"
 #include "jdb_module.h"
 #include "kernel_console.h"
@@ -143,15 +142,7 @@ Jdb_kobject_irq::show_kobject_short(String_buffer *buf,
               i->pin(), i->chip()->chip_type(),
               (unsigned)i->flags());
 
-  if (Irq_sender *t = cxx::dyn_cast<Irq_sender*>(i))
-    buf->printf(" L=%lx T=%lx Q=%d",
-                i->obj_id(),
-                w != o ?  w->dbg_info()->dbg_id() : 0,
-                t->queued());
-
-  if (Semaphore *t = cxx::dyn_cast<Semaphore*>(i))
-    buf->printf(" Q=%ld",
-                t->_queued);
+  i->dbg_print(buf, w != o ? w : nullptr);
 }
 
 static

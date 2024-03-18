@@ -8,6 +8,11 @@ INTERFACE:
 #include "member_offs.h"
 #include "sender.h"
 #include "context.h"
+#include "config.h"
+
+#if defined (CONFIG_JDB)
+#include "string_buffer.h"
+#endif // CONFIG_JDB
 
 class Ram_quota;
 class Thread;
@@ -33,6 +38,10 @@ public:
     Op_compat_detach     = 5,
   };
 
+#if defined (CONFIG_JDB)
+  virtual void dbg_print(String_buffer *buf, Kobject_common *link) const = 0;
+#endif // CONFIG_JDB
+
 protected:
   Ram_quota *_q;
   Context::Drq _drq;
@@ -52,6 +61,16 @@ public:
     Op_detach = 1,
     Op_bind     = 0x10,
   };
+
+#if defined (CONFIG_JDB)
+  void dbg_print(String_buffer *buf, Kobject_common *link) const override
+  {
+    buf->printf(" L=%lx T=%lx Q=%d",
+                obj_id(),
+                link ?  link->dbg_info()->dbg_id() : 0,
+                const_cast<Irq_sender *>(this)->queued());
+  }
+#endif // CONFIG_JDB
 
 protected:
   static Thread *detach_in_progress()
