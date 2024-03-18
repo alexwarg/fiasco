@@ -93,8 +93,7 @@ IMPLEMENT inline void  Thread::user_ip(Mword ip)  { regs()->ip(ip); }
  */
 IMPLEMENT
 Thread::Thread(Ram_quota *q)
-: Sender(0),
-  _pager(Thread_ptr::Invalid),
+: _pager(Thread_ptr::Invalid),
   _exc_handler(Thread_ptr::Invalid),
   _quota(q),
   _del_observer(0)

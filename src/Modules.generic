@@ -17,8 +17,8 @@ INTERFACES_KERNEL	:= \
 			   helping_lock cpu_lock timer   \
 			   vcpu_host_regs                                    \
 			   vcpu    \
-			   context sender receiver mem_unit factory cpu_call \
-			   ipc_sender thread thread_object syscalls     \
+			   context mem_unit factory cpu_call \
+			   thread thread_object syscalls     \
 			   kernel_thread map_util irq banner warn            \
 			   app_cpu_thread globals watchdog kernel_uart       \
 			   main config vmem_alloc paging fpu                 \
@@ -36,6 +36,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc
 CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
+		 receiver.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc

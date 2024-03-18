@@ -43,9 +43,7 @@ Trap_state::Handler Thread::nested_trap_handler FIASCO_FASTCALL;
 
 IMPLEMENT
 Thread::Thread(Ram_quota *q)
-: Receiver(),
-  Sender(0),   // select optimized version of constructor
-  _pager(Thread_ptr::Invalid),
+: _pager(Thread_ptr::Invalid),
   _exc_handler(Thread_ptr::Invalid),
   _quota(q),
   _del_observer(0)
