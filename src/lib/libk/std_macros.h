@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #define BUILTIN_EXPECT(exp,c)	__builtin_expect((exp),(c))
 #define EXPECT_TRUE(exp)	__builtin_expect((exp),true)
@@ -37,5 +37,3 @@ INTERFACE:
 #define FIASCO_STRINGIFY_(x) #x
 #define FIASCO_STRINGIFY(x) FIASCO_STRINGIFY_(x)
 
-IMPLEMENTATION:
-//-
