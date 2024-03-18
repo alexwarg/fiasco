@@ -29,7 +29,7 @@ INTERFACES_KERNEL	:= \
 			   sched_context utcb_init perf_cnt trap_state       \
 			   buddy_alloc vkey kdb_ke ipi scheduler   \
 			   clock sys_call_page boot_alloc                    \
-			   assertion semaphore jdb_object
+			   semaphore jdb_object
 
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
@@ -41,7 +41,8 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
-CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
+CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc
+CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
 
 OBJ_SPACE_TYPE = $(if $(CONFIG_VIRT_OBJ_SPACE),virt,phys)
