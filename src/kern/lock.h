@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include <helping_lock.h>
 

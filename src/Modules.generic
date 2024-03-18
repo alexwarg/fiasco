@@ -18,7 +18,7 @@ INTERFACES_KERNEL	:= \
 			   vcpu_host_regs                                    \
 			   vcpu    \
 			   context sender receiver mem_unit factory cpu_call \
-			   lock ipc_sender thread thread_object syscalls     \
+			   ipc_sender thread thread_object syscalls     \
 			   kernel_thread map_util irq banner warn            \
 			   app_cpu_thread globals watchdog kernel_uart       \
 			   main config vmem_alloc paging fpu                 \
