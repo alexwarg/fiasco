@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
-			   buddy_alloc vkey kdb_ke prio_list ipi scheduler   \
+			   buddy_alloc vkey kdb_ke ipi scheduler   \
 			   clock sys_call_page boot_alloc                    \
 			   assertion semaphore jdb_object
 
