@@ -20,7 +20,7 @@ INTERFACES_KERNEL	:= \
 			   context mem_unit cpu_call \
 			   thread thread_object syscalls     \
 			   kernel_thread map_util irq banner warn            \
-			   app_cpu_thread watchdog kernel_uart       \
+			   watchdog kernel_uart       \
 			   main config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
 			   kernel_console ipc_gate task sigma0_task          \
@@ -39,7 +39,8 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
 		 terminate.cc
 
-CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
+			      app_cpu_thread.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
 

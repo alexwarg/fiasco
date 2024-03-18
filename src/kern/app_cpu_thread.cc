@@ -1,20 +1,10 @@
-INTERFACE [mp]:
 
-#include "kernel_thread.h"
-
-class App_cpu_thread : public Kernel_thread
-{
-private:
-  void bootstrap(Mword resume) asm ("call_ap_bootstrap") FIASCO_FASTCALL;
-};
-
-IMPLEMENTATION [mp]:
+#include "app_cpu_thread.h"
 
 #include <cstdlib>
 #include <cstdio>
 
 #include "config.h"
-#include "delayloop.h"
 #include "fpu.h"
 #include "globals.h"
 #include "helping_lock.h"
@@ -25,17 +15,16 @@ IMPLEMENTATION [mp]:
 #include "task.h"
 #include "thread.h"
 #include "thread_state.h"
-#include "timer.h"
 #include "timer_tick.h"
 #include "spin_lock.h"
 #include "warn.h"
 
-PUBLIC explicit inline
-App_cpu_thread::App_cpu_thread(Ram_quota *q)
-: Kernel_thread(q)
-{}
+/**
+ * unit test interface for app cores.
+ */
+extern void init_unittest_app_core() __attribute__((weak));
 
-PUBLIC static
+
 Kernel_thread *
 App_cpu_thread::may_be_create(Cpu_number cpu, bool cpu_never_seen_before)
 {
@@ -56,7 +45,6 @@ App_cpu_thread::may_be_create(Cpu_number cpu, bool cpu_never_seen_before)
 
 
 // the kernel bootstrap routine
-IMPLEMENT
 void
 App_cpu_thread::bootstrap(Mword resume)
 {
@@ -116,8 +104,3 @@ App_cpu_thread::bootstrap(Mword resume)
     idle_op();
 }
 
-/**
- * unit test interface for app cores.
- */
-void
-init_unittest_app_core() __attribute__((weak));
