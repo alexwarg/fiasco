@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include <cassert>
 
@@ -72,11 +72,4 @@ private:
 
 
 extern Initial_kobjects initial_kobjects;
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-Initial_kobjects initial_kobjects;
-
 
