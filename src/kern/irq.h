@@ -68,7 +68,6 @@ public:
 
 protected:
   Ram_quota *_q;
-  Context::Drq _drq;
 
   static Irq::Allocator *allocator() noexcept;
 
@@ -292,6 +291,7 @@ protected:
 
 private:
   Mword _irq_id;
+  Context::Drq _drq;
 
   static Context::Drq::Result handle_remote_hit(Context::Drq *, Context *target, void *arg);
   void _hit_level_irq(Upstream_irq const *ui);
