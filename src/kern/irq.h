@@ -141,7 +141,7 @@ public:
    *
    * \retval L4_error::Not_existent  Irq_sender object was deleted
    */
-  L4_msg_tag alloc(Thread *t, Utcb const *utcb, Utcb *utcb_out)
+  L4_msg_tag bind_irq_thread(Thread *t, Utcb const *utcb, Utcb *utcb_out)
   {
     if (t == nullptr)
       return commit_result(-L4_err::EInval);
@@ -226,8 +226,8 @@ public:
     Irq::destroy(rl);
     // Must be done _after_ returning from Irq::destroy() to make sure that the
     // existence lock was finally released by the last owner (the existence lock
-    // was already invalidated before) -- see also Irq_sender::alloc().
-    (void)free();
+    // was already invalidated before) -- see also Irq_sender::bind_irq_thread().
+    (void)detach_irq_thread();
   }
 
   int queued() const
@@ -309,7 +309,7 @@ private:
    * \retval -ENOENT  if there was no receiver attached.
    * \retval -EBUSY   when there is another detach operation in progress.
    */
-  int free()
+  int detach_irq_thread()
   {
     Mem::mp_release();
     Thread *t = _irq_thread.load(cxx::memory_order_relaxed);

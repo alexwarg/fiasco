@@ -148,7 +148,7 @@ Irq_sender::sys_bind(L4_msg_tag tag, L4_fpage::Rights rights, Utcb const *utcb,
   if (EXPECT_FALSE(!(t_rights & L4_fpage::Rights::CS())))
     return commit_result(-L4_err::EPerm);
 
-  L4_msg_tag res = alloc(thread, utcb, utcb_out);
+  L4_msg_tag res = bind_irq_thread(thread, utcb, utcb_out);
 
   return res;
 }
@@ -159,7 +159,7 @@ Irq_sender::sys_detach(L4_fpage::Rights rights)
   if (EXPECT_FALSE(!(rights & L4_fpage::Rights::CS())))
     return commit_result(-L4_err::EPerm);
 
-  auto res = free();
+  auto res = detach_irq_thread();
   _irq_id = ~0UL;
   return commit_result(res);
 }
