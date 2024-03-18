@@ -14,7 +14,7 @@ INTERFACES_KERNEL	:= \
 			   mem_space space string_buffer \
 			   vlog kmem kmem_alloc slab_cache mem_layout        \
 			   kmem_slab switch_lock kip_init   \
-			   helping_lock cpu_lock timer   \
+			   timer   \
 			   vcpu_host_regs                                    \
 			   vcpu    \
 			   context mem_unit factory cpu_call \
@@ -36,7 +36,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc
 CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
-		 receiver.cc
+		 receiver.cc cpu_lock.cc helping_lock.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
