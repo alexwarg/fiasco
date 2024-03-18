@@ -17,7 +17,7 @@ INTERFACES_KERNEL	:= \
 			   timer   \
 			   vcpu_host_regs                                    \
 			   vcpu    \
-			   context mem_unit factory cpu_call \
+			   context mem_unit cpu_call \
 			   thread thread_object syscalls     \
 			   kernel_thread map_util irq banner warn            \
 			   app_cpu_thread globals watchdog kernel_uart       \
@@ -37,7 +37,7 @@ CXXSRC_KERNEL += pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
-		 irq_chip.cc
+		 irq_chip.cc factory.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc
