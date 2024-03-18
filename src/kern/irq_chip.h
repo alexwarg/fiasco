@@ -1,22 +1,29 @@
-INTERFACE:
+#pragma once
 
 #include <cxx/bitfield>
 
 #include <cxx/atomic>
 #include "types.h"
 #include "spin_lock.h"
+#include "lock_guard.h"
+#include "config.h"
+
+#if defined(CONFIG_JDB)
+
+#include <cstdio>
+
+#include "logdefs.h"
+#include "kobject_dbg.h"
+#include "string_buffer.h"
+#include "tb_entry.h"
+
+#endif // CONFIG_JDB
 
 class Irq_base;
 class Irq_chip;
+class Upstream_irq;
+class Kobject_iface;
 
-class Upstream_irq
-{
-private:
-  Irq_chip *const _c;
-  Mword const _p;
-  Upstream_irq const *const _prev;
-
-};
 
 /**
  * Abstraction for an IRQ controller chip.
@@ -83,8 +90,30 @@ public:
    * \param cpu the logical CPU number.
    */
   virtual void set_cpu(Mword pin, Cpu_number cpu) = 0;
+
+  /**
+   * \pre `irq->irq_lock()` must be held
+   */
   virtual void unbind(Irq_base *irq);
   virtual ~Irq_chip() = 0;
+
+#if defined (CONFIG_JDB)
+  virtual char const *chip_type() const = 0;
+#endif
+
+  /**
+   * \pre `irq->irq_lock()` must be held
+   */
+  void bind(Irq_base *irq, Mword pin, bool ctor = false);
+
+  /**
+   * \param CHIP must be the dynamic type of the object.
+   */
+  template<typename CHIP>
+  void handle_irq(Mword pin, Upstream_irq const *ui);
+
+  template<typename CHIP>
+  void handle_multi_pending(Upstream_irq const *ui);
 };
 
 /**
@@ -103,6 +132,11 @@ public:
   bool is_edge_triggered(Mword) const override { return true; }
 
   static Irq_chip_soft sw_chip;
+
+#if defined (CONFIG_JDB)
+  char const *chip_type() const override
+  { return "Soft"; }
+#endif
 };
 
 /**
@@ -119,8 +153,6 @@ public:
   virtual ~Irq_chip_icu() = 0;
 };
 
-
-class Kobject_iface;
 
 
 /**
@@ -210,6 +242,44 @@ public:
   virtual void switch_mode(bool is_edge_triggered) = 0;
   virtual ~Irq_base() = 0;
 
+  void destroy()
+  {
+    auto g = lock_guard(_irq_lock);
+    unbind();
+  }
+
+#if defined (CONFIG_JDB)
+  struct Irq_log : public Tb_entry
+  {
+    Irq_base *obj;
+    Irq_chip *chip;
+    Mword pin;
+    void print(String_buffer *buf) const
+    {
+      Kobject_dbg::Const_iterator irq = Kobject_dbg::pointer_to_obj(obj);
+
+      buf->printf("0x%lx/%lu @ chip %s(%p) ", pin, pin, chip->chip_type(), chip);
+
+      if (irq != Kobject_dbg::end())
+        buf->printf("D:%lx", irq->dbg_id());
+      else
+        buf->printf("irq=%p", obj);
+    }
+  };
+  void log()
+  {
+    Context *c = current();
+    LOG_TRACE("IRQ-Object triggers", "irq", c, Irq_log,
+        l->obj = this;
+        l->chip = chip();
+        l->pin = pin();
+    );
+  }
+#else // CONFIG_JDB
+  void log() {}
+#endif // CONFIG_JCB
+
+
 protected:
   Hit_func hit_func;
 
@@ -229,62 +299,36 @@ public:
   static Irq_base *(*dcast)(Kobject_iface *);
 };
 
-
-
-
-//----------------------------------------------------------------------------
-INTERFACE [debug]:
-
-EXTENSION class Irq_chip
+class Upstream_irq
 {
 public:
-  virtual char const *chip_type() const = 0;
+  explicit Upstream_irq(Irq_base const *b, Upstream_irq const *prev)
+  : _c(b->chip()), _p(b->pin()), _prev(prev)
+  {}
+
+  static void ack(Upstream_irq const *ui)
+  {
+    for (Upstream_irq const *c = ui; c; c = c->_prev)
+      c->_c->ack(c->_p);
+  }
+
+private:
+  Irq_chip *const _c;
+  Mword const _p;
+  Upstream_irq const *const _prev;
+
 };
 
 
-//--------------------------------------------------------------------------
-IMPLEMENTATION[debug]:
-
-PUBLIC
-char const *
-Irq_chip_soft::chip_type() const override
-{ return "Soft"; }
-
-
-//--------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "types.h"
-#include "cpu_lock.h"
-#include "lock_guard.h"
-#include "static_init.h"
-
-Irq_chip_soft Irq_chip_soft::sw_chip INIT_PRIORITY(EARLY_INIT_PRIO);
-Irq_base *(*Irq_base::dcast)(Kobject_iface *);
-
-IMPLEMENT inline Irq_chip::~Irq_chip() {}
-IMPLEMENT inline Irq_chip_icu::~Irq_chip_icu() {}
-IMPLEMENT inline Irq_base::~Irq_base() {}
-
-PUBLIC inline explicit
-Upstream_irq::Upstream_irq(Irq_base const *b, Upstream_irq const *prev)
-: _c(b->chip()), _p(b->pin()), _prev(prev)
-{}
-
-PUBLIC static inline
-void
-Upstream_irq::ack(Upstream_irq const *ui)
-{
-  for (Upstream_irq const *c = ui; c; c = c->_prev)
-    c->_c->ack(c->_p);
-}
+inline Irq_chip::~Irq_chip() {}
+inline Irq_chip_icu::~Irq_chip_icu() {}
+inline Irq_base::~Irq_base() {}
 
 /**
  * \pre `irq->irq_lock()` must be held
  */
-PUBLIC inline
-void
-Irq_chip::bind(Irq_base *irq, Mword pin, bool ctor = false)
+inline void
+Irq_chip::bind(Irq_base *irq, Mword pin, bool ctor)
 {
   irq->_pin = pin;
   irq->_chip = this;
@@ -303,19 +347,16 @@ Irq_chip::bind(Irq_base *irq, Mword pin, bool ctor = false)
 /**
  * \pre `irq->irq_lock()` must be held
  */
-IMPLEMENT inline
-void
+inline void
 Irq_chip::unbind(Irq_base *irq)
 {
   Irq_chip_soft::sw_chip.bind(irq, 0, true);
 }
 
-
 /**
  * \param CHIP must be the dynamic type of the object.
  */
-PUBLIC inline
-template<typename CHIP>
+template<typename CHIP> inline
 void
 Irq_chip::handle_irq(Mword pin, Upstream_irq const *ui)
 {
@@ -326,87 +367,17 @@ Irq_chip::handle_irq(Mword pin, Upstream_irq const *ui)
   irq->hit(ui);
 }
 
-PUBLIC inline
-template<typename CHIP>
+template<typename CHIP> inline
 void
 Irq_chip::handle_multi_pending(Upstream_irq const *ui)
 {
   while (Mword pend = nonull_static_cast<CHIP*>(this)->CHIP::pending())
     {
       for (unsigned i = 0; i < sizeof(Mword)*8; ++i, pend >>= 1)
-	if (pend & 1)
-	  {
-	    handle_irq<CHIP>(i, ui);
-	    break; // read the pending ints again
-	  }
+        if (pend & 1)
+          {
+            handle_irq<CHIP>(i, ui);
+            break; // read the pending ints again
+          }
     }
 }
-
-
-PUBLIC inline NEEDS["lock_guard.h", "cpu_lock.h"]
-void
-Irq_base::destroy()
-{
-  auto g = lock_guard(_irq_lock);
-  unbind();
-}
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [!debug]:
-
-PUBLIC inline void Irq_base::log() {}
-
-//-----------------------------------------------------------------------------
-INTERFACE [debug]:
-
-#include "tb_entry.h"
-
-EXTENSION class Irq_base
-{
-public:
-  struct Irq_log : public Tb_entry
-  {
-    Irq_base *obj;
-    Irq_chip *chip;
-    Mword pin;
-    void print(String_buffer *buf) const;
-  };
-};
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
-
-#include <cstdio>
-
-#include "logdefs.h"
-#include "kobject_dbg.h"
-#include "string_buffer.h"
-
-IMPLEMENT
-void
-Irq_base::Irq_log::print(String_buffer *buf) const
-{
-  Kobject_dbg::Const_iterator irq = Kobject_dbg::pointer_to_obj(obj);
-
-  buf->printf("0x%lx/%lu @ chip %s(%p) ", pin, pin, chip->chip_type(), chip);
-
-  if (irq != Kobject_dbg::end())
-    buf->printf("D:%lx", irq->dbg_id());
-  else
-    buf->printf("irq=%p", obj);
-}
-
-PUBLIC inline NEEDS["logdefs.h"]
-void
-Irq_base::log()
-{
-  Context *c = current();
-  LOG_TRACE("IRQ-Object triggers", "irq", c, Irq_log,
-      l->obj = this;
-      l->chip = chip();
-      l->pin = pin();
-  );
-}
-

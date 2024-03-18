@@ -17,6 +17,8 @@ Jdb_kern_info_memory::Jdb_kern_info_memory()
   Jdb_kern_info::register_subcmd(this);
 }
 
+extern cxx::S_list<Kmem_slab> const &jdb_kmem_slab_list();
+
 PUBLIC
 void
 Jdb_kern_info_memory::show() override
@@ -24,7 +26,7 @@ Jdb_kern_info_memory::show() override
   ((Kmem_alloc*)Kmem_alloc::allocator())->debug_dump();
 
   // Slab allocators
-  for (auto const &&alloc: Kmem_slab::reap_list)
+  for (auto const &&alloc: jdb_kmem_slab_list())
     alloc->debug_dump();
 }
 
