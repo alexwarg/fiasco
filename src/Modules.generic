@@ -25,7 +25,6 @@ INTERFACES_KERNEL	:= \
 			   fpu_state fpu_alloc cpu entry_frame               \
 			   kernel_console ipc_gate task sigma0_task          \
                            kernel_task platform_control_object          \
-			   terminate         \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
 			   buddy_alloc vkey kdb_ke prio_list ipi scheduler   \
@@ -37,7 +36,8 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
-		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc
+		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
+		 terminate.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += dbg_page_info.cc kobject_dbg.cc

@@ -1,8 +1,4 @@
-INTERFACE:
-
-#include "std_macros.h"
-
-IMPLEMENTATION:
+#include "terminate.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -36,11 +32,10 @@ void set_exit_question(void (*eq)(void))
 }
 
 
-extern "C" void FIASCO_NORETURN _exit(int);
+extern "C" void _exit(int) __attribute__((noreturn));
 
-FIASCO_NORETURN
 void
-terminate (int exit_value)
+terminate(int exit_value)
 {
   Helping_lock::threading_system_active = false;
 
