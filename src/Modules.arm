@@ -121,7 +121,7 @@ PRIVATE_INCDIR	+= abi/$(CONFIG_XARCH) abi
 ABI 		:= libabi.a
 VPATH 		+= abi/$(CONFIG_XARCH)/$(BITS) abi/$(CONFIG_XARCH) abi
 
-INTERFACES_ABI 	:= kip l4_fpage l4_msg_item \
+INTERFACES_ABI 	:= kip l4_msg_item \
                    l4_buf_desc l4_error
 
 
