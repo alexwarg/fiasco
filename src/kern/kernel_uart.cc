@@ -37,7 +37,7 @@ namespace {
 /**
  * Glue between kernel and UART driver.
  */
-class Kuart : public Uart, public Pm_object
+class Kuart : public Uart, public Pm_object, public FIASCO_UART_TYPE
 {
 private:
   /**
@@ -51,7 +51,7 @@ private:
   void setup()
   {
     unsigned           n = Config::default_console_uart_baudrate;
-    Uart::TransferMode m = Uart::MODE_8N1;
+    ::Uart::TransferMode m = ::Uart::MODE_8N1;
     unsigned long long p = Config::default_console_uart;
     int                i = -1;
 
@@ -85,7 +85,7 @@ public:
     Kernel_uart::uart()->state(Console::DISABLED);
 
     if(Config::serial_esc != Config::SERIAL_ESC_NOIRQ)
-      Kernel_uart::uart()->disable_rcv_irq();
+      Kernel_uart::uart()->enable_rx_irq(false);
   }
 
   void pm_on_resume(Cpu_number cpu) override
@@ -96,9 +96,8 @@ public:
     Kernel_uart::uart()->state(Console::ENABLED);
 
     if(Config::serial_esc != Config::SERIAL_ESC_NOIRQ)
-      Kernel_uart::uart()->enable_rcv_irq();
+      Kernel_uart::uart()->enable_rx_irq(true);
   }
-
 };
 
 static Static_object<Filter_console> _fcon;
@@ -141,9 +140,10 @@ Kuart::setup_uart_io_port(void *r, Address base, int irq)
 #ifdef HAVE_PORTIO
   Regs *regs = static_cast<Regs *>(r);
   regs->io.construct(base);
-  return this->Uart::startup(regs->io.get(), irq,
-                             Koptions::o()->uart.base_baud);
+  return ::Uart::startup(regs->io.get(), irq,
+                         Koptions::o()->uart.base_baud);
 #else
+  (void)r; (void)base; (void)irq;
   panic ("cannot use IO-Port based uart\n");
 #endif
 }
@@ -190,7 +190,7 @@ Kuart::startup(unsigned, int irq)
                         Koptions::o()->uart.reg_shift);
                   break;
                 }
-              return this->Uart::startup(r, irq, Koptions::o()->uart.base_baud);
+              return ::Uart::startup(r, irq, Koptions::o()->uart.base_baud);
             }
         default:
           return false;
@@ -240,7 +240,7 @@ Kernel_uart::enable_rcv_irq()
   if (mgr->alloc(&uart_irq, mgr->legacy_override(uart()->irq())))
     {
       uart_irq.unmask();
-      uart()->enable_rcv_irq();
+      uart()->enable_rx_irq(true);
     }
 }
 

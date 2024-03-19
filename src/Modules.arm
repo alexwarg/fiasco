@@ -49,12 +49,11 @@ PRIVATE_INCDIR += lib/uart
 DRIVERS 		:= libdrivers.a libgluedriverslibc.a
 VPATH			+= drivers/$(CONFIG_XARCH)/$(BITS) drivers/$(CONFIG_XARCH) drivers
 PRIVATE_INCDIR		+= drivers/$(CONFIG_XARCH)/$(BITS) drivers/$(CONFIG_XARCH) drivers
-INTERFACES_DRIVERS 	:= sa1100 mux_console console uart filter_console \
+INTERFACES_DRIVERS 	:= sa1100 mux_console console filter_console \
 			   h3xxx io mem mmu reset processor delayloop
 io_IMPL			:= io io-arm
 mmu_IMPL		:= mmu mmu-arm mmu-arm-$(BITS)
 mem_IMPL		:= mem mem-arm
-uart_IMPL		:= uart uart-libuart
 reset_IMPL		:=
 processor_IMPL		:= processor processor-arm-$(BITS) processor-arm
 CXXSRC_DRIVERS		:= glue_libc.cc
@@ -182,7 +181,6 @@ kdb_ke_IMPL		+= kdb_ke-arm
 kernel_task_IMPL	:= kernel_task kernel_task-arm
 kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-arm \
 			   kernel_thread-arm-$(BITS)
-kernel_uart_IMPL  	:= kernel_uart kernel_uart-libuart
 map_util_IMPL		:= map_util map_util-mem map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-arm-$(BITS) \
 			   mem_layout-arm mem_layout-noncont

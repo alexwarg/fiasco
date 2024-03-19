@@ -4,8 +4,8 @@ PREPROCESS_PARTS        += pxa vcache arm_v5 generic_tickless_idle
 RAM_PHYS_BASE           := 0xa0000000
 VPATH                   += kern/arm/bsp/pxa-sa
 OBJECTS_LIBUART         += uart_16550.o
-CXXFLAGS_uart-libuart   += $(call LIBUART_UART, 16550)
-CXXFLAGS_uart-libuart   += -DUART_16550_INIT_IER=0x40
+LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
+LIBUART_UART_FLAGS      += -DUART_16550_INIT_IER=0x40
 
 config_IMPL           += config-arm-pxa_sa1100
 mem_layout_IMPL       += mem_layout-arm-pxa

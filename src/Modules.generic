@@ -48,6 +48,7 @@ CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc
+CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)
 
 CXXSRC_KERNEL-$(CONFIG_JDB) += \
 	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc
