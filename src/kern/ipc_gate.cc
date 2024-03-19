@@ -1,104 +1,18 @@
-INTERFACE:
 
-#include <cxx/atomic>
-
-#include "kobject.h"
-#include "kobject_helper.h"
-#include "slab_cache.h"
-#include "thread_object.h"
-
-class Ram_quota;
-
-class Ipc_gate_obj;
-
-class Ipc_gate_ctl : public Kobject_h<Ipc_gate_ctl, Kobject_iface>
-{
-private:
-  enum Operation
-  {
-    Op_bind     = 0x10,
-    Op_get_info = 0x11,
-  };
-};
-
-class Ipc_gate : public cxx::Dyn_castable<Ipc_gate, Kobject>
-{
-  friend class Ipc_gate_ctl;
-  friend class Jdb_sender_list;
-protected:
-
-  cxx::atomic<Thread *> _thread;
-  cxx::atomic<Mword> _id;
-
-  Ram_quota *_quota;
-  Locked_prio_list _wait_q;
-};
-
-class Ipc_gate_obj :
-  public cxx::Dyn_castable<Ipc_gate_obj, Ipc_gate, Ipc_gate_ctl>
-{
-  friend class Ipc_gate;
-  typedef Slab_cache Self_alloc;
-
-public:
-  bool put() override { return Ipc_gate::put(); }
-
-  Thread *thread() const { return _thread.load(cxx::memory_order_relaxed); }
-  Mword id() const { return _id.load(cxx::memory_order_relaxed); }
-  Mword obj_id() const override { return id(); }
-
-  bool is_local(Space *s) const override
-  {
-    Thread *t = _thread.load(cxx::memory_order_acquire);
-    return t && t->space() == s;
-  }
-};
-
-//---------------------------------------------------------------------------
-INTERFACE [debug]:
-
-#include "tb_entry.h"
-
-EXTENSION class Ipc_gate
-{
-protected:
-  struct Log_ipc_gate_invoke : public Tb_entry
-  {
-    Mword gate_dbg_id;
-    Mword thread_dbg_id;
-    Mword label;
-    void print(String_buffer *buf) const;
-  };
-
-};
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include <cstddef>
-
-#include "assert_opt.h"
-#include "entry_frame.h"
+#include "ipc_gate.h"
+#include "globalconfig.h"
 #include "ipc_timeout.h"
 #include "kmem_slab.h"
 #include "kobject_rpc.h"
-#include "logdefs.h"
-#include "ram_quota.h"
 #include "static_init.h"
-#include "thread.h"
-#include "thread_state.h"
 #include "timer.h"
 
 JDB_DEFINE_TYPENAME(Ipc_gate_obj, "\033[35mGate\033[m");
+static Kmem_slab_t<Ipc_gate_obj> _ipc_gate_allocator("Ipc_gate");
 
-PUBLIC
-::Kobject_mappable *
-Ipc_gate_obj::map_root() override
-{ return Ipc_gate::map_root(); }
 
-PUBLIC
 Kobject_iface *
-Ipc_gate_ctl::downgrade(unsigned long attr) override
+Ipc_gate_ctl::downgrade(unsigned long attr)
 {
   if (attr & L4_msg_item::C_obj_right_1)
     return static_cast<Ipc_gate*>(static_cast<Ipc_gate_obj*>(this));
@@ -106,114 +20,7 @@ Ipc_gate_ctl::downgrade(unsigned long attr) override
     return this;
 }
 
-PUBLIC inline
-Ipc_gate::Ipc_gate(Ram_quota *q, Thread *t, Mword id)
-  : _thread(0), _id(id), _quota(q), _wait_q()
-{
-  if (t)
-    {
-      t->inc_ref();
-      _thread.store(t);
-    }
-}
-
-PUBLIC inline
-Ipc_gate_obj::Ipc_gate_obj(Ram_quota *q, Thread *t, Mword id)
-  : Dyn_castable_class(q, t, id)
-{}
-
-PUBLIC
-void
-Ipc_gate_obj::unblock_all()
-{
-  while (::Prio_list_elem *h = _wait_q.first())
-    {
-      auto g1 = lock_guard(cpu_lock);
-      Thread *w;
-	{
-	  auto g2 = lock_guard(_wait_q.lock());
-	  if (EXPECT_FALSE(h != _wait_q.first()))
-	    continue;
-
-	  w = static_cast<Thread*>(Sender::cast(h));
-	  w->sender_dequeue(&_wait_q);
-	}
-      w->activate();
-    }
-}
-
-PUBLIC virtual
-void
-Ipc_gate_obj::initiate_deletion(Kobject ***r) override
-{
-  if (Thread *t = _thread.load(cxx::memory_order_acquire))
-    t->ipc_gate_deleted(id());
-
-  Kobject::initiate_deletion(r);
-}
-
-PUBLIC virtual
-void
-Ipc_gate_obj::destroy(Kobject ***r) override
-{
-  Kobject::destroy(r);
-  Thread *tmp = _thread.load(cxx::memory_order_acquire);
-  if (tmp)
-    {
-      _thread.store(0, cxx::memory_order_release);
-      unblock_all();
-      tmp->put_n_reap(r);
-    }
-}
-
-PUBLIC
-Ipc_gate_obj::~Ipc_gate_obj()
-{
-  unblock_all();
-}
-
-PUBLIC inline NEEDS[<cstddef>]
-void *
-Ipc_gate_obj::operator new (size_t, void *b) throw()
-{ return b; }
-
-static Kmem_slab_t<Ipc_gate_obj> _ipc_gate_allocator("Ipc_gate");
-
-PRIVATE static
-Ipc_gate_obj::Self_alloc *
-Ipc_gate_obj::allocator()
-{ return _ipc_gate_allocator.slab(); }
-
-PUBLIC static
-Ipc_gate_obj *
-Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
-{
-  Auto_quota<Ram_quota> quota(q, sizeof(Ipc_gate_obj));
-
-  if (EXPECT_FALSE(!quota))
-    return 0;
-
-  void *nq = Ipc_gate_obj::allocator()->alloc();
-  if (EXPECT_FALSE(!nq))
-    return 0;
-
-  quota.release();
-  return new (nq) Ipc_gate_obj(q, t, id);
-}
-
-PUBLIC
-void Ipc_gate_obj::operator delete (void *_f)
-{
-  Ipc_gate_obj *f = (Ipc_gate_obj*)_f;
-  Ram_quota *p = f->_quota;
-  asm ("" : "=m"(*f));
-
-  allocator()->free(f);
-  if (p)
-    p->free(sizeof(Ipc_gate_obj));
-}
-
-PRIVATE inline NOEXPORT NEEDS["assert_opt.h"]
+inline
 L4_msg_tag
 Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
                           Syscall_frame *f, Utcb const *in, Utcb *)
@@ -265,20 +72,93 @@ Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
   return commit_result(0);
 }
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Ipc_gate_ctl::get_infos(L4_obj_ref, L4_fpage::Rights,
                         Syscall_frame *, Utcb const *, Utcb *out)
+  {
+    Ipc_gate_obj *g = static_cast<Ipc_gate_obj*>(this);
+    out->values[0] = g->id();
+    return commit_result(0, 1);
+  }
+
+
+void
+Ipc_gate_obj::unblock_all()
 {
-  Ipc_gate_obj *g = static_cast<Ipc_gate_obj*>(this);
-  out->values[0] = g->id();
-  return commit_result(0, 1);
+  while (::Prio_list_elem *h = _wait_q.first())
+    {
+      auto g1 = lock_guard(cpu_lock);
+      Thread *w;
+        {
+          auto g2 = lock_guard(_wait_q.lock());
+          if (EXPECT_FALSE(h != _wait_q.first()))
+            continue;
+
+          w = static_cast<Thread*>(Sender::cast(h));
+          w->sender_dequeue(&_wait_q);
+        }
+      w->activate();
+    }
 }
 
-PUBLIC
+void
+Ipc_gate_obj::initiate_deletion(Kobject ***r)
+{
+  if (Thread *t = _thread.load(cxx::memory_order_acquire))
+    t->ipc_gate_deleted(id());
+
+  Kobject::initiate_deletion(r);
+}
+
+void
+Ipc_gate_obj::destroy(Kobject ***r)
+{
+  Kobject::destroy(r);
+  Thread *tmp = _thread.load(cxx::memory_order_acquire);
+  if (tmp)
+    {
+      _thread.store(0, cxx::memory_order_release);
+      unblock_all();
+      tmp->put_n_reap(r);
+    }
+}
+
+Ipc_gate_obj::Self_alloc *
+Ipc_gate_obj::allocator()
+{ return _ipc_gate_allocator.slab(); }
+
+Ipc_gate_obj *
+Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
+{
+  Auto_quota<Ram_quota> quota(q, sizeof(Ipc_gate_obj));
+
+  if (EXPECT_FALSE(!quota))
+    return 0;
+
+  void *nq = Ipc_gate_obj::allocator()->alloc();
+  if (EXPECT_FALSE(!nq))
+    return 0;
+
+  quota.release();
+  return new (nq) Ipc_gate_obj(q, t, id);
+}
+
+void Ipc_gate_obj::operator delete (void *_f) noexcept
+{
+  Ipc_gate_obj *f = (Ipc_gate_obj*)_f;
+  Ram_quota *p = f->_quota;
+  asm ("" : "=m"(*f));
+
+  allocator()->free(f);
+  if (p)
+    p->free(sizeof(Ipc_gate_obj));
+}
+
+
 void
 Ipc_gate_ctl::invoke(L4_obj_ref self, L4_fpage::Rights rights,
-                     Syscall_frame *f, Utcb *utcb) override
+                     Syscall_frame *f, Utcb *utcb)
 {
   if (f->tag().proto() == L4_msg_tag::Label_kobject
       && (f->ref().op() & L4_obj_ref::Ipc_send))
@@ -287,8 +167,6 @@ Ipc_gate_ctl::invoke(L4_obj_ref self, L4_fpage::Rights rights,
     static_cast<Ipc_gate_obj*>(this)->Ipc_gate::invoke(self, rights, f, utcb);
 }
 
-
-PUBLIC
 L4_msg_tag
 Ipc_gate_ctl::kinvoke(L4_obj_ref self, L4_fpage::Rights rights,
                       Syscall_frame *f, Utcb const *in, Utcb *out)
@@ -312,7 +190,7 @@ Ipc_gate_ctl::kinvoke(L4_obj_ref self, L4_fpage::Rights rights,
     }
 }
 
-PRIVATE inline NOEXPORT
+inline
 L4_error
 Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
 {
@@ -321,7 +199,7 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
     {
       t = to.microsecs(Timer::system_clock(), u);
       if (!t)
-	return L4_error::Timeout;
+        return L4_error::Timeout;
     }
 
     {
@@ -362,11 +240,9 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
   return L4_error::None;
 }
 
-
-PUBLIC
 void
 Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
-                 Syscall_frame *f, Utcb *utcb) override
+                 Syscall_frame *f, Utcb *utcb)
 {
   //LOG_MSG_3VAL(current(), "gIPC", Mword(_thread), _id, f->obj_2_flags());
   //printf("Invoke: Ipc_gate(%lx->%p)...\n", _id, _thread);
@@ -380,17 +256,17 @@ Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
     {
       L4_error e = block(ct, f->timeout().snd, utcb);
       if (!e.ok())
-	{
-	  f->tag(commit_error(utcb, e));
-	  return;
-	}
+        {
+          f->tag(commit_error(utcb, e));
+          return;
+        }
 
       t = _thread.load(cxx::memory_order_acquire);
       if (EXPECT_FALSE(!t))
-	{
-	  f->tag(commit_error(utcb, L4_error::Not_existent));
-	  return;
-	}
+        {
+          f->tag(commit_error(utcb, L4_error::Not_existent));
+          return;
+        }
     }
 
   bool ipc = t->check_sys_ipc(f->ref().op(), &partner, &sender, &have_rcv);
@@ -453,21 +329,16 @@ register_factory()
 }
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
+#if defined (CONFIG_JDB)
 
 #include "string_buffer.h"
 
-PUBLIC
-::Kobject_dbg *
-Ipc_gate_obj::dbg_info() const override
-{ return Ipc_gate::dbg_info(); }
-
-IMPLEMENT
 void
 Ipc_gate::Log_ipc_gate_invoke::print(String_buffer *buf) const
 {
   buf->printf("D-gate=%lx D-thread=%lx L=%lx",
               gate_dbg_id, thread_dbg_id, label);
 }
+
+#endif // CONFIG_JDB
 

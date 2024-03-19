@@ -29,7 +29,7 @@ INTERFACES_KERNEL	:= \
 			   kernel_thread map_util irq        \
 			   main config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
-			   ipc_gate task sigma0_task          \
+			   task sigma0_task          \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
@@ -43,7 +43,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
 		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
 		 terminate.cc semaphore.cc banner.cc vlog.cc boot_alloc.cc \
-		 kernel_console.cc
+		 kernel_console.cc ipc_gate.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
