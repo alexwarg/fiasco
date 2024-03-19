@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
 			   context mem_unit cpu_call \
 			   thread thread_object syscalls     \
 			   kernel_thread map_util irq        \
-			   watchdog kernel_uart       \
+			   kernel_uart       \
 			   main config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
 			   kernel_console ipc_gate task sigma0_task          \
