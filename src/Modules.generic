@@ -35,7 +35,7 @@ INTERFACES_KERNEL	:= \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
 			   vkey kdb_ke ipi scheduler   \
-			   clock sys_call_page boot_alloc                    \
+			   clock sys_call_page                    \
 
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
@@ -43,7 +43,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
 		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
-		 terminate.cc semaphore.cc banner.cc vlog.cc
+		 terminate.cc semaphore.cc banner.cc vlog.cc boot_alloc.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc

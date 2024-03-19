@@ -1,43 +1,14 @@
-INTERFACE:
 
-#include <cstddef>
-#include <cxx/slist>
-#include <cxx/type_traits>
-
-class Boot_alloced
-{
-private:
-  enum { Debug_boot_alloc };
-  struct Block : cxx::S_list_item
-  { size_t size; };
-
-  typedef cxx::S_list_bss<Block> Block_list;
-
-  static Block_list _free;
-};
-
-template< typename Base >
-class Boot_object : public Base, public Boot_alloced
-{
-public:
-  Boot_object()  = default;
-
-  template< typename... A >
-  Boot_object(A&&... args) : Base(cxx::forward<A>(args)...) {}
-};
-
-
-IMPLEMENTATION:
-
-#include <cstdio>
-#include <cstring>
+#include "boot_alloc.h"
 
 #include "kmem_alloc.h"
 #include "warn.h"
 
+#include <cstdio>
+#include <cstring>
+
 Boot_alloced::Block_list Boot_alloced::_free;
 
-PUBLIC static
 void *
 Boot_alloced::alloc(size_t size)
 {
@@ -96,28 +67,13 @@ Boot_alloced::alloc(size_t size)
   return b;
 }
 
-PUBLIC template<typename T> static
-T *
-Boot_alloced::allocate(size_t count = 1)
-{
-  return reinterpret_cast<T *>(alloc(count * sizeof(T)));
-}
-
-PUBLIC inline void *
-Boot_alloced::operator new (size_t size) throw()
-{ return alloc(size); }
-
-PUBLIC inline void *
-Boot_alloced::operator new [] (size_t size) throw()
-{ return alloc(size); }
-
-PUBLIC void
+void
 Boot_alloced::operator delete (void *b)
 {
   WARN("Boot_alloc: trying to delete boot-time allocated object @ %p\n", b);
 }
 
-PUBLIC void
+void
 Boot_alloced::operator delete [] (void *b)
 {
   WARN("Boot_alloc: trying to delete boot-time allocated object @ %p\n", b);
