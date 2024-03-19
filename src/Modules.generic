@@ -19,7 +19,7 @@ INTERFACES_KERNEL	:= \
 			   vcpu    \
 			   context mem_unit cpu_call \
 			   thread thread_object syscalls     \
-			   kernel_thread map_util irq banner warn            \
+			   kernel_thread map_util irq banner           \
 			   watchdog kernel_uart       \
 			   main config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
