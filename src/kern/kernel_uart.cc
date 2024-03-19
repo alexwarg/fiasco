@@ -1,0 +1,246 @@
+
+#include "kernel_uart.h"
+
+
+#include "uart.h"
+#include "std_macros.h"
+#include "pm.h"
+
+#include "filter_console.h"
+#include "irq_chip.h"
+#include "irq_mgr.h"
+#include "kdb_ke.h"
+#include "kernel_console.h"
+#include "uart.h"
+#include "config.h"
+#include "kip.h"
+#include "koptions.h"
+#include "panic.h"
+#include "vkey.h"
+
+#include <cassert>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+
+#include "kmem.h"
+#include "io_regblock.h"
+#include "types.h"
+
+#if defined (CONFIG_AMD64) || defined (CONFIG_IA32)
+#define HAVE_PORTIO 1
+#include "io_regblock_port.h"
+#endif
+
+namespace {
+
+/**
+ * Glue between kernel and UART driver.
+ */
+class Kuart : public Uart, public Pm_object
+{
+private:
+  /**
+   * Prototype for the UART specific startup implementation.
+   * @param uart, the instantiation to start.
+   * @param port, the com port number.
+   */
+  bool startup(unsigned port, int irq=-1);
+  bool setup_uart_io_port(void *r, Address base, int irq);
+
+  void setup()
+  {
+    unsigned           n = Config::default_console_uart_baudrate;
+    Uart::TransferMode m = Uart::MODE_8N1;
+    unsigned long long p = Config::default_console_uart;
+    int                i = -1;
+
+    if (Koptions::o()->opt(Koptions::F_uart_baud))
+      n = Koptions::o()->uart.baud;
+
+    if (Koptions::o()->opt(Koptions::F_uart_base))
+      p = Koptions::o()->uart.base_address;
+
+    if (Koptions::o()->opt(Koptions::F_uart_irq))
+      i = Koptions::o()->uart.irqno;
+
+    if (!startup(p, i))
+      printf("Comport/base 0x%04llx is not accepted by the uart driver!\n", p);
+    else if (!change_mode(m, n))
+      panic("Something is wrong with the baud rate (%u)!\n", n);
+  }
+
+public:
+  Kuart()
+  {
+    setup();
+    register_pm(Cpu_number::boot_cpu());
+  }
+
+  void pm_on_suspend(Cpu_number cpu) override
+  {
+    (void)cpu;
+    assert (cpu == Cpu_number::boot_cpu());
+
+    Kernel_uart::uart()->state(Console::DISABLED);
+
+    if(Config::serial_esc != Config::SERIAL_ESC_NOIRQ)
+      Kernel_uart::uart()->disable_rcv_irq();
+  }
+
+  void pm_on_resume(Cpu_number cpu) override
+  {
+    (void)cpu;
+    assert (cpu == Cpu_number::boot_cpu());
+    static_cast<Kuart*>(Kernel_uart::uart())->setup();
+    Kernel_uart::uart()->state(Console::ENABLED);
+
+    if(Config::serial_esc != Config::SERIAL_ESC_NOIRQ)
+      Kernel_uart::uart()->enable_rcv_irq();
+  }
+
+};
+
+static Static_object<Filter_console> _fcon;
+static Static_object<Kuart> _kernel_uart;
+
+
+
+class Kuart_irq : public Irq_base
+{
+public:
+  Kuart_irq() { hit_func = &handler_wrapper<Kuart_irq>; }
+  void switch_mode(bool) override {}
+  void handle(Upstream_irq const *ui)
+  {
+    Kernel_uart::uart()->irq_ack();
+    mask_and_ack();
+    Upstream_irq::ack(ui);
+    unmask();
+    if (!Vkey::check_())
+      kdb_ke("IRQ ENTRY");
+  }
+};
+
+
+union Regs
+{
+#ifdef HAVE_PORTIO
+  Static_object<L4::Io_register_block_port> io;
+#endif
+  Static_object<L4::Io_register_block_mmio> mem;
+  Static_object<L4::Io_register_block_mmio_fixed_width<Unsigned64> > mem64;
+  Static_object<L4::Io_register_block_mmio_fixed_width<Unsigned32> > mem32;
+  Static_object<L4::Io_register_block_mmio_fixed_width<Unsigned16> > mem16;
+};
+
+
+bool
+Kuart::setup_uart_io_port(void *r, Address base, int irq)
+{
+#ifdef HAVE_PORTIO
+  Regs *regs = static_cast<Regs *>(r);
+  regs->io.construct(base);
+  return this->Uart::startup(regs->io.get(), irq,
+                             Koptions::o()->uart.base_baud);
+#else
+  panic ("cannot use IO-Port based uart\n");
+#endif
+}
+
+bool
+Kuart::startup(unsigned, int irq)
+{
+  static Regs regs;
+
+  if (Koptions::o()->opt(Koptions::F_uart_base))
+    {
+      Address base = Koptions::o()->uart.base_address;
+      switch (Koptions::o()->uart.access_type)
+        {
+        case Koptions::Uart_type_ioport:
+          return setup_uart_io_port(&regs, base, irq);
+
+        case Koptions::Uart_type_mmio:
+            {
+              L4::Io_register_block *r = 0;
+
+              // Koptions doesn't pass the UART size so take a sound guess.
+              Address const size = 0x1000 - (base & 0xfff);
+              switch (Koptions::o()->uart.reg_shift)
+                {
+                case 0: // no shift use natural access width
+                  r = regs.mem.construct(Kmem::mmio_remap(base, size),
+                                         Koptions::o()->uart.reg_shift);
+                  break;
+                case 1: // 1 bit shift, assume fixed 16bit access width
+                  r = regs.mem16.construct(Kmem::mmio_remap(base, size),
+                                           Koptions::o()->uart.reg_shift);
+                  break;
+                case 2: // 2 bit shift, assume fixed 32bit access width
+                  r = regs.mem32.construct(Kmem::mmio_remap(base, size),
+                                           Koptions::o()->uart.reg_shift);
+                  break;
+                case 3: // 3 bit shift, assume fixed 64bit access width
+                  r = regs.mem64.construct(Kmem::mmio_remap(base, size),
+                                           Koptions::o()->uart.reg_shift);
+                  break;
+                default:
+                  panic("UART: illegal reg shift value: %d",
+                        Koptions::o()->uart.reg_shift);
+                  break;
+                }
+              return this->Uart::startup(r, irq, Koptions::o()->uart.base_baud);
+            }
+        default:
+          return false;
+        }
+    }
+
+  return false;
+}
+
+} // anon namespace
+
+bool
+Kernel_uart::init_for_mode(Init_mode init_mode)
+{
+  if (Koptions::o()->uart.access_type == Koptions::Uart_type_ioport)
+    return init_mode == Init_before_mmu;
+  else
+    return init_mode == Init_after_mmu;
+}
+
+FIASCO_CONST
+Uart *
+Kernel_uart::uart()
+{ return _kernel_uart; }
+
+bool
+Kernel_uart::init(Init_mode init_mode)
+{
+  if (!init_for_mode(init_mode))
+    return false;
+
+  if (Koptions::o()->opt(Koptions::F_noserial)) // do not use serial uart
+    return true;
+
+  _kernel_uart.construct();
+  _fcon.construct(_kernel_uart);
+
+  Kconsole::console()->register_console(_fcon, 0);
+  return true;
+}
+
+void
+Kernel_uart::enable_rcv_irq()
+{
+  static Kuart_irq uart_irq;
+  auto mgr = Irq_mgr::mgr;
+  if (mgr->alloc(&uart_irq, mgr->legacy_override(uart()->irq())))
+    {
+      uart_irq.unmask();
+      uart()->enable_rcv_irq();
+    }
+}
+

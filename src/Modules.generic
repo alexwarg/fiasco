@@ -27,7 +27,6 @@ INTERFACES_KERNEL	:= \
 			   context mem_unit cpu_call \
 			   thread thread_object syscalls     \
 			   kernel_thread map_util irq        \
-			   kernel_uart       \
 			   main config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
 			   kernel_console ipc_gate task sigma0_task          \
@@ -47,6 +46,8 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
+
+CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc
 
 CXXSRC_KERNEL-$(CONFIG_JDB) += \
 	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc
