@@ -12,7 +12,6 @@ IMPLEMENTATION:
 #include "jdb_kobject.h"
 #include "kobject.h"
 #include "thread_state.h"
-#include "vlog.h"
 
 #include <cstdio>
 

@@ -19,7 +19,7 @@ INTERFACES_KERNEL	:= \
                            obj_space_types obj_space_phys_util \
 			   obj_space ptab_base ram_quota      \
 			   mem_space space \
-			   vlog kmem kmem_alloc mem_layout        \
+			   kmem kmem_alloc mem_layout        \
 			   kip_init   \
 			   timer   \
 			   vcpu_host_regs                                    \
@@ -43,7 +43,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
 		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
-		 terminate.cc semaphore.cc banner.cc
+		 terminate.cc semaphore.cc banner.cc vlog.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
