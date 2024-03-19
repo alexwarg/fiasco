@@ -45,7 +45,6 @@ IMPLEMENTATION [vmx]:
 #include "fpu.h"
 #include "thread.h" // XXX: circular dep, move this out here!
 #include "thread_state.h" // XXX: circular dep, move this out here!
-#include "virt.h"
 #include "idt.h"
 #include "cpu.h"
 

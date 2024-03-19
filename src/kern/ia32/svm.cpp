@@ -8,7 +8,7 @@ class Svm
 INTERFACE[svm]:
 
 #include "per_cpu_data.h"
-#include "virt.h"
+#include "virt_ia32_svm.h"
 #include "cpu_lock.h"
 #include "pm.h"
 

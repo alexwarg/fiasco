@@ -430,7 +430,6 @@ public:
 
 INTERFACE [vmx]:
 
-#include "virt.h"
 #include "cpu_lock.h"
 
 class Vmx_info;

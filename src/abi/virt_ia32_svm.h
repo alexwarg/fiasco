@@ -1,4 +1,4 @@
-INTERFACE [svm]:
+#pragma once
 
 #include "l4_types.h"
 #include <cxx/bitfield>

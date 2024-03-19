@@ -55,7 +55,7 @@ IMPLEMENTATION [svm]:
 // ------------------------------------------------------------------------
 IMPLEMENTATION [svm && ia32]:
 
-#include "virt.h"
+#include "virtia32_svm.h"
 
 PRIVATE inline
 void
@@ -65,7 +65,7 @@ Vm_svm::restore_segments(Context *, Unsigned16 fs, Unsigned16 gs)
   Cpu::set_gs(gs);
 }
 
-PRIVATE inline NEEDS["virt.h"]
+PRIVATE inline NEEDS["virt_ia32_svm.h"]
 Address
 Vm_svm::get_vm_cr3(Vmcb *)
 {
@@ -78,7 +78,7 @@ Vm_svm::get_vm_cr3(Vmcb *)
 IMPLEMENTATION [svm && amd64]:
 
 #include "assert_opt.h"
-#include "virt.h"
+#include "virt_ia32_svm.h"
 
 PRIVATE inline
 void
@@ -93,7 +93,7 @@ Vm_svm::restore_segments(Context *ctxt, Unsigned16 fs, Unsigned16 gs)
     Cpu::set_gs_base(ctxt->gs_base());
 }
 
-PRIVATE inline NEEDS["assert_opt.h", "virt.h"]
+PRIVATE inline NEEDS["assert_opt.h", "virt_ia32_svm.h"]
 Address
 Vm_svm::get_vm_cr3(Vmcb *v)
 {
