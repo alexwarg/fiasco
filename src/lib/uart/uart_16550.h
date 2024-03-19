@@ -85,6 +85,13 @@ namespace L4
       _ier_bits(Init_ier), _fcr_bits(Init_fcr)
     {}
 
+    Uart_16550()
+    : _mcr_bits(Init_mcr),
+      _ier_bits(Init_ier), _fcr_bits(Init_fcr)
+    {}
+
+    void set_base_rate(unsigned r) override
+    { _base_rate =r; }
     bool startup(Io_register_block const *regs) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;

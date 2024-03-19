@@ -16,6 +16,8 @@ namespace L4
   public:
     explicit Uart_of(unsigned /*base_rate*/)
       : Of(), _serial(0) {}
+    Uart_of() = default;
+    void set_base_rate(unsigned) override {}
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;

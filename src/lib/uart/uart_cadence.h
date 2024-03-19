@@ -19,6 +19,9 @@ namespace L4
     : _base_rate(base_rate)
     {}
 
+    Uart_cadence() = default;
+    void set_base_rate(unsigned r) override
+    { _base_rate = r; }
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;

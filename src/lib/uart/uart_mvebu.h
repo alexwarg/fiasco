@@ -15,6 +15,8 @@ namespace L4
   {
   public:
     explicit Uart_mvebu(unsigned baserate) : _baserate(baserate) {}
+    Uart_mvebu() = default;
+    void set_base_rate(unsigned r) override { _baserate = r; }
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool enable_rx_irq(bool enable = true) override;

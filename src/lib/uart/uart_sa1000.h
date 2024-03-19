@@ -18,6 +18,8 @@ namespace L4
   {
   public:
     Uart_sa1000(unsigned long /*base_rate*/) {}
+    Uart_sa1000() = default;
+    void set_base_rate(unsigned) override {}
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;

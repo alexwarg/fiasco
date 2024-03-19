@@ -16,6 +16,8 @@ namespace L4
   {
   public:
     explicit Uart_sh(unsigned /*base_rate*/) {}
+    Uart_sh() = default;
+    void set_base_rate(unsigned) override {}
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool enable_rx_irq(bool enable = true) override;

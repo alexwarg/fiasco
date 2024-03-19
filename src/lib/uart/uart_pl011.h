@@ -10,6 +10,9 @@ namespace L4
   public:
     /** freq == 0 means unknown and don't change baud rate */
     Uart_pl011(unsigned freq) : _freq(freq) {}
+    Uart_pl011() = default;
+    void set_base_rate(unsigned r) override
+    { _freq = r; }
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;

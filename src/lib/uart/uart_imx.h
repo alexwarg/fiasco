@@ -18,7 +18,10 @@ namespace L4
       Type_imx8,
     };
     explicit Uart_imx(enum platform_type type, unsigned /*base_rate*/)
-       : _type(type) {}
+    : _type(type) {}
+    Uart_imx(enum platform_type type)
+    : _type(type) {}
+    void set_base_rate(unsigned) override {}
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool enable_rx_irq(bool enable = true) override;
@@ -36,24 +39,28 @@ namespace L4
   {
   public:
     Uart_imx21(unsigned base_rate) : Uart_imx(Type_imx21, base_rate) {}
+    Uart_imx21() : Uart_imx(Type_imx21) {}
   };
 
   class Uart_imx35 : public Uart_imx
   {
   public:
     Uart_imx35(unsigned base_rate) : Uart_imx(Type_imx35, base_rate) {}
+    Uart_imx35() : Uart_imx(Type_imx35) {}
   };
 
   class Uart_imx51 : public Uart_imx
   {
   public:
     Uart_imx51(unsigned base_rate) : Uart_imx(Type_imx51, base_rate) {}
+    Uart_imx51() : Uart_imx(Type_imx51) {}
   };
 
   class Uart_imx6 : public Uart_imx
   {
   public:
     Uart_imx6(unsigned base_rate) : Uart_imx(Type_imx6, base_rate) {}
+    Uart_imx6() : Uart_imx(Type_imx6) {}
 
     void irq_ack() override;
   };
@@ -62,12 +69,14 @@ namespace L4
   {
   public:
     Uart_imx7(unsigned base_rate) : Uart_imx(Type_imx7, base_rate) {}
+    Uart_imx7() : Uart_imx(Type_imx7) {}
   };
 
   class Uart_imx8 : public Uart_imx
   {
   public:
     Uart_imx8(unsigned base_rate) : Uart_imx(Type_imx8, base_rate) {}
+    Uart_imx8() : Uart_imx(Type_imx8) {}
   };
 };
 

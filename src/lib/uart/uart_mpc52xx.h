@@ -55,6 +55,8 @@ namespace L4
 
   public:
     explicit Uart_mpc52xx(unsigned /*base_rate*/) {}
+    Uart_mpc52xx() = default;
+    void set_base_rate(unsigned) override {}
     bool startup(const L4::Io_register_block *) override;
     void shutdown() override;
     bool enable_rx_irq(bool enable = true) override;

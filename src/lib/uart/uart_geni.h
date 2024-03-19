@@ -13,6 +13,8 @@ namespace L4
   {
   public:
     explicit Uart_geni(unsigned /*base_rate*/) {}
+    Uart_geni() = default;
+    void set_base_rate(unsigned) override {}
     bool startup(Io_register_block const *) override;
     void shutdown() override;
     bool change_mode(Transfer_mode m, Baud_rate r) override;
