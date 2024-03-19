@@ -1,9 +1,9 @@
-IMPLEMENTATION [ia32-debug]:
+
+#include "kip.h"
 
 #include <cstring>
 #include "types.h"
 
-IMPLEMENT
 void
 Kip::debug_print_syscalls() const
 {

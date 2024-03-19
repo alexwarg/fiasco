@@ -1,13 +1,4 @@
-INTERFACE [debug]:
-
-EXTENSION class Kip
-{
-private:
-  void debug_print_syscalls() const;
-};
-
-IMPLEMENTATION [debug]:
-
+#include "kip.h"
 
 #include <cstdio>
 #include <cstring>
@@ -32,7 +23,6 @@ static char const *const memory_desc_types[] = {
     "Arch"
 };
 
-PUBLIC
 void
 Mem_desc::dump() const
 {
@@ -40,7 +30,6 @@ Mem_desc::dump() const
          Unsigned64{start()}, Unsigned64{end()} + 1, memory_desc_types[type()]);
 }
 
-PRIVATE
 void
 Kip::debug_print_memory() const
 {
@@ -56,7 +45,6 @@ Kip::debug_print_memory() const
     }
 }
 
-PRIVATE
 void
 Kip::debug_print_features() const
 {
@@ -70,8 +58,8 @@ Kip::debug_print_features() const
   putchar('\n');
 }
 
-IMPLEMENT
-void Kip::print() const
+void
+Kip::print() const
 {
   Cpu_time c = clock();
   printf("KIP @ %p\n", this);
@@ -99,3 +87,9 @@ void Kip::print() const
 
   debug_print_features();
 }
+
+[[gnu::weak]]
+void
+Kip::debug_print_syscalls() const
+{}
+

@@ -4,8 +4,10 @@
 # Include for unit tests, enable by including UTEST in SUBSYSTEMS.
 include $(srcdir)/test/utest/Modules.utest
 
+CXXSRC_ABI += kip.cc
+
 CXXSRC_ABI-$(CONFIG_JDB) += \
-	l4_types_dbg.cc l4_error_dbg.cc
+	l4_types_dbg.cc l4_error_dbg.cc kip_dbg.cc
 
 CXXSRC_ABI += $(CXXSRC_ABI-y)
 

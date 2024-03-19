@@ -96,7 +96,6 @@ INTERFACES_JABI	:= jdb_ktrace
 PRIVATE_INCDIR	+= abi/$(CONFIG_XARCH) abi
 ABI 		:= libabi.a
 VPATH 		+= abi/mips/$(BITS) abi/mips abi
-INTERFACES_ABI 	:= kip
 
 kip_IMPL	:= kip kip-debug kip-mips
 

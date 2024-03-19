@@ -43,7 +43,6 @@ PRIVATE_INCDIR		+= types/$(CONFIG_XARCH) types
 PRIVATE_INCDIR		+= abi/$(CONFIG_XARCH) abi
 ABI			:= libabi.a
 VPATH			+= abi/$(CONFIG_XARCH) abi
-INTERFACES_ABI		:= kip \
 
 kip_IMPL		:= kip kip-debug kip-amd64 kip-amd64-debug
 virt_IMPL		:= virt-ia32-amd64
