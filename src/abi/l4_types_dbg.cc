@@ -1,14 +1,14 @@
-IMPLEMENTATION [debug]:
+#include "l4_types.h"
 
 #include <cstdio>
 #include "simpleio.h"
 
-PUBLIC void L4_timeout::print() const
+void L4_timeout::print() const
 {
   printf("m=%lu e=%lu", man(), exp());
 }
 
-PUBLIC void L4_timeout_pair::print() const
+void L4_timeout_pair::print() const
 {
   printf("snd: ");
   snd.print();
@@ -16,9 +16,8 @@ PUBLIC void L4_timeout_pair::print() const
   rcv.print();
 }
 
-PUBLIC
 void
-Utcb::print(char const *clreol_lf = "\n") const
+Utcb::print(char const *clreol_lf) const
 {
   printf("Values:%s", clreol_lf);
   for (unsigned i = 0; i < Max_words; ++i)

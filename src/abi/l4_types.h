@@ -1,13 +1,12 @@
-/*
- * arch. independent L4 Types
- */
-
-INTERFACE:
+#pragma once
 
 #include "types.h"
 #include "l4_fpage.h"
 #include "l4_buf_desc.h"
 #include "l4_error.h"
+#include <minmax.h>
+
+#include "l4_types_arch.h"
 
 typedef Address Local_id;
 
@@ -431,9 +430,226 @@ public:
     Label_smc = -24L,          ///< Protocol ID for ARM SMC calls.
     Max_factory_label = Label_iommu,
   };
+
+  /**
+   * Create a message tag from its parts.
+   * \param words the number of untyped message words to transfer.
+   * \param items the number of typed message items, following the untyped words
+   *        in the message registers. See L4_msg_item.
+   * \param flags the flags, see L4_msg_tag::Flags and L4_msg_tag::Output_flags.
+   * \param proto the protocol ID to use.
+   */
+  constexpr L4_msg_tag(unsigned words, unsigned items,
+                       unsigned long flags, unsigned long proto) noexcept
+  : _tag((words & 0x3f) | ((items & 0x3f) << 6) | flags | (proto << 16))
+  {}
+
+  /**
+   * Create an uninitialized message tag.
+   * \note the value of the tag is unpredictable.
+   */
+  L4_msg_tag() = default;
+
+  /**
+   * Create a message tag from another message tag, replacing
+   * the L4_msg_tag::Output_flags.
+   * \param o the message tag to copy.
+   * \param flags the output flags to set in the new tag.
+   * \pre (flags & ~Rcv_flags) == 0
+   */
+  constexpr L4_msg_tag(L4_msg_tag const &o, Mword flags) noexcept
+    : _tag((o.raw() & ~Mword(Rcv_flags)) | flags)
+  {}
+
+  /**
+   * Create msg tag from the binary representation.
+   * \param raw the raw binary representation, as passed from user level.
+   */
+  constexpr L4_msg_tag(Mword raw) noexcept
+  : _tag(raw)
+  {}
+
+  /**
+   * Get the protocol ID.
+   * \return the protocol ID.
+   */
+  long proto() const noexcept
+  { return long(_tag) >> 16; }
+
+  /**
+   * Get the binary representation.
+   * \return the binary value of the tag.
+   */
+  unsigned long raw() const noexcept
+  { return _tag; }
+
+  /**
+   * Get the number of untyped words to deliver.
+   * \return number message registers that shall be transferred
+   *         uninterpreted to the receiving object.
+   */
+  unsigned words() const noexcept
+  { return _tag & 63; }
+
+  /**
+   * Get the number of typed message items in the message.
+   * \return the number of typed items, directly following the
+   *         untyped words in the message registers.
+   * \see L4_msg_item.
+   */
+  unsigned items() const noexcept
+  { return (_tag >> 6) & 0x3f; }
+
+  /**
+   * Get the flags of the tag.
+   * \return the flags of the message tag, note reserved bits might be
+   *         set in the result.
+   */
+  Mword flags() const noexcept
+  { return _tag; }
+
+  /**
+   * Transfer the FPU?
+   * \return true if the sender wishes to transfer FPU contents.
+   * \see #Transfer_fpu.
+   */
+  bool transfer_fpu() const noexcept
+  { return _tag & Transfer_fpu; }
+
+  /**
+   * Do time-slice donation?
+   * \return true if the sender is willing to donate its remaining time-
+   *         slice to the receiver.
+   * \see #Schedule.
+   */
+  bool do_switch() const noexcept
+  { return !(_tag & Schedule); }
+
+  /**
+   * Set the error flag to \a e.
+   * \param e the value of the error flag to be set.
+   */
+  void set_error(bool e = true) noexcept
+  {
+    if (e)
+      _tag |= Error;
+    else
+      _tag &= ~Mword(Error);
+  }
+
+  /**
+   * Is there an error flagged?
+   * \return true if the error flag of the message tag is set.
+   */
+  bool has_error() const noexcept
+  { return _tag & Error; }
+
 private:
   Mword _tag;
 };
+
+/**
+ * User-level Thread Control Block (UTCB).
+ *
+ * The UTCB is a virtual extension of the registers of a thread. A UTCB
+ * comprises three sets of registers: the message registers (MRs), the buffer
+ * registers (BRs and BDR), and the control registers (TCRs).
+ *
+ * The message registers (MRs) contain the content of the messages that are
+ * sent to objects or received from objects. The message contents consist of
+ * untyped data and typed message items (see L4_msg_tag). The untyped data must
+ * be stored in the first `n` message registers (`n` = L4_msg_tag::words()) and
+ * are transferred / copied uninterpreted to the receiving object (MRs of the
+ * receiver thread or kernel object). The typed items follow starting at MR[`
+ * n+1`]. Each typed item is stored in two MRs and is interpreted by the kernel
+ * (see L4_msg_item, L4_fpage). The number of items is denoted by
+ * L4_msg_tag::items(). On the receiver side the typed items are translated
+ * into a format that is useful for the receiver and stored into the same MRs
+ * in the receiver's UTCB.
+ *
+ * The buffer registers (BRs and BDR) contain information that describe receive
+ * buffers for incoming typed items. The contents of these registers are not
+ * altered by the kernel. The buffer descriptor register (BDR, Utcb::buf_desc)
+ * contains information about the items in the buffer registers (BRs) and
+ * flags to enable FPU state transfer. The BRs contain a set of receive
+ * message items (L4_msg_item) that describe receive buffers, such as, virtual
+ * memory regions for incoming memory mappings or buffers for capabilities.
+ * The BRs are also used to store absolute 64bit timeout values for operations,
+ * The value of the timeout pair encodes the number of the BR if an absolute
+ * timeout is used.
+ *
+ * The thread control registers (TCRs) comprise an error code for errors during
+ * message passing and a set of user-level registers. The user-level registers
+ * are not used by the kernel and provide an anchor for thread-local storage.
+ */
+class Utcb
+{
+  /* must be 2^n bytes */
+public:
+
+  /**
+   * Type for time values in the UTCB (size is fix 64bit).
+   *
+   * On 32bit architectures this type uses two MRs on 64bit one Mr is used.
+   * This type is used for conversion of time values stored in MRs or BRs.
+   */
+  union Time_val
+  {
+    enum { Words = sizeof(Cpu_time)/sizeof(Mword) /**< Number of MRs used. */ };
+    Mword b[Words]; ///< The array of MRs to use.
+    Cpu_time t;     ///< The time value itself.
+  };
+
+  enum
+  {
+    Max_words = 63,   ///< Number of MRs.
+    Max_buffers = 58, ///< Number of BRs.
+    Free_marker = 0,  ///< Magic value for `free_marker`.
+  };
+
+  /// The message registers (MRs).
+  union
+  {
+    Mword         values[Max_words];
+    Unsigned64    val64[Max_words / (sizeof(Unsigned64) / sizeof(Mword))];
+  } __attribute__((packed));
+
+  static unsigned val64_idx(unsigned validx)
+  { return validx / (sizeof(Unsigned64) / sizeof(Mword)); }
+
+  static unsigned val_idx(unsigned val64_idx)
+  { return val64_idx * (sizeof(Unsigned64) / sizeof(Mword)); }
+
+  Mword           utcb_addr;
+
+  /// The buffer descriptor register (BDR).
+  L4_buf_desc     buf_desc;
+  /// The buffer registers (BRs).
+  Mword           buffers[Max_buffers];
+
+  /// The error code for IPC (TCR).
+  L4_error        error;
+
+  /// The kernel sets this register to `Free_marker` when it is guaranteed that
+  /// the UTCB is no longer read/written by the kernel (TCR).
+  Mword           free_marker;
+
+  /// The user-level registers for TLS (TCR).
+  Mword           user[3];
+
+
+  /**
+   * Receiver is ready to receive FPU contents?
+   * \return true if the receiver is ready to receive the state of the FPU as
+   *         part of a message.
+   * \see L4_buf_desc::Inherit_fpu, L4_buf_desc.
+   */
+  bool inherit_fpu() const
+  { return buf_desc.flags() & L4_buf_desc::Inherit_fpu; }
+
+  void print(char const *clreol_lf = "\n") const;
+};
+
 
 /**
  * L4 timeouts data type.
@@ -455,62 +671,105 @@ public:
    *        exp>0: t=2^(exp)*man,
    *        man=0 & exp!=0: t=0).
    */
-  L4_timeout(Mword man, Mword exp);
+  constexpr L4_timeout(Mword man, Mword exp) noexcept
+  : _t (((man & Man_mask) | ((exp << Exp_shift) & Exp_mask)))
+  {}
+
   L4_timeout(Mword man, Mword exp, bool clock);
 
   /**
    * Create a timeout from its binary representation.
    * @param t the binary timeout value.
    */
-  L4_timeout(unsigned short t = 0);
+  constexpr L4_timeout(unsigned short t = 0) noexcept : _t(t) {}
 
   /**
    * Get the binary representation of the timeout.
    * @return The timeout as binary representation.
    */
-  unsigned short raw() const;
+  unsigned short raw() const noexcept
+  { return _t; }
 
   /**
    * Get the receive exponent.
    * @return The exponent of the receive timeout.
    * @see rcv_man()
    */
-  Mword exp() const;
+  Mword exp() const noexcept
+  { return (_t & Exp_mask) >> Exp_shift; }
 
   /**
    * Set the exponent of the receive timeout.
    * @param er the exponent for the receive timeout (see L4_timeout()).
    * @see rcv_man()
    */
-  void exp(Mword er);
+  void exp(Mword er)
+  { _t = (_t & ~Exp_mask) | ((er << Exp_shift) & Exp_mask); }
+
 
   /**
    * Get the receive timout's mantissa.
    * @return The mantissa of the receive timeout (see L4_timeout()).
    * @see rcv_exp()
    */
-  Mword man() const;
+  Mword man() const noexcept
+  { return (_t & Man_mask) >> Man_shift; }
 
   /**
    * Set the mantissa of the receive timeout.
    * @param mr the mantissa of the receive timeout (see L4_timeout()).
    * @see rcv_exp()
    */
-  void man(Mword mr);
+  void man(Mword mr)
+  { _t = (_t & ~Man_mask) | ((mr << Man_shift) & Man_mask); }
 
   /**
    * Get the relative receive timeout in microseconds.
    * @param clock Current value of kernel clock
    * @return The receive timeout in microseconds.
    */
-  Unsigned64 microsecs_rel(Unsigned64 clock) const;
+  Unsigned64 microsecs_rel(Unsigned64 clock) const noexcept
+  {
+    if (man() == 0)
+      return 0;
+    else
+     return clock + ((Unsigned64)man() << exp());
+  }
 
   /**
    * Get the absolute receive timeout in microseconds.
    * @param u  UTCB pointer.
    * @return The receive timeout in microseconds.
    */
-  Unsigned64 microsecs_abs(Utcb const *u) const;
+  Unsigned64 microsecs_abs(Utcb const *u) const noexcept
+  {
+    int idx = min<int>(_t & 0x3f, Utcb::Max_buffers);
+    Utcb::Time_val const *top
+      = reinterpret_cast<Utcb::Time_val const *>(&u->buffers[idx]);
+    return top->t;
+  }
+
+  bool is_absolute() const noexcept
+  { return _t & Abs_mask; }
+
+  Unsigned64 microsecs(Unsigned64 clock, Utcb const *u) const noexcept
+  {
+    if (is_absolute())
+      return microsecs_abs(u);
+    else
+      return microsecs_rel(clock);
+  }
+
+  bool is_never() const noexcept
+  { return !_t; }
+
+  bool is_zero() const noexcept
+  { return _t == Zero; }
+
+  unsigned short is_finite() const noexcept
+  { return _t; }
+
+  void print() const;
 
 private:
   enum
@@ -538,15 +797,9 @@ struct L4_timeout_pair
   explicit L4_timeout_pair(unsigned long v) : rcv(v), snd(v >> 16) {}
 
   Mword raw() const { return (Mword)rcv.raw() | (Mword)snd.raw() << 16; }
-};
 
-/**
- * This class contains constants for the message size for exception IPC.
- *
- * This information is architecture dependent, see #Msg_size.
- */
-class L4_exception_ipc
-{};
+  void print() const;
+};
 
 /**
  * Constants for error codes returned by kernel objects.
@@ -658,370 +911,5 @@ struct L4_sched_param_legacy
   Smword prio;        // must be positive, overlays with sched_class
   Mword quantum;
 };
-
-
-//----------------------------------------------------------------------------
-INTERFACE [ia32]:
-
-EXTENSION class L4_exception_ipc
-{
-public:
-  enum { Msg_size = 19 };
-};
-
-//----------------------------------------------------------------------------
-INTERFACE [arm && 32bit]:
-
-EXTENSION class L4_exception_ipc
-{
-public:
-  enum { Msg_size = 21 };
-};
-
-//----------------------------------------------------------------------------
-INTERFACE [arm && 64bit]:
-
-EXTENSION class L4_exception_ipc
-{
-public:
-  enum { Msg_size = 39 };
-};
-
-//----------------------------------------------------------------------------
-INTERFACE [amd64]:
-
-EXTENSION class L4_exception_ipc
-{
-public:
-  enum { Msg_size = 26 };
-};
-
-//----------------------------------------------------------------------------
-INTERFACE [ppc32]:
-
-EXTENSION class L4_exception_ipc
-{
-public:
-  enum { Msg_size = 39 };
-};
-
-INTERFACE [sparc]:
-EXTENSION class L4_exception_ipc
-{
-public:
-  enum { Msg_size = 12 }; // XXX whatever?
-};
-
-//----------------------------------------------------------------------------
-INTERFACE:
-
-/**
- * User-level Thread Control Block (UTCB).
- *
- * The UTCB is a virtual extension of the registers of a thread. A UTCB
- * comprises three sets of registers: the message registers (MRs), the buffer
- * registers (BRs and BDR), and the control registers (TCRs).
- *
- * The message registers (MRs) contain the content of the messages that are
- * sent to objects or received from objects. The message contents consist of
- * untyped data and typed message items (see L4_msg_tag). The untyped data must
- * be stored in the first `n` message registers (`n` = L4_msg_tag::words()) and
- * are transferred / copied uninterpreted to the receiving object (MRs of the
- * receiver thread or kernel object). The typed items follow starting at MR[`
- * n+1`]. Each typed item is stored in two MRs and is interpreted by the kernel
- * (see L4_msg_item, L4_fpage). The number of items is denoted by
- * L4_msg_tag::items(). On the receiver side the typed items are translated
- * into a format that is useful for the receiver and stored into the same MRs
- * in the receiver's UTCB.
- *
- * The buffer registers (BRs and BDR) contain information that describe receive
- * buffers for incoming typed items. The contents of these registers are not
- * altered by the kernel. The buffer descriptor register (BDR, Utcb::buf_desc)
- * contains information about the items in the buffer registers (BRs) and
- * flags to enable FPU state transfer. The BRs contain a set of receive
- * message items (L4_msg_item) that describe receive buffers, such as, virtual
- * memory regions for incoming memory mappings or buffers for capabilities.
- * The BRs are also used to store absolute 64bit timeout values for operations,
- * The value of the timeout pair encodes the number of the BR if an absolute
- * timeout is used.
- *
- * The thread control registers (TCRs) comprise an error code for errors during
- * message passing and a set of user-level registers. The user-level registers
- * are not used by the kernel and provide an anchor for thread-local storage.
- */
-class Utcb
-{
-  /* must be 2^n bytes */
-public:
-
-  /**
-   * Type for time values in the UTCB (size is fix 64bit).
-   *
-   * On 32bit architectures this type uses two MRs on 64bit one Mr is used.
-   * This type is used for conversion of time values stored in MRs or BRs.
-   */
-  union Time_val
-  {
-    enum { Words = sizeof(Cpu_time)/sizeof(Mword) /**< Number of MRs used. */ };
-    Mword b[Words]; ///< The array of MRs to use.
-    Cpu_time t;     ///< The time value itself.
-  };
-
-  enum
-  {
-    Max_words = 63,   ///< Number of MRs.
-    Max_buffers = 58, ///< Number of BRs.
-    Free_marker = 0,  ///< Magic value for `free_marker`.
-  };
-
-  /// The message registers (MRs).
-  union
-  {
-    Mword         values[Max_words];
-    Unsigned64    val64[Max_words / (sizeof(Unsigned64) / sizeof(Mword))];
-  } __attribute__((packed));
-
-  static unsigned val64_idx(unsigned validx)
-  { return validx / (sizeof(Unsigned64) / sizeof(Mword)); }
-
-  static unsigned val_idx(unsigned val64_idx)
-  { return val64_idx * (sizeof(Unsigned64) / sizeof(Mword)); }
-
-  Mword           utcb_addr;
-
-  /// The buffer descriptor register (BDR).
-  L4_buf_desc     buf_desc;
-  /// The buffer registers (BRs).
-  Mword           buffers[Max_buffers];
-
-  /// The error code for IPC (TCR).
-  L4_error        error;
-
-  /// The kernel sets this register to `Free_marker` when it is guaranteed that
-  /// the UTCB is no longer read/written by the kernel (TCR).
-  Mword           free_marker;
-
-  /// The user-level registers for TLS (TCR).
-  Mword           user[3];
-};
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include <minmax.h>
-
-/**
- * Receiver is ready to receive FPU contents?
- * \return true if the receiver is ready to receive the state of the FPU as
- *         part of a message.
- * \see L4_buf_desc::Inherit_fpu, L4_buf_desc.
- */
-PUBLIC inline
-bool Utcb::inherit_fpu() const
-{ return buf_desc.flags() & L4_buf_desc::Inherit_fpu; }
-
-
-/**
- * Create a message tag from its parts.
- * \param words the number of untyped message words to transfer.
- * \param items the number of typed message items, following the untyped words
- *        in the message registers. See L4_msg_item.
- * \param flags the flags, see L4_msg_tag::Flags and L4_msg_tag::Output_flags.
- * \param proto the protocol ID to use.
- */
-PUBLIC inline
-L4_msg_tag::L4_msg_tag(unsigned words, unsigned items, unsigned long flags,
-    unsigned long proto)
-  : _tag((words & 0x3f) | ((items & 0x3f) << 6) | flags | (proto << 16))
-{}
-
-/**
- * Create an uninitialized message tag.
- * \note the value of the tag is unpredictable.
- */
-PUBLIC inline
-L4_msg_tag::L4_msg_tag()
-{}
-
-/**
- * Create a message tag from another message tag, replacing
- * the L4_msg_tag::Output_flags.
- * \param o the message tag to copy.
- * \param flags the output flags to set in the new tag.
- * \pre (flags & ~Rcv_flags) == 0
- */
-PUBLIC inline
-L4_msg_tag::L4_msg_tag(L4_msg_tag const &o, Mword flags)
-  : _tag((o.raw() & ~Mword(Rcv_flags)) | flags)
-{}
-
-/**
- * Create msg tag from the binary representation.
- * \param raw the raw binary representation, as passed from user level.
- */
-PUBLIC explicit inline
-L4_msg_tag::L4_msg_tag(Mword raw)
-  : _tag(raw)
-{}
-
-/**
- * Get the protocol ID.
- * \return the protocol ID.
- */
-PUBLIC inline
-long
-L4_msg_tag::proto() const
-{ return long(_tag) >> 16; }
-
-/**
- * Get the binary representation.
- * \return the binary value of the tag.
- */
-PUBLIC inline
-unsigned long
-L4_msg_tag::raw() const
-{ return _tag; }
-
-/**
- * Get the number of untyped words to deliver.
- * \return number message registers that shall be transferred
- *         uninterpreted to the receiving object.
- */
-PUBLIC inline
-unsigned L4_msg_tag::words() const
-{ return _tag & 63; }
-
-/**
- * Get the number of typed message items in the message.
- * \return the number of typed items, directly following the
- *         untyped words in the message registers.
- * \see L4_msg_item.
- */
-PUBLIC inline
-unsigned L4_msg_tag::items() const
-{ return (_tag >> 6) & 0x3f; }
-
-/**
- * Get the flags of the tag.
- * \return the flags of the message tag, note reserved bits might be
- *         set in the result.
- */
-PUBLIC inline
-Mword L4_msg_tag::flags() const
-{ return _tag; }
-
-/**
- * Transfer the FPU?
- * \return true if the sender wishes to transfer FPU contents.
- * \see #Transfer_fpu.
- */
-PUBLIC inline
-bool L4_msg_tag::transfer_fpu() const
-{ return _tag & Transfer_fpu; }
-
-/**
- * Do time-slice donation?
- * \return true if the sender is willing to donate its remaining time-
- *         slice to the receiver.
- * \see #Schedule.
- */
-PUBLIC inline
-bool L4_msg_tag::do_switch() const
-{ return !(_tag & Schedule); }
-
-/**
- * Set the error flag to \a e.
- * \param e the value of the error flag to be set.
- */
-PUBLIC inline
-void L4_msg_tag::set_error(bool e = true)
-{ if (e) _tag |= Error; else _tag &= ~Mword(Error); }
-
-/**
- * Is there an error flagged?
- * \return true if the error flag of the message tag is set.
- */
-PUBLIC inline
-bool L4_msg_tag::has_error() const
-{ return _tag & Error; }
-//
-// L4_timeout implementation
-//
-
-IMPLEMENT inline L4_timeout::L4_timeout(unsigned short t)
-  : _t(t)
-{}
-
-IMPLEMENT inline unsigned short L4_timeout::raw() const
-{ return _t; }
-
-IMPLEMENT inline
-Unsigned64
-L4_timeout::microsecs_rel(Unsigned64 clock) const
-{
-  if (man() == 0)
-    return 0;
-  else
-   return clock + ((Unsigned64)man() << exp());
-}
-
-IMPLEMENT inline NEEDS[<minmax.h>]
-Unsigned64
-L4_timeout::microsecs_abs(Utcb const *u) const
-{
-  int idx = min<int>(_t & 0x3f, Utcb::Max_buffers);
-  Utcb::Time_val const *top
-    = reinterpret_cast<Utcb::Time_val const *>(&u->buffers[idx]);
-  return top->t;
-}
-
-PUBLIC inline
-bool
-L4_timeout::is_absolute() const
-{ return _t & Abs_mask; }
-
-PUBLIC inline
-Unsigned64
-L4_timeout::microsecs(Unsigned64 clock, Utcb const *u) const
-{ 
-  if (is_absolute())
-    return microsecs_abs(u);
-  else
-    return microsecs_rel(clock);
-}
-
-PUBLIC inline
-bool L4_timeout::is_never() const
-{ return !_t; }
-
-PUBLIC inline
-bool L4_timeout::is_zero() const
-{ return _t == Zero; }
-
-PUBLIC inline
-unsigned short L4_timeout::is_finite() const
-{ return _t; }
-
-
-//
-// L4_timeout implementation
-//
-
-IMPLEMENT inline
-L4_timeout::L4_timeout(Mword man, Mword exp)
-: _t (((man & Man_mask) | ((exp << Exp_shift) & Exp_mask)))
-{}
-
-IMPLEMENT inline Mword L4_timeout::exp() const
-{ return (_t & Exp_mask) >> Exp_shift; }
-
-IMPLEMENT inline void L4_timeout::exp(Mword w)
-{ _t = (_t & ~Exp_mask) | ((w << Exp_shift) & Exp_mask); }
-
-IMPLEMENT inline Mword L4_timeout::man() const
-{ return (_t & Man_mask) >> Man_shift; }
-
-IMPLEMENT inline void L4_timeout::man (Mword w)
-{ _t = (_t & ~Man_mask) | ((w << Man_shift) & Man_mask); }
 
 

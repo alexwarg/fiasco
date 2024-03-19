@@ -4,6 +4,8 @@
 # Include for unit tests, enable by including UTEST in SUBSYSTEMS.
 include $(srcdir)/test/utest/Modules.utest
 
+CXXSRC_ABI += l4_types_dbg.cc
+
 PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
 INTERFACES_KERNEL	:= \
