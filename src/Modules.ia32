@@ -303,10 +303,8 @@ INTERFACES_CXXLIB	:= paranoia
 LIBK		:= libk.a
 VPATH		+= lib/libk/$(CONFIG_XARCH) lib/libk
 PRIVATE_INCDIR  += lib/libk/$(CONFIG_XARCH) lib/libk
-INTERFACES_LIBK	:= atomic
 CSRC_LIBK	+= gcc_lib.c
 CXXSRC_LIBK     += construction.cc
-atomic_IMPL     := atomic atomic-ia32
 
 #
 # LIBGZIP subsystem (only for Jdb)

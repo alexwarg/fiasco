@@ -215,7 +215,6 @@ PRIVATE_INCDIR 	+= lib/libk/mips/$(BITS) lib/libk/mips lib/libk
 
 CSRC_LIBK	+= umoddi3.c ashldi3.c udivdi3.c qdivrem.c ucmpdi2.c
 CXXSRC_LIBK     += construction.cc
-atomic_IMPL     := atomic atomic-mips
 
 #
 # SIMPLEMALLOC

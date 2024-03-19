@@ -281,7 +281,6 @@ LIBK 		:= libk.a
 VPATH          	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib/libk lib/contrib/compiler-rt/lib/builtins/arm lib/contrib/compiler-rt/lib/builtins
 PRIVATE_INCDIR 	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib/libk
 
-#INTERFACES_LIBK:= atomic lock_guard profile uuencode gmon unistd panic
 CXXSRC_LIBK     += construction.cc
 ASSRC_LIBK-$(CONFIG_BIT32)  += aeabi_uldivmod.S udivmoddi4.S
 CSRC_LIBK-$(CONFIG_BIT32)   += ashldi3.c
