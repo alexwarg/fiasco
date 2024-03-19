@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include <cstddef>
 #include "l4_types.h"
@@ -39,7 +39,10 @@ public:
   /**
    * modify console state
    */
-  virtual void state(Mword new_state);
+  virtual void state(Mword new_state)
+  {
+    _state = new_state;
+  }
 
   /**
    * Write a string of len characters to the output.
@@ -49,7 +52,11 @@ public:
    * This method must be implemented in every implementation, but
    * can simply do nothing for input only consoles.
    */
-  virtual int write(char const *str, size_t len);
+  virtual int write(char const *str, size_t len)
+  {
+    (void)str;
+    return len;
+  }
 
   /**
    * read a character from the input.
@@ -58,7 +65,11 @@ public:
    * This method must be implemented in every implementation, but
    * can simply return -1 for output only consoles.
    */
-  virtual int getchar(bool blocking = true);
+  virtual int getchar(bool blocking = true)
+  {
+    (void) blocking;
+    return -1; /* no input */
+  }
 
   /**
    * Is input available?
@@ -68,14 +79,21 @@ public:
    * 1 if at least one character is available, and 0 if
    * no character is available.
    */
-  virtual int char_avail() const;
+  virtual int char_avail() const
+  {
+    return -1; /* unknown */
+  }
+
 
   /**
    * Console attributes.
    */
-  virtual Mword get_attributes() const;
+  virtual Mword get_attributes() const
+  {
+    return 0;
+  }
 
-  virtual ~Console();
+  virtual ~Console() {}
 
   explicit Console(Console_state state) : _state(state) {}
 
@@ -84,6 +102,52 @@ public:
 
   void del_state(Console_state state)
   { _state &= ~state; }
+
+  /**
+   * get current console state
+   */
+  Mword state() const
+  {
+    return _state;
+  }
+
+  bool failed() const
+  {
+    return _state & FAILED;
+  }
+
+  void fail()
+  {
+    _state |= FAILED;
+  }
+
+  const char *str_mode() const
+  {
+    static char const * const mode_str[] =
+      { "      ", "Output", "Input ", "InOut " };
+    return mode_str[get_attributes() & (OUT|IN)];
+  }
+
+  const char *str_state() const
+  {
+    static char const * const state_str[] =
+      { "Disabled       ", "Output disabled",
+        "Input disabled ", "Enabled        " };
+    if (!failed())
+      return state_str[state() & ENABLED];
+    else
+      return "FAILED!        ";
+  }
+
+  const char *str_attr(Mword bit) const
+  {
+    static char const * const attr_str[] =
+      { "Direct", "Uart", "<unk>", "Push", "Gzip", "Buffer", "Kdb" };
+
+    return (bit < 2 || bit >= (sizeof(attr_str)/sizeof(attr_str[0]))+2)
+      ? "???"
+      : attr_str[bit-2];
+  }
 
 public:
   /// stdout for libc glue.
@@ -96,108 +160,4 @@ public:
 protected:
   Mword  _state;
 };
-
-
-
-IMPLEMENTATION:
-
-#include <cstring>
-#include <cctype>
-
-Console *Console::stdout;
-Console *Console::stderr;
-Console *Console::stdin;
-
-IMPLEMENT Console::~Console()
-{}
-
-/**
- * get current console state
- */
-PUBLIC inline
-Mword
-Console::state() const
-{
-  return _state;
-}
-
-IMPLEMENT
-void Console::state(Mword new_state)
-{
-  _state = new_state;
-}
-
-PUBLIC inline
-bool
-Console::failed() const
-{
-  return _state & FAILED;
-}
-
-PUBLIC inline
-void
-Console::fail()
-{
-  _state |= FAILED;
-}
-
-IMPLEMENT
-int Console::write(char const *, size_t len)
-{
-  return len;
-}
-
-IMPLEMENT
-int Console::getchar(bool /* blocking */)
-{
-  return -1; /* no input */
-}
-
-IMPLEMENT
-int Console::char_avail() const
-{
-  return -1; /* unknown */
-}
-
-IMPLEMENT
-Mword Console::get_attributes() const
-{
-  return 0;
-}
-
-IMPLEMENTATION[debug]:
-
-PUBLIC
-const char*
-Console::str_mode() const
-{
-  static char const * const mode_str[] =
-    { "      ", "Output", "Input ", "InOut " };
-  return mode_str[get_attributes() & (OUT|IN)];
-}
-
-PUBLIC
-const char*
-Console::str_state() const
-{
-  static char const * const state_str[] =
-    { "Disabled       ", "Output disabled",
-      "Input disabled ", "Enabled        " };
-  if (!failed())
-    return state_str[state() & ENABLED];
-  else
-    return "FAILED!        ";
-}
-
-PUBLIC
-const char*
-Console::str_attr(Mword bit) const
-{
-  static char const * const attr_str[] =
-    { "Direct", "Uart", "<unk>", "Push", "Gzip", "Buffer", "Kdb" };
-
-  return (bit < 2 || bit >= (sizeof(attr_str)/sizeof(attr_str[0]))+2)
-    ? "???"
-    : attr_str[bit-2];
-}
 

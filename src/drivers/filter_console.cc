@@ -1,32 +1,4 @@
-INTERFACE:
-
-#include "console.h"
-#include "types.h"
-
-class Filter_console : public Console
-{
-public:
-  ~Filter_console() {}
-
-private:
-  Console *const _o;
-  int csi_timeout;
-  enum State
-  {
-    NORMAL,
-    UNKNOWN_ESC,
-    GOT_CSI, ///< control sequence introducer
-  };
-
-  State state;
-  unsigned pos;
-  char ibuf[32];
-  unsigned arg;
-  int args[4];
-};
-
-
-IMPLEMENTATION:
+#include "filter_console.h"
 
 #include <cstdio>
 #include <cstring>
@@ -34,53 +6,8 @@ IMPLEMENTATION:
 #include "keycodes.h"
 #include "delayloop.h"
 
-PUBLIC
-int Filter_console::char_avail() const override
-{
-  if (!(_o->state() & INENABLED))
-    return -1;
-
-  if (pos)
-    return 1;
-
-  return _o->char_avail();
-}
-
-PUBLIC inline explicit
-Filter_console::Filter_console(Console *o, int to = 10)
-: Console(ENABLED), _o(o), csi_timeout(to), state(NORMAL), pos(0), arg(0)
-{
-  if (o->failed())
-    fail();
-}
-
-
-PUBLIC
 int
-Filter_console::write(char const *str, size_t len) override
-{
-  if (!(_o->state() & OUTENABLED))
-    return len;
-
-  return _o->write(str, len);
-}
-
-PRIVATE inline
-int
-Filter_console::getchar_timeout(unsigned timeout)
-{
-  if (!(_o->state() & INENABLED))
-    return -1;
-
-  int c;
-  while ((c = _o->getchar(false)) == -1 && timeout--)
-    Delay::delay(1);
-  return c;
-}
-
-PUBLIC
-int
-Filter_console::getchar(bool b = true) override
+Filter_console::getchar(bool b)
 {
   if (!(_o->state() & INENABLED))
     return -1;
@@ -222,9 +149,3 @@ get_char:
 }
 
 
-PUBLIC
-Mword
-Filter_console::get_attributes() const override
-{
-  return _o->get_attributes();
-}
