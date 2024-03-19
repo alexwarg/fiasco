@@ -121,8 +121,7 @@ PRIVATE_INCDIR	+= abi/$(CONFIG_XARCH) abi
 ABI 		:= libabi.a
 VPATH 		+= abi/$(CONFIG_XARCH)/$(BITS) abi/$(CONFIG_XARCH) abi
 
-INTERFACES_ABI 	:= kip l4_msg_item \
-                   l4_buf_desc
+INTERFACES_ABI 	:= kip
 
 
 # x0!=32Bit UIDs

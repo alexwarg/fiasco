@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "types.h"
 #include <cxx/bitfield>
