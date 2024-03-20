@@ -78,10 +78,11 @@ IMPLEMENTATION [ia32]:
 #include <cstdio>
 #include <panic.h>
 #include "cpu.h"
-#include "atomic.h"
 #include "mem.h"
 #include "regdefs.h"
 #include "gdt.h"
+
+#include <cxx/atomic>
 
 Trap_state::Handler Trap_state::base_handler FIASCO_FASTCALL;
 
@@ -206,10 +207,13 @@ void
 Trap_state::value3(Mword value)
 { _dx = value; }
 
-PUBLIC inline NEEDS["atomic.h"] 
+PUBLIC inline NEEDS[<cxx/atomic>] 
 void
 Trap_state::consume_instruction(unsigned count)
-{ cas ((Address*)(&_ip), _ip, _ip + count); }
+{
+  Address n = _ip;
+  cxx::atomic_compare_exchange_strong((Address*)(&_ip), n, n + count, cxx::memory_order_relaxed);
+}
 
 PUBLIC
 void
