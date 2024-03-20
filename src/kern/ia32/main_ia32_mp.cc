@@ -1,89 +1,6 @@
-/*
- * Fiasco-IA32/AMD64
- * Architecture specific main startup/shutdown code
- */
 
-IMPLEMENTATION[ia32,amd64]:
-
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include "config.h"
-#include "io.h"
-#include "idt.h"
-#include "kdb_ke.h"
-#include "kernel_console.h"
-#include "koptions.h"
-#include "pic.h"
-#include "platform_control.h"
-#include "processor.h"
-#include "reset.h"
-#include "timer.h"
-#include "timer_tick.h"
-#include "terminate.h"
-
-static int exit_question_active;
-
-
-extern "C" void __attribute__ ((noreturn))
-_exit(int)
-{
-  if (exit_question_active)
-    Platform_control::system_reboot();
-
-  while (1)
-    {
-      Proc::halt();
-      Proc::pause();
-    }
-}
-
-
-static
-void
-exit_question()
-{
-  Proc::cli();
-  exit_question_active = 1;
-
-  Unsigned16 irqs = Pic::disable_all_save();
-  if (Config::getchar_does_hlt_works_ok)
-    {
-      Timer_tick::set_vectors_stop();
-      Timer_tick::enable(Cpu_number::boot_cpu()); // hm, exit always on CPU 0
-      Proc::sti();
-    }
-
-  // make sure that we don't acknowledge the exit question automatically
-  Kconsole::console()->change_state(Console::PUSH, 0, ~Console::INENABLED, 0);
-  puts("\nReturn reboots, \"k\" enters L4 kernel debugger...");
-
-  char c = Kconsole::console()->getchar();
-
-  if (c == 'k' || c == 'K') 
-    {
-      Pic::restore_all(irqs);
-      kdb_ke("_exit");
-    }
-  else
-    {
-      // It may be better to not call all the destruction stuff because of
-      // unresolved static destructor dependency problems. So just do the
-      // reset at this point.
-      puts("\033[1mRebooting.\033[m");
-    }
-}
-
-void
-main_arch()
-{
-  // console initialization
-  set_exit_question(&exit_question);
-}
-
-
-//------------------------------------------------------------------------
-IMPLEMENTATION[(ia32,amd64) && mp]:
+#include "main.h"
+#include "main_ia32_mp.h"
 
 #include <cstdio>
 #include "apic.h"
@@ -100,11 +17,10 @@ IMPLEMENTATION[(ia32,amd64) && mp]:
 #include "perf_cnt.h"
 #include "platform_control.h"
 #include "spin_lock.h"
-#include "utcb_init.h"
+#include "idt.h"
+#include "koptions.h"
 
-int FIASCO_FASTCALL boot_ap_cpu() __asm__("BOOT_AP_CPU");
-
-static void FIASCO_NORETURN
+[[noreturn]] static void
 stop_booting_ap_cpu(char const *msg, Unsigned32 apic_id)
 {
   extern Spin_lock<Mword> _tramp_mp_spinlock;

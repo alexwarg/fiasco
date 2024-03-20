@@ -1,28 +1,15 @@
-/*
- * Fiasco ia32
- * Shared main startup/shutdown code
- */
 
-INTERFACE[ia32]:
-
-#include "initcalls.h"
-#include "std_macros.h"
-
-class Kernel_thread;
-
-
-IMPLEMENTATION[ia32]:
+#include "main.h"
 
 #include <cstdio>
-
-#include "assert_opt.h"
 #include "config.h"
 #include "cpu.h"
 #include "div32.h"
 #include "globals.h"
-#include "kernel_task.h"
 #include "kernel_thread.h"
+#include "kernel_task.h"
 
+void main_arch();
 
 FIASCO_INIT
 void
@@ -58,20 +45,3 @@ kernel_main(void)
      : "a"(kernel), "S" (kernel->init_stack()));
 }
 
-//------------------------------------------------------------------------
-IMPLEMENTATION[ia32 && mp]:
-
-#include "kernel_thread.h"
-
-void
-main_switch_ap_cpu_stack(Kernel_thread *kernel, bool resume)
-{
-  Mword dummy;
-
-  // switch to stack of kernel thread and bootstrap the kernel
-  asm volatile
-    ("	movl %[esp], %%esp	\n\t"	// switch stack
-     "	call call_ap_bootstrap	\n\t"	// bootstrap kernel thread
-     :  "=a" (dummy), "=c" (dummy), "=d" (dummy)
-     :	"a"(kernel), [esp]"r" (kernel->init_stack()), "d"(resume));
-}

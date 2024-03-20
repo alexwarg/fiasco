@@ -1,25 +1,16 @@
-/*
- * Fiasco AMD64
- * Shared main startup/shutdown code
- */
 
-INTERFACE[amd64]:
+#include "main.h"
 
-#include "initcalls.h"
-#include "std_macros.h"
-
-class Kernel_thread;
-
-
-IMPLEMENTATION[amd64]:
-
-#include <cstdio>
 #include "config.h"
 #include "cpu.h"
 #include "div32.h"
 #include "globals.h"
 #include "kernel_thread.h"
 #include "kernel_task.h"
+
+#include <cstdio>
+
+void main_arch();
 
 FIASCO_INIT
 void
@@ -55,20 +46,3 @@ kernel_main(void)
 }
 
 
-//------------------------------------------------------------------------
-IMPLEMENTATION[amd64 && mp]:
-
-#include "kernel_thread.h"
-
-void
-main_switch_ap_cpu_stack(Kernel_thread *kernel, bool resume)
-{
-  Mword dummy;
-
-  // switch to stack of kernel thread and bootstrap the kernel
-  asm volatile
-    ("	mov %[rsp], %%rsp	\n\t"	// switch stack
-     "	call call_ap_bootstrap	\n\t"	// bootstrap kernel thread
-     :  "=a" (dummy), "=c" (dummy), "=d" (dummy)
-     :	"D"(kernel), "S"(resume), [rsp]"r" (kernel->init_stack()));
-}

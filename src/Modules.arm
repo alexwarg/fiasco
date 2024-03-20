@@ -247,6 +247,9 @@ ASSRC_KERNEL            += kip-time.S
 CPPFLAGS                += $(if $(CONFIG_MP),-DMPCORE_PHYS_BASE=$(MPCORE_PHYS_BASE))
 CPPFLAGS                += -DRAM_PHYS_BASE=$(RAM_PHYS_BASE)
 
+CXXSRC_KERNEL += main_arm.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += main_arm_mp.cc
+
 NOOPT			+= $(filter jdb%,\
 			     $(foreach in,$(INTERFACES_KERNEL), \
 			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in))))

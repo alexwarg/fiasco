@@ -184,6 +184,9 @@ ASSRC_KERNEL		:= exception.S kip-time.S
 #ASSRC_KERNEL-$(CONFIG_MP) += tramp-mp.S
 ASSRC_KERNEL              += $(ASSRC_KERNEL-y)
 
+CXXSRC_KERNEL += main_mips.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += main_mips_mp.cc
+
 NOOPT			+= $(filter jdb%,\
 			     $(foreach in,$(INTERFACES_KERNEL), \
 			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in))))

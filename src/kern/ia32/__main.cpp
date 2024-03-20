@@ -9,8 +9,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include <cstdlib>
 #include <cstdio>
 #include <construction.h>
-
-void kernel_main(void);
+#include "main.h"
 
 extern "C" FIASCO_FASTCALL FIASCO_INIT
 void

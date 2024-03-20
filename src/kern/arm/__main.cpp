@@ -9,8 +9,8 @@ IMPLEMENTATION [arm]:
 #include <cstdio>
 #include <construction.h>
 #include "terminate.h"
+#include "main.h"
 
-void kernel_main(void);
 
 extern "C"
 void __main()

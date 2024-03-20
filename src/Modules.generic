@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
 			   context mem_unit cpu_call \
 			   thread thread_object syscalls     \
 			   kernel_thread map_util        \
-			   main config vmem_alloc paging fpu                 \
+			   config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
 			   task         \
                            kernel_task platform_control_object          \
