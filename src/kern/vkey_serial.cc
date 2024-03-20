@@ -1,71 +1,30 @@
-INTERFACE:
-
-class Irq_base;
-
-class Vkey
-{
-public:
-  enum Echo_type { Echo_off = 0, Echo_on = 1, Echo_crnl = 2 };
-};
-
-
-// ---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "irq_chip.h"
-
-static Irq_base *vkey_irq;
-
-PUBLIC static
-void
-Vkey::irq(Irq_base *i)
-{ vkey_irq = i; }
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [serial && debug]:
-
-PRIVATE static inline
-bool
-Vkey::is_debugger_entry_key(int key)
-{
-  return key == KEY_SINGLE_ESC;
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [serial && !debug]:
-
-PRIVATE static inline
-bool
-Vkey::is_debugger_entry_key(int)
-{
-  return false;
-}
-
-// ---------------------------------------------------------------------------
-IMPLEMENTATION [serial]:
-
-#include <cstdio>
+#include "vkey.h"
 
 #include "config.h"
 #include "cpu.h"
 #include "globals.h"
 #include "kernel_console.h"
 #include "keycodes.h"
+#include "irq_chip.h"
 
+#include <cstdio>
+
+namespace Vkey
+{
 static Vkey::Echo_type vkey_echo;
 static char     vkey_buffer[256];
 static unsigned vkey_tail, vkey_head;
+static Irq_base *vkey_irq;
 
-PUBLIC static
-void
-Vkey::set_echo(Echo_type echo)
+void set_echo(Echo_type echo)
 {
   vkey_echo = echo;
 }
 
-PRIVATE static
-bool
-Vkey::add(int c)
+void irq(Irq_base *i)
+{ vkey_irq = i; }
+
+static bool add(int c)
 {
   bool hit = false;
   unsigned nh = (vkey_head + 1) % sizeof(vkey_buffer);
@@ -88,9 +47,7 @@ Vkey::add(int c)
   return hit;
 }
 
-PRIVATE static
-bool
-Vkey::add(const char *seq)
+static bool add(const char *seq)
 {
   bool hit = false;
   for (; *seq; ++seq)
@@ -98,25 +55,19 @@ Vkey::add(const char *seq)
   return hit;
 }
 
-PRIVATE static
-void
-Vkey::trigger()
+static void trigger()
 {
   if (vkey_irq)
     vkey_irq->hit(0);
 }
 
-PUBLIC static
-void
-Vkey::add_char(int v)
+void add_char(int v)
 {
   if (add(v))
     trigger();
 }
 
-PUBLIC static
-int
-Vkey::check_()
+int check_()
 {
   int  ret = 1;
   bool hit = false;
@@ -169,9 +120,7 @@ Vkey::check_()
   return ret;
 }
 
-PUBLIC static
-int
-Vkey::get()
+int get()
 {
   if (vkey_tail != vkey_head)
     return vkey_buffer[vkey_tail];
@@ -179,42 +128,10 @@ Vkey::get()
   return -1;
 }
 
-PUBLIC static
-void
-Vkey::clear()
+void clear()
 {
   if (vkey_tail != vkey_head)
     vkey_tail = (vkey_tail + 1) % sizeof(vkey_buffer);
 }
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [!serial]:
-
-#include "kernel_console.h"
-
-PUBLIC static inline
-void
-Vkey::set_echo(Echo_type)
-{}
-
-PUBLIC static inline
-void
-Vkey::clear()
-{}
-
-PUBLIC static inline
-void
-Vkey::add_char(int)
-{}
-
-PUBLIC static
-int
-Vkey::get()
-{
-  return Kconsole::console()->getchar(0);
 }
-
-PUBLIC static inline
-int
-Vkey::check_(int = -1)
-{ return 0; }

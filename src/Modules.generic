@@ -33,7 +33,7 @@ INTERFACES_KERNEL	:= \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
-			   vkey kdb_ke ipi scheduler   \
+			   kdb_ke ipi scheduler   \
 			   clock sys_call_page                    \
 
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
@@ -48,7 +48,9 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
 
-CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc
+CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc vkey_serial.cc
+CXXSRC_KERNEL-a$(CONFIG_SERIAL) += vkey_noserial.cc
+
 CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)
 
 CXXSRC_KERNEL-$(CONFIG_JDB) += \
