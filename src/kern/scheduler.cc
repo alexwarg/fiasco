@@ -1,9 +1,14 @@
-INTERFACE:
 
 #include "context.h"
 #include "icu_helper.h"
 #include "types.h"
 #include "scheduler_iface.h"
+#include "thread_object.h"
+#include "l4_buf_iter.h"
+#include "l4_types.h"
+#include "entry_frame.h"
+#include "sched_context.h"
+
 
 class Scheduler : public Icu_h<Scheduler>, public Irq_chip_soft, public Scheduler_iface
 {
@@ -19,7 +24,41 @@ public:
     Idle_time  = 2,
   };
 
-  Scheduler(bool);
+  Scheduler(bool)
+  : Scheduler_iface(true), _irq(0)
+  {
+    initial_kobjects.register_obj(this, Initial_kobjects::Scheduler);
+  }
+
+  void trigger_hotplug_event() override;
+
+  void operator delete (void *) noexcept
+  {
+    printf("WARNING: tried to delete kernel scheduler object.\n"
+           "         The system is now useless\n");
+  }
+
+  Irq_base *icu_get_irq(unsigned irqnum)
+  {
+    if (irqnum > 0)
+      return 0;
+
+    return _irq;
+  }
+
+  L4_msg_tag op_icu_get_info(Mword *features, Mword *num_irqs, Mword *num_msis)
+  {
+    *features = 0; // supported features (only normal irqs)
+    *num_irqs = 1;
+    *num_msis = 0;
+    return L4_msg_tag(0);
+  }
+
+  L4_msg_tag op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq);
+  L4_msg_tag op_icu_set_mode(Mword pin, Irq_chip::Mode);
+
+  L4_msg_tag kinvoke(L4_obj_ref ref, L4_fpage::Rights rights, Syscall_frame *f,
+                     Utcb const *iutcb, Utcb *outcb);
 
 private:
   Irq_base *_irq;
@@ -27,36 +66,18 @@ private:
   L4_RPC(Info,      sched_info, (L4_cpu_set_descr set, Mword *rm,
                                  Mword *max_cpus, Mword *sched_classes));
   L4_RPC(Idle_time, sched_idle, (L4_cpu_set cpus, Cpu_time *time));
+
+  L4_msg_tag sys_run(L4_fpage::Rights, Syscall_frame *f, Utcb const *utcb);
+  L4_msg_tag op_sched_idle(L4_cpu_set const &cpus, Cpu_time *time);
+  L4_msg_tag op_sched_info(L4_cpu_set_descr const &s, Mword *m, Mword *max_cpus,
+                           Mword *sched_classes);
 };
-
-// ----------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "thread_object.h"
-#include "l4_buf_iter.h"
-#include "l4_types.h"
-#include "entry_frame.h"
-#include "sched_context.h"
 
 
 JDB_DEFINE_TYPENAME(Scheduler, "\033[34mSched\033[m");
 static Scheduler _scheduler(true);
 
-PUBLIC void
-Scheduler::operator delete (void *)
-{
-  printf("WARNING: tried to delete kernel scheduler object.\n"
-         "         The system is now useless\n");
-}
 
-IMPLEMENT inline
-Scheduler::Scheduler(bool) : Scheduler_iface(true), _irq(0)
-{
-  initial_kobjects.register_obj(this, Initial_kobjects::Scheduler);
-}
-
-
-PRIVATE
 L4_msg_tag
 Scheduler::sys_run(L4_fpage::Rights, Syscall_frame *f, Utcb const *utcb)
 {
@@ -114,7 +135,6 @@ Scheduler::sys_run(L4_fpage::Rights, Syscall_frame *f, Utcb const *utcb)
   return commit_result(0);
 }
 
-PRIVATE
 L4_msg_tag
 Scheduler::op_sched_idle(L4_cpu_set const &cpus, Cpu_time *time)
 {
@@ -126,7 +146,6 @@ Scheduler::op_sched_idle(L4_cpu_set const &cpus, Cpu_time *time)
   return commit_result(0);
 }
 
-PRIVATE
 L4_msg_tag
 Scheduler::op_sched_info(L4_cpu_set_descr const &s, Mword *m, Mword *max_cpus,
                          Mword *sched_classes)
@@ -153,27 +172,6 @@ Scheduler::op_sched_info(L4_cpu_set_descr const &s, Mword *m, Mword *max_cpus,
   return commit_result(0);
 }
 
-PUBLIC inline
-Irq_base *
-Scheduler::icu_get_irq(unsigned irqnum)
-{
-  if (irqnum > 0)
-    return 0;
-
-  return _irq;
-}
-
-PUBLIC inline
-L4_msg_tag
-Scheduler::op_icu_get_info(Mword *features, Mword *num_irqs, Mword *num_msis)
-{
-  *features = 0; // supported features (only normal irqs)
-  *num_irqs = 1;
-  *num_msis = 0;
-  return L4_msg_tag(0);
-}
-
-PUBLIC
 L4_msg_tag
 Scheduler::op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq)
 {
@@ -191,7 +189,6 @@ Scheduler::op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq)
   return commit_result(0);
 }
 
-PUBLIC
 L4_msg_tag
 Scheduler::op_icu_set_mode(Mword pin, Irq_chip::Mode)
 {
@@ -203,15 +200,13 @@ Scheduler::op_icu_set_mode(Mword pin, Irq_chip::Mode)
   return commit_result(0);
 }
 
-PUBLIC inline
 void
-Scheduler::trigger_hotplug_event() override
+Scheduler::trigger_hotplug_event()
 {
   if (_irq)
     _irq->hit(0);
 }
 
-PUBLIC
 L4_msg_tag
 Scheduler::kinvoke(L4_obj_ref ref, L4_fpage::Rights rights, Syscall_frame *f,
                    Utcb const *iutcb, Utcb *outcb)
