@@ -29,7 +29,7 @@ INTERFACES_KERNEL	:= \
 			   kernel_thread map_util        \
 			   main config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
-			   task sigma0_task          \
+			   task         \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
