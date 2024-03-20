@@ -11,7 +11,7 @@
 #include "kernel_task.h"
 #include "processor.h"
 #include "rcupdate.h"
-#include "scheduler.h"
+#include "scheduler_iface.h"
 #include "task.h"
 #include "thread.h"
 #include "thread_state.h"
@@ -86,7 +86,7 @@ App_cpu_thread::bootstrap(Mword resume)
   if (!resume)
     Per_cpu_data::run_late_ctors(ccpu);
 
-  Scheduler::scheduler.trigger_hotplug_event();
+  Scheduler_iface::root()->trigger_hotplug_event();
   Timer_tick::enable(ccpu);
   cpu_lock.clear();
 

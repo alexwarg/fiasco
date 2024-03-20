@@ -43,7 +43,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
 		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
 		 terminate.cc semaphore.cc banner.cc vlog.cc boot_alloc.cc \
-		 kernel_console.cc ipc_gate.cc irq.cc
+		 kernel_console.cc ipc_gate.cc irq.cc scheduler_iface.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc

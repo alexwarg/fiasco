@@ -3,8 +3,9 @@ INTERFACE:
 #include "context.h"
 #include "icu_helper.h"
 #include "types.h"
+#include "scheduler_iface.h"
 
-class Scheduler : public Icu_h<Scheduler>, public Irq_chip_soft
+class Scheduler : public Icu_h<Scheduler>, public Irq_chip_soft, public Scheduler_iface
 {
   friend class Scheduler_test;
 
@@ -18,7 +19,8 @@ public:
     Idle_time  = 2,
   };
 
-  static Scheduler scheduler;
+  Scheduler(bool);
+
 private:
   Irq_base *_irq;
 
@@ -38,7 +40,7 @@ IMPLEMENTATION:
 
 
 JDB_DEFINE_TYPENAME(Scheduler, "\033[34mSched\033[m");
-Scheduler Scheduler::scheduler;
+static Scheduler _scheduler(true);
 
 PUBLIC void
 Scheduler::operator delete (void *)
@@ -47,8 +49,8 @@ Scheduler::operator delete (void *)
          "         The system is now useless\n");
 }
 
-PUBLIC inline
-Scheduler::Scheduler() : _irq(0)
+IMPLEMENT inline
+Scheduler::Scheduler(bool) : Scheduler_iface(true), _irq(0)
 {
   initial_kobjects.register_obj(this, Initial_kobjects::Scheduler);
 }
@@ -203,7 +205,7 @@ Scheduler::op_icu_set_mode(Mword pin, Irq_chip::Mode)
 
 PUBLIC inline
 void
-Scheduler::trigger_hotplug_event()
+Scheduler::trigger_hotplug_event() override
 {
   if (_irq)
     _irq->hit(0);
