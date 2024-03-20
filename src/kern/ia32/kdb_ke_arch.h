@@ -1,4 +1,4 @@
-IMPLEMENTATION [(ia32 || amd64) && debug]:
+#pragma once
 
 inline void kdb_ke(char const *msg)
 {

@@ -33,7 +33,7 @@ INTERFACES_KERNEL	:= \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   sched_context utcb_init perf_cnt trap_state       \
-			   kdb_ke ipi scheduler   \
+			   ipi scheduler   \
 			   clock sys_call_page                    \
 
 CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
@@ -73,8 +73,6 @@ syscalls_IMPL		:= syscalls syscalls-log
 timer_tick_IMPL         := timer_tick
 
 vcpu_host_regs_IMPL	:= vcpu_host_regs-$(CONFIG_XARCH)
-
-kdb_ke_IMPL             := kdb_ke
 
 INTERFACES_JDB += \
 	jdb_types                                                          \

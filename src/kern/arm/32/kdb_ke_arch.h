@@ -1,4 +1,5 @@
-INTERFACE [arm && debug]:
+
+#pragma once
 
 #include "std_macros.h"
 

@@ -1,8 +1,14 @@
-IMPLEMENTATION[!debug]:
+#pragma once
+
+#include "globalconfig.h"
+
+#if defined (CONFIG_JDB)
+#include "kdb_ke_arch.h"
+#else
 
 #include <cstdio>
 
-inline NEEDS [<cstdio>]
+inline
 void kdb_ke(char const *msg)
 {
   printf("NO JDB: %s\n"
@@ -10,3 +16,5 @@ void kdb_ke(char const *msg)
 }
 
 inline void kdb_ke_sequence(char const *, unsigned) {}
+
+#endif
