@@ -55,7 +55,7 @@ IMPLEMENTATION [svm]:
 // ------------------------------------------------------------------------
 IMPLEMENTATION [svm && ia32]:
 
-#include "virtia32_svm.h"
+#include "virt_ia32_svm.h"
 
 PRIVATE inline
 void
