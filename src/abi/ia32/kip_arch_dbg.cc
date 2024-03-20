@@ -2,6 +2,8 @@
 #include "kip.h"
 
 #include <cstring>
+#include <cstdio>
+
 #include "types.h"
 
 void
