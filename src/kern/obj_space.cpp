@@ -110,149 +110,79 @@ public:
 
   FIASCO_SPACE_VIRTUAL
   bool v_lookup(V_pfn const &virt, Phys_addr *phys = 0,
-                Page_order *size = 0, Attr *attribs = 0);
+                Page_order *size = 0, Attr *attribs = 0) FIASCO_FLATTEN
+  { return Base::v_lookup(virt, phys, size, attribs); }
+
 
   FIASCO_SPACE_VIRTUAL
   L4_fpage::Rights v_delete(V_pfn virt, Page_order size,
-                            L4_fpage::Rights page_attribs);
+                            L4_fpage::Rights page_attribs)
+  FIASCO_FLATTEN
+  { return Base::v_delete(virt, size, page_attribs); }
 
   FIASCO_SPACE_VIRTUAL
   Status v_insert(Phys_addr phys, V_pfn const &virt, Page_order size,
-                  Attr page_attribs);
+                  Attr page_attribs) FIASCO_FLATTEN
+  { return (Status)Base::v_insert(phys, virt, size, page_attribs); }
+
+  bool v_fabricate(V_pfn const &address,
+                   Phys_addr *phys, Page_order *size,
+                   Attr* attribs = 0)
+  {
+    return this->v_lookup(address, phys, size, attribs);
+  }
 
   FIASCO_SPACE_VIRTUAL
-  Capability lookup(Cap_index virt);
+  Capability lookup(Cap_index virt) FIASCO_FLATTEN
+  { return Base::lookup(virt); }
 
   FIASCO_SPACE_VIRTUAL
-  V_pfn obj_map_max_address() const FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+  V_pfn obj_map_max_address() const FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  FIASCO_FLATTEN
+  { return Base::obj_map_max_address(); }
 
   FIASCO_SPACE_VIRTUAL
-  void caps_free();
+  void caps_free() FIASCO_FLATTEN
+  { Base::caps_free(); }
 
-  Kobject_iface *lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0);
+  Kobject_iface *lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0)
+  FIASCO_FLATTEN
+  { return Base::lookup_local(virt, rights); }
 
   inline V_pfn map_max_address() const
   { return obj_map_max_address(); }
+
+  static bool
+  is_full_flush(L4_fpage::Rights rights)
+  { return (bool)(rights & L4_fpage::Rights::CR()); }
+
+  ~Generic_obj_space()
+  {
+    this->caps_free();
+  }
+
+  static void tlb_flush()
+  {}
+
+  static V_pfn canonize(V_pfn v)
+  { return v; }
+
+
+#if defined (CONFIG_JDB)
+  FIASCO_SPACE_VIRTUAL Entry *jdb_lookup_cap(Cap_index index)
+  { return Base::jdb_lookup_cap(index); }
+
+  static SPACE *get_space(Base *base)
+  { return static_cast<SPACE*>(base); }
+#else // CONFIG_JDB
+
+  static SPACE *get_space(Base *)
+  { return 0; }
+
+#endif // CONFIG_JDB
 };
 
 template< typename SPACE >
 char const * const Generic_obj_space<SPACE>::name = "Obj_space";
 
-
-// ------------------------------------------------------------------------------
-INTERFACE [debug]:
-
-EXTENSION class Generic_obj_space
-{
-public:
-  FIASCO_SPACE_VIRTUAL Entry *jdb_lookup_cap(Cap_index index);
-};
-
-// -------------------------------------------------------------------------
-IMPLEMENTATION:
-
-PUBLIC template< typename SPACE >
-static inline
-bool
-Generic_obj_space<SPACE>::is_full_flush(L4_fpage::Rights rights)
-{ return (bool)(rights & L4_fpage::Rights::CR()); }
-
-PUBLIC template< typename SPACE >
-inline
-Generic_obj_space<SPACE>::~Generic_obj_space()
-{
-  this->caps_free();
-}
-
-IMPLEMENT template< typename SPACE > inline
-void FIASCO_FLATTEN
-Generic_obj_space<SPACE>::caps_free()
-{ Base::caps_free(); }
-
-PUBLIC template< typename SPACE >
-inline
-bool
-Generic_obj_space<SPACE>::v_fabricate(V_pfn const &address,
-                                      Phys_addr *phys, Page_order *size,
-                                      Attr* attribs = 0)
-{
-  return this->v_lookup(address, phys, size, attribs);
-}
-
-
-PUBLIC template< typename SPACE >
-inline static
-void
-Generic_obj_space<SPACE>::tlb_flush()
-{}
-
-PUBLIC template< typename SPACE >
-inline static
-typename Generic_obj_space<SPACE>::V_pfn
-Generic_obj_space<SPACE>::canonize(V_pfn v)
-{ return v; }
-
-//
-// Utilities for map<Generic_obj_space> and unmap<Generic_obj_space>
-//
-
-IMPLEMENT template< typename SPACE >
-inline
-bool FIASCO_FLATTEN
-Generic_obj_space<SPACE>::v_lookup(V_pfn const &virt, Phys_addr *phys,
-                                   Page_order *size, Attr *attribs)
-{ return Base::v_lookup(virt, phys, size, attribs); }
-
-IMPLEMENT template< typename SPACE >
-inline
-typename Generic_obj_space<SPACE>::Capability FIASCO_FLATTEN
-Generic_obj_space<SPACE>::lookup(Cap_index virt)
-{ return Base::lookup(virt); }
-
-IMPLEMENT template< typename SPACE >
-inline
-Kobject_iface * FIASCO_FLATTEN
-Generic_obj_space<SPACE>::lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0)
-{ return Base::lookup_local(virt, rights); }
-
-IMPLEMENT template< typename SPACE >
-inline
-L4_fpage::Rights FIASCO_FLATTEN
-Generic_obj_space<SPACE>::v_delete(V_pfn virt, Page_order size,
-                                   L4_fpage::Rights page_attribs)
-{ return Base::v_delete(virt, size, page_attribs); }
-
-IMPLEMENT template< typename SPACE >
-inline
-typename Generic_obj_space<SPACE>::Status FIASCO_FLATTEN
-Generic_obj_space<SPACE>::v_insert(Phys_addr phys, V_pfn const &virt, Page_order size,
-                                   Attr page_attribs)
-{ return (Status)Base::v_insert(phys, virt, size, page_attribs); }
-
-IMPLEMENT template< typename SPACE >
-inline
-typename Generic_obj_space<SPACE>::V_pfn FIASCO_FLATTEN
-Generic_obj_space<SPACE>::obj_map_max_address() const
-{ return Base::obj_map_max_address(); }
-
-// ------------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
-
-PUBLIC template< typename SPACE > static inline
-SPACE *
-Generic_obj_space<SPACE>::get_space(Base *base)
-{ return static_cast<SPACE*>(base); }
-
-IMPLEMENT template< typename SPACE > inline
-typename Generic_obj_space<SPACE>::Entry *
-Generic_obj_space<SPACE>::jdb_lookup_cap(Cap_index index)
-{ return Base::jdb_lookup_cap(index); }
-
-// ------------------------------------------------------------------------------
-IMPLEMENTATION [!debug]:
-
-PUBLIC template< typename SPACE > static inline
-SPACE *
-Generic_obj_space<SPACE>::get_space(Base *)
-{ return 0; }
 
