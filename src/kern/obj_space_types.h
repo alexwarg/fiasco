@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include <cxx/cxx_int>
 #include <cxx/hlist>
@@ -165,8 +165,8 @@ namespace Obj {
   static_assert(Caps_per_page == Caps_per_page_max, "hm, not a power of two caps on a single memory page");
 }
 
+#if defined (CONFIG_JDB)
 // ------------------------------------------------------------------------
-INTERFACE [debug]:
 
 #include "dbg_page_info.h"
 #include "warn.h"
@@ -207,10 +207,11 @@ namespace Obj
 }
 
 
+#else // CONFIG_JDB
 // ------------------------------------------------------------------------
-INTERFACE [!debug]:
 
 namespace Obj {
   static inline void add_cap_page_dbg_info(void *, void *, Address) {}
   static inline void remove_cap_page_dbg_info(void *) {}
 }
+#endif // CONFIG_JDB

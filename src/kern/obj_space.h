@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "obj_space_types.h"
 #include "config.h"
@@ -7,24 +7,21 @@ INTERFACE:
 #include "assert_opt.h"
 #include "mem_space.h"
 
-INTERFACE[obj_space_virt]:
-//#if defined (CONFIG_VIRT_OBJ_SPACE)
+#if defined (CONFIG_VIRT_OBJ_SPACE)
 
 #include "obj_space_virt_util.h"
 
 template<typename B>
 using Obj_space_t = Obj_space_virt<B>;
 
-INTERFACE[obj_space_phys]:
-//#else
+#else
 
 #include "obj_space_phys_util.h"
 
 template<typename B>
 using Obj_space_t = Obj_space_phys<B>;
 
-INTERFACE:
-//#endif
+#endif
 
 class Kobject;
 class Space;
