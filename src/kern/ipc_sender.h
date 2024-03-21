@@ -15,12 +15,6 @@ class Ipc_sender_base : public Sender
 public:
   virtual ~Ipc_sender_base() = 0;
 
-  void ipc_receiver_aborted() override
-  {
-    assert (wait_queue());
-    set_wait_queue(0);
-  }
-
   bool handle_shortcut(Syscall_frame *dst_regs,
                        Receiver *receiver)
   {
@@ -100,6 +94,14 @@ public:
 
     derived()->transfer_msg(recv);
   }
+
+  void ipc_receiver_aborted() override
+  {
+    assert (wait_queue());
+    check(derived()->dequeue_sender());
+    set_wait_queue(0);
+  }
+
 
 protected:
   bool send_msg(Receiver *receiver, bool is_not_xcpu)
