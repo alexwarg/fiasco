@@ -17,7 +17,7 @@ INTERFACES_KERNEL	:= \
 			   startup                   \
 			   pic   \
                            obj_space_types obj_space_phys_util \
-			   obj_space ptab_base ram_quota      \
+			   obj_space ram_quota      \
 			   mem_space space \
 			   kmem kmem_alloc mem_layout        \
 			   kip_init   \
