@@ -3,7 +3,7 @@ IMPLEMENTATION:
 #include <cstdio>
 #include <cstring>
 
-#include "thread_object.h"
+#include "thread.h"
 #include "jdb.h"
 #include "jdb_kobject.h"
 #include "jdb_module.h"

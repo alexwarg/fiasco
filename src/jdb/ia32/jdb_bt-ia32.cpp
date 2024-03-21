@@ -11,7 +11,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include "jdb_module.h"
 #include "mem_layout.h"
 #include "keycodes.h"
-#include "thread_object.h"
+#include "thread.h"
 #include "task.h"
 
 class Jdb_bt : public Jdb_module, public Jdb_input_task_addr

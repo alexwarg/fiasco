@@ -15,7 +15,7 @@ IMPLEMENTATION:
 #include "ram_quota.h"
 #include "simpleio.h"
 #include "task.h"
-#include "thread_object.h"
+#include "thread.h"
 #include "static_init.h"
 
 class Jdb_space : public Jdb_module, public Jdb_kobject_handler

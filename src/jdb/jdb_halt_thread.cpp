@@ -6,7 +6,7 @@ IMPLEMENTATION:
 #include "jdb_module.h"
 #include "jdb_kobject.h"
 #include "static_init.h"
-#include "thread_object.h"
+#include "thread.h"
 
 class Jdb_halt_thread : public Jdb_module
 {

@@ -31,7 +31,7 @@ IMPLEMENTATION:
 #include "simpleio.h"
 #include "static_init.h"
 #include "task.h"
-#include "thread_object.h"
+#include "thread.h"
 #include "thread_state.h"
 #include "types.h"
 

@@ -6,7 +6,6 @@
 #include "kobject.h"
 #include "kobject_helper.h"
 #include "slab_cache.h"
-#include "thread_object.h"
 #include "assert_opt.h"
 
 #if defined (CONFIG_JDB)

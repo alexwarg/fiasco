@@ -3,7 +3,6 @@
 #include "icu_helper.h"
 #include "types.h"
 #include "scheduler_iface.h"
-#include "thread_object.h"
 #include "l4_buf_iter.h"
 #include "l4_types.h"
 #include "entry_frame.h"

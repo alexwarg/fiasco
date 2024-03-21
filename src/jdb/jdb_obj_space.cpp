@@ -12,7 +12,7 @@ IMPLEMENTATION:
 #include "keycodes.h"
 #include "space.h"
 #include "task.h"
-#include "thread_object.h"
+#include "thread.h"
 #include "static_init.h"
 #include "types.h"
 

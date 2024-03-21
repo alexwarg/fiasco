@@ -15,7 +15,7 @@ IMPLEMENTATION:
 #include "jdb_module.h"
 #include "space.h"
 #include "static_init.h"
-#include "thread_object.h"
+#include "thread.h"
 #include "thread_state.h"
 
 class Jdb_utcb : public Jdb_module

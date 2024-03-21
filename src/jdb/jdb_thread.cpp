@@ -1,6 +1,6 @@
 INTERFACE:
 
-#include "thread_object.h"
+#include "thread.h"
 
 class Jdb_thread
 {

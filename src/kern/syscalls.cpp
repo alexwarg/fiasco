@@ -1,6 +1,6 @@
 IMPLEMENTATION:
 
-#include "thread_object.h"
+#include "obj_cap.h"
 #include "thread_state.h"
 #include "std_macros.h"
 
