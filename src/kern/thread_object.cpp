@@ -3,6 +3,7 @@ INTERFACE:
 #include "kobject.h"
 #include "kobject_helper.h"
 #include "thread.h"
+#include "obj_cap.h"
 
 class Thread_object : public Thread, public Kobject_helper_base
 {
@@ -13,10 +14,6 @@ private:
     L4_msg_tag result;
     bool have_recv;
   };
-};
-
-class Obj_cap : public L4_obj_ref
-{
 };
 
 
@@ -34,34 +31,6 @@ IMPLEMENTATION:
 
 
 
-PUBLIC inline
-Obj_cap::Obj_cap(L4_obj_ref const &o) : L4_obj_ref(o) {}
-
-PUBLIC inline NEEDS["kobject.h"]
-Kobject_iface *
-Obj_cap::deref(L4_fpage::Rights *rights = 0, bool dbg = false)
-{
-  Thread *current = current_thread();
-  if (op() & L4_obj_ref::Ipc_reply)
-    {
-      if (rights) *rights = current->caller_rights();
-      Thread *ca = static_cast<Thread*>(current->caller());
-      if (EXPECT_TRUE(!dbg && ca))
-        current->reset_caller();
-      return ca;
-    }
-
-  if (EXPECT_FALSE(special()))
-    {
-      if (!self())
-        return 0;
-
-      if (rights) *rights = L4_fpage::Rights::CRWS();
-      return current;
-    }
-
-  return current->space()->lookup_local(cap(), rights);
-}
 
 PUBLIC explicit
 Thread_object::Thread_object(Ram_quota *q) : Thread(q) {}
