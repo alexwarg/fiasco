@@ -16,7 +16,7 @@ PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 INTERFACES_KERNEL	:= \
 			   startup                   \
 			   pic   \
-                           obj_space_types obj_space_phys_util \
+                           obj_space_types \
 			   obj_space  \
 			   mem_space space \
 			   kmem kmem_alloc mem_layout        \
