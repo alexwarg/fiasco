@@ -25,7 +25,7 @@ INTERFACES_KERNEL	:= \
 			   vcpu_host_regs                                    \
 			   vcpu    \
 			   context mem_unit cpu_call \
-			   thread thread_object syscalls     \
+			   thread syscalls     \
 			   kernel_thread map_util        \
 			   config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
@@ -44,7 +44,7 @@ CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
 		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
 		 terminate.cc semaphore.cc banner.cc vlog.cc boot_alloc.cc \
 		 kernel_console.cc ipc_gate.cc irq.cc scheduler_iface.cc \
-		 scheduler.cc
+		 scheduler.cc thread_object.cc
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc

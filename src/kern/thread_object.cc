@@ -1,24 +1,4 @@
-INTERFACE:
-
-#include "kobject.h"
-#include "kobject_helper.h"
-#include "thread.h"
-#include "obj_cap.h"
-
-class Thread_object : public Thread, public Kobject_helper_base
-{
-private:
-  struct Remote_syscall
-  {
-    Thread *thread;
-    L4_msg_tag result;
-    bool have_recv;
-  };
-};
-
-
-// ---------------------------------------------------------------------------
-IMPLEMENTATION:
+#include "thread_object.h"
 
 #include "context.h"
 #include "fpu.h"
@@ -29,124 +9,7 @@ IMPLEMENTATION:
 #include "thread_state.h"
 #include "timer.h"
 
-
-
-
-PUBLIC explicit
-Thread_object::Thread_object(Ram_quota *q) : Thread(q) {}
-
-PUBLIC explicit
-Thread_object::Thread_object(Ram_quota *q, Context_mode_kernel k)
-: Thread(q, k) {}
-
-PUBLIC virtual
-bool
-Thread_object::put() override
-{ return dec_ref() == 0; }
-
-
-
-PUBLIC
-void
-Thread_object::operator delete(void *_t)
-{
-  Thread_object * const t = nonull_static_cast<Thread_object*>(_t);
-  Ram_quota * const q = t->_quota;
-  Kmem_alloc::allocator()->q_free(q, Bytes(Thread::Size), t);
-
-  LOG_TRACE("Kobject delete", "del", current(), Log_destroy,
-      l->id = t->dbg_id();
-      l->obj = t;
-      l->type = cxx::Typeid<Thread>::get();
-      l->ram = q->current());
-}
-
-
-PUBLIC
-void
-Thread_object::destroy(Kobject ***rl) override
-{
-  Kobject::destroy(rl);
-  if (!is_invalid(false))
-    check(kill());
-  else
-    unbind();
-
-  assert(_magic == magic);
-}
-
-PUBLIC
-void
-Thread_object::invoke(L4_obj_ref self, L4_fpage::Rights rights,
-                      Syscall_frame *f, Utcb *utcb) override
-{
-  L4_obj_ref::Operation op = f->ref().op();
-  if (((op != 0) && !(op & L4_obj_ref::Ipc_send))
-      || (op & L4_obj_ref::Ipc_reply)
-      || f->tag().proto() != L4_msg_tag::Label_thread)
-    {
-      /* we do IPC */
-      Thread *ct = current_thread();
-      Thread *sender = 0;
-      Thread *partner = 0;
-      bool have_rcv = false;
-
-      if (EXPECT_FALSE(!check_sys_ipc(op, &partner, &sender, &have_rcv)))
-        {
-          f->tag(commit_error(utcb, L4_error::Not_existent));
-          return;
-        }
-
-      ct->do_ipc(f->tag(), f->from_spec(), partner, have_rcv, sender,
-                 f->timeout(), f, rights);
-      return;
-    }
-
-  if (EXPECT_FALSE(f->tag().words() < 1))
-    {
-      f->tag(commit_result(-L4_err::EMsgtooshort));
-      return;
-    }
-
-  Utcb *out = self.have_recv() ? utcb : utcb_dummy();
-  L4_msg_tag tag;
-  switch (utcb->values[0] & Opcode_mask)
-    {
-    case Op_control:
-      tag = sys_control(rights, f->tag(), utcb, out);
-      break;
-    case Op_ex_regs:
-      tag = sys_ex_regs(f->tag(), utcb, out);
-      break;
-    case Op_switch:
-      tag = sys_thread_switch(f->tag(), utcb, out);
-      break;
-    case Op_stats:
-      tag = sys_thread_stats(f->tag(), utcb, out);
-      break;
-    case Op_vcpu_resume:
-      tag = sys_vcpu_resume(f->tag(), utcb, out);
-      break;
-    case Op_register_del_irq:
-      tag = sys_register_delete_irq(f->tag(), utcb, out);
-      break;
-    case Op_modify_senders:
-      tag = sys_modify_senders(f->tag(), utcb, out);
-      break;
-    case Op_vcpu_control:
-      tag = sys_vcpu_control(rights, f->tag(), utcb, out);
-      break;
-    default:
-      tag = invoke_arch(f->tag(), utcb, out);
-      break;
-    }
-
-  if (self.have_recv() || tag.has_error())
-    f->tag(tag);
-}
-
-
-PRIVATE inline
+inline
 L4_msg_tag
 Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
 {
@@ -274,7 +137,7 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
   return commit_result(target_space->resume_vcpu(this, vcpu, user_mode));
 }
 
-PRIVATE inline NOEXPORT NEEDS["processor.h"]
+inline
 L4_msg_tag
 Thread_object::sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
 {
@@ -317,7 +180,7 @@ Thread_object::sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/
   return Kobject_iface::commit_result(0);
 }
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Thread_object::sys_register_delete_irq(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
 {
@@ -349,7 +212,7 @@ Thread_object::sys_register_delete_irq(L4_msg_tag tag, Utcb const *in, Utcb * /*
 }
 
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Thread_object::sys_control(L4_fpage::Rights rights, L4_msg_tag tag,
                            Utcb const *utcb, Utcb *out)
@@ -429,7 +292,7 @@ Thread_object::sys_control(L4_fpage::Rights rights, L4_msg_tag tag,
 }
 
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
                                 Utcb const *utcb, Utcb * /* out */)
@@ -492,11 +355,10 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
 // -------------------------------------------------------------------
 // Thread::ex_regs class system calls
 
-PUBLIC
 bool
 Thread_object::ex_regs(Address ip, Address sp,
-                Address *o_ip = 0, Address *o_sp = 0, Mword *o_flags = 0,
-                Mword ops = 0)
+                Address *o_ip, Address *o_sp, Mword *o_flags,
+                Mword ops)
 {
   if (!space())
     return false;
@@ -543,7 +405,7 @@ Thread_object::ex_regs(Address ip, Address sp,
   return true;
 }
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Thread_object::ex_regs(Utcb const *utcb, Utcb *out)
 {
@@ -566,7 +428,6 @@ Thread_object::ex_regs(Utcb const *utcb, Utcb *out)
   return commit_result(0, 3);
 }
 
-PRIVATE static
 Context::Drq::Result
 Thread_object::handle_remote_ex_regs(Drq *, Context *self, void *p)
 {
@@ -577,7 +438,7 @@ Thread_object::handle_remote_ex_regs(Drq *, Context *self, void *p)
   return params->result.proto() == 0 ? Drq::need_resched() : Drq::done();
 }
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Thread_object::sys_ex_regs(L4_msg_tag const &tag, Utcb *utcb, Utcb *out)
 {
@@ -595,7 +456,7 @@ Thread_object::sys_ex_regs(L4_msg_tag const &tag, Utcb *utcb, Utcb *out)
   return params.result;
 }
 
-PRIVATE inline NOEXPORT NEEDS["timer.h"]
+inline
 L4_msg_tag
 Thread_object::sys_thread_switch(L4_msg_tag const & /*tag*/, Utcb const * /*utcb*/,
                                  Utcb *out)
@@ -638,7 +499,7 @@ Thread_object::sys_thread_switch(L4_msg_tag const & /*tag*/, Utcb const * /*utcb
 // -------------------------------------------------------------------
 // Gather statistics information about thread execution
 
-PRIVATE inline NOEXPORT
+inline
 Context::Drq::Result
 Thread_object::sys_thread_stats_remote(void *data)
 {
@@ -650,14 +511,13 @@ Thread_object::sys_thread_stats_remote(void *data)
   return Drq::done();
 }
 
-PRIVATE static
 Context::Drq::Result FIASCO_FLATTEN
 Thread_object::handle_sys_thread_stats_remote(Drq *, Context *self, void *data)
 {
   return nonull_static_cast<Thread_object*>(self)->sys_thread_stats_remote(data);
 }
 
-PRIVATE inline NOEXPORT
+inline
 L4_msg_tag
 Thread_object::sys_thread_stats(L4_msg_tag const &/*tag*/, Utcb const * /*utcb*/, Utcb *out)
 {
@@ -676,6 +536,101 @@ Thread_object::sys_thread_stats(L4_msg_tag const &/*tag*/, Utcb const * /*utcb*/
   reinterpret_cast<Utcb::Time_val *>(out->values)->t = value;
 
   return commit_result(0, Utcb::Time_val::Words);
+}
+
+void
+Thread_object::operator delete(void *_t) noexcept
+{
+  Thread_object * const t = nonull_static_cast<Thread_object*>(_t);
+  Ram_quota * const q = t->_quota;
+  Kmem_alloc::allocator()->q_free(q, Bytes(Thread::Size), t);
+
+  LOG_TRACE("Kobject delete", "del", current(), Log_destroy,
+      l->id = t->dbg_id();
+      l->obj = t;
+      l->type = cxx::Typeid<Thread>::get();
+      l->ram = q->current());
+}
+
+void
+Thread_object::destroy(Kobject ***rl)
+{
+  Kobject::destroy(rl);
+  if (!is_invalid(false))
+    check(kill());
+  else
+    unbind();
+
+  assert(_magic == magic);
+}
+
+void
+Thread_object::invoke(L4_obj_ref self, L4_fpage::Rights rights,
+                      Syscall_frame *f, Utcb *utcb)
+{
+  L4_obj_ref::Operation op = f->ref().op();
+  if (((op != 0) && !(op & L4_obj_ref::Ipc_send))
+      || (op & L4_obj_ref::Ipc_reply)
+      || f->tag().proto() != L4_msg_tag::Label_thread)
+    {
+      /* we do IPC */
+      Thread *ct = current_thread();
+      Thread *sender = 0;
+      Thread *partner = 0;
+      bool have_rcv = false;
+
+      if (EXPECT_FALSE(!check_sys_ipc(op, &partner, &sender, &have_rcv)))
+        {
+          f->tag(commit_error(utcb, L4_error::Not_existent));
+          return;
+        }
+
+      ct->do_ipc(f->tag(), f->from_spec(), partner, have_rcv, sender,
+                 f->timeout(), f, rights);
+      return;
+    }
+
+  if (EXPECT_FALSE(f->tag().words() < 1))
+    {
+      f->tag(commit_result(-L4_err::EMsgtooshort));
+      return;
+    }
+
+  Utcb *out = self.have_recv() ? utcb : utcb_dummy();
+  L4_msg_tag tag;
+  switch (utcb->values[0] & Opcode_mask)
+    {
+    case Op_control:
+      tag = sys_control(rights, f->tag(), utcb, out);
+      break;
+    case Op_ex_regs:
+      tag = sys_ex_regs(f->tag(), utcb, out);
+      break;
+    case Op_switch:
+      tag = sys_thread_switch(f->tag(), utcb, out);
+      break;
+    case Op_stats:
+      tag = sys_thread_stats(f->tag(), utcb, out);
+      break;
+    case Op_vcpu_resume:
+      tag = sys_vcpu_resume(f->tag(), utcb, out);
+      break;
+    case Op_register_del_irq:
+      tag = sys_register_delete_irq(f->tag(), utcb, out);
+      break;
+    case Op_modify_senders:
+      tag = sys_modify_senders(f->tag(), utcb, out);
+      break;
+    case Op_vcpu_control:
+      tag = sys_vcpu_control(rights, f->tag(), utcb, out);
+      break;
+    default:
+      tag = invoke_arch(f->tag(), utcb, out);
+      break;
+    }
+
+  if (self.have_recv() || tag.has_error())
+    f->tag(tag);
 }
 
 namespace {
