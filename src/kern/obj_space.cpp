@@ -4,16 +4,40 @@ INTERFACE:
 #include "config.h"
 #include "l4_types.h"
 #include "template_math.h"
+#include "assert_opt.h"
+#include "mem_space.h"
+
+INTERFACE[obj_space_virt]:
+//#if defined (CONFIG_VIRT_OBJ_SPACE)
+
+#include "obj_space_virt_util.h"
+
+template<typename B>
+using Obj_space_t = Obj_space_virt<B>;
+
+INTERFACE[obj_space_phys]:
+//#else
+
+#include "obj_space_phys_util.h"
+
+template<typename B>
+using Obj_space_t = Obj_space_phys<B>;
+
+INTERFACE:
+//#endif
 
 class Kobject;
 class Space;
 
 
 template< typename SPACE >
-class Generic_obj_space
+class Generic_obj_space : Obj_space_t<Generic_obj_space<SPACE>>
 {
   friend class Jdb_obj_space;
   friend class Jdb_tcb;
+
+  using Base = Obj_space_t<Generic_obj_space<SPACE>>;
+
 
 public:
   static char const * const name;
@@ -56,6 +80,19 @@ public:
              : Page_order(0);
     }
   };
+
+  using Base::initialize;
+
+  static Ram_quota *ram_quota(Base const *base)
+  {
+    assert_opt (base);
+    return static_cast<SPACE const *>(base)->ram_quota();
+  }
+
+  static Mem_space *mem_space(Base *base)
+  {
+    return static_cast<SPACE*>(base);
+  }
 
   Fit_size fitting_sizes() const { return Fit_size(); }
 
@@ -154,4 +191,68 @@ inline static
 typename Generic_obj_space<SPACE>::V_pfn
 Generic_obj_space<SPACE>::canonize(V_pfn v)
 { return v; }
+
+//
+// Utilities for map<Generic_obj_space> and unmap<Generic_obj_space>
+//
+
+IMPLEMENT template< typename SPACE >
+inline
+bool FIASCO_FLATTEN
+Generic_obj_space<SPACE>::v_lookup(V_pfn const &virt, Phys_addr *phys,
+                                   Page_order *size, Attr *attribs)
+{ return Base::v_lookup(virt, phys, size, attribs); }
+
+IMPLEMENT template< typename SPACE >
+inline
+typename Generic_obj_space<SPACE>::Capability FIASCO_FLATTEN
+Generic_obj_space<SPACE>::lookup(Cap_index virt)
+{ return Base::lookup(virt); }
+
+IMPLEMENT template< typename SPACE >
+inline
+Kobject_iface * FIASCO_FLATTEN
+Generic_obj_space<SPACE>::lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0)
+{ return Base::lookup_local(virt, rights); }
+
+IMPLEMENT template< typename SPACE >
+inline
+L4_fpage::Rights FIASCO_FLATTEN
+Generic_obj_space<SPACE>::v_delete(V_pfn virt, Page_order size,
+                                   L4_fpage::Rights page_attribs)
+{ return Base::v_delete(virt, size, page_attribs); }
+
+IMPLEMENT template< typename SPACE >
+inline
+typename Generic_obj_space<SPACE>::Status FIASCO_FLATTEN
+Generic_obj_space<SPACE>::v_insert(Phys_addr phys, V_pfn const &virt, Page_order size,
+                                   Attr page_attribs)
+{ return (Status)Base::v_insert(phys, virt, size, page_attribs); }
+
+IMPLEMENT template< typename SPACE >
+inline
+typename Generic_obj_space<SPACE>::V_pfn FIASCO_FLATTEN
+Generic_obj_space<SPACE>::obj_map_max_address() const
+{ return Base::obj_map_max_address(); }
+
+// ------------------------------------------------------------------------------
+IMPLEMENTATION [debug]:
+
+PUBLIC template< typename SPACE > static inline
+SPACE *
+Generic_obj_space<SPACE>::get_space(Base *base)
+{ return static_cast<SPACE*>(base); }
+
+IMPLEMENT template< typename SPACE > inline
+typename Generic_obj_space<SPACE>::Entry *
+Generic_obj_space<SPACE>::jdb_lookup_cap(Cap_index index)
+{ return Base::jdb_lookup_cap(index); }
+
+// ------------------------------------------------------------------------------
+IMPLEMENTATION [!debug]:
+
+PUBLIC template< typename SPACE > static inline
+SPACE *
+Generic_obj_space<SPACE>::get_space(Base *)
+{ return 0; }
 

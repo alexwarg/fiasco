@@ -63,8 +63,6 @@ CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
 OBJ_SPACE_TYPE = $(if $(CONFIG_VIRT_OBJ_SPACE),virt,phys)
 PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
 PREPROCESS_PARTS += obj_space_$(OBJ_SPACE_TYPE)
-obj_space_IMPL = obj_space obj_space-$(OBJ_SPACE_TYPE)
-
 
 platform_control_IMPL   := platform_control
 
