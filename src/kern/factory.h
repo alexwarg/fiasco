@@ -17,7 +17,8 @@ class Factory : public Ram_quota, public Kobject_h<Factory>
   typedef Slab_cache Self_alloc;
 
 public:
-  Factory() = default;
+  /// root factory ctor with 'bool' arg
+  explicit Factory(bool) noexcept : Ram_quota(true) {}
   Factory(Ram_quota *q, Mword max) noexcept : Ram_quota(q, max) {}
 
   void operator delete (void *_f);
