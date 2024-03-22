@@ -1,9 +1,4 @@
-
-/*
- * Timeslice infrastructure
- */
-
-INTERFACE[sched_wfq] :
+#pragma once
 
 #include "member_offs.h"
 #include "types.h"
@@ -23,7 +18,7 @@ class Sched_context_t : public Sched_context_wfq<D>
 
   template<typename T>
   friend class Jdb_thread_list_policy;
-  friend class Sched_context_wfq<Sched_context>;
+  friend class Sched_context_wfq<D>;
 
   union Sp
   {

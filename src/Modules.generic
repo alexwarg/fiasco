@@ -30,7 +30,7 @@ INTERFACES_KERNEL	:= \
 			   task         \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
-			   sched_context utcb_init perf_cnt trap_state       \
+			   utcb_init perf_cnt trap_state       \
 			   ipi  \
 			   clock sys_call_page                    \
 
@@ -60,6 +60,7 @@ CXXSRC_KERNEL += \
 	ram_quota.cc \
 	rcupdate.cc \
 	receiver.cc \
+	sched_context.cc \
 	scheduler.cc \
 	scheduler_iface.cc \
 	semaphore.cc \
@@ -83,6 +84,13 @@ CXXSRC_KERNEL-$(CONFIG_JDB) += \
 
 CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
+
+CXXFLAGS_K_SCHED_CONTEXT-$(CONFIG_SCHED_FIXED_PRIO) := -DSCHED_CONTEXT_IMPL='"sched_context_fp.h"'
+CXXFLAGS_K_SCHED_CONTEXT-$(CONFIG_SCHED_WFQ)        := -DSCHED_CONTEXT_IMPL='"sched_context_wfq.h"'
+CXXFLAGS_K_SCHED_CONTEXT-$(CONFIG_SCHED_FP_WFQ)     := -DSCHED_CONTEXT_IMPL='"sched_context_fp_wfq.h"'
+
+CXXFLAGS += $(CXXFLAGS_K_SCHED_CONTEXT-y)
+
 
 OBJ_SPACE_TYPE = $(if $(CONFIG_VIRT_OBJ_SPACE),virt,phys)
 PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys

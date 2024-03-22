@@ -1,4 +1,4 @@
-INTERFACE [sched_fp_wfq]:
+#pragma once
 
 #include "ready_queue_fp.h"
 #include "ready_queue_wfq.h"

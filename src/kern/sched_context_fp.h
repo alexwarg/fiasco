@@ -1,9 +1,4 @@
-
-/*
- * Timeslice infrastructure
- */
-
-INTERFACE [sched_fixed_prio]:
+#pragma once
 
 #include <cxx/dlist>
 #include "member_offs.h"
