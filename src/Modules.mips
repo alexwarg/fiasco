@@ -185,6 +185,10 @@ ASSRC_KERNEL		:= exception.S kip-time.S
 ASSRC_KERNEL              += $(ASSRC_KERNEL-y)
 
 CXXSRC_KERNEL += main_mips.cc
+
+CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_mips_vz.cc
+CXXSRC_KERNEL-$(CONFIG_CPU_VIRT)y += task_vcpu_resume.cc
+
 CXXSRC_KERNEL-$(CONFIG_MP) += main_mips_mp.cc
 
 NOOPT			+= $(filter jdb%,\
