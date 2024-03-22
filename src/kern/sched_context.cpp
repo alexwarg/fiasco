@@ -1,7 +1,7 @@
 INTERFACE:
 #include "per_cpu_data.h"
 
-EXTENSION class Sched_context
+class Sched_context : public Sched_context_t<Sched_context>
 {
 public:
   class Ready_queue : public Ready_queue_base

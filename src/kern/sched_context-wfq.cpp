@@ -9,9 +9,13 @@ INTERFACE[sched_wfq] :
 #include "types.h"
 #include "globals.h"
 #include "ready_queue_wfq.h"
+#include "std_macros.h"
+#include "config.h"
 
+#include <cassert>
 
-class Sched_context : public Sched_context_wfq<Sched_context>
+template<typename D>
+class Sched_context_t : public Sched_context_wfq<D>
 {
   MEMBER_OFFSET();
   friend class Jdb_list_timeouts;
@@ -28,145 +32,99 @@ class Sched_context : public Sched_context_wfq<Sched_context>
   };
 
 public:
-  typedef Sched_context Wfq_sc;
-  typedef Ready_queue_wfq<Sched_context> Ready_queue_base;
-  Context *context() const { return context_of(this); }
+  typedef D Wfq_sc;
+  typedef Ready_queue_wfq<D> Ready_queue_base;
+
+  constexpr static Mword sched_classes()
+  {
+    return 1UL << (-L4_sched_param_wfq::Class);
+  }
+
+  static int check_param(L4_sched_param const *_p)
+  {
+    Sp const *p = reinterpret_cast<Sp const *>(_p);
+    if (p->p.sched_class != L4_sched_param_wfq::Class)
+      return -L4_err::ERange;
+
+    if (!_p->check_length<L4_sched_param_wfq>())
+      return -L4_err::EInval;
+
+    if (p->wfq.quantum == 0 || p->wfq.weight == 0)
+      return -L4_err::EInval;
+
+    return 0;
+  }
+
+
+  Sched_context_t() = default;
+
+  Context *context() const noexcept
+  {
+    return context_of(this);
+  }
+
+  static unsigned prio() noexcept
+  {
+    return 0;
+  }
+
+  Unsigned64 left() const noexcept
+  {
+    return _left;
+  }
+
+  void set_left(Unsigned64 left) noexcept
+  {
+    _left = left;
+  }
+
+  void replenish() noexcept
+  {
+    set_left(_q);
+    _dl += _qdw;
+  }
+
+  bool in_ready_list() const noexcept
+  {
+    return _ready_link != 0;
+  }
+
+  bool dominates(D const *sc) const noexcept
+  {
+#if 0
+    if (_idle)
+      LOG_MSG_3VAL(current(), "idl", (Mword)sc, _dl, sc->_dl);
+#endif
+    return !_idle && _dl < sc->_dl;
+  }
+
+  Context *owner() const noexcept
+  {
+    return context();
+  }
+
+  void set(L4_sched_param const *_p)
+  {
+    Sp const *p = reinterpret_cast<Sp const *>(_p);
+    _dl = 0;
+    _q = p->wfq.quantum;
+    _w = p->wfq.weight;
+    _qdw =  p->wfq.quantum / p->wfq.weight;
+  }
+
 
 private:
-  static Sched_context *wfq_elem(Sched_context *x) { return x; }
+  static D *wfq_elem(D *x) { return x; }
 
-  Sched_context **_ready_link;
-  bool _idle:1;
-  Unsigned64 _dl;
-  Unsigned64 _left;
+  D **_ready_link = nullptr;
+  bool _idle = false;
+  Unsigned64 _dl = 0;
+  Unsigned64 _left = Config::Default_time_slice;
 
-  unsigned _q;
-  unsigned _w;
-  unsigned _qdw;
+  unsigned _q = Config::Default_time_slice;
+  unsigned _w = 1;
+  unsigned _qdw = Config::Default_time_slice / 1; // (_q / _w)
 
-  friend class Ready_queue_wfq<Sched_context>;
+  friend class Ready_queue_wfq<D>;
 };
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_wfq]:
-
-#include <cassert>
-#include "config.h"
-#include "cpu_lock.h"
-#include "std_macros.h"
-
-
-/**
- * Constructor
- */
-PUBLIC
-Sched_context::Sched_context()
-: _ready_link(0),
-  _idle(0),
-  _dl(0),
-  _left(Config::Default_time_slice),
-  _q(Config::Default_time_slice),
-  _w(1),
-  _qdw(_q / _w)
-{}
-
-/**
- * Return owner of Sched_context
- */
-PUBLIC inline
-Context *
-Sched_context::owner() const
-{
-  return context();
-}
-
-PUBLIC static inline
-Mword
-Sched_context::sched_classes()
-{
-  return 1UL << (-L4_sched_param_wfq::Class);
-}
-
-PUBLIC static inline
-int
-Sched_context::check_param(L4_sched_param const *_p)
-{
-  Sp const *p = reinterpret_cast<Sp const *>(_p);
-  if (p->p.sched_class != L4_sched_param_wfq::Class)
-    return -L4_err::ERange;
-
-  if (!_p->check_length<L4_sched_param_wfq>())
-    return -L4_err::EInval;
-
-  if (p->wfq.quantum == 0 || p->wfq.weight == 0)
-    return -L4_err::EInval;
-
-  return 0;
-}
-
-PUBLIC
-void
-Sched_context::set(L4_sched_param const *_p)
-{
-  Sp const *p = reinterpret_cast<Sp const *>(_p);
-  _dl = 0;
-  _q = p->wfq.quantum;
-  _w = p->wfq.weight;
-  _qdw =  p->wfq.quantum / p->wfq.weight;
-}
-
-/**
- * Return remaining time quantum of Sched_context
- */
-PUBLIC inline
-Unsigned64
-Sched_context::left() const
-{
-  return _left;
-}
-
-PUBLIC inline NEEDS[Sched_context::set_left]
-void
-Sched_context::replenish()
-{
-  set_left(_q);
-  _dl += _qdw;
-}
-
-/**
- * Set remaining time quantum of Sched_context
- */
-PUBLIC inline
-void
-Sched_context::set_left(Unsigned64 left)
-{
-  _left = left;
-}
-
-/**
- * Check if Context is in ready-list.
- * @return 1 if thread is in ready-list, 0 otherwise
- */
-PUBLIC inline
-Mword
-Sched_context::in_ready_list() const
-{
-  return _ready_link != 0;
-}
-
-PUBLIC inline
-bool
-Sched_context::dominates(Sched_context *sc)
-{
-#if 0
-  if (_idle)
-    LOG_MSG_3VAL(current(), "idl", (Mword)sc, _dl, sc->_dl);
-#endif
-  return !_idle && _dl < sc->_dl;
-}
-
-
-PUBLIC static inline
-unsigned
-Sched_context::prio() { return 0; }
 
