@@ -34,15 +34,41 @@ INTERFACES_KERNEL	:= \
 			   ipi  \
 			   clock sys_call_page                    \
 
-CXXSRC_KERNEL += kernel_panic.cc libc_backend_lock.cc globals.cc \
-		 pm.cc rcupdate.cc mapping_tree.cc koptions.cc \
-		 kobject_helper.cc ipc_timeout.cc timeslice_timeout.cc \
-		 timeout.cc kobject_iface.cc kobject.cc mapdb.cc \
-		 receiver.cc cpu_lock.cc helping_lock.cc kmem_slab.cc \
-		 irq_chip.cc factory.cc slab_cache.cc irq_mgr.cc \
-		 terminate.cc semaphore.cc banner.cc vlog.cc boot_alloc.cc \
-		 kernel_console.cc ipc_gate.cc irq.cc scheduler_iface.cc \
-		 scheduler.cc thread_object.cc ram_quota.cc
+CXXSRC_KERNEL += \
+	banner.cc \
+	boot_alloc.cc \
+	cpu_lock.cc \
+	factory.cc \
+	globals.cc \
+	helping_lock.cc \
+	ipc_gate.cc \
+	ipc_timeout.cc \
+	irq.cc \
+	irq_chip.cc \
+	irq_mgr.cc \
+	kernel_console.cc \
+	kernel_panic.cc \
+	kmem_slab.cc \
+	kobject.cc \
+	kobject_helper.cc \
+	kobject_iface.cc \
+	koptions.cc \
+	libc_backend_lock.cc \
+	mapdb.cc \
+	mapping_tree.cc \
+	pm.cc \
+	ram_quota.cc \
+	rcupdate.cc \
+	receiver.cc \
+	scheduler.cc \
+	scheduler_iface.cc \
+	semaphore.cc \
+	slab_cache.cc \
+	terminate.cc \
+	thread_object.cc \
+	timeout.cc \
+	timeslice_timeout.cc \
+	vlog.cc \
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
