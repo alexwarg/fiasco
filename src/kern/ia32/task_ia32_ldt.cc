@@ -1,18 +1,9 @@
-IMPLEMENTATION [(ia32 || amd64) && no_ldt]:
-
-PRIVATE inline
-bool
-Task::invoke_arch(L4_msg_tag, Utcb *)
-{ return false; }
-
-
-IMPLEMENTATION [(ia32 || amd64) && !no_ldt]:
+#include "task.h"
 
 #include "gdt.h"
 #include "std_macros.h"
 #include "x86desc.h"
 
-PRIVATE inline NEEDS["gdt.h"]
 bool
 Task::invoke_arch(L4_msg_tag &tag, Utcb *utcb)
 {
@@ -76,9 +67,6 @@ Task::invoke_arch(L4_msg_tag &tag, Utcb *utcb)
         }
       return true;
     }
-
-
-
 
   return false;
 }

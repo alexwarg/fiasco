@@ -250,6 +250,7 @@ CPPFLAGS                += -DRAM_PHYS_BASE=$(RAM_PHYS_BASE)
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc
 
+CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_arm_mp.cc
 
 NOOPT			+= $(filter jdb%,\

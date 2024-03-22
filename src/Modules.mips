@@ -151,7 +151,6 @@ sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 space_IMPL		:= space
 startup_IMPL		:= startup startup-mips
 sys_call_page_IMPL	:= sys_call_page
-task_IMPL		:= task task-mips
 timer_IMPL		?= timer timer-mips
 timer_tick_IMPL         := timer_tick
 thread_IMPL		:= thread thread-log thread-pagefault \

@@ -27,7 +27,6 @@ INTERFACES_KERNEL	:= \
 			   kernel_thread map_util        \
 			   config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu entry_frame               \
-			   task         \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   utcb_init perf_cnt trap_state       \
@@ -65,6 +64,7 @@ CXXSRC_KERNEL += \
 	scheduler_iface.cc \
 	semaphore.cc \
 	slab_cache.cc \
+	task.cc \
 	terminate.cc \
 	thread_object.cc \
 	timeout.cc \

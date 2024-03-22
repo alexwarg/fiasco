@@ -1,5 +1,6 @@
 #include "irq.h"
 #include "kmem_slab.h"
+#include "kobject_rpc.h"
 
 JDB_DEFINE_TYPENAME(Irq_sender, "\033[37mIRQ ipc\033[m");
 

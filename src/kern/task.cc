@@ -1,72 +1,25 @@
-INTERFACE:
 
-#include "context.h"
-#include "kobject.h"
-#include "l4_types.h"
-#include "space.h"
-#include "spin_lock.h"
-#include "unique_ptr.h"
+#include "task.h"
+#include "task_factory_impl.h"
 
-/**
- * \brief A task is a protection domain.
- *
- * A task is derived from Space, which aggregates a set of address spaces.
- * Additionally to a space, a task provides initialization and destruction
- * functionality for a protection domain.
- */
-class Task :
-  public cxx::Dyn_castable<Task, Kobject>,
-  public Space
-{
-  friend class Jdb_space;
-
-public:
-  enum Operation
-  {
-    Map           = 0,
-    Unmap         = 1,
-    Cap_info      = 2,
-    Add_ku_mem    = 3,
-    Ldt_set_x86   = 0x11,
-    Vgicc_map_arm = 0x12,
-  };
-
-  virtual int resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode);
-
-private:
-  /// map the global utcb pointer page into this task
-  void map_utcb_ptr_page();
-};
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "config.h"
-#include "entry_frame.h"
-#include "globals.h"
-#include "kdb_ke.h"
-#include "kmem.h"
-#include "kmem_slab.h"
 #include "kobject_rpc.h"
-#include "l4_types.h"
-#include "logdefs.h"
-#include "map_util.h"
-#include "mem_layout.h"
-#include "ram_quota.h"
-#include "thread_state.h"
+#include "kmem_slab.h"
 #include "paging.h"
+#include "logdefs.h"
+#include "kdb_ke.h"
+#include "map_util.h"
+
+#include "globalconfig.h"
+
 
 JDB_DEFINE_TYPENAME(Task, "\033[31mTask\033[m");
 static Kmem_slab_t<Task::Ku_mem> _k_u_mem_list_alloc("Ku_mem");
 Slab_cache *Space::Ku_mem::a = _k_u_mem_list_alloc.slab();
 
-PUBLIC virtual
-bool
-Task::put() override
-{ return dec_ref() == 0; }
+[[gnu::weak]] bool
+Task::invoke_arch(L4_msg_tag &, Utcb *)
+{ return false; }
 
-PRIVATE
 int
 Task::alloc_ku_mem_chunk(User<void>::Ptr u_addr, unsigned size, void **k_addr)
 {
@@ -128,8 +81,6 @@ Task::alloc_ku_mem_chunk(User<void>::Ptr u_addr, unsigned size, void **k_addr)
   return 0;
 }
 
-
-PUBLIC
 int
 Task::alloc_ku_mem(L4_fpage ku_area)
 {
@@ -164,15 +115,13 @@ Task::alloc_ku_mem(L4_fpage ku_area)
   return 0;
 }
 
-PRIVATE inline NOEXPORT
-void
+inline void
 Task::free_ku_mem(Ku_mem *m)
 {
   free_ku_mem_chunk(m->k_addr, m->u_addr, m->size, m->size);
   m->free(ram_quota());
 }
 
-PRIVATE
 void
 Task::free_ku_mem_chunk(void *k_addr, User<void>::Ptr u_addr, unsigned size,
                         unsigned mapped_size)
@@ -197,7 +146,6 @@ Task::free_ku_mem_chunk(void *k_addr, User<void>::Ptr u_addr, unsigned size,
   alloc->q_free(ram_quota(), Bytes(size), k_addr);
 }
 
-PRIVATE
 void
 Task::free_ku_mem()
 {
@@ -205,36 +153,8 @@ Task::free_ku_mem()
     free_ku_mem(m);
 }
 
-/**
- * \brief Create a normal Task.
- * \pre \a parent must be valid and exist.
- */
-PUBLIC explicit
-Task::Task(Ram_quota *q, Caps c) : Space(q, c)
-{
-  // increment reference counter from zero
-  inc_ref(true);
-}
-
-PUBLIC explicit
-Task::Task(Ram_quota *q)
-: Space(q, Caps::mem() | Caps::io() | Caps::obj() | Caps::threads())
-{
-  // increment reference counter from zero
-  inc_ref(true);
-}
-
-PROTECTED
-Task::Task(Ram_quota *q, Mem_space::Dir_type* pdir, Caps c)
-: Space(q, pdir, c)
-{
-  // increment reference counter from zero
-  inc_ref(true);
-}
-
-PUBLIC //inline
 void
-Task::operator delete (void *ptr)
+Task::operator delete (void *ptr) noexcept
 {
   Task *t = reinterpret_cast<Task*>(ptr);
   LOG_TRACE("Kobject delete", "del", current(), Log_destroy,
@@ -246,59 +166,12 @@ Task::operator delete (void *ptr)
   Kmem_slab_t<Task>::q_free(t->ram_quota(), ptr);
 }
 
-PUBLIC template<typename TASK_TYPE, bool MUST_SYNC_KERNEL = true,
-                int UTCB_AREA_MR = 0> static
-TASK_TYPE * FIASCO_FLATTEN
-Task::create(Ram_quota *q,
-             L4_msg_tag t, Utcb const *u,
-             int *err)
+void
+Task::destroy(Kobject ***reap_list)
 {
-  static_assert(UTCB_AREA_MR == 0 || UTCB_AREA_MR >= 2,
-                "invalid value for UTCB_AREA_MR");
-  if (UTCB_AREA_MR >= 2 && EXPECT_FALSE(t.words() <= UTCB_AREA_MR))
-    {
-      *err = L4_err::EInval;
-      return 0;
-    }
+  Kobject::destroy(reap_list);
 
-  typedef Kmem_slab_t<TASK_TYPE> Alloc;
-  *err = L4_err::ENomem;
-  cxx::unique_ptr<TASK_TYPE> v(Alloc::q_new(q, q));
-
-  if (EXPECT_FALSE(!v))
-    return 0;
-
-  if (EXPECT_FALSE(!v->initialize()))
-    return 0;
-
-  if (MUST_SYNC_KERNEL && (v->sync_kernel() < 0))
-    return 0;
-
-  if (UTCB_AREA_MR >= 2)
-    {
-      L4_fpage utcb_area(access_once(&u->values[UTCB_AREA_MR]));
-      if (utcb_area.is_valid())
-        {
-          int e = v->alloc_ku_mem(utcb_area);
-          if (e < 0)
-            {
-              *err = -e;
-              return 0;
-            }
-        }
-    }
-
-  return v.release();
-}
-
-PUBLIC template<typename TASK_TYPE, bool MUST_SYNC_KERNEL = false,
-                int UTCB_AREA_MR = 0> static
-Kobject_iface * FIASCO_FLATTEN
-Task::generic_factory(Ram_quota *q, Space *,
-                      L4_msg_tag t, Utcb const *u,
-                      int *err)
-{
-  return create<TASK_TYPE, MUST_SYNC_KERNEL, UTCB_AREA_MR>(q, t, u, err);
+  fpage_unmap(this, L4_fpage::all_spaces(L4_fpage::Rights::FULL()), L4_map_mask::full(), reap_list);
 }
 
 /**
@@ -309,17 +182,7 @@ Task::generic_factory(Ram_quota *q, Space *,
  * -# Unmap everything from all spaces.
  * -# Delete child tasks.
  */
-PUBLIC
-void
-Task::destroy(Kobject ***reap_list) override
-{
-  Kobject::destroy(reap_list);
-
-  fpage_unmap(this, L4_fpage::all_spaces(L4_fpage::Rights::FULL()), L4_map_mask::full(), reap_list);
-}
-
-PRIVATE inline NOEXPORT
-L4_msg_tag
+inline L4_msg_tag
 Task::sys_map(L4_fpage::Rights rights, Syscall_frame *f, Utcb *utcb)
 {
   LOG_TRACE("Task map", "map", ::current(), Log_map_unmap,
@@ -382,9 +245,7 @@ Task::sys_map(L4_fpage::Rights rights, Syscall_frame *f, Utcb *utcb)
     return commit_error(utcb, ret);
 }
 
-
-PRIVATE inline NOEXPORT
-L4_msg_tag
+inline L4_msg_tag
 Task::sys_unmap(Syscall_frame *f, Utcb *utcb)
 {
   Kobject::Reap_list rl;
@@ -426,8 +287,7 @@ Task::sys_unmap(Syscall_frame *f, Utcb *utcb)
   return commit_result(0, words);
 }
 
-PRIVATE inline NOEXPORT
-L4_msg_tag
+inline L4_msg_tag
 Task::sys_cap_valid(Syscall_frame *, Utcb *utcb)
 {
   L4_obj_ref obj(utcb->values[1]);
@@ -442,8 +302,7 @@ Task::sys_cap_valid(Syscall_frame *, Utcb *utcb)
     return commit_result(0);
 }
 
-PRIVATE inline NOEXPORT
-L4_msg_tag
+inline L4_msg_tag
 Task::sys_caps_equal(Syscall_frame *, Utcb *utcb)
 {
   L4_obj_ref obj_a(utcb->values[1]);
@@ -461,8 +320,7 @@ Task::sys_caps_equal(Syscall_frame *, Utcb *utcb)
   return commit_result(c_a == c_b);
 }
 
-PRIVATE inline NOEXPORT
-L4_msg_tag
+inline L4_msg_tag
 Task::sys_add_ku_mem(Syscall_frame *f, Utcb *utcb)
 {
   if (EXPECT_FALSE(!(caps() & Task::Caps::kumem())))
@@ -483,8 +341,7 @@ Task::sys_add_ku_mem(Syscall_frame *f, Utcb *utcb)
   return commit_result(0);
 }
 
-PRIVATE inline NOEXPORT
-L4_msg_tag
+inline L4_msg_tag
 Task::sys_cap_info(Syscall_frame *f, Utcb *utcb)
 {
   L4_msg_tag const &tag = f->tag();
@@ -497,10 +354,8 @@ Task::sys_cap_info(Syscall_frame *f, Utcb *utcb)
     }
 }
 
-
-PUBLIC
 void
-Task::invoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f, Utcb *utcb) override
+Task::invoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f, Utcb *utcb)
 {
   if (EXPECT_FALSE(f->tag().proto() != L4_msg_tag::Label_task))
     {
@@ -541,41 +396,11 @@ register_factory()
 }
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
 
-IMPLEMENT inline void Task::map_utcb_ptr_page() {}
-
-PUBLIC inline
-Task::~Task()
-{ free_ku_mem(); }
-
-
-// ---------------------------------------------------------------------------
-INTERFACE [debug]:
-
-#include "tb_entry.h"
-
-EXTENSION class Task
-{
-private:
-  struct Log_map_unmap : public Tb_entry
-  {
-    Mword id;
-    Mword mask;
-    Mword fpage;
-    bool  map;
-    void print(String_buffer *buf) const;
-  };
-
-};
-
-// ---------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
+#if defined (CONFIG_JDB)
 
 #include "string_buffer.h"
 
-IMPLEMENT
 void
 Task::Log_map_unmap::print(String_buffer *buf) const
 {
@@ -602,3 +427,5 @@ Task::Log_map_unmap::print(String_buffer *buf) const
       break;
     }
 }
+
+#endif // CONFIG_JDB

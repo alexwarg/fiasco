@@ -154,6 +154,7 @@ IMPLEMENTATION [iommu]:
 #include "intel_iommu.h"
 #include "kmem_slab.h"
 #include "warn.h"
+#include "task_factory_impl.h"
 
 JDB_DEFINE_TYPENAME(Dmar_space, "DMA");
 

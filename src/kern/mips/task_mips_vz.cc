@@ -1,5 +1,6 @@
 
 #include "task.h"
+#include "task_factory_impl.h"
 
 #include "std_macros.h"
 #include "trap_state.h"

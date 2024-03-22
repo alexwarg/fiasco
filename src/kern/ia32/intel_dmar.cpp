@@ -5,6 +5,8 @@ IMPLEMENTATION [iommu]:
 #include "intel_iommu.h"
 #include "mem_unit.h"
 #include "warn.h"
+#include "kobject_rpc.h"
+#include "task_factory_impl.h"
 
 #include <cstdio>
 

@@ -153,6 +153,9 @@ Vm_svm::get_vm_cr3(Vmcb *v)
 //----------------------------------------------------------------------------
 IMPLEMENTATION [svm]:
 
+#include "kmem_slab.h"
+#include "task_factory_impl.h"
+
 PUBLIC
 Vm_svm::Vm_svm(Ram_quota *q)
   : Vm(q)

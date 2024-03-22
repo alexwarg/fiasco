@@ -47,6 +47,8 @@ IMPLEMENTATION [vmx]:
 #include "thread_state.h" // XXX: circular dep, move this out here!
 #include "idt.h"
 #include "cpu.h"
+#include "kmem_slab.h"
+#include "task_factory_impl.h"
 
 PUBLIC inline
 Vm_vmx_b::Vm_vmx_b(Ram_quota *q) : Vm(q)

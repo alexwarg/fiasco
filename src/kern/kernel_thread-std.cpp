@@ -15,6 +15,7 @@ IMPLEMENTATION:
 #include "thread_object.h"
 #include "types.h"
 #include "ram_quota.h"
+#include "task_factory_impl.h"
 
 IMPLEMENT
 void

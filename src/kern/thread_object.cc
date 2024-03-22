@@ -8,6 +8,7 @@
 #include "task.h"
 #include "thread_state.h"
 #include "timer.h"
+#include "kobject_rpc.h"
 
 inline
 L4_msg_tag

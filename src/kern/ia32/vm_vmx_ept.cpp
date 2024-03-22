@@ -151,6 +151,8 @@ Vm_vmx_ept::Epte_ptr::set(Unsigned64 v)
 // -------------------------------------------------------------------------
 IMPLEMENTATION [vmx]:
 
+#include "task_factory_impl.h"
+
 IMPLEMENT inline
 unsigned char
 Vm_vmx_ept::Epte_ptr::page_order() const

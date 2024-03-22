@@ -101,6 +101,7 @@ CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc
 CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	task_vcpu_resume.cc
+CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 
 apic_IMPL		:= apic-ia32 apic-ia32-mp
 boot_console_IMPL	:= boot_console-ia32-amd64
@@ -135,7 +136,6 @@ sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 sigma0_task_IMPL	:= sigma0_task sigma0_task-io
 space_IMPL		:= space space-ia32 space-io
 startup_IMPL		:= startup startup-ia32
-task_IMPL		:= task task-ia32-amd64
 tb_entry_IMPL		:= tb_entry tb_entry-ia32-64
 timer_IMPL		:= timer timer-ia32-amd64
 thread_IMPL		:= thread thread-ia32 thread-ia32-64 \

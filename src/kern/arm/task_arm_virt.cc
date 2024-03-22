@@ -1,37 +1,32 @@
-IMPLEMENTATION [arm && !cpu_virt]:
 
-PRIVATE inline
-bool
-Task::invoke_arch(L4_msg_tag &, Utcb *)
-{
-  return false;
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && cpu_virt && vgic]:
+#include "task.h"
+#include "task_factory_impl.h"
 
 #include "vgic_global.h"
+#include "config.h"
+#include "l4_error.h"
 
-PRIVATE
-L4_msg_tag
-Task::map_gicc_page(L4_msg_tag tag, Utcb *utcb)
+static L4_msg_tag
+map_gicc_page(Task *t, L4_msg_tag tag, Utcb *utcb)
 {
+  using Ko = Kobject_iface;
+
   if (tag.words() < 2)
-    return commit_result(-L4_err::EInval);
+    return Ko::commit_result(-L4_err::EInval);
 
   auto addr = Gic_h_global::gic->gic_v_address();
   if (!addr)
-    return commit_result(-L4_err::ENosys);
+    return Ko::commit_result(-L4_err::ENosys);
 
   L4_fpage gicc_page(utcb->values[1]);
   if (   !gicc_page.is_valid()
       || !gicc_page.is_mempage()
       || gicc_page.order() < Config::PAGE_SHIFT)
-    return commit_result(-L4_err::EInval);
+    return Ko::commit_result(-L4_err::EInval);
 
   User<void>::Ptr u_addr((void *)gicc_page.mem_address());
 
-  Mem_space *ms = static_cast<Mem_space *>(this);
+  Mem_space *ms = static_cast<Mem_space *>(t);
   Mem_space::Status res =
     ms->v_insert(Mem_space::Phys_addr(addr),
                  Virt_addr((Address)u_addr.get()),
@@ -43,36 +38,23 @@ Task::map_gicc_page(L4_msg_tag tag, Utcb *utcb)
       case Mem_space::Insert_ok:
            break;
       case Mem_space::Insert_err_exists:
-           return commit_result(-L4_err::EExists);
+           return Ko::commit_result(-L4_err::EExists);
       case Mem_space::Insert_err_nomem:
            // FALLTHRU
       default:
-           return commit_result(-L4_err::ENomem);
+           return Ko::commit_result(-L4_err::ENomem);
     };
 
-  return commit_result(0);
+  return Ko::commit_result(0);
 }
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && cpu_virt && !vgic]:
 
-PRIVATE
-L4_msg_tag
-Task::map_gicc_page(L4_msg_tag, Utcb *)
-{
-  return commit_result(-L4_err::ENosys);
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && cpu_virt]:
-
-PRIVATE inline
 bool
 Task::invoke_arch(L4_msg_tag &tag, Utcb *utcb)
 {
   if (utcb->values[0] == Vgicc_map_arm)
     {
-      tag = map_gicc_page(tag, utcb);
+      tag = map_gicc_page(this, tag, utcb);
       return true;
     }
 
@@ -91,3 +73,4 @@ init_hyp_factory()
 STATIC_INITIALIZER(init_hyp_factory);
 
 } // anon namespace
+
