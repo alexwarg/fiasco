@@ -10,6 +10,12 @@ INTERFACE:
 #include "pm.h"
 #include "mem_unit.h"
 #include "processor.h"
+#include "spin_lock.h"
+#include "kmem_alloc.h"
+#include "kmem.h"
+#include <warn.h>
+
+#include <cstring>
 
 namespace Intel {
 

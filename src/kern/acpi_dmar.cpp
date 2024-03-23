@@ -1,6 +1,7 @@
 INTERFACE:
 
 #include <acpi.h>
+#include <cxx/bitfield>
 
 namespace ACPI {
 
