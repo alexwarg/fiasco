@@ -88,7 +88,7 @@ KERNEL			:= fiasco.image
 VPATH			+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 
-INTERFACES_KERNEL	+= __main acpi acpi_fadt acpi_dmar i8259 \
+INTERFACES_KERNEL	+= __main acpi_fadt acpi_dmar i8259 \
 			   irq_chip_ia32 irq_chip_pic \
 			   io_apic intel_iommu io_apic_remapped \
 			   boot_console \
@@ -102,7 +102,8 @@ CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc
 CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
 	task_vcpu_resume.cc \
-	io_space.cc
+	io_space.cc \
+	acpi.cc
 
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 
