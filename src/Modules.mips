@@ -164,7 +164,7 @@ ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o
 SUBSYSTEMS		+= JDB
 
-CXXSRC_JDB := tb_entry_output.cc
+CXXSRC_JDB += tb_entry_output.cc
 
 jdb_IMPL		+= jdb-mips
 jdb_tcb_IMPL		+= jdb_tcb-mips

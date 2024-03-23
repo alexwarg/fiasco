@@ -1,31 +1,14 @@
-INTERFACE:
 
+#include "kern_cnt.h"
 #include "types.h"
-
-class Kern_cnt
-{
-public:
-  enum {
-    Valid_ctrs = 7,
-  };
-
-private:
-  enum {
-    Max_slot = 2,
-  };
-
-  static Unsigned32 *kcnt[Max_slot];
-  static Mword (*read_kcnt_fn[Max_slot])();
-  static Unsigned8 valid_ctrs[Valid_ctrs];
-};
-
-
-IMPLEMENTATION:
 
 #include "jdb_ktrace.h"
 #include "mem_layout.h"
 #include "tb_entry.h"
 #include "jdb_tbuf.h"
+
+static Mword read_kcnt1() { return (Mword)*Kern_cnt::kcnt[0]; }
+static Mword read_kcnt2() { return (Mword)*Kern_cnt::kcnt[1]; }
 
 Unsigned32 *Kern_cnt::kcnt[Max_slot];
 Mword (*Kern_cnt::read_kcnt_fn[Max_slot])() = { read_kcnt1, read_kcnt2 };
@@ -44,17 +27,12 @@ Unsigned8 Kern_cnt::valid_ctrs[Kern_cnt::Valid_ctrs] =
   Kern_cnt_exc_ipc,
 };
 
-static Mword Kern_cnt::read_kcnt1() { return (Mword)*kcnt[0]; }
-static Mword Kern_cnt::read_kcnt2() { return (Mword)*kcnt[1]; }
-
-PUBLIC static
 int
 Kern_cnt::valid_2_ctr(unsigned num)
 {
   return num >= Valid_ctrs ? -1 : valid_ctrs[num];
 }
 
-PUBLIC static
 int
 Kern_cnt::ctr_2_valid(unsigned num)
 {
@@ -65,7 +43,6 @@ Kern_cnt::ctr_2_valid(unsigned num)
   return -1;
 }
 
-PUBLIC static
 Unsigned32*
 Kern_cnt::get_ctr(int num)
 {
@@ -75,7 +52,6 @@ Kern_cnt::get_ctr(int num)
   return Jdb_tbuf::status()->kerncnts + num;
 }
 
-PUBLIC static
 Unsigned32*
 Kern_cnt::get_vld_ctr(int num)
 {
@@ -85,7 +61,6 @@ Kern_cnt::get_vld_ctr(int num)
   return get_ctr(valid_2_ctr(num));
 }
 
-PUBLIC static
 const char *
 Kern_cnt::get_str(unsigned num)
 {
@@ -107,7 +82,6 @@ Kern_cnt::get_str(unsigned num)
     }
 }
 
-PUBLIC static
 const char *
 Kern_cnt::get_vld_str(unsigned num)
 {
@@ -117,7 +91,6 @@ Kern_cnt::get_vld_str(unsigned num)
   return get_str(valid_2_ctr(num));
 }
 
-PUBLIC static
 int
 Kern_cnt::mode(Mword slot, const char **mode, const char **name, Mword *event)
 {
@@ -144,7 +117,6 @@ Kern_cnt::mode(Mword slot, const char **mode, const char **name, Mword *event)
   return 0;
 }
 
-PUBLIC static
 int
 Kern_cnt::setup_pmc(Mword slot, Mword event)
 {
