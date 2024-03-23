@@ -134,7 +134,7 @@ VPATH 		+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 VPATH		+= jdb/arm/$(BITS) jdb/arm jdb
 PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
-INTERFACES_KERNEL += 	__main mem_op kmem_space boot_uart_init     \
+INTERFACES_KERNEL += 	mem_op kmem_space boot_uart_init     \
 			irq_chip_generic bootstrap                  \
 			outer_cache utcb_support cascade_irq   \
 			irq_mgr_multi_chip smc_call psci
@@ -248,7 +248,8 @@ CPPFLAGS                += $(if $(CONFIG_MP),-DMPCORE_PHYS_BASE=$(MPCORE_PHYS_BA
 CPPFLAGS                += -DRAM_PHYS_BASE=$(RAM_PHYS_BASE)
 
 CXXSRC_KERNEL += main_arm.cc \
-	task_vcpu_resume.cc
+	task_vcpu_resume.cc \
+	__main.cc
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_arm_mp.cc

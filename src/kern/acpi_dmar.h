@@ -1,4 +1,5 @@
-INTERFACE:
+
+#pragma once
 
 #include <acpi.h>
 #include <cxx/bitfield>

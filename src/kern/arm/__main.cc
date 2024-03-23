@@ -1,9 +1,5 @@
-INTERFACE [arm]:
 
 #include "types.h"
-
-//-------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
 
 #include <cstdlib>
 #include <cstdio>
