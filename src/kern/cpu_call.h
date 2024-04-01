@@ -75,7 +75,7 @@ public:
 
   bool remote_call(Cpu_number cpu, bool async);
 
-  static bool cpu_call_many(Cpu_mask const &m,
+  static void cpu_call_many(Cpu_mask const &m,
                             cxx::functor<bool (Cpu_number)> &&func,
                             bool = false);
 
@@ -178,14 +178,13 @@ Cpu_call_queue::handle_requests()
 
 #if ! defined (CONFIG_MP)
 
-inline bool
+inline void
 Cpu_call::cpu_call_many(Cpu_mask const &m,
                         cxx::functor<bool (Cpu_number)> &&func,
                         bool)
 {
   if (m.get(current_cpu()))
     func(current_cpu());
-  return true;
 }
 
 inline bool Cpu_call::handle_global_requests()
@@ -267,12 +266,16 @@ Cpu_call::remote_call(Cpu_number cpu, bool async)
  * \note If the CPU set is empty, this function returns immediately.
  * \pre CPU lock must not be held on `async=false`.
  */
-inline bool
+inline void
 Cpu_call::cpu_call_many(Cpu_mask const &cpus,
                         cxx::functor<bool (Cpu_number)> &&func,
                         bool async)
 {
   assert (async || !cpu_lock.test());
+
+  if (cpus.empty())
+    return;
+
   Cpu_calls<8> cs;
   Cpu_number n;
   Cpu_call *c = cs.next();
@@ -289,7 +292,7 @@ Cpu_call::cpu_call_many(Cpu_mask const &cpus,
   // hmm, nothing to do, we should optimize this and check
   // this before the loops
   if (cs.used() == 0)
-    return true;
+    return;
 
   for (; n < Config::max_num_cpus(); ++n)
     {
@@ -303,7 +306,6 @@ Cpu_call::cpu_call_many(Cpu_mask const &cpus,
     }
 
   cs.wait_all(async);
-  return true;
 }
 
 inline bool
