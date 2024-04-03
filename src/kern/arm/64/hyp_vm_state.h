@@ -136,6 +136,15 @@ public:
     if (el0_only)
       _sctlr &= ~Cpu::Cp15_c1_mmu;
 
+    // Workaround for errata #852523 (Cortex-A57) and #853709 (Cortex-A72):
+    // Do this before writing to SCTLR_EL1.
+    if (EXPECT_TRUE(Cpu::has_aarch32_el1()))
+      {
+        asm volatile ("msr DACR32_EL2, %x0"  : : "r"(dacr32));
+        //  asm volatile ("msr FPEXC32_EL2, %x0" : : "r"(fpexc32));
+        asm volatile ("msr IFSR32_EL2, %x0"  : : "r"(ifsr32));
+      }
+
     asm volatile ("msr SCTLR_EL1, %x0" : : "r"(_sctlr));
     asm volatile ("msr ESR_EL1, %x0"   : : "r"(esr));
 
@@ -146,13 +155,6 @@ public:
 
     asm volatile ("msr AFSR0_EL1, %x0" : : "r"(afsr[0]));
     asm volatile ("msr AFSR1_EL1, %x0" : : "r"(afsr[1]));
-
-    if (EXPECT_TRUE(Cpu::has_aarch32_el1()))
-      {
-        asm volatile ("msr DACR32_EL2, %x0"  : : "r"(dacr32));
-        //  asm volatile ("msr FPEXC32_EL2, %x0" : : "r"(fpexc32));
-        asm volatile ("msr IFSR32_EL2, %x0"  : : "r"(ifsr32));
-      }
 
     asm volatile ("msr VMPIDR_EL2, %x0" : : "r" (vmpidr));
     asm volatile ("msr VPIDR_EL2, %x0"  : : "r" (vpidr));
