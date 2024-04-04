@@ -136,7 +136,7 @@ PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
 INTERFACES_KERNEL += 	mem_op kmem_space boot_uart_init     \
 			irq_chip_generic bootstrap                  \
-			outer_cache cascade_irq   \
+			outer_cache  \
 			irq_mgr_multi_chip smc_call psci
 
 INTERFACES_KERNEL-$(CONFIG_ARM_MPCORE) += scu

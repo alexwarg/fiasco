@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "irq_chip.h"
 
