@@ -80,7 +80,8 @@ CXXSRC_KERNEL-a$(CONFIG_SERIAL) += vkey_noserial.cc
 CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)
 
 CXXSRC_KERNEL-$(CONFIG_JDB) += \
-	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc
+	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc \
+	tb_entry_generic.cc
 
 CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
@@ -126,7 +127,7 @@ CXXSRC_JDB += kern_cnt.cc
 
 ifeq ("$(CONFIG_JDB)","y")
 INTERFACES_KERNEL += \
-	jdb_tbuf jdb_tbuf_init tb_entry jdb_trace
+	jdb_tbuf jdb_tbuf_init jdb_trace
 endif
 
 # - do not profile all of MINILIBC, because it is used in the BOOT subsystem

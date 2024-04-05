@@ -28,6 +28,8 @@ SRC_S = $(foreach subsys, $(SUBSYSTEMS), $(ASSRC_$(subsys)))
 SRC_C = $(foreach subsys, $(SUBSYSTEMS), $(CSRC_$(subsys)))
 SRC_CC = $(foreach subsys, $(SUBSYSTEMS), $(CXXSRC_$(subsys)))
 
+$(SRC_CC): pre_parts.h
+
 include $(srcdir)/Makerules.global # also reads objdir/Makerules.local
 
 include $(MAKERULES_SUBSYS)
@@ -162,6 +164,11 @@ DEPS.dot: $(KERNEL_MODULES_CPP)
 	tred $< | dot -Tsvg -Gmclimit=200.0 -Gnslimit=500.0 \
 	  -Gsize="11,8" -Granksep=0.7 -Grotate=90 -o $@ 
 
+
+pre_parts.h: FORCE
+	$(VERBOSE)echo "#pragma once" >$@.new; \
+	$(foreach i,$(PREPROCESS_PARTS), echo "#define PRE_$i 1" >>$@.new;) \
+	$(MOVE_IF_CHANGE) $@.new $@ || true
 
 ###
 
