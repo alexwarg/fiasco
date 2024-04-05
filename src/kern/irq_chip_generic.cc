@@ -1,29 +1,11 @@
-INTERFACE:
 
-#include "irq_chip.h"
-
-
-class Irq_chip_gen : public Irq_chip_icu
-{
-public:
-  Irq_chip_gen() = default;
-  explicit Irq_chip_gen(unsigned nirqs) { init(nirqs); }
-
-private:
-  unsigned _nirqs;
-  Irq_base **_irqs;
-};
-
-
-// -------------------------------------------------------------------------
-IMPLEMENTATION:
+#include "irq_chip_generic.h"
 
 #include <cstring>
 
 #include "boot_alloc.h"
 #include "mem.h"
 
-PUBLIC
 void
 Irq_chip_gen::init(unsigned nirqs)
 {
@@ -32,14 +14,8 @@ Irq_chip_gen::init(unsigned nirqs)
   memset(_irqs, 0, sizeof(Irq_base*) * nirqs);
 }
 
-PUBLIC inline
-unsigned
-Irq_chip_gen::nr_irqs() const override
-{ return _nirqs; }
-
-PUBLIC
 Irq_base *
-Irq_chip_gen::irq(Mword pin) const override
+Irq_chip_gen::irq(Mword pin) const
 {
   if (pin >= _nirqs)
     return 0;
@@ -47,9 +23,8 @@ Irq_chip_gen::irq(Mword pin) const override
   return _irqs[pin];
 }
 
-PUBLIC
 bool
-Irq_chip_gen::alloc(Irq_base *irq, Mword pin, bool init = true) override
+Irq_chip_gen::alloc(Irq_base *irq, Mword pin, bool init)
 {
   if (pin >= _nirqs)
     return false;
@@ -62,9 +37,8 @@ Irq_chip_gen::alloc(Irq_base *irq, Mword pin, bool init = true) override
   return true;
 }
 
-PUBLIC
 void
-Irq_chip_gen::unbind(Irq_base *irq) override
+Irq_chip_gen::unbind(Irq_base *irq)
 {
   mask(irq->pin());
   Mem::barrier();
@@ -72,9 +46,8 @@ Irq_chip_gen::unbind(Irq_base *irq) override
   Irq_chip_icu::unbind(irq);
 }
 
-PUBLIC
 bool
-Irq_chip_gen::reserve(Mword pin) override
+Irq_chip_gen::reserve(Mword pin)
 {
   if (pin >= _nirqs)
     return false;

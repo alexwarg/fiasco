@@ -108,9 +108,11 @@ VPATH		+= jdb/mips/$(BITS) jdb/mips jdb
 PRIVATE_INCDIR 	+= kern/mips/$(BITS) kern/mips kern
 
 INTERFACES_KERNEL +=	boot_uart_init cp0_status cm \
-			mips_cpu_irqs irq_chip_generic \
+			mips_cpu_irqs \
 			alternatives \
 			cpu_p5600
+
+CXXSRC_KERNEL += irq_chip_generic.cc
 
 #missing: jdb_extensions
 
