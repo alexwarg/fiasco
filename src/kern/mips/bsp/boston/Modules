@@ -4,7 +4,7 @@ RAM_PHYS_BASE      := 0x0
 PREPROCESS_PARTS   += boston
 OBJECTS_LIBUART    += uart_16550.o uart_16550_dw.o
 LIBUART_UART_FLAGS += $(call LIBUART_UART, 16550_dw)
-INTERFACES_KERNEL  += irq_mgr_flex mips_bsp_irqs gic
+INTERFACES_KERNEL  += mips_bsp_irqs gic
 
 mips_bsp_irqs_IMPL := mips_bsp_irqs-boston
 clock_IMPL         += clock-generic

@@ -1,6 +1,8 @@
-INTERFACE:
+#pragma once
 
 #include "irq_mgr.h"
+#include "globalconfig.h"
+
 #include <cstdio>
 
 /**
@@ -91,6 +93,8 @@ public:
     return 0;
   }
 
+  void print_infos();
+
 private:
   struct Chip
   {
@@ -103,22 +107,25 @@ private:
   Chip _chips[MAX_CHIPS];
 };
 
-IMPLEMENTATION [!debug]:
+#if ! defined (CONFIG_JDB)
 
-PUBLIC template<unsigned MAX_CHIPS>
+template<unsigned MAX_CHIPS>
 void
 Irq_mgr_flex<MAX_CHIPS>::print_infos()
 {
   for (auto *e = _chips; e != _chips + _used; ++e)
     printf("  %3d-%3d: @%p\n", e->start, e->end - 1, e->chip);
 }
-IMPLEMENTATION [debug]:
 
-PUBLIC template<unsigned MAX_CHIPS>
+#else // !CONFIG_JDB
+
+template<unsigned MAX_CHIPS>
 void
 Irq_mgr_flex<MAX_CHIPS>::print_infos()
 {
   for (auto *e = _chips; e != _chips + _used; ++e)
     printf("  %3d-%3d: %s\n", e->start, e->end - 1, e->chip->chip_type());
 }
+
+#endif // ! CONFIG_JDB
 
