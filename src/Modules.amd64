@@ -92,7 +92,6 @@ INTERFACES_KERNEL	+= \
 			   boot_console syscall_entry \
 			   irq_msi apic pit boot_info \
 			   x86desc gdt idt tss timer_irq dirq \
-			   i8259
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
 INTERFACES_KERNEL-$(CONFIG_CPU_VIRT) += svm vmx vm vm_svm vm_vmx vm_vmx_ept
