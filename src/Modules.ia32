@@ -171,7 +171,7 @@ endif
 ifeq ("$(CONFIG_SCHED_HPET)","y")
   timer_IMPL		+= timer-hpet
   timer_tick_IMPL       += timer_tick-single-vector timer_tick-ia32
-  INTERFACES_KERNEL     += hpet
+  CXXSRC_KERNEL         += hpet.cc
 endif
 
 ifeq ("$(CONFIG_JDB)","y")
