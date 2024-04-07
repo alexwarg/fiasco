@@ -90,7 +90,7 @@ INTERFACES_KERNEL	+= \
 			   irq_chip_ia32 irq_chip_pic \
 			   io_apic intel_iommu io_apic_remapped \
 			   boot_console syscall_entry \
-			   irq_msi apic pit boot_info checksum \
+			   irq_msi apic pit boot_info \
 			   x86desc gdt idt tss timer_irq dirq \
 			   i8259
 
@@ -103,7 +103,8 @@ CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	task_vcpu_resume.cc \
 	io_space.cc \
 	acpi.cc \
-	__main.cc
+	checksum.cc \
+	__main.cc \
 
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 
