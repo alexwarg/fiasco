@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 #include <cstring>
@@ -10,7 +9,6 @@ IMPLEMENTATION:
 #include "static_init.h"
 #include "irq.h"
 
-STATIC_INITIALIZER  (uart_console_init_stage2);
 
 static void uart_console_init_stage2()
 {
@@ -39,3 +37,5 @@ static void uart_console_init_stage2()
       break;
     }
 }
+
+STATIC_INITIALIZER  (uart_console_init_stage2);

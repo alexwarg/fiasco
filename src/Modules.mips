@@ -113,10 +113,10 @@ INTERFACES_KERNEL +=	boot_uart_init cp0_status cm \
 			cpu_p5600
 
 CXXSRC_KERNEL += irq_chip_generic.cc
+CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 
 #missing: jdb_extensions
 
-INTERFACES_KERNEL-$(CONFIG_SERIAL) += uart_console
 INTERFACES_KERNEL-$(CONFIG_CPU_VIRT) += vz
 
 INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
