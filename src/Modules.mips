@@ -115,7 +115,7 @@ INTERFACES_KERNEL +=	boot_uart_init cp0_status cm \
 			alternatives \
 			cpu_p5600
 
-CXXSRC_KERNEL += irq_chip_generic.cc
+CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 
 #missing: jdb_extensions
@@ -133,7 +133,6 @@ continuation_IMPL	:= continuation-mips
 cp0_status_IMPL         := cp0_status
 cpu_IMPL		:= cpu cpu-mips
 cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
-entry_frame_IMPL	:= entry_frame-mips
 fpu_IMPL		:= fpu fpu-mips
 ipi_IMPL		:= ipi ipi-mips
 kdb_ke_IMPL		+= kdb_ke-mips

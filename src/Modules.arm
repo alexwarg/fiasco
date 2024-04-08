@@ -144,6 +144,7 @@ INTERFACES_KERNEL += 	mem_op kmem_space    \
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc \
 	irq_chip_generic.cc \
+	entry_frame.cc \
 	__main.cc
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc vgic_global.cc
@@ -173,11 +174,6 @@ context_IMPL	  	:= context context-arm context-arm-$(BITS) \
 continuation_IMPL	:= continuation-arm
 cpu_IMPL	  	:= cpu cpu-arm cpu-arm-hyp cpu-arm-$(BITS)
 cpu_lock_IMPL  	  	:= cpu_lock cpu_lock-generic
-ifeq ($(CONFIG_BIT64),y)
-  entry_frame_IMPL	:= entry_frame-arm
-else
-  entry_frame_IMPL	:= entry_frame entry_frame-arm
-endif
 fpu_IMPL		:= fpu fpu-arm
 gic_IMPL		:= gic
 gic_cpu_v3_IMPL		:= gic_cpu_v3 gic_cpu_v3-$(BITS)

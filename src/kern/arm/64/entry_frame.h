@@ -1,8 +1,10 @@
-INTERFACE [arm && 64bit]:
+#pragma once
 
 #include "l4_types.h"
 #include "types.h"
 #include "processor.h"
+#include "mem.h"
+#include "globalconfig.h"
 
 class Syscall_frame
 {
@@ -36,6 +38,8 @@ public:
 
   void tag(L4_msg_tag const &tag)
   { r[0] = tag.raw(); }
+
+  void dump() const;
 };
 
 class Entry_frame;
@@ -88,60 +92,34 @@ public:
 
   Mword ip_syscall_page_user() const
   { return pc; }
+
+  void psr_set_mode(unsigned char m)
+  {
+    pstate = (pstate & ~Proc::Status_mode_mask) | m;
+  }
+
+#if defined (CONFIG_CPU_VIRT)
+  bool check_valid_user_psr() const
+  { return (pstate & 0x1c) != 0x08; }
+#else // CONFIG_CPU_VIRT
+  bool check_valid_user_psr() const
+  { return (pstate & Proc::Status_mode_mask) == 0x00; }
+#endif // CONFIG_CPU_VIRT
 };
 
-class Entry_frame : public Return_frame {};
 
-//------------------------------------------------------------------
-IMPLEMENTATION [arm && 64bit && !cpu_virt]:
-
-PUBLIC inline
-bool
-Return_frame::check_valid_user_psr() const
-{ return (pstate & Proc::Status_mode_mask) == 0x00; }
-
-//------------------------------------------------------------------
-IMPLEMENTATION [arm && 64bit && cpu_virt]:
-
-PUBLIC inline
-bool
-Return_frame::check_valid_user_psr() const
-{ return (pstate & 0x1c) != 0x08; }
-
-// ------------------------------------------------------
-IMPLEMENTATION [arm && 64bit]:
-
-#include <cstdio>
-#include "processor.h"
-#include "mem.h"
-
-PUBLIC inline NEEDS["processor.h", "mem.h"]
-void
-Entry_frame::copy_and_sanitize(Entry_frame const *src)
+class Entry_frame : public Return_frame
 {
-  // omit eret_work, ksp, esr, pf_address
-  Mem::memcpy_mwords(&r[0], &src->r[0], 31);
-  usp = src->usp;
-  pc  = src->pc;
-  pstate = access_once(&src->pstate);
-  pstate &= ~(Proc::Status_mode_mask | Proc::Status_interrupts_mask);
-  pstate |= Proc::Status_mode_user | Proc::Status_always_mask;
-}
-
-PUBLIC inline NEEDS["processor.h"]
-void
-Return_frame::psr_set_mode(unsigned char m)
-{
-  pstate = (pstate & ~Proc::Status_mode_mask) | m;
-}
-
-PUBLIC
-void
-Syscall_frame::dump()
-{
-  printf(" R0: %08lx  R1: %08lx  R2: %08lx  R3: %08lx\n",
-         r[0], r[1], r[2], r[3]);
-  printf(" R4: %08lx\n", r[4]);
-}
-
+public:
+  void copy_and_sanitize(Entry_frame const *src)
+  {
+    // omit eret_work, ksp, esr, pf_address
+    Mem::memcpy_mwords(&r[0], &src->r[0], 31);
+    usp = src->usp;
+    pc  = src->pc;
+    pstate = access_once(&src->pstate);
+    pstate &= ~(Proc::Status_mode_mask | Proc::Status_interrupts_mask);
+    pstate |= Proc::Status_mode_user | Proc::Status_always_mask;
+  }
+};
 

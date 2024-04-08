@@ -119,7 +119,6 @@ context_IMPL		:= context context-ia32 context-ia32-64 context-vcpu
 continuation_IMPL	:= continuation-ia32-64
 cpu_IMPL		:= cpu cpu-ia32 cpu-64
 dirq_IMPL		:= dirq-ia32
-entry_frame_IMPL	:= entry_frame entry_frame-amd64
 fpu_IMPL		:= fpu fpu-ia32
 ipi_IMPL		:= ipi ipi-ia32
 kdb_ke_IMPL		+= kdb_ke-ia32
