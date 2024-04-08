@@ -136,7 +136,6 @@ cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
 fpu_IMPL		:= fpu fpu-mips
 ipi_IMPL		:= ipi ipi-mips
 kdb_ke_IMPL		+= kdb_ke-mips
-kernel_task_IMPL	:= kernel_task
 kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-mips
 kmem_alloc_IMPL		:= kmem_alloc kmem_alloc-mips
 map_util_IMPL		:= map_util map_util-mem map_util-objs

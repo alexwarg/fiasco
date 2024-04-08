@@ -39,7 +39,7 @@ Mem_space::peek_user(T const *addr)
   return *reinterpret_cast<T const *>(ka);
 }
 
-PROTECTED static
+PUBLIC static
 void
 Mem_space::set_syscall_page(void *p)
 {
@@ -85,6 +85,27 @@ Mem_space::pmem_to_phys(Address virt) const
 {
   return Kmem::kdir->virt_to_phys(virt);
 }
+
+//----------------------------------------------------------------------------
+IMPLEMENTATION [arm && 32bit && !cpu_virt]:
+PUBLIC static
+void
+Mem_space::set_syscall_page(void *p)
+{
+  auto pte = Kmem::kdir->walk(Virt_addr(Kmem_space::Syscalls),
+                              Pdir::Depth, true,
+                              Kmem_alloc::q_allocator(Ram_quota::root));
+
+  if (pte.level == 0) // allocation of second level faild
+    panic("FATAL: Error mapping syscall page to %p\n",
+          (void *)Kmem_space::Syscalls);
+
+  pte.set_page(pte.make_page(Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)p)),
+                             Page::Attr(Page::Rights::URX(), Page::Type::Normal(),
+                                        Page::Kern::Global())));
+  pte.write_back_if(true, Mem_unit::Asid_kernel);
+}
+
 
 //-----------------------------------------------------------------------------
 IMPLEMENTATION [arm_v6]:

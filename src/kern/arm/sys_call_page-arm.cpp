@@ -87,7 +87,7 @@ Sys_call_page::set_dmb(Unsigned32 *m)
 IMPLEMENTATION:
 
 #include <cstring>
-#include "kernel_task.h"
+#include "mem_space.h"
 #include "mem_layout.h"
 #include "vmem_alloc.h"
 #include "panic.h"
@@ -111,5 +111,5 @@ Sys_call_page::init()
 
   Mem_unit::flush_cache();
 
-  Kernel_task::map_syscall_page(sys_calls);
+  Mem_space::set_syscall_page(sys_calls);
 }

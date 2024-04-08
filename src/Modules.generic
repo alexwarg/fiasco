@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
 			   kernel_thread map_util        \
 			   config vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu               \
-                           kernel_task platform_control_object          \
+                           platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   utcb_init perf_cnt   \
 			   ipi  \
@@ -47,6 +47,7 @@ CXXSRC_KERNEL += \
 	irq_mgr.cc \
 	kernel_console.cc \
 	kernel_panic.cc \
+	kernel_task.cc \
 	kmem_slab.cc \
 	kobject.cc \
 	kobject_helper.cc \
