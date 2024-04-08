@@ -1,4 +1,4 @@
-INTERFACE [pf_sa1100]:
+#pragma once
 
 #include "types.h"
 #include "mmio_register_block.h"
