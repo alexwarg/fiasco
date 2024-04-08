@@ -1,12 +1,13 @@
-INTERFACE [arm && pic_gic]:
 
-#include "assert.h"
+#pragma once
+
 #include "cascade_irq.h"
 #include "cpu.h"
-#include "kmem.h"
 #include "irq_chip_generic.h"
 #include "gic_dist.h"
+#include "globalconfig.h"
 
+#include <cassert>
 #include <cstdio>
 
 class Gic : public Irq_chip_gen
@@ -17,6 +18,8 @@ protected:
   Gic_dist _dist;
 
 public:
+  static void set_irq_handler(void (*irq_handler)());
+
   explicit Gic(Address dist_base) : _dist(dist_base) {}
 
   virtual void softint_cpu(Cpu_number target, unsigned m) = 0;
@@ -34,6 +37,50 @@ public:
   virtual unsigned get_pmr() { return 0; }
   virtual void set_pmr(unsigned) {}
   virtual unsigned get_pending() { return 1023; }
+
+  unsigned hw_nr_irqs()
+  { return _dist.hw_nr_irqs(); }
+
+  void disable_locked(unsigned irq)
+  { _dist.disable_irq(irq); }
+
+  void enable_locked(unsigned irq)
+  { _dist.enable_irq(irq); }
+
+  void set_pending_irq(unsigned idx, Unsigned32 val)
+  {
+    _dist.set_pending_irq(idx, val);
+  }
+
+  void mask(Mword pin) override
+  {
+    assert (cpu_lock.test());
+    disable_locked(pin);
+  }
+
+  void unmask(Mword pin) override
+  {
+    assert (cpu_lock.test());
+    enable_locked(pin);
+  }
+
+  int set_mode(Mword pin, Mode m) override
+  {
+    return _dist.set_mode(pin, m);
+  }
+
+  bool is_edge_triggered(Mword pin) const override
+  {
+    return _dist.is_edge_triggered(pin);
+  }
+
+  bool alloc(Irq_base *irq, Mword pin, bool init = true) override;
+
+#if defined (CONFIG_JDB)
+  char const *chip_type() const override
+  { return "GIC"; }
+#endif // CONFIG_JDB
+
 };
 
 template<typename IMPL, typename CPU>
@@ -181,143 +228,4 @@ public:
 template<typename IMPL, typename CPU>
 IMPL *Gic_mixin<IMPL, CPU>::primary;
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pic_gic]:
-
-#include <cassert>
-#include <cstring>
-#include <cstdio>
-
-#include "io.h"
-#include "irq_chip_generic.h"
-#include "panic.h"
-#include "processor.h"
-
-extern "C" void irq_handler()
-{ panic("INVALID IRQ HANDLER"); }
-
-PUBLIC inline
-unsigned
-Gic::hw_nr_irqs()
-{ return _dist.hw_nr_irqs(); }
-
-PUBLIC inline
-void Gic::disable_locked(unsigned irq)
-{ _dist.disable_irq(irq); }
-
-PUBLIC inline
-void Gic::enable_locked(unsigned irq)
-{ _dist.enable_irq(irq); }
-
-
-PUBLIC
-void
-Gic::mask(Mword pin) override
-{
-  assert (cpu_lock.test());
-  disable_locked(pin);
-}
-
-PUBLIC
-void
-Gic::unmask(Mword pin) override
-{
-  assert (cpu_lock.test());
-  enable_locked(pin);
-}
-
-PUBLIC
-int
-Gic::set_mode(Mword pin, Mode m) override
-{
-  return _dist.set_mode(pin, m);
-}
-
-PUBLIC
-bool
-Gic::is_edge_triggered(Mword pin) const override
-{
-  return _dist.is_edge_triggered(pin);
-}
-
-
-//-------------------------------------------------------------------
-IMPLEMENTATION [arm && !arm_em_tz]:
-
-PUBLIC
-bool
-Gic::alloc(Irq_base *irq, Mword pin, bool init = true) override
-{
-  // allow local irqs to be allocated on each CPU
-  return (pin < 32 && irq->chip() == this && irq->pin() == pin)
-         || Irq_chip_gen::alloc(irq, pin, init);
-}
-
-//-------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_em_tz]:
-
-PUBLIC
-bool
-Gic::alloc(Irq_base *irq, Mword pin, bool init = true)
-{
-  if ((pin < 32 && irq->chip() == this && irq->pin() == pin)
-      || Irq_chip_gen::alloc(irq, pin, init))
-    {
-      printf("GIC: Switching IRQ %ld to secure\n", pin);
-      _dist.setup_pin(pin);
-      return true;
-    }
-  return false;
-}
-
-PUBLIC
-void
-Gic::set_pending_irq(unsigned idx, Unsigned32 val)
-{
-  _dist.set_pending_irq(idx, val);
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
-PUBLIC
-char const *
-Gic::chip_type() const override
-{ return "GIC"; }
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [32bit && !cpu_virt]:
-
-PUBLIC static void
-Gic::set_irq_handler(void (*irq_handler)())
-{
-  extern void (*__irq_handler_fiq)();
-  extern void (*__irq_handler_irq)();
-  __irq_handler_fiq = irq_handler;
-  __irq_handler_irq = irq_handler;
-}
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [32bit && cpu_virt]:
-
-PUBLIC static void
-Gic::set_irq_handler(void (*irq_handler)())
-{
-  extern void (*__irq_handler_irq)();
-  __irq_handler_irq = irq_handler;
-}
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [64bit]:
-
-#include "mem_unit.h"
-
-PUBLIC static void
-Gic::set_irq_handler(void (*irq_handler)())
-{
-  extern Unsigned32 __irq_handler_b_irq[1];
-  auto diff = reinterpret_cast<Unsigned32 *>(irq_handler) - &__irq_handler_b_irq[0];
-  // b imm26 (128 MB offset)
-  __irq_handler_b_irq[0] = 0x14000000 | (diff & 0x3ffffff);
-  Mem_unit::flush_cache(__irq_handler_b_irq, __irq_handler_b_irq + 1);
-}
 

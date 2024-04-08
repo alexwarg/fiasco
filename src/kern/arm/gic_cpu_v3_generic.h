@@ -1,8 +1,8 @@
-INTERFACE:
+#pragma once
 
 #include "types.h"
 
-class Gic_cpu_v3
+class Gic_cpu_v3_generic
 {
 public:
   enum
