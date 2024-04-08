@@ -66,11 +66,12 @@ DRIVERS			:= libdrivers.a libgluedriverslibc.a
 VPATH			+= drivers/$(CONFIG_XARCH) drivers
 PRIVATE_INCDIR		+= drivers/$(CONFIG_XARCH) drivers
 INTERFACES_DRIVERS	:= keyb reset \
-			   processor delayloop mem
+			   processor mem
 reset_IMPL		:= reset-amd64
 LIBUART_UART_FLAGS       = $(call LIBUART_UART, 16550) -DUART_16550_INIT_MCR=0x08
 CXXSRC_DRIVERS		:= glue_libc.cc console.cc mux_console.cc \
-	vga_console.cc
+	vga_console.cc \
+	delayloop.cc
 
 CXXSRC_DRIVERS-$(CONFIG_SERIAL) += filter_console.cc
 CXXSRC_DRIVERS		+= $(CXXSRC_DRIVERS-y)

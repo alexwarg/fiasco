@@ -1,28 +1,12 @@
-INTERFACE:
-
-#include "std_macros.h"
-#include "initcalls.h"
-
-class Delay
-{
-private:
-  static unsigned count;
-
-public:
-  static void init() FIASCO_INIT;
-};
-
-IMPLEMENTATION:
+#include "delayloop.h"
 
 #include "kip.h"
 #include "processor.h"
 #include "timer.h"
 
-unsigned Delay::count;
+static unsigned cyc_count;
 
-PRIVATE static
-unsigned
-Delay::measure()
+static unsigned measure()
 {
   Cpu_time t1;
   unsigned count = 0;
@@ -42,30 +26,30 @@ Delay::measure()
   return count;
 }
 
-IMPLEMENT void
-Delay::init()
+void
+Delay::init() FIASCO_INIT
 {
-  count = measure();
+  cyc_count = measure();
   unsigned c2 = measure();
-  if (c2 > count)
-    count = c2;
+  if (c2 > cyc_count)
+    cyc_count = c2;
 }
 
 /**
  * Hint: ms is actually the timer granularity, which
  *       currently happens to be milliseconds
  */
-PUBLIC static void
+void
 Delay::delay(unsigned ms)
 {
   Kip *k = Kip::k();
   while (ms--)
     {
-      unsigned c = count;
+      unsigned c = cyc_count;
       while (c--)
         {
-	  (void)k->clock();
-	  Proc::pause();
-	}
+          (void)k->clock();
+          Proc::pause();
+        }
     }
 }
