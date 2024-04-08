@@ -14,6 +14,8 @@ namespace L4
   class Uart_16550_dw : public Uart_16550
   {
   public:
+    Uart_16550_dw() = default;
+
     explicit Uart_16550_dw(unsigned long base_rate)
     : Uart_16550(base_rate)
     {}
