@@ -59,7 +59,12 @@ public:
   }
 
   ~Task() noexcept
-  { free_ku_mem(); }
+  {
+    // Task, and thus also its page table, is no longer used anywhere at this
+    // point, so no not necessary to flush the freed kernel user memory mappings
+    // from the TLB.
+    free_ku_mem(false, false);
+  }
 
 
   template<typename TASK_TYPE, bool MUST_SYNC_KERNEL = true,
@@ -80,7 +85,7 @@ public:
     return dec_ref() == 0;
   }
 
-  int alloc_ku_mem(L4_fpage ku_area);
+  int alloc_ku_mem(L4_fpage ku_area, bool need_remote_tlb_flush);
 
   virtual int resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode);
 
@@ -99,11 +104,13 @@ private:
   void map_utcb_ptr_page() {}
   bool invoke_arch(L4_msg_tag &tag, Utcb *utcb);
 
-  int alloc_ku_mem_chunk(User_ptr<void> u_addr, unsigned size, void **k_addr);
-  void free_ku_mem(Ku_mem *m);
+  int alloc_ku_mem_chunk(User_ptr<void> u_addr, unsigned size, void **k_addr,
+                         bool need_remote_tlb_flush);
+  void free_ku_mem(Ku_mem *m, bool need_tlb_flush, bool need_remote_tlb_flush);
   void free_ku_mem_chunk(void *k_addr, User_ptr<void> u_addr, unsigned size,
-                         unsigned mapped_size);
-  void free_ku_mem();
+                         unsigned mapped_size, bool need_tlb_flush,
+                         bool need_remote_tlb_flush);
+  void free_ku_mem(bool need_tlb_flush, bool need_remote_tlb_flush);
 
   L4_msg_tag sys_map(L4_fpage::Rights rights, Syscall_frame *f, Utcb *utcb);
   L4_msg_tag sys_unmap(Syscall_frame *f, Utcb *utcb);

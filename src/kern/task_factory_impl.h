@@ -35,7 +35,7 @@ Task::create(Ram_quota *q, L4_msg_tag t, Utcb const *u, int *err)
       L4_fpage utcb_area(access_once(&u->values[UTCB_AREA_MR]));
       if (utcb_area.is_valid())
         {
-          int e = v->alloc_ku_mem(utcb_area);
+          int e = v->alloc_ku_mem(utcb_area, false);
           if (e < 0)
             {
               *err = -e;
