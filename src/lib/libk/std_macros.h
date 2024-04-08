@@ -37,3 +37,10 @@
 #define FIASCO_STRINGIFY_(x) #x
 #define FIASCO_STRINGIFY(x) FIASCO_STRINGIFY_(x)
 
+#define __FX_CFG_PLACEHOLDER_1 0,
+#define __FX_cfg_2nd_arg(__i, val, ...) val
+#define __FX_cfg_defined(x) ___FX_cfg_defined(x)
+#define ___FX_cfg_defined(x) ____FX_cfg_defined(__FX_CFG_PLACEHOLDER_##x)
+#define ____FX_cfg_defined(x) __FX_cfg_2nd_arg(x 1, 0)
+#define IS_ENABLED(opt) __FX_cfg_defined(opt)
+
