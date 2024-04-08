@@ -54,7 +54,7 @@ DRIVERS			:= libdrivers.a libgluedriverslibc.a
 VPATH			+= drivers/mips/$(BITS) drivers/mips drivers
 PRIVATE_INCDIR		+= drivers/mips/$(BITS) drivers/mips drivers
 INTERFACES_DRIVERS	:= mem reset \
-			   processor io mmu
+			   processor mmu
 mem_IMPL		:= mem mem-mips
 processor_IMPL		:= processor processor-mips
 CXXSRC_DRIVERS		:= glue_libc.cc console.cc filter_console.cc \

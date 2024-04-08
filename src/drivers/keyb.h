@@ -1,4 +1,4 @@
-INTERFACE:
+#pragma once
 
 #include "console.h"
 
@@ -14,7 +14,16 @@ public:
   int getchar(bool blocking = true) override;
 
   // implemented empty
-  int write(char const *str, size_t len) override;
+  int write(char const *str, size_t len) override
+  {
+    (void) str;
+    return len;
+  }
+
+  Mword get_attributes() const override
+  {
+    return DIRECT | IN;
+  }
 
   enum Keymap { Keymap_en, Keymap_de };
   void set_keymap(Keymap);
@@ -22,19 +31,3 @@ public:
   Keyb() : Console(ENABLED) {}
 };
 
-
-IMPLEMENTATION:
-
-IMPLEMENT
-int
-Keyb::write(char const *, size_t len)
-{
-  return len;
-}
-
-PUBLIC
-Mword
-Keyb::get_attributes() const override
-{
-  return DIRECT | IN;
-}

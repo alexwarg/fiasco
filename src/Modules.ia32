@@ -66,20 +66,20 @@ OBJECTS_LIBUART = uart_16550.o
 DRIVERS			:= libdrivers.a libgluedriverslibc.a
 VPATH			+= drivers/$(CONFIG_XARCH) drivers
 PRIVATE_INCDIR		+= drivers/$(CONFIG_XARCH) drivers
-INTERFACES_DRIVERS	:= keyb reset \
+INTERFACES_DRIVERS	:= reset \
 			   processor mem
 reset_IMPL		:= reset-ia32
 LIBUART_UART_FLAGS      := $(call LIBUART_UART, 16550)
 CXXSRC_DRIVERS		:= glue_libc.cc console.cc mux_console.cc \
 	vga_console.cc \
-	delayloop.cc
+	delayloop.cc \
+	keyb-pc.cc
 
 CXXSRC_DRIVERS-$(CONFIG_SERIAL) += filter_console.cc
 CXXSRC_DRIVERS		+= $(CXXSRC_DRIVERS-y)
 
 NOOPT			+= $(patsubst %.o, %, $(OBJ_DRIVERS))
 
-keyb_IMPL		:= keyb keyb-pc 
 io_IMPL			:= io io-ia32
 mem_IMPL		:= mem mem-ia32
 processor_IMPL		:= processor processor-ia32
