@@ -1,6 +1,10 @@
-INTERFACE:
+#pragma once
 
-EXTENSION class Hyp_vm_state
+#include "hyp_vm_state_generic.h"
+
+#include "cpu.h"
+
+class Hyp_vm_state : public Hyp_vm_state_generic
 {
 public:
   struct Regs_g
@@ -75,7 +79,7 @@ public:
   Unsigned32 fpinst2;
 };
 
-EXTENSION struct Context_hyp
+struct Context_hyp : Context_hyp_generic
 {
 public:
   // Banked registers for irq, svc, abt, and und modes
@@ -94,14 +98,12 @@ public:
   // because a hyp kernel runs applications in system mode (PL1)
   Banked_fiq_regs fiq;
   Banked_mode_regs irq, svc, abt, und;
+
+  void save();
+  void load();
 };
 
-//------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "cpu.h"
-
-PUBLIC inline NEEDS["cpu.h"]
+inline
 void
 Context_hyp::save()
 {
@@ -132,7 +134,7 @@ Context_hyp::save()
 #undef STORER
 }
 
-PUBLIC inline NEEDS["cpu.h"]
+inline
 void
 Context_hyp::load()
 {

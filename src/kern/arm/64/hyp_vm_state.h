@@ -1,6 +1,8 @@
-INTERFACE:
+#pragma once
 
-EXTENSION class Hyp_vm_state
+#include "hyp_vm_state_generic.h"
+
+class Hyp_vm_state : public Hyp_vm_state_generic
 {
 public:
   struct Regs_g
@@ -61,7 +63,7 @@ public:
   Unsigned32 ifsr32;
 };
 
-EXTENSION struct Context_hyp
+struct Context_hyp : Context_hyp_generic
 {
 public:
   Unsigned64 sp_el1;
@@ -76,12 +78,13 @@ public:
   // VM / USER RO but VMM writable
   Unsigned64 vmpidr = 1UL << 31;
   Unsigned32 vpidr = Cpu::midr();
+
+  void save();
+  void load();
 };
 
-//------------------------------------------------------------------
-IMPLEMENTATION:
 
-PUBLIC inline
+inline
 void
 Context_hyp::save()
 {
@@ -110,7 +113,7 @@ Context_hyp::save()
   asm volatile ("mrs %x0, CSSELR_EL1": "=r"(csselr));
 }
 
-PUBLIC inline
+inline
 void
 Context_hyp::load()
 {

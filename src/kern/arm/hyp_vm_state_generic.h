@@ -1,10 +1,10 @@
-INTERFACE:
+#pragma once
 
 #include "cpu.h"
 #include "types.h"
 #include "vgic_global.h"
 
-class Hyp_vm_state
+class Hyp_vm_state_generic
 {
 public:
   enum { Version = 0 };
@@ -29,7 +29,7 @@ public:
   static_assert(sizeof(Vm_info) <= 0x200, "Vm_info must less than 0x200 bytes");
 };
 
-struct Context_hyp
+struct Context_hyp_generic
 {
   Unsigned64 par;
   Unsigned64 hcr = Cpu::Hcr_non_vm_bits;
