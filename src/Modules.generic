@@ -29,7 +29,7 @@ INTERFACES_KERNEL	:= \
 			   fpu_state fpu_alloc cpu entry_frame               \
                            kernel_task platform_control_object          \
 			   continuation timer_tick platform_control          \
-			   utcb_init perf_cnt trap_state       \
+			   utcb_init perf_cnt   \
 			   ipi  \
 			   clock sys_call_page                    \
 
@@ -69,6 +69,7 @@ CXXSRC_KERNEL += \
 	thread_object.cc \
 	timeout.cc \
 	timeslice_timeout.cc \
+	trap_state.cc \
 	vlog.cc \
 
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
