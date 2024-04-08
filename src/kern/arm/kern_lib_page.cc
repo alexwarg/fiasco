@@ -1,12 +1,13 @@
-IMPLEMENTATION [arm && !cpu_virt]:
 
 #include <panic.h>
 
 #include "kmem_alloc.h"
+#include "kmem_space.h"
 #include "kmem.h"
 #include "ram_quota.h"
 #include "paging.h"
 #include "static_init.h"
+#include "globalconfig.h"
 
 class Kern_lib_page
 {
@@ -14,7 +15,6 @@ public:
   static void init();
 };
 
-IMPLEMENT_DEFAULT
 void Kern_lib_page::init()
 {
   extern char kern_lib_start;
@@ -35,60 +35,7 @@ void Kern_lib_page::init()
 
 STATIC_INITIALIZE(Kern_lib_page);
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && !arm_v6plus]:
-
-asm (
-    ".p2align 12                         \n"
-    "kern_lib_start:                     \n"
-
-    // atomic add
-    // r0: memory reference
-    // r1: delta value
-    "  ldr r2, [r0]			 \n"
-    "  add r2, r2, r1                    \n"
-    "  nop                               \n"
-    "  str r2, [r0]                      \n"
-    // forward point
-    "  mov r0, r2                        \n"
-    "  mov pc, lr                        \n"
-    // return: always succeeds, new value
-
-    // compare exchange
-    // r0: memory reference
-    // r1: cmp value
-    // r2: new value
-    // r3: tmp
-    ".p2align 8                          \n"
-    "  ldr r3, [r0]			 \n"
-    "  cmp r3, r1                        \n"
-    "  nop                               \n"
-    "  streq r2, [r0]                    \n"
-    // forward point
-    "  moveq r0, #1                      \n"
-    "  movne r0, #0                      \n"
-    "  mov pc, lr                        \n"
-    // return result: 1 success, 0 failure
-
-    // exchange
-    //  in-r0: memory reference
-    //  in-r1: new value
-    // out-r0: old value
-    // tmp-r2
-    ".p2align 8                          \n"
-    "  ldr r2, [r0]			 \n"
-    "  nop                               \n"
-    "  nop                               \n"
-    "  str r1, [r0]                      \n"
-    // forward point
-    "  mov r0, r2                        \n"
-    "  mov pc, lr                        \n"
-    // return: always succeeds, old value
-    );
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_v6plus]:
-
+#if defined (CONFIG_ARM_V6PLUS)
 asm (
     ".p2align 12                         \n"
     ".global kern_lib_start              \n" // need this for mem_space.cpp
@@ -144,3 +91,54 @@ asm (
     "  mov pc, lr                        \n"
     // return: always succeeds, old value
     );
+
+#else // CONFIG_ARM_V6PLUS
+
+asm (
+    ".p2align 12                         \n"
+    "kern_lib_start:                     \n"
+
+    // atomic add
+    // r0: memory reference
+    // r1: delta value
+    "  ldr r2, [r0]			 \n"
+    "  add r2, r2, r1                    \n"
+    "  nop                               \n"
+    "  str r2, [r0]                      \n"
+    // forward point
+    "  mov r0, r2                        \n"
+    "  mov pc, lr                        \n"
+    // return: always succeeds, new value
+
+    // compare exchange
+    // r0: memory reference
+    // r1: cmp value
+    // r2: new value
+    // r3: tmp
+    ".p2align 8                          \n"
+    "  ldr r3, [r0]			 \n"
+    "  cmp r3, r1                        \n"
+    "  nop                               \n"
+    "  streq r2, [r0]                    \n"
+    // forward point
+    "  moveq r0, #1                      \n"
+    "  movne r0, #0                      \n"
+    "  mov pc, lr                        \n"
+    // return result: 1 success, 0 failure
+
+    // exchange
+    //  in-r0: memory reference
+    //  in-r1: new value
+    // out-r0: old value
+    // tmp-r2
+    ".p2align 8                          \n"
+    "  ldr r2, [r0]			 \n"
+    "  nop                               \n"
+    "  nop                               \n"
+    "  str r1, [r0]                      \n"
+    // forward point
+    "  mov r0, r2                        \n"
+    "  mov pc, lr                        \n"
+    // return: always succeeds, old value
+    );
+#endif // CONFIG_ARM_V6PLUS
