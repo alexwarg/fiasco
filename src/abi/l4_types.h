@@ -473,14 +473,14 @@ public:
    * Get the protocol ID.
    * \return the protocol ID.
    */
-  long proto() const noexcept
+  constexpr long proto() const noexcept
   { return long(_tag) >> 16; }
 
   /**
    * Get the binary representation.
    * \return the binary value of the tag.
    */
-  unsigned long raw() const noexcept
+  constexpr unsigned long raw() const noexcept
   { return _tag; }
 
   /**
@@ -488,7 +488,7 @@ public:
    * \return number message registers that shall be transferred
    *         uninterpreted to the receiving object.
    */
-  unsigned words() const noexcept
+  constexpr unsigned words() const noexcept
   { return _tag & 63; }
 
   /**
@@ -497,7 +497,7 @@ public:
    *         untyped words in the message registers.
    * \see L4_msg_item.
    */
-  unsigned items() const noexcept
+  constexpr unsigned items() const noexcept
   { return (_tag >> 6) & 0x3f; }
 
   /**
@@ -505,7 +505,7 @@ public:
    * \return the flags of the message tag, note reserved bits might be
    *         set in the result.
    */
-  Mword flags() const noexcept
+  constexpr Mword flags() const noexcept
   { return _tag; }
 
   /**
@@ -513,7 +513,7 @@ public:
    * \return true if the sender wishes to transfer FPU contents.
    * \see #Transfer_fpu.
    */
-  bool transfer_fpu() const noexcept
+  constexpr bool transfer_fpu() const noexcept
   { return _tag & Transfer_fpu; }
 
   /**
@@ -522,7 +522,7 @@ public:
    *         slice to the receiver.
    * \see #Schedule.
    */
-  bool do_switch() const noexcept
+  constexpr bool do_switch() const noexcept
   { return !(_tag & Schedule); }
 
   /**
@@ -541,7 +541,7 @@ public:
    * Is there an error flagged?
    * \return true if the error flag of the message tag is set.
    */
-  bool has_error() const noexcept
+  constexpr bool has_error() const noexcept
   { return _tag & Error; }
 
 private:
