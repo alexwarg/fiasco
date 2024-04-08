@@ -27,7 +27,7 @@ static unsigned measure()
 }
 
 void
-Delay::init() FIASCO_INIT
+Delay::init()
 {
   cyc_count = measure();
   unsigned c2 = measure();
