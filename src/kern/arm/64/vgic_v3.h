@@ -1,6 +1,9 @@
-IMPLEMENTATION  [cpu_virt && vgic]:
 
-PUBLIC static inline Gic_h::Hcr
+#pragma once
+
+#include "vgic_v3_generic.h"
+
+inline Gic_h::Hcr
 Gic_h_v3::hcr()
 {
   Unsigned32 v;
@@ -8,13 +11,13 @@ Gic_h_v3::hcr()
   return Hcr(v);
 }
 
-PUBLIC static inline void
+inline void
 Gic_h_v3::hcr(Gic_h::Hcr hcr)
 {
   asm volatile ("msr S3_4_C12_C11_0, %x0" : : "r"(hcr.raw));
 }
 
-PUBLIC static inline Gic_h::Vtr
+inline Gic_h::Vtr
 Gic_h_v3::vtr()
 {
   Unsigned32 v;
@@ -22,7 +25,7 @@ Gic_h_v3::vtr()
   return Vtr(v);
 }
 
-PUBLIC static inline Gic_h::Vmcr
+inline Gic_h::Vmcr
 Gic_h_v3::vmcr()
 {
   Unsigned32 v;
@@ -30,13 +33,13 @@ Gic_h_v3::vmcr()
   return Vmcr(v);
 }
 
-PUBLIC static inline void
+inline void
 Gic_h_v3::vmcr(Gic_h::Vmcr vmcr)
 {
   asm volatile ("msr S3_4_C12_C11_7, %x0" : : "r"(vmcr.raw));
 }
 
-PUBLIC static inline Gic_h::Misr
+inline Gic_h::Misr
 Gic_h_v3::misr()
 {
   Unsigned32 v;
@@ -44,7 +47,7 @@ Gic_h_v3::misr()
   return Misr(v);
 }
 
-PUBLIC static inline Unsigned32
+inline Unsigned32
 Gic_h_v3::eisr()
 {
   Unsigned32 v;
@@ -52,7 +55,7 @@ Gic_h_v3::eisr()
   return v;
 }
 
-PUBLIC static inline Unsigned32
+inline Unsigned32
 Gic_h_v3::elsr()
 {
   Unsigned32 v;
@@ -61,7 +64,7 @@ Gic_h_v3::elsr()
 }
 
 
-PUBLIC inline void
+inline void
 Gic_h_v3::save_aprs(Unsigned32 *a)
 {
   // NOTE: we should use ASM patching to do this and just
@@ -81,7 +84,7 @@ Gic_h_v3::save_aprs(Unsigned32 *a)
 #undef READ_APR
 }
 
-PUBLIC inline void
+inline void
 Gic_h_v3::load_aprs(Unsigned32 const *a)
 {
   // NOTE: we should use ASM patching to do this and just
@@ -101,7 +104,7 @@ Gic_h_v3::load_aprs(Unsigned32 const *a)
 #undef READ_APR
 }
 
-PUBLIC static inline ALWAYS_INLINE void
+inline ALWAYS_INLINE void
 Gic_h_v3::save_lrs(Gic_h::Arm_vgic::Lrs *lr, unsigned n)
 {
 #define TRANSFER_LR(ul,v,x) \
@@ -127,7 +130,7 @@ Gic_h_v3::save_lrs(Gic_h::Arm_vgic::Lrs *lr, unsigned n)
 #undef TRANSFER_LR
 }
 
-PUBLIC static inline ALWAYS_INLINE void
+inline ALWAYS_INLINE void
 Gic_h_v3::load_lrs(Gic_h::Arm_vgic::Lrs const *lr, unsigned n)
 {
 #define TRANSFER_LR(ul,v,x) \

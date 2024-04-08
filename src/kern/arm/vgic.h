@@ -1,4 +1,4 @@
-INTERFACE [arm && cpu_virt && vgic]:
+#pragma once
 
 #include "types.h"
 

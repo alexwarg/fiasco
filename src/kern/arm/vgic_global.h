@@ -1,4 +1,5 @@
-INTERFACE:
+
+#pragma once
 
 #include "vgic.h"
 
@@ -8,6 +9,3 @@ struct Gic_h_global
   static Gic_h *gic;
 };
 
-IMPLEMENTATION:
-
-Gic_h *Gic_h_global::gic;
