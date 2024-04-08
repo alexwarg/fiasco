@@ -134,7 +134,7 @@ VPATH 		+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 VPATH		+= jdb/arm/$(BITS) jdb/arm jdb
 PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
-INTERFACES_KERNEL += 	mem_op kmem_space boot_uart_init     \
+INTERFACES_KERNEL += 	mem_op kmem_space    \
 			bootstrap                  \
 			outer_cache  \
 			smc_call psci
@@ -146,7 +146,7 @@ CXXSRC_KERNEL += main_arm.cc \
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_arm_mp.cc
-CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
+CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
 
 INTERFACES_KERNEL-$(CONFIG_ARM_MPCORE) += scu
 INTERFACES_KERNEL-$(CONFIG_ARM_CORTEX_A9) += scu

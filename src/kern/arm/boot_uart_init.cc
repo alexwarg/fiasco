@@ -1,4 +1,3 @@
-IMPLEMENTATION [arm && serial]:
 
 #include "kernel_console.h"
 #include "kernel_uart.h"
