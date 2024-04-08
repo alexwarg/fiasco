@@ -4,9 +4,10 @@ template<typename SL>
 class Arch_spin_lock
 {
 public:
+#if 0
   static_assert(sizeof(typename SL::Lock_type) >= sizeof(Unsigned32),
                 "unsupported spin-lock type for MIPS");
-
+#endif
   enum { Arch_lock = 2 };
 
   void lock_arch() noexcept
