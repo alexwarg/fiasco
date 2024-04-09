@@ -1,87 +1,42 @@
-INTERFACE [svm]:
+#include <vm_svm.h>
+#include <globalconfig.h>
 
-#include "config.h"
-#include "vm.h"
 
-struct Vmcb;
-class Svm;
-
-class Vm_svm : public Vm
-{
-private:
-  static void resume_vm_svm(Mword phys_vmcb, Trex *regs)
-    asm("resume_vm_svm") __attribute__((__regparm__(3)));
-
-  enum
-  {
-    EFER_LME = 1 << 8,
-    EFER_LMA = 1 << 10,
-  };
-
-  static Vmcb *ext_state(Vcpu_state *s)
-  {
-    // 0x400: offset into vCPU state page for VMCB start.
-    return reinterpret_cast<Vmcb *>(reinterpret_cast<char *>(s) + 0x400);
-  }
-};
-
-// ------------------------------------------------------------------------
-INTERFACE [svm && debug]:
-
-#include "tb_entry.h"
-
-EXTENSION class Vm_svm
-{
-protected:
-  struct Log_vm_svm_exit : public Tb_entry
-  {
-    Mword exitcode, exitinfo1, exitinfo2, rip;
-    void print(String_buffer *buf) const;
-  };
-
-};
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [svm]:
-
-#include "context.h"
 #include "mem_space.h"
 #include "fpu.h"
 #include "svm.h"
 #include "thread.h" // XXX: circular dep, move this out here!
 #include "thread_state.h" // XXX: circular dep, move this out here!
 
+#include <kmem_slab.h>
+#include <task_factory_impl.h>
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [svm && ia32]:
+#if defined (CONFIG_BIT32)
 
 #include "virt_ia32_svm.h"
 
-PRIVATE inline
-void
+inline void
 Vm_svm::restore_segments(Context *, Unsigned16 fs, Unsigned16 gs)
 {
   Cpu::set_fs(fs);
   Cpu::set_gs(gs);
 }
 
-PRIVATE inline NEEDS["virt_ia32_svm.h"]
-Address
+inline Address
 Vm_svm::get_vm_cr3(Vmcb *)
 {
   // When running in 32bit mode we already return the page-table of our Vm
   // object, whether we're running with shadow or nested paging
   return phys_dir();
 }
+#endif // CONFIG_BIT32
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [svm && amd64]:
+#if defined (CONFIG_BIT64)
 
 #include "assert_opt.h"
 #include "virt_ia32_svm.h"
 
-PRIVATE inline
-void
+inline void
 Vm_svm::restore_segments(Context *ctxt, Unsigned16 fs, Unsigned16 gs)
 {
   Cpu::set_fs(fs);
@@ -93,8 +48,7 @@ Vm_svm::restore_segments(Context *ctxt, Unsigned16 fs, Unsigned16 gs)
     Cpu::set_gs_base(ctxt->gs_base());
 }
 
-PRIVATE inline NEEDS["assert_opt.h", "virt_ia32_svm.h"]
-Address
+inline Address
 Vm_svm::get_vm_cr3(Vmcb *v)
 {
   // When we have nested paging, we just return the 4lvl host page-table of
@@ -149,28 +103,8 @@ Vm_svm::get_vm_cr3(Vmcb *v)
 
   return vm_cr3;
 }
+#endif // CONFIG_BIT64
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [svm]:
-
-#include "kmem_slab.h"
-#include "task_factory_impl.h"
-
-PUBLIC
-Vm_svm::Vm_svm(Ram_quota *q)
-  : Vm(q)
-{}
-
-PUBLIC inline
-void *
-Vm_svm::operator new (size_t size, void *p) throw()
-{
-  (void)size;
-  assert (size == sizeof (Vm_svm));
-  return p;
-}
-
-PUBLIC
 void
 Vm_svm::operator delete (void *ptr)
 {
@@ -184,8 +118,7 @@ Vm_svm::operator delete (void *ptr)
 //   - force fpu ownership
 //   - debug registers not covered by VMCB
 
-PRIVATE inline
-void
+inline void
 Vm_svm::copy_state_save_area(Vmcb *dest, Vmcb *src)
 {
   Vmcb_state_save_area *d = &dest->state_save_area;
@@ -266,8 +199,7 @@ Vm_svm::copy_state_save_area(Vmcb *dest, Vmcb *src)
 }
 
 
-PRIVATE inline
-void
+inline void
 Vm_svm::copy_control_area(Vmcb *dest, Vmcb *src)
 {
   Vmcb_control_area *d = &dest->control_area;
@@ -318,7 +250,6 @@ Vm_svm::copy_control_area(Vmcb *dest, Vmcb *src)
 
 
 /* skip anything that does not change */
-PRIVATE
 void
 Vm_svm::copy_control_area_back(Vmcb *dest, Vmcb *src)
 {
@@ -337,8 +268,7 @@ Vm_svm::copy_control_area_back(Vmcb *dest, Vmcb *src)
   d->n_rip    = s->n_rip;
 }
 
-PRIVATE inline NOEXPORT
-int
+inline int
 Vm_svm::do_resume_vcpu(Context *ctxt, Vcpu_state *vcpu, Vmcb *vmcb_s)
 {
   assert (cpu_lock.test());
@@ -657,9 +587,8 @@ Vm_svm::do_resume_vcpu(Context *ctxt, Vcpu_state *vcpu, Vmcb *vmcb_s)
   return 0;
 }
 
-PUBLIC
 int
-Vm_svm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode) override
+Vm_svm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 {
   (void)user_mode;
   assert (user_mode);
@@ -728,15 +657,15 @@ register_factory()
 }
 }
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [svm && debug]:
+#if defined (CONFIG_JDB)
 
 #include "string_buffer.h"
 
-IMPLEMENT
 void
 Vm_svm::Log_vm_svm_exit::print(String_buffer *buf) const
 {
   buf->printf("ec=%lx ei1=%08lx ei2=%08lx rip=%08lx",
               exitcode, exitinfo1, exitinfo2, rip);
 }
+
+#endif // CONFIG_JDB
