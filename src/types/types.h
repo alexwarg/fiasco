@@ -337,12 +337,13 @@ struct User
 struct Cpu_number : cxx::int_type_order_base<unsigned, Cpu_number, Order>
 {
   Cpu_number() = default;
-  explicit Cpu_number(unsigned n) : cxx::int_type_order_base<unsigned, Cpu_number, Order>(n) {}
+  explicit constexpr Cpu_number(unsigned n)
+  : cxx::int_type_order_base<unsigned, Cpu_number, Order>(n) {}
 
-  static Cpu_number boot_cpu() { return Cpu_number(0); }
-  static Cpu_number first()    { return Cpu_number(0); }
-  static Cpu_number second()   { return Cpu_number(1); }
-  static Cpu_number nil()      { return Cpu_number(~0); }
+  constexpr static Cpu_number boot_cpu() { return Cpu_number(0); }
+  constexpr static Cpu_number first()    { return Cpu_number(0); }
+  constexpr static Cpu_number second()   { return Cpu_number(1); }
+  constexpr static Cpu_number nil()      { return Cpu_number(~0); }
 };
 
 
