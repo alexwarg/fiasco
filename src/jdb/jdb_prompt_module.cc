@@ -193,8 +193,6 @@ private:
 
   void detect_screensize()
   {
-    unsigned x, y, max_x, max_y;
-    char str[20];
     Console *uart;
 
     if (!(uart = Kconsole::console()->find_console(Console::UART)))
@@ -202,15 +200,22 @@ private:
 
     while (uart->getchar(false) != -1)
       ;
+
+    unsigned x, y;
     if (!get_coords(uart, x, y))
       return;
+
     // set scroll region to the max + set cursor to the max
     uart->write("\033[1;500r\033[500;500H", 18);
+
+    unsigned max_x, max_y;
     if (!get_coords(uart, max_x, max_y))
       return;
     Jdb_screen::set_width(max_x);
     Jdb_screen::set_height(max_y);
-    // adapt scroll region, restore cursor
+
+    // adapt scroll region and restore cursor
+    char str[28];
     snprintf(str, sizeof(str), "\033[1;%ur\033[%u;%uH", max_y, y, x);
     uart->write(str, strlen(str));
   }
