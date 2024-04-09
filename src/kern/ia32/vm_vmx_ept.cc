@@ -1,10 +1,87 @@
-INTERFACE [vmx]:
 
-#include "vm_vmx.h"
-#include "ptab_base.h"
+#include <vm_vmx.h>
+#include <ptab_base.h>
+#include <globalconfig.h>
+#include <task_factory_impl.h>
 
 class Vm_vmx_ept : public Vm_vmx_t<Vm_vmx_ept>
 {
+public:
+  static void add_page_size(Mem_space::Page_order o);
+  static void init();
+
+  void *operator new (size_t size, void *p) noexcept
+  {
+    (void)size;
+    assert (size == sizeof (Vm_vmx_ept));
+    return p;
+  }
+
+  void operator delete (void *ptr)
+  {
+    Vm_vmx_ept *t = reinterpret_cast<Vm_vmx_ept*>(ptr);
+    Kmem_slab_t<Vm_vmx_ept>::q_free(t->ram_quota(), ptr);
+  }
+
+  Vm_vmx_ept(Ram_quota *q) : Vm_vmx_t<Vm_vmx_ept>(q) {}
+
+  Mem_space::Fit_size const &
+  mem_space_fitting_sizes() const override;
+
+  bool v_lookup(Mem_space::Vaddr virt, Mem_space::Phys_addr *phys,
+                Mem_space::Page_order *order,
+                Mem_space::Attr *page_attribs) override;
+
+  Mem_space::Status
+  v_insert(Mem_space::Phys_addr phys, Mem_space::Vaddr virt,
+           Mem_space::Page_order size,
+           Mem_space::Attr page_attribs) override;
+
+  L4_fpage::Rights
+  v_delete(Mem_space::Vaddr virt, Mem_space::Page_order size,
+           L4_fpage::Rights page_attribs) override;
+
+  void v_set_access_flags(Mem_space::Vaddr, L4_fpage::Rights) override
+  {}
+
+  ~Vm_vmx_ept()
+  {
+    if (_ept)
+      {
+        _ept->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Ept::Depth,
+                      Kmem_alloc::q_allocator(ram_quota()));
+        Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _ept);
+        _ept = 0;
+        _ept_phys = 0;
+      }
+  }
+
+  bool initialize()
+  {
+    void *b;
+    if (EXPECT_FALSE(!(b = Kmem_alloc::allocator()
+            ->q_alloc(ram_quota(), Config::page_order()))))
+      return false;
+
+    _ept = static_cast<Ept*>(b);
+    _ept->clear(false);	// initialize to zero
+    _ept_phys = Mem_layout::pmem_to_phys(_ept);
+    return true; // success
+
+  }
+
+  void load_vm_memory(void *src)
+  {
+    load(Vmx::F_guest_cr3, src);
+    Vmx::vmwrite(Vmx::F_ept_ptr, _ept_phys | 6 | (3 << 3));
+  }
+
+  void store_vm_memory(void *dest)
+  {
+    store(Vmx::F_guest_cr3, dest);
+  }
+
+
 private:
   //typedef Mem_space::Attr Attr;
   //typedef Mem_space::Vaddr Vaddr;
@@ -120,18 +197,15 @@ private:
   Ept *_ept;
 };
 
-// -------------------------------------------------------------------------
-IMPLEMENTATION [vmx && 64bit]:
+#if defined (CONFIG_BIT64)
 
-IMPLEMENT inline
-void
+inline void
 Vm_vmx_ept::Epte_ptr::set(Unsigned64 v) { write_now(e, v); }
+#endif // CONFIG_BIT64
 
-// -------------------------------------------------------------------------
-IMPLEMENTATION [vmx && !64bit]:
+#if defined (CONFIG_BIT32)
 
-IMPLEMENT inline
-void
+inline void
 Vm_vmx_ept::Epte_ptr::set(Unsigned64 v)
 {
   // this assumes little endian!
@@ -148,29 +222,23 @@ Vm_vmx_ept::Epte_ptr::set(Unsigned64 v)
   write_now(&t->u[0], Unsigned32(v));
 }
 
-// -------------------------------------------------------------------------
-IMPLEMENTATION [vmx]:
+#endif // CONFIG_BIT32
 
-#include "task_factory_impl.h"
 
-IMPLEMENT inline
-unsigned char
+inline unsigned char
 Vm_vmx_ept::Epte_ptr::page_order() const
 { return Vm_vmx_ept::Ept::page_order_for_level(level); }
 
-IMPLEMENT inline
-Unsigned64
+inline Unsigned64
 Vm_vmx_ept::Epte_ptr::page_addr() const
 { return cxx::get_lsb(cxx::mask_lsb(*e, Vm_vmx_ept::Ept::page_order_for_level(level)), 52); }
 
 static Mem_space::Fit_size __ept_ps;
 
-PUBLIC
 Mem_space::Fit_size const &
-Vm_vmx_ept::mem_space_fitting_sizes() const override
+Vm_vmx_ept::mem_space_fitting_sizes() const
 { return __ept_ps; }
 
-PUBLIC static
 void
 Vm_vmx_ept::add_page_size(Mem_space::Page_order o)
 {
@@ -178,11 +246,10 @@ Vm_vmx_ept::add_page_size(Mem_space::Page_order o)
   __ept_ps.add_page_size(o);
 }
 
-PUBLIC
 bool
 Vm_vmx_ept::v_lookup(Mem_space::Vaddr virt, Mem_space::Phys_addr *phys,
                      Mem_space::Page_order *order,
-                     Mem_space::Attr *page_attribs) override
+                     Mem_space::Attr *page_attribs)
 {
   auto i = _ept->walk(virt);
   if (order) *order = Mem_space::Page_order(i.page_order());
@@ -196,11 +263,11 @@ Vm_vmx_ept::v_lookup(Mem_space::Vaddr virt, Mem_space::Phys_addr *phys,
 
   return true;
 }
-PUBLIC
+
 Mem_space::Status
 Vm_vmx_ept::v_insert(Mem_space::Phys_addr phys, Mem_space::Vaddr virt,
                      Mem_space::Page_order size,
-                     Mem_space::Attr page_attribs) override
+                     Mem_space::Attr page_attribs)
 {
   // insert page into page table
 
@@ -242,10 +309,9 @@ Vm_vmx_ept::v_insert(Mem_space::Phys_addr phys, Mem_space::Vaddr virt,
 
 }
 
-PUBLIC
 L4_fpage::Rights
 Vm_vmx_ept::v_delete(Mem_space::Vaddr virt, Mem_space::Page_order size,
-                     L4_fpage::Rights page_attribs) override
+                     L4_fpage::Rights page_attribs)
 {
   (void)size;
   assert (cxx::is_zero(cxx::get_lsb(Virt_addr(virt), size)));
@@ -271,76 +337,6 @@ Vm_vmx_ept::v_delete(Mem_space::Vaddr virt, Mem_space::Page_order size,
   return ret;
 }
 
-PUBLIC
-void
-Vm_vmx_ept::v_set_access_flags(Mem_space::Vaddr, L4_fpage::Rights) override
-{}
-
-PUBLIC inline
-void *
-Vm_vmx_ept::operator new (size_t size, void *p) throw()
-{
-  (void)size;
-  assert (size == sizeof (Vm_vmx_ept));
-  return p;
-}
-
-PUBLIC
-void
-Vm_vmx_ept::operator delete (void *ptr)
-{
-  Vm_vmx_ept *t = reinterpret_cast<Vm_vmx_ept*>(ptr);
-  Kmem_slab_t<Vm_vmx_ept>::q_free(t->ram_quota(), ptr);
-}
-
-PUBLIC inline
-Vm_vmx_ept::Vm_vmx_ept(Ram_quota *q) : Vm_vmx_t<Vm_vmx_ept>(q) {}
-
-PUBLIC
-Vm_vmx_ept::~Vm_vmx_ept()
-{
-  if (_ept)
-    {
-      _ept->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Ept::Depth,
-                    Kmem_alloc::q_allocator(ram_quota()));
-      Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _ept);
-      _ept = 0;
-      _ept_phys = 0;
-    }
-}
-
-PUBLIC inline
-bool
-Vm_vmx_ept::initialize()
-{
-  void *b;
-  if (EXPECT_FALSE(!(b = Kmem_alloc::allocator()
-	  ->q_alloc(ram_quota(), Config::page_order()))))
-    return false;
-
-  _ept = static_cast<Ept*>(b);
-  _ept->clear(false);	// initialize to zero
-  _ept_phys = Mem_layout::pmem_to_phys(_ept);
-  return true; // success
-
-}
-
-PUBLIC inline
-void
-Vm_vmx_ept::load_vm_memory(void *src)
-{
-  load(Vmx::F_guest_cr3, src);
-  Vmx::vmwrite(Vmx::F_ept_ptr, _ept_phys | 6 | (3 << 3));
-}
-
-PUBLIC inline
-void
-Vm_vmx_ept::store_vm_memory(void *dest)
-{
-  store(Vmx::F_guest_cr3, dest);
-}
-
-PUBLIC static
 void
 Vm_vmx_ept::init()
 {

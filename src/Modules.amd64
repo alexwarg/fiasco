@@ -96,7 +96,6 @@ INTERFACES_KERNEL	+= \
 			   x86desc gdt idt tss timer_irq dirq \
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
-INTERFACES_KERNEL-$(CONFIG_CPU_VIRT) += vm_vmx_ept
 
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
@@ -108,7 +107,7 @@ CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	checksum.cc \
 	__main.cc \
 
-CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_svm.cc
+CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm.cc
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 
 apic_IMPL		:= apic-ia32 apic-ia32-mp
