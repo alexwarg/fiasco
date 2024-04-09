@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_fvp_base]:
+#pragma once
 
 #define TARGET_NAME "AEM FVP Base"

@@ -7,7 +7,6 @@ PREPROCESS_PARTS      += generic_tickless_idle \
 INTERFACES_KERNEL     += generic_timer
 RAM_PHYS_BASE         := 0x48000000
 
-config_IMPL           += config-arm-rcar3
 mem_layout_IMPL       += mem_layout-arm-rcar3
 pic_IMPL              += pic-gic pic-arm-rcar3
 timer_IMPL            += timer-arm-generic timer-arm-generic-bsp-std

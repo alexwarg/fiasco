@@ -5,7 +5,6 @@ RAM_PHYS_BASE           := 0x0
 OBJECTS_LIBUART         += uart_16550.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 
-config_IMPL           += config-arm-kirkwood
 mem_layout_IMPL       += mem_layout-arm-kirkwood
 pic_IMPL              += pic-arm-kirkwood
 timer_IMPL            += timer-arm-kirkwood

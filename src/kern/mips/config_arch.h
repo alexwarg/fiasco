@@ -1,8 +1,11 @@
-INTERFACE [mips]:
+#pragma once
 
-EXTENSION class Config
+#include <types.h>
+#include <pre_parts.h>
+#include <globalconfig.h>
+
+namespace Config
 {
-public:
   enum
   {
     //Access_user_mem = Access_user_mem_direct,
@@ -42,18 +45,5 @@ public:
     default_console_uart = 0,
     default_console_uart_baudrate = 115200
   };
-};
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mips]:
-
-const char *const Config::kernel_warn_config_string = 0;
-
-IMPLEMENT FIASCO_INIT
-void
-Config::init_arch()
-{
-  // set a smaller default for JDB trace buffers
-  Config::tbuf_entries = 1024;
 }
 

@@ -24,7 +24,7 @@ INTERFACES_KERNEL	:= \
 			   context mem_unit cpu_call \
 			   thread syscalls     \
 			   kernel_thread map_util        \
-			   config vmem_alloc paging fpu                 \
+			   vmem_alloc paging fpu                 \
 			   fpu_state fpu_alloc cpu               \
                            platform_control_object          \
 			   continuation timer_tick platform_control          \
@@ -35,6 +35,8 @@ INTERFACES_KERNEL	:= \
 CXXSRC_KERNEL += \
 	banner.cc \
 	boot_alloc.cc \
+	config.cc \
+	config_arch.cc \
 	cpu_lock.cc \
 	factory.cc \
 	globals.cc \

@@ -7,7 +7,6 @@ OBJECTS_LIBUART         += uart_16550.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 LIBUART_UART_FLAGS      += -DUART_16550_INIT_IER=0x40
 
-config_IMPL           += config-arm-pxa_sa1100
 mem_layout_IMPL       += mem_layout-arm-pxa
 pic_IMPL              += pic-arm-pxa_sa1100
 bootstrap_IMPL        += bootstrap-arm-pxa

@@ -1,12 +1,11 @@
-INTERFACE[arm && pf_exynos]:
+#pragma once
 
-#include "globalconfig.h"
+#include <globalconfig.h>
 
 #define TARGET_NAME "Samsung Exynos"
 
-EXTENSION class Config
+namespace Config
 {
-public:
   enum
   {
 #ifdef CONFIG_PF_EXYNOS_UART_NR
@@ -15,4 +14,4 @@ public:
     Uart_nr = 0
 #endif
   };
-};
+}

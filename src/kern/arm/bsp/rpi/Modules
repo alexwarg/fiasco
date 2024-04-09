@@ -27,7 +27,6 @@ INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPIZW) += irq_handler
 INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPI4)  += $(if $(CONFIG_BIT64),,arm_control)
 
 arm_control_IMPL      += arm_control-arm-rpi
-config_IMPL           += config-arm-rpi
 mem_layout_IMPL       += mem_layout-arm-rpi
 pic_IMPL              += pic-arm-rpi
 pic_IMPL              += $(if $(CONFIG_ARM_GIC),pic-gic)

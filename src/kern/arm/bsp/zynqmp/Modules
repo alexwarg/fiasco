@@ -7,7 +7,6 @@ PREPROCESS_PARTS      += generic_tickless_idle \
 INTERFACES_KERNEL     += generic_timer
 RAM_PHYS_BASE         := 0x0
 
-config_IMPL           += config-arm-zynqmp
 mem_layout_IMPL       += mem_layout-arm-zynqmp
 pic_IMPL              += pic-gic pic-arm-zynqmp
 timer_IMPL            += timer-arm-generic timer-arm-generic-bsp-std

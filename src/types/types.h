@@ -25,6 +25,16 @@ a nonull_static_cast( b p )
   return reinterpret_cast<a>( reinterpret_cast<Address>(p) + d);
 }
 
+namespace Config
+{
+  enum User_memory_access_type
+  {
+    No_access_user_mem = 0,
+    Access_user_mem_direct,
+    Must_access_user_mem_direct
+  };
+}
+
 /**
  * Read the value at an address exactly once.
  *

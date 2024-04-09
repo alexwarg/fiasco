@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_armada38x]:
+#pragma once
 
 #define TARGET_NAME "Marvell Armada 38x"

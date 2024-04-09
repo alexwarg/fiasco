@@ -54,7 +54,6 @@ LIBUART_TYP-$(CONFIG_PF_IMX_8M)    += L4::Uart_imx8
 LIBUART_UART_FLAGS += -include $(LIBUART_HDR-y) -DFIASCO_UART_TYPE=$(LIBUART_TYP-y)
 
 
-config_IMPL           += config-arm-imx
 mem_layout_IMPL       += mem_layout-arm-imx
 pic_IMPL              += $(if $(CONFIG_PF_IMX_21),pic-arm-imx)
 pic_IMPL              += $(if $(CONFIG_PF_IMX_28),pic-arm-imx-icoll)

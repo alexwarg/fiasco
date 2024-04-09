@@ -1,20 +1,18 @@
-/* ARM specific */
-INTERFACE [arm && arm_v5]:
+#pragma once
 
-EXTENSION class Config
-{ public: enum { Access_user_mem = Must_access_user_mem_direct }; };
+#include <config_arm_bsp.h>
+#include <types.h>
+#include <pre_parts.h>
+#include <globalconfig.h>
 
-/* ARM specific */
-INTERFACE [arm && arm_v6plus]:
-
-EXTENSION class Config
-{ public: enum { Access_user_mem = No_access_user_mem }; };
-
-INTERFACE [arm]:
-
-EXTENSION class Config
+namespace Config
 {
-public:
+
+#if ! defined (CONFIG_ARM_V6PLUS)
+  enum { Access_user_mem = Must_access_user_mem_direct };
+#else
+  enum { Access_user_mem = No_access_user_mem };
+#endif
 
   enum
   {
@@ -45,8 +43,8 @@ public:
   };
 
   // the default uart to use for serial console
-  static unsigned const default_console_uart	= 3;
-  static unsigned const default_console_uart_baudrate = 115200;
+  static constexpr unsigned default_console_uart	= 3;
+  static constexpr unsigned default_console_uart_baudrate = 115200;
 
   enum
   {
@@ -78,51 +76,22 @@ public:
 #endif
   };
 
-};
-
-// -----------------------------------------------------------------------
-INTERFACE [arm && arm_lpae]:
-
-EXTENSION class Config
-{
-public:
-
+#if defined (CONFIG_ARM_LPAE)
   enum
   {
     SUPERPAGE_SHIFT = 21,
     SUPERPAGE_SIZE  = 1 << SUPERPAGE_SHIFT,
     SUPERPAGE_MASK  = ~(SUPERPAGE_SIZE -1)
   };
-};
-
-// -----------------------------------------------------------------------
-INTERFACE [arm && !arm_lpae]:
-
-EXTENSION class Config
-{
-public:
-
+#else
   enum
   {
     SUPERPAGE_SHIFT = 20,
     SUPERPAGE_SIZE  = 1 << SUPERPAGE_SHIFT,
     SUPERPAGE_MASK  = ~(SUPERPAGE_SIZE -1)
   };
+#endif
+
+  inline void init_arch() {}
 };
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
-
-const char *const Config::kernel_warn_config_string = 0;
-
-IMPLEMENT FIASCO_INIT
-void
-Config::init_arch()
-{}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm_v6plus]:
-
-#include "feature.h"
-
-KIP_KERNEL_FEATURE("armv6plus");

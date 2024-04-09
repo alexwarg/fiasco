@@ -1,3 +1,3 @@
-INTERFACE[arm && pf_kirkwood]:
+#pragma once
 
 #define TARGET_NAME "Marvell Kirkwood"

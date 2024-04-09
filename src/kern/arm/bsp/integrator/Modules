@@ -7,7 +7,6 @@ PREPROCESS_PARTS        += generic_tickless_idle
 RAM_PHYS_BASE           := 0x00000000
 
 
-config_IMPL           += config-arm-integrator
 mem_layout_IMPL       += mem_layout-arm-integrator
 pic_IMPL              += pic-arm-integrator
 timer_IMPL            += timer-arm-integrator

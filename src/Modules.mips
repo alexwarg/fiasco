@@ -127,7 +127,6 @@ INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 
 bitmap_linux_IMPL	:= bitmap_linux
 clock_IMPL		:= clock
-config_IMPL		:= config config-mips
 context_IMPL		:= context context-mips context-vcpu
 continuation_IMPL	:= continuation-mips
 cp0_status_IMPL         := cp0_status

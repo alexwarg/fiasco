@@ -1,11 +1,50 @@
-/* IA32/AMD64 specific */
-INTERFACE[ia32,amd64]:
+#pragma once
 
-#include "idt_init.h"
+#include <types.h>
+#include <pre_parts.h>
+#include <globalconfig.h>
+#include <idt_init.h>
 
-EXTENSION class Config
+namespace Config
 {
-public:
+#if defined (CONFIG_BIT32)
+ enum {
+    PAGE_SHIFT          = ARCH_PAGE_SHIFT,
+    PAGE_SIZE           = 1 << PAGE_SHIFT,
+    PAGE_MASK           = ~( PAGE_SIZE - 1),
+
+    SUPERPAGE_SHIFT     = 22,
+    SUPERPAGE_SIZE      = 1 << SUPERPAGE_SHIFT,
+    SUPERPAGE_MASK      = ~( SUPERPAGE_SIZE - 1 ),
+
+    Irq_shortcut        = 1,
+  };
+#endif
+#if defined (CONFIG_BIT64)
+  enum {
+    PAGE_SHIFT = ARCH_PAGE_SHIFT,
+    PAGE_SIZE  = 1 << PAGE_SHIFT,
+    PAGE_MASK  = ~( PAGE_SIZE - 1),
+
+    SUPERPAGE_SHIFT = 21,
+    SUPERPAGE_SIZE  = 1 << SUPERPAGE_SHIFT,
+    SUPERPAGE_MASK  = ~( SUPERPAGE_SIZE -1 ),
+
+    PDP_SIZE		= 1LL << 30,
+    PML4_SIZE		= 1LL << 39,
+
+    PML4E_SHIFT		= 39,
+    PML4E_MASK		= 0x1ff,
+    PDPE_SHIFT		= 30,
+    PDPE_MASK		= 0x1ff,
+    PDE_SHIFT		= 21,
+    PDE_MASK		= 0x1ff,
+    PTE_SHIFT		= 12,
+    PTE_MASK		= 0x1ff,
+
+    Irq_shortcut = 1,
+  };
+#endif
 
   enum
   {
@@ -25,7 +64,7 @@ public:
     Apic_timer_vector = APIC_IRQ_BASE + 0,
   };
 
-  static unsigned scheduler_irq_vector;
+  extern unsigned scheduler_irq_vector;
 
   enum Scheduler_config
   {
@@ -84,81 +123,21 @@ public:
 #endif
   };
 
-  static bool apic;
+  extern bool apic;
 
 #ifdef CONFIG_WATCHDOG
-  static bool watchdog;
+  extern bool watchdog;
 #else
-  static const bool watchdog = false;
+  constexpr bool watchdog = false;
 #endif
 
-//  static const bool hlt_works_ok = false;
-  static bool hlt_works_ok;
+  //  static const bool hlt_works_ok = false;
+  extern bool hlt_works_ok;
 
   // the default uart to use for serial console
-  static const unsigned default_console_uart = 1;
-  static const unsigned default_console_uart_baudrate = 115200;
+  constexpr unsigned default_console_uart = 1;
+  constexpr unsigned default_console_uart_baudrate = 115200;
 
-  static bool found_vmware;
+  extern bool found_vmware;
 };
-
-IMPLEMENTATION[ia32,amd64]:
-
-#include <cstring>
-
-bool Config::hlt_works_ok = true;
-
-bool Config::found_vmware = false;
-bool Config::apic = false;
-unsigned Config::scheduler_irq_vector;
-
-#ifdef CONFIG_WATCHDOG
-bool Config::watchdog = false;
-#endif
-
-const char *const Config::kernel_warn_config_string =
-#ifdef CONFIG_SCHED_RTC
-  "  CONFIG_SCHED_RTC is on\n"
-#endif
-#ifndef CONFIG_INLINE
-  "  CONFIG_INLINE is off\n"
-#endif
-#ifndef CONFIG_NDEBUG
-  "  CONFIG_NDEBUG is off\n"
-#endif
-#ifndef CONFIG_NO_FRAME_PTR
-  "  CONFIG_NO_FRAME_PTR is off\n"
-#endif
-#ifdef CONFIG_BEFORE_IRET_SANITY
-  "  CONFIG_BEFORE_IRET_SANITY is on\n"
-#endif
-#ifdef CONFIG_FINE_GRAINED_CPUTIME
-  "  CONFIG_FINE_GRAINED_CPUTIME is on\n"
-#endif
-#ifdef CONFIG_JDB_ACCOUNTING
-  "  CONFIG_JDB_ACCOUNTING is on\n"
-#endif
-  "";
-
-IMPLEMENT FIASCO_INIT
-void
-Config::init_arch()
-{
-#ifdef CONFIG_WATCHDOG
-  if (Koptions::o()->opt(Koptions::F_watchdog))
-    {
-      watchdog = true;
-      apic = true;
-    }
-#endif
-
-  if (Koptions::o()->opt(Koptions::F_nohlt))
-    hlt_works_ok = false;
-
-  if (Koptions::o()->opt(Koptions::F_apic))
-    apic = true;
-
-  if (Scheduler_mode == SCHED_APIC)
-    apic = true;
-}
 

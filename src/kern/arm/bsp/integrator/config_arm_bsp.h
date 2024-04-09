@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_integrator]:
+#pragma once
 
 #define TARGET_NAME "Integrator"

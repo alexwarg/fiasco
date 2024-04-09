@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_realview]:
+#pragma once
 
 #define TARGET_NAME "Realview"

@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_zynq]:
+#pragma once
 
 #define TARGET_NAME "Xilinx Zynq"

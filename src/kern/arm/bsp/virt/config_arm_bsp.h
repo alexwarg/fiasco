@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_arm_virt]:
+#pragma once
 
 #define TARGET_NAME "QEMU Virtual Platform"

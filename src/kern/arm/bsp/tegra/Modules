@@ -10,7 +10,6 @@ MPCORE_PHYS_BASE        := 0x50040000
 OBJECTS_LIBUART         += uart_16550.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 
-config_IMPL           += config-arm-tegra
 mem_layout_IMPL       += mem_layout-arm-tegra
 pic_IMPL              += pic-gic pic-arm-tegra
 timer_IMPL            += $(if $(CONFIG_PF_TEGRA_TIMER_MP),timer-arm-tegra timer-arm-mptimer)

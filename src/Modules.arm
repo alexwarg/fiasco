@@ -168,7 +168,6 @@ bootstrap_IMPL		:= bootstrap bootstrap-arm-$(BITS)
 CXXFLAGS_bootstrap      := -O3 $(if $(CONFIG_BIT64),-mcmodel=large)
 CXXFLAGS_bootstrap-arm-$(BITS) := $(CXXFLAGS_bootstrap)
 clock_IMPL              := clock
-config_IMPL	  	:= config config-arm
 context_IMPL	  	:= context context-arm context-arm-$(BITS) \
                            context-vcpu context-arm-hyp context-arm-hyp-$(BITS)
 continuation_IMPL	:= continuation-arm
@@ -365,6 +364,8 @@ MODULES_FILE_BSP := $(srcdir)/$(BSP_SRC_DIR)/Modules
 ifeq ($(wildcard $(MODULES_FILE_BSP)),)
   $(error No BSP name defined or no BSP Modules file available)
 endif
+
+PRIVATE_INCDIR += $(BSP_SRC_DIR)
 
 include $(MODULES_FILE_BSP)
 VPATH                   += $(BSP_SRC_DIR)

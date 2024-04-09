@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_sunxi]:
+#pragma once
 
 #define TARGET_NAME "Allwinner A20"

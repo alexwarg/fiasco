@@ -20,7 +20,6 @@ RAM_PHYS_BASE           := $(if $(CONFIG_ARM_EM_TZ),0xb0000000,0x40000000)
 MPCORE_PHYS_BASE        := 0x10500000
 
 
-config_IMPL           += config-arm-exynos
 cpu_IMPL              += cpu-arm-exynos
 scu_IMPL              += scu-arm-exynos
 mem_layout_IMPL       += mem_layout-arm-exynos

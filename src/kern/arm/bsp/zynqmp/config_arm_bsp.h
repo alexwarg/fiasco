@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_zynqmp]:
+#pragma once
 
 #define TARGET_NAME "Xilinx Zynq UltraSCALE+ MPSoC"

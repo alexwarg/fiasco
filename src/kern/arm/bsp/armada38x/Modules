@@ -8,7 +8,6 @@ MPCORE_PHYS_BASE      := 0xf100c000
 TRAMP_MP_ASM_INCLUDE  := $(BSP_SRC_DIR)/tramp-mp-asm.h
 
 clock_IMPL            += clock-generic
-config_IMPL           += config-arm-armada38x
 mem_layout_IMPL       += mem_layout-arm-armada38x
 outer_cache_IMPL      += outer_cache-arm-armada38x
 pic_IMPL              += pic-gic pic-arm-armada38x

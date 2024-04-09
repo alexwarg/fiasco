@@ -1,3 +1,3 @@
-INTERFACE [arm && pf_rcar3]:
+#pragma once
 
 #define TARGET_NAME "Renesas R-Car Gen3"
