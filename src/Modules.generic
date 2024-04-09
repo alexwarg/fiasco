@@ -21,7 +21,7 @@ INTERFACES_KERNEL	:= \
 			   kip_init   \
 			   timer   \
 			   vcpu_host_regs                                    \
-			   context mem_unit cpu_call \
+			   context mem_unit \
 			   thread syscalls     \
 			   kernel_thread map_util        \
 			   vmem_alloc paging fpu                 \
@@ -37,6 +37,7 @@ CXXSRC_KERNEL += \
 	boot_alloc.cc \
 	config.cc \
 	config_arch.cc \
+	cpu_call.cc \
 	cpu_lock.cc \
 	factory.cc \
 	globals.cc \

@@ -1,12 +1,17 @@
-INTERFACE:
+#pragma once
 
-#include "mem.h"
-#include "cpu_mask.h"
-#include "queue.h"
-#include "queue_item.h"
-#include "per_cpu_data.h"
-#include "processor.h"
+#include <mem.h>
+#include <cpu_mask.h>
+#include <queue.h>
+#include <queue_item.h>
+#include <per_cpu_data.h>
+#include <processor.h>
 #include <cxx/function>
+#include <lock_guard.h>
+#include <globals.h>
+#include <globalconfig.h>
+
+#include <cassert>
 
 class Cpu_call_queue;
 
@@ -18,6 +23,8 @@ class Cpu_call : private Queue_item
 private:
   cxx::functor<bool (Cpu_number cpu)> _func;
   Mword _wait;
+
+  static Per_cpu<Cpu_call_queue> _glbl_q;
 
 public:
   template< typename Functor >
@@ -59,6 +66,12 @@ public:
   }
 
   bool remote_call(Cpu_number cpu, bool async);
+
+  static bool cpu_call_many(Cpu_mask const &m,
+                            cxx::functor<bool (Cpu_number)> &&func,
+                            bool = false);
+
+  static bool handle_global_requests();
 };
 
 template<unsigned MAX>
@@ -111,15 +124,7 @@ public:
 };
 
 
-IMPLEMENTATION:
-
-#include "assert.h"
-#include "globals.h"
-#include "lock_guard.h"
-#include "mem.h"
-
-IMPLEMENT inline NEEDS["lock_guard.h", "assert.h"]
-void
+inline void
 Cpu_call_queue::enq(Cpu_call *rq)
 {
   assert(cpu_lock.test());
@@ -127,15 +132,13 @@ Cpu_call_queue::enq(Cpu_call *rq)
   enqueue(rq);
 }
 
-IMPLEMENT inline
-bool
+inline bool
 Cpu_call_queue::execute_request(Cpu_call *r)
 {
   return r->run(current_cpu(), true);
 }
 
-IMPLEMENT inline NEEDS["lock_guard.h"]
-bool
+inline bool
 Cpu_call_queue::dequeue(Cpu_call *r)
 {
   auto guard = lock_guard(q_lock());
@@ -144,8 +147,7 @@ Cpu_call_queue::dequeue(Cpu_call *r)
   return Queue::dequeue(r);
 }
 
-IMPLEMENT inline NEEDS["mem.h", "lock_guard.h", "globals.h"]
-bool
+inline bool
 Cpu_call_queue::handle_requests()
 {
   bool need_resched = false;
@@ -166,38 +168,28 @@ Cpu_call_queue::handle_requests()
     }
 }
 
-// ----------------------------------------------------------------------
-IMPLEMENTATION [!mp]:
+#if ! defined (CONFIG_MP)
 
-PUBLIC static inline
-bool
+inline bool
 Cpu_call::cpu_call_many(Cpu_mask const &m,
                         cxx::functor<bool (Cpu_number)> &&func,
-                        bool = false)
+                        bool)
 {
   if (m.get(current_cpu()))
     func(current_cpu());
   return true;
 }
 
-PUBLIC static bool Cpu_call::handle_global_requests() { return false; }
+inline bool Cpu_call::handle_global_requests()
+{ return false; }
 
-// -----------------------------------------------------------------------
-IMPLEMENTATION [mp]:
+#else
 
 #include "cpu.h"
 #include "ipi.h"
 #include "processor.h"
 
-EXTENSION class Cpu_call
-{
-  static Per_cpu<Cpu_call_queue> _glbl_q;
-};
-
-DEFINE_PER_CPU Per_cpu<Cpu_call_queue> Cpu_call::_glbl_q;
-
-IMPLEMENT inline NEEDS["cpu.h", "ipi.h"]
-bool
+inline bool
 Cpu_call::remote_call(Cpu_number cpu, bool async)
 {
   auto guard = lock_guard(cpu_lock);
@@ -237,11 +229,10 @@ Cpu_call::remote_call(Cpu_number cpu, bool async)
   return !is_done(async);
 }
 
-PUBLIC static inline NEEDS["processor.h"]
-bool
+inline bool
 Cpu_call::cpu_call_many(Cpu_mask const &cpus,
                         cxx::functor<bool (Cpu_number)> &&func,
-                        bool async = false)
+                        bool async)
 {
   assert (async || !cpu_lock.test());
   Cpu_calls<8> cs;
@@ -277,11 +268,10 @@ Cpu_call::cpu_call_many(Cpu_mask const &cpus,
   return true;
 }
 
-PUBLIC
-static bool
+inline bool
 Cpu_call::handle_global_requests()
 {
   return _glbl_q.current().handle_requests();
 }
 
-
+#endif // CONFIG_MP
