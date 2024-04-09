@@ -99,7 +99,7 @@ INTERFACES_KERNEL	+= \
 			   x86desc gdt idt tss timer_irq dirq
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
-INTERFACES_KERNEL-$(CONFIG_CPU_VIRT) += vm vm_svm vm_vmx vm_vmx_ept
+INTERFACES_KERNEL-$(CONFIG_CPU_VIRT) += vm_svm vm_vmx vm_vmx_ept
 
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
