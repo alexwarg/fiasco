@@ -1,86 +1,23 @@
-INTERFACE:
 
-class Svm
-{
-};
+#include <svm.h>
 
-//-----------------------------------------------------------------------------
-INTERFACE[svm]:
-
-#include "per_cpu_data.h"
-#include "virt_ia32_svm.h"
-#include "cpu_lock.h"
-#include "pm.h"
-
-EXTENSION class Svm : public Pm_object
-{
-public:
-  static Per_cpu<Svm> cpus;
-
-  enum Msr_perms
-  {
-    Msr_intercept = 3,
-    Msr_ro        = 2,
-    Msr_wo        = 1,
-    Msr_rw        = 0,
-  };
-
-private:
-  Vmcb const *_last_user_vmcb;
-
-  /* read mostly below */
-  Unsigned32 _max_asid;
-  bool _svm_enabled;
-  bool _has_npt;
-  void *_vm_hsave_area;
-  void *_iopm;
-  void *_msrpm;
-  Unsigned64 _iopm_base_pa;
-  Unsigned64 _msrpm_base_pa;
-  Vmcb *_kernel_vmcb;
-  Address _kernel_vmcb_pa;
-};
-
-//-----------------------------------------------------------------------------
-INTERFACE [svm && ia32]:
-
-EXTENSION class Svm
-{
-public:
-  enum { Gpregs_words = 10 };
-};
-
-//-----------------------------------------------------------------------------
-INTERFACE [svm && amd64]:
-
-EXTENSION class Svm
-{
-public:
-  enum { Gpregs_words = 18 };
-};
-
-// -----------------------------------------------------------------------
-IMPLEMENTATION[svm]:
-
-#include "cpu.h"
-#include "kmem.h"
-#include "l4_types.h"
-#include "warn.h"
-#include "kmem_alloc.h"
+#include <cpu.h>
+#include <kmem.h>
+#include <l4_types.h>
+#include <warn.h>
+#include <kmem_alloc.h>
 #include <cstring>
 
 DEFINE_PER_CPU_LATE Per_cpu<Svm> Svm::cpus(Per_cpu_data::Cpu_num);
 
-PUBLIC
 void
-Svm::pm_on_suspend(Cpu_number) override
+Svm::pm_on_suspend(Cpu_number)
 {
   // FIXME: Handle VMCB caching stuff if enabled
 }
 
-PUBLIC
 void
-Svm::pm_on_resume(Cpu_number) override
+Svm::pm_on_resume(Cpu_number)
 {
   Unsigned64 efer = Cpu::rdmsr(MSR_EFER);
   efer |= 1 << 12;
@@ -90,7 +27,7 @@ Svm::pm_on_resume(Cpu_number) override
   _last_user_vmcb = 0;
 }
 
-PUBLIC static inline NEEDS["cpu.h"]
+
 bool
 Svm::cpu_svm_available(Cpu_number cpu)
 {
@@ -106,7 +43,6 @@ Svm::cpu_svm_available(Cpu_number cpu)
   return true;
 }
 
-PUBLIC
 Svm::Svm(Cpu_number cpu)
 {
   Cpu &c = Cpu::cpus.cpu(cpu);
@@ -187,7 +123,6 @@ Svm::Svm(Cpu_number cpu)
   register_pm(cpu);
 }
 
-PUBLIC
 void
 Svm::set_msr_perm(Unsigned32 msr, Msr_perms perms)
 {
@@ -213,46 +148,3 @@ Svm::set_msr_perm(Unsigned32 msr, Msr_perms perms)
   pm[offs] = (pm[offs] & ~(3 << shift)) | ((unsigned char)perms << shift);
 }
 
-PUBLIC
-Unsigned64
-Svm::iopm_base_pa()
-{ return _iopm_base_pa; }
-
-PUBLIC
-Unsigned64
-Svm::msrpm_base_pa()
-{ return _msrpm_base_pa; }
-
-/**
- * \pre user_vmcb must be a unique address across all address spaces
- *      (e.g., a kernel KU-mem address)
- */
-PUBLIC inline
-Vmcb *
-Svm::kernel_vmcb(Vmcb const *user_vmcb)
-{
-  if (user_vmcb != _last_user_vmcb)
-    {
-      _kernel_vmcb->control_area.clean_bits.raw = 0;
-      _last_user_vmcb = user_vmcb;
-    }
-  else
-    _kernel_vmcb->control_area.clean_bits = access_once(&user_vmcb->control_area.clean_bits);
-
-  return _kernel_vmcb;
-}
-
-PUBLIC
-Address
-Svm::kernel_vmcb_pa()
-{ return _kernel_vmcb_pa; }
-
-PUBLIC
-bool
-Svm::svm_enabled()
-{ return _svm_enabled; }
-
-PUBLIC
-bool
-Svm::has_npt()
-{ return _has_npt; }
