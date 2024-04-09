@@ -1,0 +1,661 @@
+#pragma once
+
+#include "config.h"
+#include "per_cpu_data.h"
+#include "vm.h"
+#include "vmx.h"
+#include "ipi.h"
+
+#include <thread.h>
+
+#include <cassert>
+
+class Vmcs;
+
+class Vm_vmx_b : public Vm
+{
+public:
+  Vm_vmx_b(Ram_quota *q) : Vm(q)
+  {}
+
+
+protected:
+  static unsigned long resume_vm_vmx(Trex *regs)
+    asm("resume_vm_vmx") __attribute__((__regparm__(3)));
+
+  enum
+  {
+    EFER_LME = 1 << 8,
+    EFER_LMA = 1 << 10,
+  };
+
+  template<typename T>
+  Vmx_info::Flags<T>
+  load(unsigned field, void *vmcs, Vmx_info::Bit_defs<T> const &m)
+  {
+    T res = m.apply(read<T>(vmcs, field));
+    Vmx::vmwrite(field, res);
+    return Vmx_info::Flags<T>(res);
+  }
+
+  void load(unsigned field_first, unsigned field_last, void *vmcs)
+  {
+    for (; field_first <= field_last; field_first += 2)
+      load(field_first, vmcs);
+  }
+
+  void load(unsigned field, void *vmcs)
+  {
+    switch (field >> 13)
+      {
+      case 0: Vmx::vmwrite(field, _internal_read<Unsigned16>(vmcs, field)); break;
+      case 1: Vmx::vmwrite(field, _internal_read<Unsigned64>(vmcs, field)); break;
+      case 2: Vmx::vmwrite(field, _internal_read<Unsigned32>(vmcs, field)); break;
+      case 3: Vmx::vmwrite(field, _internal_read<Mword>(vmcs, field)); break;
+      }
+  }
+
+  void store(unsigned field, void *vmcs)
+  {
+    switch (field >> 13)
+      {
+      case 0: _internal_write(vmcs, field, Vmx::vmread<Unsigned16>(field)); break;
+      case 1: _internal_write(vmcs, field, Vmx::vmread<Unsigned64>(field)); break;
+      case 2: _internal_write(vmcs, field, Vmx::vmread<Unsigned32>(field)); break;
+      case 3: _internal_write(vmcs, field, Vmx::vmread<Mword>(field)); break;
+      }
+
+  }
+
+  void store(unsigned field_first, unsigned field_last, void *vmcs)
+  {
+    for (; field_first <= field_last; field_first += 2)
+      store(field_first, vmcs);
+  }
+
+  template< typename T >
+  static void write(void *vmcs, unsigned field, T value)
+  {
+    switch (field >> 13)
+      {
+      case 0: _internal_write(vmcs, field, (Unsigned16)value); break;
+      case 1: _internal_write(vmcs, field, (Unsigned64)value); break;
+      case 2: _internal_write(vmcs, field, (Unsigned32)value); break;
+      case 3: _internal_write(vmcs, field, (Mword)value); break;
+      }
+  }
+
+  template< typename T >
+  static T read(void const *vmcs, unsigned field)
+  {
+    switch (field >> 13)
+      {
+      case 0: return _internal_read<Unsigned16>(vmcs, field);
+      case 1: return _internal_read<Unsigned64>(vmcs, field);
+      case 2: return _internal_read<Unsigned32>(vmcs, field);
+      case 3: return _internal_read<Mword>(vmcs, field);
+      }
+    return 0;
+  }
+
+  void store_exit_info(Cpu_number cpu, void *dest)
+  {
+    (void)cpu;
+    // read 64-bit fields, that is a EPT pf thing
+#if 0
+    if (Vmx::cpus.cpu(cpu).has_ept())
+      store(0x2400, dest);
+#endif
+
+    // clear the valid bit in Vm-entry interruption information
+      {
+        Unsigned32 tmp = read<Unsigned32>(dest, Vmx::F_entry_int_info);
+        if (tmp & (1UL << 31))
+          write(dest, Vmx::F_entry_int_info, tmp & ~((Unsigned32)1 << 31));
+      }
+
+    // read 32-bit fields
+    store(0x4400, 0x440e, dest);
+
+    // read natural-width fields
+    store(0x6400, 0x640a, dest);
+  }
+
+  void dump(void *v, unsigned f, unsigned t) const;
+  void dump_state(void *v) const;
+
+private:
+  static void const *field_ptr(void const *vmcs, unsigned field)
+  { return Vmx_user_info::Fo_table::field(vmcs, field); }
+
+  static void *field_ptr(void *vmcs, unsigned field)
+  { return Vmx_user_info::Fo_table::field(vmcs, field); }
+
+  static unsigned field_width(unsigned field)
+  {
+    static const char widths[4] = { 2, 8, 4, sizeof(Mword) };
+    return widths[field >> 13];
+  }
+
+  template< typename T >
+  static T _internal_read(void const *vmcs, unsigned field)
+  {
+    return *(T *)field_ptr(vmcs, field);
+  }
+
+  template< typename T >
+  static void _internal_write(void *vmcs, unsigned field, T value)
+  {
+    *(T*)field_ptr(vmcs, field) = value;
+  }
+
+};
+
+template<typename X>
+class Vm_vmx_t : public Vm_vmx_b
+{
+public:
+  Vm_vmx_t(Ram_quota *q) : Vm_vmx_b(q)
+  {}
+
+  int resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode) override
+  {
+    (void)user_mode;
+    assert (user_mode);
+
+    if (EXPECT_FALSE(!(ctxt->state(true) & Thread_ext_vcpu_enabled)))
+      {
+        ctxt->arch_load_vcpu_kern_state(vcpu, true);
+        force_kern_entry_vcpu_state(vcpu);
+        return -L4_err::EInval;
+      }
+
+    void *vmcs_s = reinterpret_cast<char *>(vcpu) + 0x400;
+
+    for (;;)
+      {
+        // in the case of disabled IRQs and a pending IRQ directly simulate an
+        // external interrupt intercept
+        Unsigned32 int_info = read<Unsigned32>(vmcs_s, Vmx::F_entry_int_info);
+        bool int_info_valid = int_info & (1U << 31);
+        bool immediate_exit = int_info & (1U << 30); // l4 specific bit use
+
+        if (immediate_exit)
+          {
+            // zero l4 specific bit
+            write<Unsigned32>(vmcs_s, Vmx::F_entry_int_info,
+                              int_info & ~(1U << 30));
+
+            // We have a request for immediate exit after VM exit after the
+            // interrupt injection. To achieve this we trigger a self-IPI with
+            // closed interrupts which will lead to an immediate VM exit after
+            // the event injection.
+            // NOTE: It is possible to use the preemption timer for this
+            // NOTE: However, the timer is broken on many CPUs or may not
+            // NOTE: be supported at all. So keep it simple for now.
+            assert(cpu_lock.test());
+            Ipi::send(Ipi::Global_request, current_cpu(), current_cpu());
+          }
+        else if (   !(vcpu->_saved_state & Vcpu_state::F_irqs)
+                 && (vcpu->sticky_flags & Vcpu_state::Sf_irq_pending))
+          {
+            // when injection did not yet occur (the valid bit in the interrupt
+            // information field is still 1), tell the VMM we were interrupted
+            // during event delivery
+            if (int_info_valid)
+              {
+                write<Unsigned32>(vmcs_s, Vmx::F_vectoring_info, int_info);
+                write<Unsigned32>(vmcs_s, Vmx::F_exit_insn_len,
+                                  read<Unsigned32>(vmcs_s, Vmx::F_entry_insn_len));
+                if (int_info & (1 << 11))
+                  write<Unsigned32>(vmcs_s,  Vmx::F_vectoring_error_code,
+                                    read<Unsigned32>(vmcs_s, Vmx::F_entry_exc_error_code));
+                // invalidate VM-entry interrupt information
+                write<Unsigned32>(vmcs_s, Vmx::F_entry_int_info,
+                                  int_info & ~(1U << 31));
+              }
+
+            // XXX: check if this is correct, we set external irq exit as reason
+            write<Unsigned32>(vmcs_s, Vmx::F_exit_reason, 1);
+            ctxt->arch_load_vcpu_kern_state(vcpu, true);
+            return 1; // return 1 to indicate pending IRQs (IPCs)
+          }
+
+        int r = do_resume_vcpu(ctxt, vcpu, vmcs_s);
+
+        // test for error or non-IRQ exit reason
+        if (r <= 0 || immediate_exit)
+          {
+            ctxt->arch_load_vcpu_kern_state(vcpu, true);
+            force_kern_entry_vcpu_state(vcpu);
+            return r;
+          }
+
+        // check for IRQ exits and allow to handle the IRQ
+        if (r == 1)
+          Proc::preemption_point();
+
+        // Check if the current context got a message delivered.
+        // This is done by testing for a valid continuation.
+        // When a continuation is set we have to directly
+        // leave the kernel to not overwrite the vcpu-regs
+        // with bogus state.
+        Thread *t = nonull_static_cast<Thread*>(ctxt);
+        if (t->continuation_test_and_restore())
+          {
+            force_kern_entry_vcpu_state(vcpu);
+            ctxt->arch_load_vcpu_kern_state(vcpu, true);
+            t->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_entry_sp,
+                                     t->vcpu_state().usr().get());
+          }
+      }
+  }
+
+private:
+  void load_guest_state(Cpu_number cpu, void *src)
+  {
+    Vmx &vmx = Vmx::cpus.cpu(cpu);
+
+    // read VM-entry controls, apply filter and keep for later
+    Vmx_info::Flags<Unsigned32> entry_ctls
+      = load<Unsigned32>(Vmx::F_entry_ctls, src, vmx.info.entry_ctls);
+
+    Vmx_info::Flags<Unsigned32> pinbased_ctls
+      = load<Unsigned32>(Vmx::F_pin_based_ctls, src, vmx.info.pinbased_ctls);
+
+    Vmx_info::Flags<Unsigned32> procbased_ctls
+      = load<Unsigned32>(Vmx::F_proc_based_ctls, src, vmx.info.procbased_ctls);
+
+    Vmx_info::Flags<Unsigned32> procbased_ctls_2;
+    if (procbased_ctls.test(Vmx_info::PRB1_enable_proc_based_ctls_2))
+      procbased_ctls_2 = load<Unsigned32>(Vmx::F_proc_based_ctls_2, src, vmx.info.procbased_ctls2);
+    else
+      procbased_ctls_2 = Vmx_info::Flags<Unsigned32>(0);
+
+    load<Unsigned32>(Vmx::F_exit_ctls, src, vmx.info.exit_ctls);
+
+    // write 16-bit fields
+    load(0x800, 0x80e, src);
+
+    // write 64-bit fields
+    load(0x2802, src);
+
+    // check if the following bits are allowed to be set in entry_ctls
+    if (entry_ctls.test(14)) // PAT load requested
+      load(Vmx::F_guest_pat, src);
+
+    if (entry_ctls.test(15)) // EFER load requested
+      load(Vmx::F_guest_efer, src);
+
+    if (entry_ctls.test(13)) // IA32_PERF_GLOBAL_CTRL load requested
+      load(Vmx::F_guest_perf_global_ctl, src);
+
+    // this is Fiasco.OC internal state
+#if 0
+    if (vmx.has_ept())
+      load(0x280a, 0x2810, src);
+#endif
+
+    // write 32-bit fields
+    load(0x4800, 0x4826, src);
+    load(0x482a, src);
+
+    if (pinbased_ctls.test(6)) // activate vmx-preemption timer
+      load(Vmx::F_preempt_timer, src);
+
+    // write natural-width fields
+    load<Mword>(0x6800, src, vmx.info.cr0_defs);
+
+    static_cast<X*>(this)->load_vm_memory(src);
+
+    load<Mword>(0x6804, src, vmx.info.cr4_defs);
+    load(0x6806, 0x6826, src);
+
+    // VPID must be virtualized in Fiasco
+#if 0
+    if (procbased_ctls_2 & Vmx::PB2_enable_vpid)
+      load(Vmx::F_vpid, src);
+#endif
+
+    // currently io-bitmaps are unsupported
+    // currently msr-bitmaps are unsupported
+
+    // load(0x200C, src); for SMM virtualization
+    load(Vmx::F_tsc_offset, src);
+
+    // no virtual APIC yet, and has to be managed in kernel somehow
+#if 0
+    if (procbased_ctls.test(Vmx::PRB1_tpr_shadow))
+      load(0x2012, src);
+#endif
+
+    if (procbased_ctls_2.test(Vmx_info::PRB2_virtualize_apic))
+      load(Vmx::F_apic_access_addr, src);
+
+    // exception bit map and pf error-code stuff
+    load<Unsigned32>(Vmx::F_exception_bitmap, src, vmx.info.exception_bitmap);
+    load(0x4006, 0x4008, src);
+
+    // vm entry control stuff
+    Unsigned32 irq_info = read<Unsigned32>(src, Vmx::F_entry_int_info);
+    if (irq_info & (1UL << 31))
+      {
+        // do event injection
+
+        // load error code, if required
+        if (irq_info & (1UL << 11))
+          load(Vmx::F_entry_exc_error_code, src);
+
+        // types, that require an insn length have bit 10 set (type 4, 5, and 6)
+        if (irq_info & (1UL << 10))
+          load(Vmx::F_entry_insn_len, src);
+
+        Vmx::vmwrite(Vmx::F_entry_int_info, irq_info);
+      }
+
+    // hm, we have to check for sanitizing the cr0 and cr4 shadow stuff
+    load(0x6000, 0x6006, src);
+
+    // no cr3 target values supported
+  }
+
+  void safe_host_segments(Context *, Vcpu_state *);
+  void restore_host_msrs();
+  void save_guest_msrs(void *);
+  void load_guest_msrs(void const *);
+
+protected:
+  void store_guest_state(Cpu_number cpu, void *dest)
+  {
+    // read 16-bit fields
+    store(0x800, 0x80e, dest);
+
+    // read 64-bit fields
+    store(0x2802, dest);
+
+    Vmx_info &vmx_info = Vmx::cpus.cpu(cpu).info;
+    Vmx_info::Flags<Unsigned32> exit_ctls
+      = Vmx_info::Flags<Unsigned32>(vmx_info.exit_ctls.apply(read<Unsigned32>(dest, Vmx::F_exit_ctls)));
+
+    if (exit_ctls.test(18)) store(Vmx::F_guest_pat, dest);
+    if (exit_ctls.test(20)) store(Vmx::F_guest_efer, dest);
+    if (exit_ctls.test(22)) store(Vmx::F_preempt_timer, dest);
+
+    // EPT and PAE handling missing
+#if 0
+    if (Vmx::cpus.cpu(cpu).has_ept())
+      store(0x280a, 0x2810, dest);
+#endif
+
+    // read 32-bit fields
+    store(0x4800, 0x4826, dest);
+
+    // sysenter msr is not saved here, because we trap all msr accesses right now
+    if (0)
+      {
+        store(Vmx::F_sysenter_cs, dest);
+        store(0x6824, 0x6826, dest);
+      }
+
+    // read natural-width fields
+    store(0x6800, dest);
+    static_cast<X*>(this)->store_vm_memory(dest);
+    store(0x6804, 0x6822, dest);
+  }
+
+  int do_resume_vcpu(Context *ctxt, Vcpu_state *vcpu, void *vmcs_s)
+  {
+    assert (cpu_lock.test());
+
+    /* these 4 must not use ldt entries */
+    assert (!(Cpu::get_cs() & (1 << 2)));
+    assert (!(Cpu::get_ss() & (1 << 2)));
+    assert (!(Cpu::get_ds() & (1 << 2)));
+    assert (!(Cpu::get_es() & (1 << 2)));
+
+    Cpu_number const cpu = current_cpu();
+    Vmx &v = Vmx::cpus.cpu(cpu);
+
+    if (!v.vmx_enabled())
+      {
+        WARNX(Info, "VMX: not supported/enabled\n");
+        return -L4_err::ENodev;
+      }
+#ifdef CONFIG_LAZY_FPU
+    // XXX:
+    // This generates a circular dep between thread<->task, this cries for a
+    // new abstraction...
+    if (!(ctxt->state() & Thread_fpu_owner))
+      {
+        if (EXPECT_FALSE(!static_cast<Thread*>(ctxt)->switchin_fpu()))
+          {
+            WARN("VMX: switchin_fpu failed\n");
+            return -L4_err::EInval;
+          }
+      }
+#endif
+#if 0
+    if (EXPECT_FALSE(read<Unsigned32>(vmcs_s, 0x201a) != 0)) // EPT POINTER
+      {
+        WARN("VMX: no nested paging available\n");
+        return commit_result(-L4_err::EInval);
+      }
+#endif
+
+    // set volatile host state
+    Vmx::vmwrite<Mword>(Vmx::F_host_cr0, Cpu::get_cr0());
+    Vmx::vmwrite<Mword>(Vmx::F_host_cr3, Cpu::get_pdbr()); // host_area.cr3
+
+    safe_host_segments(ctxt, vcpu);
+
+    // host cr0 und cr4
+    load_guest_state(cpu, vmcs_s);
+
+    Unsigned16 ldt = Cpu::get_ldt();
+
+    // set guest CR2
+    asm volatile("mov %0, %%cr2" : : "r" (read<Mword>(vmcs_s, Vmx::F_sw_guest_cr2)));
+
+    bool guest_long_mode = read<Unsigned64>(vmcs_s, Vmx::F_entry_ctls) & (1 << 9);
+
+    if (!is_64bit() && guest_long_mode)
+      return -L4_err::EInval;
+
+    if (guest_long_mode)
+      load_guest_msrs(vmcs_s);
+
+    Unsigned64 guest_xcr0 = read<Unsigned64>(vmcs_s, Vmx::F_sw_guest_xcr0);
+    Unsigned64 host_xcr0 = Fpu::fpu.current().get_xcr0();
+
+    load_guest_xcr0(host_xcr0, guest_xcr0);
+
+    if (Cpu::cpus.cpu(cpu).has_l1d_flush()
+        && !Cpu::cpus.cpu(cpu).skip_l1dfl_vmentry())
+      Cpu::wrmsr(1UL, MSR_IA32_FLUSH_CMD);
+
+    unsigned long ret = resume_vm_vmx(&vcpu->_regs);
+    Unsigned32 error = 0;
+
+    if (EXPECT_FALSE(ret))
+      {
+        // We read the VM instruction error here to make sure that the original
+        // value has not been accidentally overwritten by any following VMX
+        // instruction (e.g. VMREAD).
+        //
+        // However, we defer the actual handling of the resume failure until the
+        // host state has been properly restored.
+        error = Vmx::vmread<Unsigned32>(Vmx::F_vm_instruction_error);
+      }
+
+    if (guest_long_mode)
+      {
+        save_guest_msrs(vmcs_s);
+        restore_host_msrs();
+      }
+
+    // save guest cr2
+      {
+        Mword cpu_cr2;
+        asm volatile("mov %%cr2, %0" : "=r" (cpu_cr2));
+        write(vmcs_s, Vmx::F_sw_guest_cr2, cpu_cr2);
+      }
+
+    load_host_xcr0(host_xcr0, guest_xcr0);
+
+    Cpu::set_ldt(ldt);
+
+    // reload TSS, we use I/O bitmaps
+    // ... do this lazy ...
+    {
+      // clear busy flag
+      Gdt_entry *e = &(*Cpu::cpus.cpu(cpu).get_gdt())[Gdt::gdt_tss / 8];
+      e->tss_make_available();
+      asm volatile("" : : "m" (*e));
+      Cpu::set_tr(Gdt::gdt_tss);
+    }
+
+    if (EXPECT_FALSE(ret))
+      {
+        // Handle the resume failure. Since the guest state has not been altered,
+        // we do not have to bother with storing the complete guest state.
+        write(vmcs_s, Vmx::F_vm_instruction_error, error);
+        return -L4_err::EInval;
+      }
+
+    store_guest_state(cpu, vmcs_s);
+    store_exit_info(cpu, vmcs_s);
+
+    Unsigned32 reason = read<Unsigned32>(vmcs_s, Vmx::F_exit_reason) & 0xffff;
+    switch (reason)
+      {
+      case 1: // IRQ
+        return 1;
+      case 48: // EPT violation
+        store(Vmx::F_guest_phys, vmcs_s); // Guest phys
+        store(Vmx::F_guest_linear, vmcs_s); // Guest linear
+        break;
+      }
+
+    force_kern_entry_vcpu_state(vcpu);
+    return 0;
+  }
+
+};
+
+class Vm_vmx : public Vm_vmx_t<Vm_vmx>
+{
+public:
+  void * operator new (size_t size, void *p) noexcept
+  {
+    (void)size;
+    assert (size == sizeof (Vm_vmx));
+    return p;
+  }
+
+  void operator delete (void *ptr);
+
+  Vm_vmx(Ram_quota *q) : Vm_vmx_t<Vm_vmx>(q)
+  {}
+
+  void load_vm_memory(void const *src)
+  {
+    if (sizeof(long) > sizeof(int))
+      {
+        if (read<Mword>(src, Vmx::F_guest_efer) & EFER_LME)
+          Vmx::vmwrite(Vmx::F_guest_cr3, (Mword)phys_dir());
+        else
+          WARN("VMX: No, not possible\n");
+      }
+    else
+      {
+        // for 32bit we can just load the Vm pdbr
+        Vmx::vmwrite(Vmx::F_guest_cr3, (Mword)phys_dir());
+      }
+  }
+
+  void store_vm_memory(void *)
+  {}
+
+protected:
+};
+
+#if defined (CONFIG_BIT64)
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::safe_host_segments(Context *, Vcpu_state *)
+{
+  /* we can optimize GS and FS handling based on the assuption that
+   * FS and GS do not change often for the host / VMM */
+  Vmx::vmwrite<Mword>(Vmx::F_host_fs_base, Cpu::rdmsr(MSR_FS_BASE));
+  Vmx::vmwrite<Mword>(Vmx::F_host_gs_base, Cpu::rdmsr(MSR_GS_BASE));
+  Vmx::vmwrite<Unsigned16>(Vmx::F_host_fs_selector, Cpu::get_fs());
+  Vmx::vmwrite<Unsigned16>(Vmx::F_host_gs_selector, Cpu::get_gs());
+}
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::restore_host_msrs()
+{
+  // setup_sysenter sets SFMASK, CSTAR, LSTAR and STAR MSR
+  Cpu::cpus.current().setup_sysenter();
+  // MSR_TSC_AUX
+  // Reset msr_kernel_gs_base to avoid possible inter-vm channel
+  Cpu::wrmsr(0UL, MSR_KERNEL_GS_BASE);
+}
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::save_guest_msrs(void *vmcs)
+{
+  write<Mword>(vmcs, Vmx::F_sw_msr_syscall_mask, Cpu::rdmsr(MSR_SFMASK));
+  write<Mword>(vmcs, Vmx::F_sw_msr_cstar, Cpu::rdmsr(MSR_CSTAR));
+  write<Mword>(vmcs, Vmx::F_sw_msr_lstar, Cpu::rdmsr(MSR_LSTAR));
+  write<Mword>(vmcs, Vmx::F_sw_msr_star, Cpu::rdmsr(MSR_STAR));
+  // MSR_TSC_AUX
+  write<Mword>(vmcs, Vmx::F_sw_msr_kernel_gs_base, Cpu::rdmsr(MSR_KERNEL_GS_BASE));
+}
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::load_guest_msrs(void const *vmcs)
+{
+  // Writing to CSTAR, LSTAR or KERNEL_GS_BASE triggers a #GP fault if the
+  // provided address is not canonical.
+  Cpu::wrmsr(read<Mword>(vmcs, Vmx::F_sw_msr_syscall_mask), MSR_SFMASK);
+  Cpu::set_canonical_msr(read<Mword>(vmcs, Vmx::F_sw_msr_cstar), MSR_CSTAR);
+  Cpu::set_canonical_msr(read<Mword>(vmcs, Vmx::F_sw_msr_lstar), MSR_LSTAR);
+  Cpu::wrmsr(read<Mword>(vmcs, Vmx::F_sw_msr_star), MSR_STAR);
+  // MSR_TSC_AUX
+  Cpu::set_canonical_msr(read<Mword>(vmcs, Vmx::F_sw_msr_kernel_gs_base),
+                         MSR_KERNEL_GS_BASE);
+}
+
+#endif // CONFIG_BIT64
+
+#if defined (CONFIG_BIT32)
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::safe_host_segments(Context *, Vcpu_state *)
+{
+  /* GS and FS are handled via push/pop in asm code */
+}
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::restore_host_msrs()
+{}
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::save_guest_msrs(void *)
+{}
+
+template<typename X>
+inline void
+Vm_vmx_t<X>::load_guest_msrs(void const *)
+{}
+
+#endif // CONFIG_BIT32
+
