@@ -4,7 +4,8 @@ RAM_PHYS_BASE      := 0x0
 PREPROCESS_PARTS   += ci40
 OBJECTS_LIBUART    += uart_16550.o uart_16550_dw.o
 LIBUART_UART_FLAGS += $(call LIBUART_UART, 16550_dw)
-INTERFACES_KERNEL  += mips_bsp_irqs gic
+INTERFACES_KERNEL  += mips_bsp_irqs
+CXXSRC_KERNEL      += gic.cc
 
 mips_bsp_irqs_IMPL := mips_bsp_irqs-ci40
 clock_IMPL         += clock-generic
