@@ -1,8 +1,8 @@
-INTERFACE:
+#pragma once
 
-#include "entry_frame.h"
-#include "trap_state.h"
-#include "vcpu_host_regs.h"
+#include <entry_frame.h>
+#include <trap_state.h>
+#include <vcpu_host_regs.h>
 
 class Vcpu_state
 {
