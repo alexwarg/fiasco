@@ -42,6 +42,8 @@ class Context :
   friend class Jdb_thread_list;
   friend class Context_ptr;
   friend class Jdb_utcb;
+  friend class Jdb;
+  friend class Jdb_tcb;
 
   struct State_request
   {
@@ -52,12 +54,11 @@ class Context :
     bool pending() const { return access_once(&add) || access_once(&del); }
   };
 
-  State_request _remote_state_change;
-
 protected:
+  struct Kernel_drq : Drq { Context *src; };
+
   virtual void finish_migration() = 0;
   virtual bool initiate_migration() = 0;
-
 
 public:
   using Drq = ::Drq;
@@ -107,7 +108,6 @@ public:
     T* kern() const { return _k; }
   };
 
-public:
   /**
    * Definition of different helping modes
    */
@@ -135,29 +135,25 @@ public:
   void fill_user_state();
   void copy_and_sanitize_trap_state(Trap_state *dst,
                                     Trap_state const *src) const;
+  void arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load);
 
-  Space * FIASCO_PURE space() const { return _space.space(); }
-  Mem_space * FIASCO_PURE mem_space() const { return static_cast<Mem_space*>(space()); }
+  [[gnu::pure]] Space *space() const { return _space.space(); }
+  [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
 
   Cpu_number home_cpu() const { return _home_cpu; }
 
 protected:
-  Cpu_number _home_cpu;
-
   /**
    * Update consumed CPU time during each context switch and when
    *        reading out the current thread's consumed CPU time.
    */
   void update_consumed_time();
 
-  Mword *_kernel_sp;
-  void *_utcb_handler;
-  Ku_mem_ptr<Utcb> _utcb;
+  void arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load);
+  void arch_update_vcpu_state(Vcpu_state *vcpu);
+  void arch_vcpu_ext_shutdown();
 
 private:
-  friend class Jdb;
-  friend class Jdb_tcb;
-
   /// low level page table switching
   void switchin_context(Context *) asm ("switchin_context_label") FIASCO_FASTCALL;
 
@@ -168,10 +164,38 @@ private:
   void switch_cpu(Context *t);
 
 protected:
+  Cpu_number _home_cpu = Cpu::invalid();
+  Mword *_kernel_sp;
   Context_space_ref _space;
 
 private:
-  Context *_helper;
+  // The scheduling parameters.  We would only need to keep an
+  // anonymous reference to them as we do not need them ourselves, but
+  // we aggregate them for performance reasons.
+  Sched_context _sched_context;
+  Sched_context *_sched = &_sched_context;
+  // Implementation-specific consumed CPU time (TSC ticks or usecs)
+  Clock::Time _consumed_time;
+
+  // Pointer to floating point register state
+  Fpu_state _fpu_state;
+
+private: // DRQ budle of ate
+  Drq _drq;
+  Drq_q _drq_q;
+
+protected:
+  // XXX Timeout for both, sender and receiver! In normal case we would have
+  // to define own timeouts in Receiver and Sender but because only one
+  // timeout can be set at one time we use the same timeout. The timeout
+  // has to be defined here because Dirq::hit has to be able to reset the
+  // timeout (Irq::_irq_thread is of type Receiver).
+  Timeout *_timeout;
+  void *_utcb_handler;
+  Ku_mem_ptr<Utcb> _utcb;
+
+private:
+  Context *_helper = this;
 
   // Lock state
   // how many locks does this thread hold on other threads
@@ -179,44 +203,16 @@ private:
   // Thread::kill needs to know
   int _lock_cnt;
 
-  // The scheduling parameters.  We would only need to keep an
-  // anonymous reference to them as we do not need them ourselves, but
-  // we aggregate them for performance reasons.
-  Sched_context _sched_context;
-  Sched_context *_sched;
+protected:
+  Migration *_migration;
 
-  // Pointer to floating point register state
-  Fpu_state _fpu_state;
-  // Implementation-specific consumed CPU time (TSC ticks or usecs)
-  Clock::Time _consumed_time;
-
-  Drq _drq;
-  Drq_q _drq_q;
+private:
+  State_request _remote_state_change;
 
 protected:
   // for trigger_exception
   Continuation _exc_cont;
-
   jmp_buf *_recover_jmpbuf;     // setjmp buffer for page-fault recovery
-
-  Migration *_migration;
-
-public:
-  void arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load);
-
-protected:
-  void arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load);
-  void arch_update_vcpu_state(Vcpu_state *vcpu);
-  void arch_vcpu_ext_shutdown();
-
-  // XXX Timeout for both, sender and receiver! In normal case we would have
-  // to define own timeouts in Receiver and Sender but because only one
-  // timeout can be set at one time we use the same timeout. The timeout
-  // has to be defined here because Dirq::hit has to be able to reset the
-  // timeout (Irq::_irq_thread is of type Receiver).
-  Timeout *_timeout;
-
-  struct Kernel_drq : Drq { Context *src; };
 
 private:
   static Per_cpu<Clock> _clock;
@@ -318,17 +314,10 @@ DEFINE_PER_CPU Per_cpu<Context::Kernel_drq> Context::_kernel_drq;
  *
  * \pre (_kernel_sp == 0)  &&  (* (stack end) == 0)
  */
-PUBLIC inline NEEDS ["entry_frame.h", <cstdio>]
+PUBLIC inline NEEDS ["entry_frame.h"]
 Context::Context()
-: _kernel_sp(reinterpret_cast<Mword*>(regs())),
-  // TCBs are zero initialized. Thus, members not explictly initialized can be
-  // assumed to be zero-initialized, unless their default constructor does
-  // something different.
-  _helper(this),
-  _sched_context(),
-  _sched(&_sched_context)
+: _kernel_sp(reinterpret_cast<Mword*>(regs()))
 {
-  _home_cpu = Cpu::invalid();
 }
 
 PUBLIC inline
