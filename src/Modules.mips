@@ -112,10 +112,10 @@ PRIVATE_INCDIR 	+= kern/mips/$(BITS) kern/mips kern
 
 INTERFACES_KERNEL +=	boot_uart_init \
 			mips_cpu_irqs \
-			alternatives \
 			cpu_p5600
 
-CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc
+CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
+		 alternatives.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
 
