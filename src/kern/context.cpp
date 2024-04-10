@@ -1400,6 +1400,17 @@ protected:
   {
   public:
     bool handle_requests(Context **);
+    Context *dequeue_first()
+    {
+      auto guard = lock_guard(q_lock());
+      Queue_item *qi = first();
+      if (!qi)
+        return nullptr;
+
+      check (dequeue(qi));
+      return context_of(qi);
+    }
+
   };
 
   class Pending_rq : public Queue_item, public Context_member
@@ -1505,16 +1516,9 @@ Context::Pending_rqq::handle_requests(Context **mq)
   Context *curr = current();
   while (1)
     {
-      Context *c;
-        {
-          auto guard = lock_guard(q_lock());
-          Queue_item *qi = first();
-          if (!qi)
-            return resched;
-
-          check (dequeue(qi));
-          c = static_cast<Context::Pending_rq *>(qi)->context();
-        }
+      Context *c = dequeue_first();
+      if (!c)
+        return resched;
 
       assert (c->check_for_current_cpu());
 
