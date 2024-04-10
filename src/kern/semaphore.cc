@@ -49,7 +49,7 @@ public:
             // TODO: make really sure that the partner pointer never gets
             //       dereferenced (use C++ types)
             ct->set_partner(sem_partner());
-            ct->state_change_dirty(~Thread_ready, Thread_receive_wait);
+            ct->state.change_dirty(~Thread_ready, Thread_receive_wait);
             ct->set_wait_queue(&_waiting);
             ct->sender_enqueue(&_waiting, ct->sched()->prio());
           }
@@ -93,7 +93,7 @@ public:
 
     Mword s = c_thread->state();
     if (s & Thread_wait_mask)
-      c_thread->state_del_dirty(Thread_wait_mask);
+      c_thread->state.del_dirty(Thread_wait_mask);
 
     if (EXPECT_FALSE(s & (Thread_cancel | Thread_timeout)))
       {

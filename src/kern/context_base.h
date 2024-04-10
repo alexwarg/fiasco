@@ -130,58 +130,6 @@ public:
 
   State state;
 
-  void state_change_dirty(Mword mask, Mword bits, bool check = true)
-  {
-    (void)check;
-    state.change_dirty(mask, bits);
-  }
-
-  Mword state_change_safely(Mword mask, Mword bits)
-  { return state.change_safely(mask, bits); }
-
-  Mword state_change(Mword mask, Mword bits)
-  { return state.change(mask, bits); }
-
-  /**
-   * Atomically add bits to state flags.
-   * @param bits bits to be added to state flags
-   * @return 1 if none of the bits that were added had been set before
-   */
-  void state_add(Mword bits)
-  { state.add(bits); }
-
-  /**
-   * Add bits in state flags. Unsafe (non-atomic) and
-   *        fast version -- you must hold the kernel lock when you use it.
-   * @pre cpu_lock.test() == true
-   * @param bits bits to be added to state flags
-   */
-  void state_add_dirty(Mword bits, bool check = true)
-  {
-    (void)check;
-    state.add_dirty(bits);
-  }
-
-  /**
-   * Atomically delete bits from state flags.
-   * @param bits bits to be removed from state flags
-   * @return 1 if all of the bits that were removed had previously been set
-   */
-  void state_del(Mword bits)
-  { state.del(bits); }
-
-  /**
-   * Delete bits in state flags. Unsafe (non-atomic) and
-   *        fast version -- you must hold the kernel lock when you use it.
-   * @pre cpu_lock.test() == true
-   * @param bits bits to be removed from state flags
-   */
-  void state_del_dirty(Mword bits, bool check = true)
-  {
-    (void)check;
-    state.del_dirty(bits);
-  }
-
 private:
   friend Cpu_number current_cpu();
   Cpu_number _cpu;

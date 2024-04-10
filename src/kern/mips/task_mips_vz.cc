@@ -25,7 +25,7 @@ Task::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 
   if (user_mode)
     {
-      ctxt->state_add_dirty(Thread_vcpu_user);
+      ctxt->state.add_dirty(Thread_vcpu_user);
       vcpu->state |= Vcpu_state::F_traps | Vcpu_state::F_exceptions;
 
       ctxt->space_ref()->user_mode(user_mode);
@@ -61,7 +61,7 @@ public:
     if (EXPECT_FALSE(!(ts.status & (1 << 3))))
       return -L4_err::EInval;
 
-    ctxt->state_add_dirty(Thread_vcpu_user);
+    ctxt->state.add_dirty(Thread_vcpu_user);
     vcpu->state |= Vcpu_state::F_traps | Vcpu_state::F_exceptions;
 
     ctxt->space_ref()->user_mode(user_mode);

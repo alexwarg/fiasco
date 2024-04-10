@@ -14,7 +14,7 @@ IPC_timeout::expired()
   if (!ipc_state || (ipc_state & Thread_receive_in_progress))
     return false;
 
-  _owner->state_add_dirty(Thread_ready | Thread_timeout);
+  _owner->state.add_dirty(Thread_ready | Thread_timeout);
 
   // Flag reschedule if owner's priority is higher than the current
   // thread's (own or timeslice-donated) priority.

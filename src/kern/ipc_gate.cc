@@ -207,7 +207,7 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
       ct->set_wait_queue(&_wait_q);
       ct->sender_enqueue(&_wait_q, ct->sched_context()->prio());
     }
-  ct->state_change_dirty(~Thread_ready, Thread_send_wait);
+  ct->state.change_dirty(~Thread_ready, Thread_send_wait);
 
   IPC_timeout timeout;
   if (t)
@@ -218,7 +218,7 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
 
   ct->schedule();
 
-  Mword state = ct->state_change(~Thread_full_ipc_mask, Thread_ready);
+  Mword state = ct->state.change(~Thread_full_ipc_mask, Thread_ready);
   ct->reset_timeout();
 
   if (EXPECT_FALSE(ct->in_sender_list()))

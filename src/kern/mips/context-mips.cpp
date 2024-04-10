@@ -175,7 +175,7 @@ void FIASCO_FLATTEN
 Context::vz_save_state(int guest_id)
 {
   vm_state(vcpu_state().kern())->save_full(guest_id);
-  state_del_dirty(Thread_vcpu_vz_owner);
+  state.del_dirty(Thread_vcpu_vz_owner);
 }
 
 PUBLIC inline
@@ -186,7 +186,7 @@ Context::vz_load_state(int guest_id)
   vm->load_full(guest_id);
   // mark the VM state as dirty as we execute the VM now
   vm->current_cp0_map = 0;
-  state_add_dirty(Thread_vcpu_vz_owner);
+  state.add_dirty(Thread_vcpu_vz_owner);
 }
 
 IMPLEMENT_OVERRIDE inline

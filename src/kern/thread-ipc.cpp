@@ -360,7 +360,7 @@ Thread::setup_timer(L4_timeout timeout, Utcb const *utcb, Timeout *timer)
 
   if (EXPECT_FALSE(timeout.is_zero()))
     {
-      state_add_dirty(Thread_ready | Thread_timeout);
+      state.add_dirty(Thread_ready | Thread_timeout);
       return;
     }
 
@@ -372,7 +372,7 @@ Thread::setup_timer(L4_timeout timeout, Utcb const *utcb, Timeout *timer)
   if (EXPECT_TRUE((tval > sysclock)))
     set_timeout(timer, tval);
   else // timeout already hit
-    state_add_dirty(Thread_ready | Thread_timeout);
+    state.add_dirty(Thread_ready | Thread_timeout);
 }
 
 
@@ -381,7 +381,7 @@ void Thread::goto_sleep(L4_timeout const &t, Sender *sender, Utcb *utcb)
 {
   IPC_timeout timeout;
 
-  state_del_dirty(Thread_ready);
+  state.del_dirty(Thread_ready);
   setup_timer(t, utcb, &timeout);
 
   if (sender == this)
@@ -411,10 +411,10 @@ Thread::handshake_receiver(Thread *partner, L4_timeout snd_t)
     case Check_sender::Failed:
       break;
     case Check_sender::Queued:
-      state_add_dirty(Thread_send_wait);
+      state.add_dirty(Thread_send_wait);
       break;
     default: // Ok
-      partner->state_change_dirty(~(Thread_ipc_mask | Thread_ready), Thread_ipc_transfer);
+      partner->state.change_dirty(~(Thread_ipc_mask | Thread_ready), Thread_ipc_transfer);
       break;
     }
   return r;
@@ -463,7 +463,7 @@ Thread::activate_ipc_partner(Thread *partner, Cpu_number current_cpu,
       auto &rq = Sched_context::rq.current();
       Sched_context *cs = rq.current_sched();
       do_switch = do_switch && (closed_wait || cs != sched());
-      partner->state_change_dirty(~Thread_ipc_transfer, Thread_ready);
+      partner->state.change_dirty(~Thread_ipc_transfer, Thread_ready);
       if (do_switch)
         {
           schedule_if(switch_exec_locked(partner, Not_Helping) != Switch::Ok);
@@ -562,7 +562,7 @@ Thread::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
           break;
 
         case Check_sender::Failed:
-          state_del_dirty(Thread_ipc_mask);
+          state.del_dirty(Thread_ipc_mask);
           ok = false;
           break;
 
@@ -581,9 +581,9 @@ Thread::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
           current_cpu = ::current_cpu();
 
           // switch to receiving state
-          state_del_dirty(Thread_ipc_mask);
+          state.del_dirty(Thread_ipc_mask);
           if (ok && have_receive)
-            state_add_dirty(Thread_receive_wait);
+            state.add_dirty(Thread_receive_wait);
 
           activate_partner = partner != this;
           break;
@@ -598,7 +598,7 @@ Thread::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
   else
     {
       assert (have_receive);
-      state_add_dirty(Thread_receive_wait);
+      state.add_dirty(Thread_receive_wait);
     }
 
   // only do direct switch on closed wait (call) or if we run on a foreign
@@ -626,9 +626,9 @@ Thread::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
 
   if (next)
     {
-      state_change_dirty(~Thread_ipc_mask, Thread_receive_in_progress);
+      state.change_dirty(~Thread_ipc_mask, Thread_receive_in_progress);
       next->ipc_send_msg(this, !sender);
-      state_del_dirty(Thread_ipc_mask);
+      state.del_dirty(Thread_ipc_mask);
     }
   else if (have_receive)
     {
@@ -646,7 +646,7 @@ Thread::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
 
   while (EXPECT_FALSE(state & Thread_ipc_transfer))
     {
-      state_del_dirty(Thread_ready);
+      this->state.del_dirty(Thread_ready);
       schedule();
       state = this->state();
    }
@@ -668,7 +668,7 @@ Thread::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
       else
         regs->tag(commit_error(utcb, L4_error::R_timeout, regs->tag()));
     }
-  state_del(Thread_full_ipc_mask);
+  this->state.del(Thread_full_ipc_mask);
 }
 
 
@@ -768,10 +768,10 @@ Thread::exception(Kobject_iface *handler, Trap_state *ts, L4_fpage::Rights right
 
   saved_state.restore(utcb);
 
-  state_del(Thread_in_exception);
+  state.del(Thread_in_exception);
   if (!r.tag().has_error()
       && r.tag().proto() == L4_msg_tag::Label_allow_syscall)
-    state_add(Thread_dis_alien);
+    state.add(Thread_dis_alien);
 
   // restore original utcb_handler
   _utcb_handler = old_utcb_handler;
@@ -845,7 +845,7 @@ Thread::send_exception(Trap_state *ts)
       handler = this; // block on ourselves
     }
 
-  state_change(~Thread_cancel, Thread_in_exception);
+  state.change(~Thread_cancel, Thread_in_exception);
 
   return exception(handler, ts, rights);
 }
@@ -1062,7 +1062,7 @@ PRIVATE inline
 bool
 Thread::abort_send(L4_error const &e, Thread *partner)
 {
-  state_del_dirty(Thread_full_ipc_mask);
+  state.del_dirty(Thread_full_ipc_mask);
   Abort_state abt = Abt_ipc_done;
 
   if (partner->home_cpu() == current_cpu())
@@ -1088,10 +1088,10 @@ Thread::abort_send(L4_error const &e, Thread *partner)
       utcb().access()->error = e;
       return true;
     case Abt_ipc_in_progress:
-      state_add_dirty(Thread_ipc_transfer);
+      state.add_dirty(Thread_ipc_transfer);
       while (state() & Thread_ipc_transfer)
         {
-          state_del_dirty(Thread_ready);
+          state.del_dirty(Thread_ready);
           schedule();
         }
       return false;
@@ -1125,7 +1125,7 @@ Thread::do_send_wait(Thread *partner, L4_timeout snd_t)
 
   while (((ipc_state = state() & (Thread_send_wait | Thread_ipc_abort_mask))) == Thread_send_wait)
     {
-      state_del_dirty(Thread_ready);
+      state.del_dirty(Thread_ready);
       schedule();
     }
 
@@ -1136,7 +1136,7 @@ Thread::do_send_wait(Thread *partner, L4_timeout snd_t)
 
   if (EXPECT_FALSE(ipc_state & Thread_transfer_failed))
     {
-      state_del_dirty(Thread_full_ipc_mask);
+      state.del_dirty(Thread_full_ipc_mask);
       return false;
     }
 
@@ -1199,7 +1199,7 @@ Thread::remote_ipc_send(Ipc_remote_request *rq)
     {
       //LOG_MSG_3VAL(rq->partner, "pull", dbg_id(), 0, 0);
       xcpu_state_change(~Thread_send_wait, Thread_ready);
-      rq->partner->state_change_dirty(~(Thread_ipc_mask | Thread_ready), Thread_ipc_transfer);
+      rq->partner->state.change_dirty(~(Thread_ipc_mask | Thread_ready), Thread_ipc_transfer);
       rq->result = r;
       return true;
     }
@@ -1211,7 +1211,7 @@ Thread::remote_ipc_send(Ipc_remote_request *rq)
     xcpu_state_change(~Thread_ipc_mask, 0);
 
   rq->result = success ? Check_sender::Done : Check_sender::Failed;
-  rq->partner->state_change_dirty(~Thread_ipc_mask, Thread_ready);
+  rq->partner->state.change_dirty(~Thread_ipc_mask, Thread_ready);
   if (rq->partner->home_cpu() == current_cpu() && current() != rq->partner)
     Sched_context::rq.current().ready_enqueue(rq->partner->sched());
 
@@ -1248,7 +1248,7 @@ Thread::remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
 
   set_wait_queue(partner->sender_list());
 
-  state_add_dirty(Thread_send_wait);
+  state.add_dirty(Thread_send_wait);
 
   if (tag.transfer_fpu())
     spill_fpu_if_owner();

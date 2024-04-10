@@ -38,7 +38,7 @@ Context::arch_vcpu_ext_shutdown()
   if (!(state() & Thread_ext_vcpu_enabled))
     return;
 
-  state_del_dirty(Thread_ext_vcpu_enabled);
+  state.del_dirty(Thread_ext_vcpu_enabled);
   _hyp.hcr = Cpu::Hcr_non_vm_bits;
   arm_hyp_load_non_vm_state(true);
 }

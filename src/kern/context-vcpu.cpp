@@ -99,7 +99,7 @@ Context::vcpu_enter_kernel_mode(Vcpu_state *vcpu)
   unsigned s = state();
   if (EXPECT_FALSE(s & Thread_vcpu_enabled))
     {
-      state_del_dirty(Thread_vcpu_user);
+      state.del_dirty(Thread_vcpu_user);
       vcpu->_saved_state = vcpu->state;
       Mword flags = Vcpu_state::F_traps
 	            | Vcpu_state::F_user_mode;
@@ -113,7 +113,7 @@ Context::vcpu_enter_kernel_mode(Vcpu_state *vcpu)
       if (_space.user_mode())
 	{
 	  _space.user_mode(false);
-	  state_del_dirty(Thread_vcpu_fpu_disabled);
+	  state.del_dirty(Thread_vcpu_fpu_disabled);
 
           bool load_cpu_state = current() == this;
 

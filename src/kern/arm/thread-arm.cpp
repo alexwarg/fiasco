@@ -180,7 +180,7 @@ extern "C" {
         // TODO: Avoid calling Thread::map_fsr_user here everytime!
         if (t->vcpu_pagefault(pfa, Thread::map_fsr_user(error_code, true), pc))
           return 1;
-        t->state_del(Thread_cancel);
+        t->state.del(Thread_cancel);
       }
 
     if (EXPECT_TRUE(PF::is_usermode_error(error_code))
@@ -305,7 +305,7 @@ Thread::Thread(Ram_quota *q)
 
   alloc_eager_fpu_state();
 
-  state_add_dirty(Thread_dead, false);
+  state.add_dirty(Thread_dead, false);
 
   // ok, we're ready to go!
 }
@@ -696,7 +696,7 @@ Thread::arm_esr_entry(Return_frame *rf)
 
     case 0x00: // Unknown reason, undefined opcode with HCR.TGE=1
         {
-          ct->state_del(Thread_cancel);
+          ct->state.del(Thread_cancel);
           Mword state = ct->state();
           Unsigned32 pc = rf->pc;
 
@@ -714,7 +714,7 @@ Thread::arm_esr_entry(Return_frame *rf)
             }
 
           rf->pc = get_lr_for_mode(rf);
-          ct->state_del(Thread_cancel);
+          ct->state.del(Thread_cancel);
           typedef void Syscall(void);
           extern Syscall *sys_call_table[];
           sys_call_table[-(pc + 4) / 4]();

@@ -298,11 +298,11 @@ Thread::handle_svc(Trap_state *ts)
     }
   ts->pc = get_lr_for_mode(ts);
   Mword state = this->state();
-  state_del(Thread_cancel);
+  state.del(Thread_cancel);
   if (state & (Thread_vcpu_user | Thread_alien))
     {
       if (state & Thread_dis_alien)
-        state_del_dirty(Thread_dis_alien);
+        state.del_dirty(Thread_dis_alien);
       else
         {
           slowtrap_entry(ts);

@@ -535,7 +535,7 @@ Context::schedule()
       assert (this != kc);
 
       // flag that we need to schedule
-      kc->state_add_dirty(Thread_need_resched);
+      kc->state.add_dirty(Thread_need_resched);
       switch (switch_exec_locked(kc, Ignore_Helping))
         {
         case Switch::Ok:
@@ -950,7 +950,7 @@ Context::Drq_q::execute_request(Drq *r, Drop_mode drop, bool local)
           l->wait = 0;
       );
       //LOG_MSG_3VAL(current(), "hrP", current_cpu() | (drop ? 0x100: 0), (Mword)r->context(), (Mword)r->func);
-      self->state_change_dirty(~Thread_drq_wait, Thread_ready);
+      self->state.change_dirty(~Thread_drq_wait, Thread_ready);
       self->handle_remote_state_change();
       return !(self->state() & Thread_ready_mask);
     }
@@ -983,7 +983,7 @@ Context::Drq_q::execute_request(Drq *r, Drop_mode drop, bool local)
           Context *c = r->context();
           if (local)
             {
-              c->state_change_dirty(~Thread_drq_wait, Thread_ready);
+              c->state.change_dirty(~Thread_drq_wait, Thread_ready);
               return need_resched;
             }
           else
@@ -1070,7 +1070,7 @@ Context::handle_drq()
   Mword st = state();
   if (EXPECT_FALSE(st & Thread_switch_hazards))
     {
-      state_del_dirty(Thread_switch_hazards);
+      state.del_dirty(Thread_switch_hazards);
       if (st & Thread_finish_migration)
         finish_migration();
 
@@ -1083,7 +1083,7 @@ Context::handle_drq()
 
   Mem::barrier();
   resched |= _drq_q.handle_requests();
-  state_del_dirty(Thread_drq_ready);
+  state.del_dirty(Thread_drq_ready);
 
   //LOG_MSG_3VAL(this, "xdrq", state(), 0, cpu_lock.test());
 
@@ -1132,7 +1132,7 @@ Context::handle_remote_state_change()
       _remote_state_change.del = 0;
     }
 
-  state_change_dirty(~del, add);
+  state.change_dirty(~del, add);
 }
 
 PUBLIC inline
@@ -1147,7 +1147,7 @@ Context::set_home_cpu(Cpu_number cpu)
       Mword del = access_once(&_remote_state_change.del);
       _remote_state_change.add = 0;
       _remote_state_change.del = 0;
-      state_change_dirty(~del, add);
+      state.change_dirty(~del, add);
     }
 
   write_now(&_home_cpu, cpu);
@@ -1181,7 +1181,7 @@ Context::xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
         }
     }
 
-  state_change_dirty(mask, add);
+  state.change_dirty(mask, add);
   if (add & Thread_ready_mask)
     return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
   return false;
@@ -1236,7 +1236,7 @@ Context::drq(Drq *drq, Drq::Request_func *func, void *arg,
   //LOG_MSG_3VAL(src, "<drq", src->state(), Mword(this), 0);
   while (wait == Drq::Wait && cur->state.dirty() & Thread_drq_wait)
     {
-      cur->state_del(Thread_ready_mask);
+      cur->state.del(Thread_ready_mask);
       cur->schedule();
     }
 
@@ -1680,7 +1680,7 @@ Context::Pending_rqq::handle_requests(Context **mq)
       if (EXPECT_TRUE(c->drq_pending()))
         {
           if (EXPECT_TRUE(c != curr))
-            c->state_add(Thread_drq_ready);
+            c->state.add(Thread_drq_ready);
           else
             resched |= c->handle_drq();
         }
@@ -1822,7 +1822,7 @@ Context::_deq_exec_drq(Drq *rq, bool offline_cpu = false)
     return false; // already handled
 
   if (!drq_pending() && EXPECT_FALSE(state() & Thread_drq_ready))
-    state_del_dirty(Thread_drq_ready);
+    state.del_dirty(Thread_drq_ready);
 
   return _execute_drq(rq, offline_cpu);
 }
@@ -1898,11 +1898,11 @@ void
 Context::rcu_wait()
 {
   auto guard = lock_guard(cpu_lock);
-  state_change_dirty(~Thread_ready, Thread_waiting);
+  state.change_dirty(~Thread_ready, Thread_waiting);
   Rcu::call(this, &rcu_unblock);
   while (state.dirty() & Thread_waiting)
     {
-      state_del_dirty(Thread_ready);
+      state.del_dirty(Thread_ready);
       schedule();
     }
 }
@@ -1923,7 +1923,7 @@ Context::spill_fpu()
 
   // Save the FPU state of the previous FPU owner (lazy) if applicable
   Fpu::save_state(fpu_state());
-  state_del_dirty(Thread_fpu_owner);
+  state.del_dirty(Thread_fpu_owner);
 }
 
 /**

@@ -116,11 +116,11 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
 
       if (!(vcpu->state & Vcpu_state::F_fpu_enabled))
         {
-          state_add_dirty(Thread_vcpu_fpu_disabled);
+          state.add_dirty(Thread_vcpu_fpu_disabled);
           Fpu::fpu.current().disable();
         }
       else
-        state_del_dirty(Thread_vcpu_fpu_disabled);
+        state.del_dirty(Thread_vcpu_fpu_disabled);
 
       target_space = static_cast<Task*>(vcpu_user_space());
 
@@ -382,11 +382,11 @@ Thread_object::ex_regs(Address ip, Address sp,
     return true;
 
   if (state() & Thread_dead)	// resurrect thread
-    state_change_dirty(~Thread_dead, Thread_ready);
+    state.change_dirty(~Thread_dead, Thread_ready);
 
   else if (ops & Exr_cancel)
     // cancel ongoing IPC or other activity
-    state_add_dirty(Thread_cancel | Thread_ready);
+    state.add_dirty(Thread_cancel | Thread_ready);
 
   if (ops & Exr_trigger_exception)
     {

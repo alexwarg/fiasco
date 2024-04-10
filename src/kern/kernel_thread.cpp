@@ -78,7 +78,7 @@ Kernel_thread::bootstrap()
   _home_cpu = Cpu::boot_cpu()->id();
   Mem::barrier();
 
-  state_change_dirty(0, Thread_ready);		// Set myself ready
+  state.change_dirty(0, Thread_ready);		// Set myself ready
 
   Timer::init_system_clock();
   Sched_context::rq.current().set_idle(this->sched());

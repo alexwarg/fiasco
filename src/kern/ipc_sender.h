@@ -40,7 +40,7 @@ public:
       {
         // we don't need to manipulate the state in a safe way
         // because we are still running with interrupts turned off
-        receiver->state_add_dirty(Thread_ready);
+        receiver->state.add_dirty(Thread_ready);
 
         if (!Config::Irq_shortcut)
           {
@@ -131,7 +131,7 @@ protected:
           }
 
         // ipc completed
-        receiver->state_change_dirty(~Thread_ipc_mask, 0);
+        receiver->state.change_dirty(~Thread_ipc_mask, 0);
 
         // in case a timeout was set
         receiver->reset_timeout();
@@ -146,7 +146,7 @@ protected:
 
             // we don't need to manipulate the state in a safe way
             // because we are still running with interrupts turned off
-            receiver->state_add_dirty(Thread_ready);
+            receiver->state.add_dirty(Thread_ready);
             return rq.deblock(receiver->sched(), current()->sched(), false);
           }
 
@@ -154,7 +154,7 @@ protected:
         auto &rq = Sched_context::rq.cpu(receiver->home_cpu());
         // we don't need to manipulate the state in a safe way
         // because we are still running with interrupts turned off
-        receiver->state_add_dirty(Thread_ready);
+        receiver->state.add_dirty(Thread_ready);
         rq.deblock_refill(receiver->sched());
         rq.ready_enqueue(receiver->sched());
         return false;

@@ -565,7 +565,7 @@ Thread::do_kill()
 
   arch_vcpu_ext_shutdown();
 
-  state_change_dirty(~Thread_dying, Thread_dead);
+  state.change_dirty(~Thread_dying, Thread_dead);
 
   // dequeue from system queues
   Sched_context::rq.current().ready_dequeue(sched());
@@ -574,7 +574,7 @@ Thread::do_kill()
 
   rcu_wait();
 
-  state_del_dirty(Thread_ready_mask);
+  state.del_dirty(Thread_ready_mask);
 
   Sched_context::rq.current().ready_dequeue(sched());
 
@@ -597,7 +597,7 @@ Thread::prepare_kill()
     return;
 
   inc_ref();
-  state_add_dirty(Thread_dying | Thread_cancel | Thread_ready);
+  state.add_dirty(Thread_dying | Thread_cancel | Thread_ready);
   _exc_cont.restore(regs()); // overwrite an already triggered exception
   do_trigger_exception(regs(), (void*)&leave_and_kill_myself);
 }
@@ -825,7 +825,7 @@ Thread::switchin_fpu(bool alloc_new_fpu = true)
   // Become FPU owner and restore own FPU state
   f.restore_state(fpu_state());
 
-  state_add_dirty(Thread_fpu_owner);
+  state.add_dirty(Thread_fpu_owner);
   f.set_owner(this);
   return 1;
 }
@@ -863,15 +863,15 @@ Thread::transfer_fpu(Thread *to) //, Trap_state *trap_state, Utcb *to_utcb)
       assert (to->state() & Thread_fpu_owner);
 
       f.set_owner(0);
-      to->state_del_dirty(Thread_fpu_owner);
+      to->state.del_dirty(Thread_fpu_owner);
     }
   else if (f.owner() == this)
     {
       assert (state() & Thread_fpu_owner);
 
-      state_del_dirty(Thread_fpu_owner);
+      state.del_dirty(Thread_fpu_owner);
 
-      to->state_add_dirty (Thread_fpu_owner);
+      to->state.add_dirty (Thread_fpu_owner);
       f.set_owner(to);
       if (EXPECT_FALSE(current() == to))
         f.enable();
@@ -1008,7 +1008,7 @@ Thread::migrate_away(Migration *inf, bool remote)
   sc->replenish();
   set_sched(sc);
 
-  state_add_dirty(Thread_finish_migration);
+  state.add_dirty(Thread_finish_migration);
   set_home_cpu(cpu);
   write_now(&inf->in_progress, true);
   return resched;
@@ -1248,7 +1248,7 @@ Thread::migrate_away(Migration *inf, bool remote)
       // The migration must be finished on the new CPU core before executing any
       // userland code. This will be done by Context::switch_handle_drq() after
       // the next context switch to this context was performed on the new CPU.
-      state_add_dirty(Thread_finish_migration);
+      state.add_dirty(Thread_finish_migration);
       set_home_cpu(target_cpu);
       Mem::mp_mb();
       write_now(&inf->in_progress, true);
@@ -1393,10 +1393,10 @@ Thread::halt()
 {
   // Cancel must be cleared on all kernel entry paths. See slowtraps for
   // why we delay doing it until here.
-  state_del(Thread_cancel);
+  state.del(Thread_cancel);
 
   // we haven't been re-initialized (cancel was not set) -- so sleep
-  if (state_change_safely(~Thread_ready, Thread_cancel | Thread_dead))
+  if (state.change_safely(~Thread_ready, Thread_cancel | Thread_dead))
     while (! (state() & Thread_ready))
       schedule();
 }

@@ -50,7 +50,7 @@ App_cpu_thread::bootstrap(Mword resume)
 {
   extern Spin_lock<Mword> _tramp_mp_spinlock;
 
-  state_change_dirty(0, Thread_ready);		// Set myself ready
+  state.change_dirty(0, Thread_ready);		// Set myself ready
   auto ccpu = current_cpu();
 
   Fpu::init(ccpu, resume);
