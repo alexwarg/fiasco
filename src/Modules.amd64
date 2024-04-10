@@ -288,14 +288,6 @@ GBLCFG			:= gblcfg.o
 OBJ_KERNEL		+= gblcfg.o
 
 #
-# CXXLIB Subsystem
-#
-
-CXXLIB			:= libcxx.a
-VPATH			+= lib/cxxlib
-INTERFACES_CXXLIB	:= paranoia
-
-#
 # LIBK subsystem
 #
 LIBK		:= libk.a

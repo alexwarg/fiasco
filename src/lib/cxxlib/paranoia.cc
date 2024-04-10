@@ -1,9 +1,5 @@
-INTERFACE:
 
 #include <cstddef>
-
-IMPLEMENTATION:
-
 #include <cstdio>
 #include <cstdlib>
 #include "panic.h"
@@ -11,19 +7,22 @@ IMPLEMENTATION:
 
 char __dso_handle __attribute__((weak));
 
-extern "C" void __cxa_pure_virtual() 
+extern "C" void __cxa_pure_virtual();
+extern "C" void __cxa_pure_virtual()
 {
   panic("cxa pure virtual function called from " L4_PTR_FMT,
         L4_PTR_ARG(__builtin_return_address(0)));
 }
 
+extern "C" void __pure_virtual();
 extern "C" void __pure_virtual()
 {
   panic("pure virtual function called from " L4_PTR_FMT,
         L4_PTR_ARG(__builtin_return_address(0)));
 }
 
-void operator delete(void *) throw()
+void operator delete(void *) noexcept;
+void operator delete(void *) noexcept
 {
   // This must not happen: We never delete an object of the abstract
   // class slab_cache_anon.  If the compiler was clever, it wouldn't
@@ -34,6 +33,7 @@ void operator delete(void *) throw()
       L4_PTR_ARG(__builtin_return_address(0)));
 }
 
+extern "C" void __div0(void);
 extern "C" void __div0(void)
 {
   panic("__div0");

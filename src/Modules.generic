@@ -3,6 +3,12 @@
 
 # Include for unit tests, enable by including UTEST in SUBSYSTEMS.
 include $(srcdir)/test/utest/Modules.utest
+#
+# CXXLIB Subsystem
+# 
+CXXLIB 			:= libcxx.a
+VPATH			+= lib/cxxlib
+CXXSRC_CXXLIB 		+= paranoia.cc
 
 CXXSRC_ABI += kip.cc
 
