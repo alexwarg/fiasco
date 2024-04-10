@@ -257,6 +257,66 @@ namespace cxx
       return compare_exchange_strong(expected, desired, order, memory_order_failure(order));
     }
 
+    T_ fetch_and(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_fetch_and(&v_, a, (int)order);
+    }
+
+    T_ fetch_and(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_fetch_and(&v_, a, (int)order);
+    }
+
+    T_ and_fetch(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_and_fetch(&v_, a, (int)order);
+    }
+
+    T_ and_fetch(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_and_fetch(&v_, a, (int)order);
+    }
+
+    T_ operator &= (T_ a) noexcept
+    {
+      return and_fetch(a);
+    }
+
+    T_ operator &= (T_ a) volatile noexcept
+    {
+      return and_fetch(a);
+    }
+
+    T_ fetch_or(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_fetch_or(&v_, a, (int)order);
+    }
+
+    T_ fetch_or(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_fetch_or(&v_, a, (int)order);
+    }
+
+    T_ or_fetch(T_ a, memory_order order = memory_order_seq_cst) noexcept
+    {
+      return __atomic_or_fetch(&v_, a, (int)order);
+    }
+
+    T_ or_fetch(T_ a, memory_order order = memory_order_seq_cst) volatile noexcept
+    {
+      return __atomic_or_fetch(&v_, a, (int)order);
+    }
+
+    T_ operator |= (T_ a) noexcept
+    {
+      return or_fetch(a);
+    }
+
+    T_ operator |= (T_ a) volatile noexcept
+    {
+      return or_fetch(a);
+    }
+
     T_ fetch_add(T_ a, memory_order order = memory_order_seq_cst) noexcept
     {
       return __atomic_fetch_add(&v_, a, (int)order);
