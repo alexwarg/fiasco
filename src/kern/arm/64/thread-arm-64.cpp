@@ -132,12 +132,12 @@ void
 Thread::handle_svc(Trap_state *ts)
 {
   Mword state = this->state();
-  state.del(Thread_cancel);
+  this->state.del(Thread_cancel);
   if (state & (Thread_vcpu_user | Thread_alien))
     {
       if (state & Thread_dis_alien)
         {
-          state.del_dirty(Thread_dis_alien);
+          this->state.del_dirty(Thread_dis_alien);
           do_syscall();
 
           ts->error_code |= 1 << 16; // ts->esr().alien_after_syscall() = 1;

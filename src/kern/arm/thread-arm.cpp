@@ -305,7 +305,7 @@ Thread::Thread(Ram_quota *q)
 
   alloc_eager_fpu_state();
 
-  state.add_dirty(Thread_dead, false);
+  state.add_dirty(Thread_dead);
 
   // ok, we're ready to go!
 }
