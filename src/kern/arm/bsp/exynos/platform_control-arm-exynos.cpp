@@ -208,7 +208,7 @@ IMPLEMENTATION [arm && pf_exynos && mp]:
 #include "mem_unit.h"
 #include "outer_cache.h"
 #include "platform.h"
-#include "smc.h"
+#include "exynos_smc.h"
 
 PUBLIC static
 void
@@ -268,7 +268,7 @@ IMPLEMENTATION [arm && pf_exynos && mp && (exynos_extgic || pf_exynos5)
 #include "kmem.h"
 #include "pic.h"
 #include "processor.h"
-#include "smc.h"
+#include "exynos_smc.h"
 
 IMPLEMENT_OVERRIDE inline
 bool

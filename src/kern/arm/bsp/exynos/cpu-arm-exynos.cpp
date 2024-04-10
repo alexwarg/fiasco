@@ -1,7 +1,7 @@
 IMPLEMENTATION [arm && bsp_cpu && arm_cache_l2cxx0]:
 
 #include "platform.h"
-#include "smc.h"
+#include "exynos_smc.h"
 
 PRIVATE static
 void

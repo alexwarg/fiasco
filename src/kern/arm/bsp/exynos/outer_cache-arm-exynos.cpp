@@ -2,7 +2,7 @@ IMPLEMENTATION [arm && pf_exynos && arm_cache_l2cxx0]:
 
 #include "cpu.h"
 #include "platform.h"
-#include "smc.h"
+#include "exynos_smc.h"
 
 IMPLEMENT
 Mword
