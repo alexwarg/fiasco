@@ -21,52 +21,11 @@ INTERFACE:
 #include <fiasco_defs.h>
 #include <cxx/function>
 
+#include <context_ptr.h>
+
 class Entry_frame;
 class Context;
 class Kobject_iface;
-
-class Context_ptr
-{
-public:
-  explicit Context_ptr(Cap_index id) : _t(id) {}
-  Context_ptr() {}
-  Context_ptr(Context_ptr const &o) : _t(o._t) {}
-  Context_ptr const &operator = (Context_ptr const &o)
-  { _t = o._t; return *this; }
-
-  Kobject_iface *ptr(Space *, L4_fpage::Rights *) const;
-
-  bool is_valid() const { return _t != Cap_index(~0UL); }
-
-  // only for debugging use
-  Cap_index raw() const { return _t; }
-
-private:
-  Cap_index _t;
-};
-
-template< typename T >
-class Context_ptr_base : public Context_ptr
-{
-public:
-  enum Invalid_type { Invalid };
-  enum Null_type { Null };
-  explicit Context_ptr_base(Invalid_type) : Context_ptr(Cap_index(~0UL)) {}
-  explicit Context_ptr_base(Null_type) : Context_ptr(Cap_index(0)) {}
-  explicit Context_ptr_base(Cap_index id) : Context_ptr(id) {}
-  Context_ptr_base() {}
-  Context_ptr_base(Context_ptr_base<T> const &o) : Context_ptr(o) {}
-  template< typename X >
-  Context_ptr_base(Context_ptr_base<X> const &o) : Context_ptr(o)
-  { X*x = 0; T*t = x; (void)t; }
-
-  Context_ptr_base<T> const &operator = (Context_ptr_base<T> const &o)
-  { Context_ptr::operator = (o); return *this; }
-
-  template< typename X >
-  Context_ptr_base<T> const &operator = (Context_ptr_base<X> const &o)
-  { X*x=0; T*t=x; (void)t; Context_ptr::operator = (o); return *this; }
-};
 
 class Context_space_ref
 {
@@ -126,24 +85,6 @@ protected:
 
 
 public:
-  /**
-   * \brief Encapsulate an aggregate of Context.
-   *
-   * Allow to get a back reference to the aggregating Context object.
-   */
-  class Context_member
-  {
-  private:
-    Context_member(Context_member const &);
-
-  public:
-    Context_member() {}
-    /**
-     * \brief Get the aggregating Context object.
-     */
-    Context *context() const;
-  };
-
   /**
    * \brief Deferred Request.
    *
@@ -446,17 +387,6 @@ DEFINE_PER_CPU Per_cpu<Clock> Context::_clock(Per_cpu_data::Cpu_num);
 DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;
 DEFINE_PER_CPU Per_cpu<Context::Kernel_drq> Context::_kernel_drq;
 
-IMPLEMENT inline NEEDS["assert.h"]
-Kobject_iface * __attribute__((nonnull(2, 3)))
-Context_ptr::ptr(Space *s, L4_fpage::Rights *rights) const
-{
-  assert (cpu_lock.test());
-
-  return static_cast<Obj_space*>(s)->lookup_local(_t, rights);
-}
-
-
-
 #include <cstdio>
 
 /**
@@ -508,16 +438,6 @@ Context::check_for_current_cpu() const
   return r;
 }
 
-
-PUBLIC inline
-Mword
-Context::state(bool check = false) const
-{
-  (void)check;
-  assert(!check || check_for_current_cpu());
-  return _state;
-}
-
 PUBLIC static inline
 Context*
 Context::kernel_context(Cpu_number cpu)
@@ -543,122 +463,6 @@ Context::is_invalid(bool check_cpu_local = false) const
 {
   unsigned s = state(check_cpu_local);
   return (s & Thread_dead);
-}
-
-/**
- * Atomically add bits to state flags.
- * @param bits bits to be added to state flags
- * @return 1 if none of the bits that were added had been set before
- */
-PUBLIC inline NEEDS [<cxx/atomic>]
-void
-Context::state_add(Mword bits)
-{
-  assert(check_for_current_cpu());
-  cxx::atomic_or_fetch(&_state, bits);
-}
-
-/**
- * Add bits in state flags. Unsafe (non-atomic) and
- *        fast version -- you must hold the kernel lock when you use it.
- * @pre cpu_lock.test() == true
- * @param bits bits to be added to state flags
- */
-PUBLIC inline
-void
-Context::state_add_dirty(Mword bits, bool check = true)
-{
-  (void)check;
-  assert(!check || check_for_current_cpu());
-  _state |= bits;
-}
-
-/**
- * Atomically delete bits from state flags.
- * @param bits bits to be removed from state flags
- * @return 1 if all of the bits that were removed had previously been set
- */
-PUBLIC inline NEEDS [<cxx/atomic>]
-void
-Context::state_del(Mword bits)
-{
-  assert (check_for_current_cpu());
-  cxx::atomic_and_fetch(&_state, ~bits);
-}
-
-/**
- * Delete bits in state flags. Unsafe (non-atomic) and
- *        fast version -- you must hold the kernel lock when you use it.
- * @pre cpu_lock.test() == true
- * @param bits bits to be removed from state flags
- */
-PUBLIC inline
-void
-Context::state_del_dirty(Mword bits, bool check = true)
-{
-  (void)check;
-  assert(!check || check_for_current_cpu());
-  _state &= ~bits;
-}
-
-/**
- * Atomically delete and add bits in state flags, provided the
- *        following rules apply (otherwise state is not changed at all):
- *        - Bits that are to be set must be clear in state or clear in mask
- *        - Bits that are to be cleared must be set in state
- * @param mask Bits not set in mask shall be deleted from state flags
- * @param bits Bits to be added to state flags
- * @return 1 if state was changed, 0 otherwise
- */
-PUBLIC inline NEEDS [<cxx/atomic>]
-Mword
-Context::state_change_safely(Mword mask, Mword bits)
-{
-  assert (check_for_current_cpu());
-  Mword old = _state;
-
-  do
-    {
-      if ((old & bits & mask) | (~old & ~mask))
-        return 0;
-    }
-  while (!cxx::atomic_compare_exchange_strong(&_state, old, (old & mask) | bits));
-
-  return 1;
-}
-
-/**
- * Atomically delete and add bits in state flags.
- * @param mask bits not set in mask shall be deleted from state flags
- * @param bits bits to be added to state flags
- */
-PUBLIC inline NEEDS [<cxx/atomic>]
-Mword
-Context::state_change(Mword mask, Mword bits)
-{
-  assert (check_for_current_cpu());
-  Mword old = _state;
-  while (!cxx::atomic_compare_exchange_strong(&_state, old, (old & mask) | bits))
-    ;
-
-  return old;
-}
-
-/**
- * Delete and add bits in state flags. Unsafe (non-atomic) and
- *        fast version -- you must hold the kernel lock when you use it.
- * @pre cpu_lock.test() == true
- * @param mask Bits not set in mask shall be deleted from state flags
- * @param bits Bits to be added to state flags
- */
-PUBLIC inline
-void
-Context::state_change_dirty(Mword mask, Mword bits, bool check = true)
-{
-  (void)check;
-  assert(!check || check_for_current_cpu());
-  _state &= mask;
-  _state |= bits;
 }
 
 //@}
@@ -1117,11 +921,6 @@ PUBLIC inline
 Context::Ku_mem_ptr<Utcb> const &
 Context::utcb() const
 { return _utcb; }
-
-IMPLEMENT inline NEEDS["globals.h"]
-Context *
-Context::Context_member::context() const
-{ return context_of(this); }
 
 IMPLEMENT inline NEEDS["lock_guard.h", "assert.h"]
 void
