@@ -77,6 +77,21 @@ public:
     register_pm(Cpu_number::boot_cpu());
   }
 
+  int write(char const *d, size_t len) override
+  {
+    return FIASCO_UART_TYPE::write(d, len);
+  }
+
+  int getchar(bool blocking=true) override
+  {
+    return FIASCO_UART_TYPE::get_char(blocking);
+  }
+
+  int char_avail() const override
+  {
+    return FIASCO_UART_TYPE::char_avail();
+  }
+
   void pm_on_suspend(Cpu_number cpu) override
   {
     (void)cpu;
