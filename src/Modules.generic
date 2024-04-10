@@ -30,7 +30,7 @@ INTERFACES_KERNEL	:= \
 			   thread syscalls     \
 			   kernel_thread map_util        \
 			   vmem_alloc paging fpu                 \
-			   fpu_state fpu_alloc cpu               \
+			   fpu_alloc cpu               \
                            platform_control_object          \
 			   continuation timer_tick platform_control          \
 			   utcb_init perf_cnt   \
