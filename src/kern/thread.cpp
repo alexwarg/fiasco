@@ -724,7 +724,7 @@ Thread::start_migration()
 
   assert (!((Mword)m & 0x3)); // ensure alignment
 
-  if (!m || !cxx::atomic_compare_exchange_strong(&_migration, m, (Migration*)0))
+  if (!m || !_migration.compare_exchange_strong(m, nullptr))
     return reinterpret_cast<Migration*>(0x2); // bit one == 0 --> no need to reschedule
 
   if (m->cpu == home_cpu())
@@ -1100,7 +1100,7 @@ Thread::migrate(Migration *info)
   );
     {
       Migration *old = _migration;
-      while (!cxx::atomic_compare_exchange_weak(&_migration, old, info))
+      while (!_migration.compare_exchange_weak(old, info))
         ;
 
       // flag old migration to be done / stale

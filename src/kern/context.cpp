@@ -204,7 +204,7 @@ private:
   int _lock_cnt;
 
 protected:
-  Migration *_migration;
+  cxx::atomic<Migration *> _migration;
 
 private:
   State_request _remote_state_change;
@@ -1179,7 +1179,8 @@ Context::copy_and_sanitize_trap_state(Trap_state *dst,
 { dst->copy_and_sanitize(src); }
 
 PUBLIC inline
-bool Context::migration_pending() const { return _migration; }
+bool Context::migration_pending() const
+{ return _migration.load(cxx::memory_order_relaxed); }
 
 //----------------------------------------------------------------------------
 IMPLEMENTATION [!mp]:
@@ -1523,7 +1524,7 @@ Context::Pending_rqq::handle_requests(Context **mq)
       assert (c->check_for_current_cpu());
 
       c->handle_remote_state_change();
-      if (EXPECT_FALSE(c->_migration != 0))
+      if (EXPECT_FALSE(c->migration_pending()))
         {
           // if the currently executing thread shall be migrated we must defer
           // this until we have handled the whole request queue, otherwise we
