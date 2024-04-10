@@ -49,15 +49,20 @@ public:
     void change_dirty(Mword mask, Mword bits)
     {
       Mword old = s.load(cxx::memory_order_relaxed);
-      do
-        {
-          if ((old & bits & mask) | (~old & ~mask))
-            return;
-        }
       while (!s.compare_exchange_weak(old, (old & mask) | bits,
-              cxx::memory_order_relaxed));
+              cxx::memory_order_relaxed))
+        ;
     }
 
+    /**
+     * Atomically delete and add bits in state flags, provided the
+     *        following rules apply (otherwise state is not changed at all):
+     *        - Bits that are to be set must be clear in state or clear in mask
+     *        - Bits that are to be cleared must be set in state
+     * @param mask Bits not set in mask shall be deleted from state flags
+     * @param bits Bits to be added to state flags
+     * @return 1 if state was changed, 0 otherwise
+     */
     Mword change_safely(Mword mask, Mword bits)
     {
       Mword old = s;
