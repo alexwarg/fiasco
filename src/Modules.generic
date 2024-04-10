@@ -29,7 +29,7 @@ INTERFACES_KERNEL	:= \
 			   context mem_unit \
 			   thread syscalls     \
 			   kernel_thread map_util        \
-			   vmem_alloc paging fpu                 \
+			   vmem_alloc paging      \
 			   cpu               \
                            platform_control_object          \
 			   continuation timer_tick platform_control          \
@@ -80,7 +80,7 @@ CXXSRC_KERNEL += \
 	trap_state.cc \
 	vlog.cc \
 
-CXXSRC_KERNEL-$(CONFIG_FPU) += fpu_alloc.cc
+CXXSRC_KERNEL-$(CONFIG_FPU) += fpu_alloc.cc fpu.cc fpu_arch.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 			      app_cpu_thread.cc
 

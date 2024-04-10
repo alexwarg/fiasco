@@ -1,181 +1,59 @@
-INTERFACE [mips && fpu]:
 
-#include <cxx/bitfield>
+#include <fpu.h>
+#include <globalconfig.h>
 
-EXTENSION class Fpu
-{
-public:
-  struct Fpu_regs
-  {
-    Unsigned64 regs[32];
-    Mword fcsr;
-  };
-
-  struct Fir
-  {
-    Mword v;
-
-    Fir() = default;
-    explicit Fir(Mword v) : v(v) {}
-
-    CXX_BITFIELD_MEMBER(0, 7, revision, v);
-    CXX_BITFIELD_MEMBER(8, 15, processor_id, v);
-    CXX_BITFIELD_MEMBER(16, 16, s, v);
-    CXX_BITFIELD_MEMBER(17, 17, d, v);
-    CXX_BITFIELD_MEMBER(18, 18, ps, v);
-    //CXX_BITFIELD_MEMBER(19, 19, _3D, v);
-    CXX_BITFIELD_MEMBER(20, 20, w, v);
-    CXX_BITFIELD_MEMBER(21, 21, l, v);
-    CXX_BITFIELD_MEMBER(22, 22, f64, v);
-    //CXX_BITFIELD_MEMBER(23, 23, Has2008, v);
-    //CXX_BITFIELD_MEMBER(24, 24, FC, v);
-    CXX_BITFIELD_MEMBER(28, 28, ufrp, v);
-    CXX_BITFIELD_MEMBER(29, 29, frep, v);
-  };
-
-  Fir fir() const { return _fir; }
-
-private:
-  Fir _fir;
-};
-
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips && fpu]:
-
-#include <cassert>
 #include <cstdio>
-#include <cstring>
 
-#include "fpu_state.h"
-#include "kdb_ke.h"
-#include "mem.h"
-#include "processor.h"
-#include "static_assert.h"
-#include "cp0_status.h"
-#include "cpu.h"
+#ifdef CONFIG_CPU_MIPSR6
+  [[gnu::always_inline]]
+  inline void set_mipsr2_fp64()
+  {
+    asm volatile(".macro set_mipsr2_fp64\n"
+                 ".endm                 \n");
+  }
 
-PUBLIC static inline
-Mword
-Fpu::fir_read()
+#else // CONFIG_CPU_MIPSR6
+#ifdef CONFIG_BIT32
+  [[gnu::always_inline]]
+  inline void set_mipsr2_fp64()
+  {
+    asm volatile(".macro set_mipsr2_fp64\n"
+                 "        .set mips32r2 \n"
+                 "        .set fp=64    \n"
+                 ".endm                 \n");
+  }
+#endif // CONFIG_BIT32
+#ifdef CONFIG_BIT64
+  [[gnu::always_inline]]
+  inline void set_mipsr2_fp64()
+  {
+    asm volatile(".macro set_mipsr2_fp64\n"
+                 "        .set mips64r2 \n"
+                 "        .set fp=64    \n"
+                 ".endm                 \n");
+  }
+#endif // CONFIG_BIT64
+#endif // CONFIG_CPU_MIPSR6
+
+#ifdef CONFIG_LAZY_FPU
+
+inline void finish_init(Fpu &f)
 {
-  Mword fir;
-  __asm__ __volatile__(
-      ".set push    \n"
-      ".set reorder \n"
-      ".set mips1   \n"
-      "cfc1 %0, $0  \n"
-      ".set pop     \n"
-      : "=r" (fir));
-  return fir;
+  f.disable();
+  f.set_owner(0);
 }
 
-PUBLIC static inline
-Mword
-Fpu::fcr_read()
-{
-  Mword fcr;
-  __asm__ __volatile__(
-      ".set push    \n"
-      ".set reorder \n"
-      ".set mips1   \n"
-      "cfc1 %0, $31 \n"
-      ".set pop     \n"
-      : "=r" (fcr));
-  return fcr;
-}
+#else // CONFIG_LAZY_FPU
 
-PUBLIC static inline NEEDS ["fpu_state.h", <cassert>]
-Mword
-Fpu::fcr(Fpu_state *s)
-{
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-
-  assert(fpu_regs);
-  return fpu_regs->fcsr;
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips && fpu && !mips_r6]:
-
-PUBLIC static inline NEEDS ["cp0_status.h"]
-bool
-Fpu::mode_64bit()
-{
-  return Cp0_status::read() & Cp0_status::ST_FR;
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips32 && fpu && !mips_r6]:
-
-PRIVATE static inline ALWAYS_INLINE
-void
-Fpu::set_mipsr2_fp64()
-{
-  asm volatile(".macro set_mipsr2_fp64\n"
-               "        .set mips32r2 \n"
-               "        .set fp=64    \n"
-               ".endm                 \n");
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips64 && fpu && !mips_r6]:
-
-PRIVATE static inline ALWAYS_INLINE
-void
-Fpu::set_mipsr2_fp64()
-{
-  asm volatile(".macro set_mipsr2_fp64\n"
-               "        .set mips64r2 \n"
-               "        .set fp=64    \n"
-               ".endm                 \n");
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips && fpu && mips_r6]:
-
-PRIVATE static inline
-bool
-Fpu::mode_64bit()
-{
-  return true;
-}
-
-PRIVATE static inline ALWAYS_INLINE
-void
-Fpu::set_mipsr2_fp64()
-{
-  asm volatile(".macro set_mipsr2_fp64\n"
-               ".endm                 \n");
-}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips && fpu && lazy_fpu]:
-
-PRIVATE inline
-void
-Fpu::finish_init()
-{
-  disable();
-  set_owner(0);
-}
-
-//-------------------------------------------------------------------------
-IMPLEMENTATION [mips && fpu && !lazy_fpu]:
-
-PRIVATE inline
-void
-Fpu::finish_init()
+inline void finish_init(Fpu &)
 {}
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mips && fpu]:
+#endif // CONFIG_LAZY_FPU
 
-PRIVATE static
 void
-Fpu::show(Cpu_number cpu)
+Fpu_arch::show(Cpu_number cpu)
 {
-  const Fir f = fpu.cpu(cpu).fir();
+  const Fir f = Fpu::fpu.cpu(cpu).fir();
 
   printf("FPU[%d]: fir:%08x ID:%x Rev:%x fp-type%s%s%s%s%s F64:%x "
          "UFRP:%x FREP:%x\n",
@@ -191,11 +69,10 @@ Fpu::show(Cpu_number cpu)
          (int)f.f64(), (int)f.ufrp(), (int)f.frep());
 }
 
-IMPLEMENT
 void
-Fpu::init(Cpu_number cpu, bool resume)
+Fpu_arch::init(Cpu_number cpu, bool resume)
 {
-  Fpu &f = fpu.cpu(cpu);
+  Fpu &f = Fpu::fpu.cpu(cpu);
 
   f.enable();
   f._fir = Fir(fir_read());
@@ -203,12 +80,11 @@ Fpu::init(Cpu_number cpu, bool resume)
   if (!resume)
     show(cpu);
 
-  f.finish_init();
+  finish_init(f);
 }
 
-PRIVATE static inline
-void
-Fpu::fpu_save_16even(Fpu_regs *r)
+inline void
+fpu_save_16even(Fpu_arch::Fpu_regs *r)
 {
   Mword tmp;
 
@@ -238,9 +114,8 @@ Fpu::fpu_save_16even(Fpu_regs *r)
                : [regs] "r"   (r->regs));
 }
 
-PRIVATE static inline
-void
-Fpu::fpu_save_16odd(Fpu_regs *r)
+inline void
+fpu_save_16odd(Fpu_arch::Fpu_regs *r)
 {
   set_mipsr2_fp64();
   asm volatile(".set   push                   \n"
@@ -267,9 +142,8 @@ Fpu::fpu_save_16odd(Fpu_regs *r)
                :: [regs] "r" (r->regs));
 }
 
-PRIVATE static inline
-void
-Fpu::fpu_restore_16even(Fpu_regs *r)
+inline void
+fpu_restore_16even(Fpu_arch::Fpu_regs *r)
 {
   Mword tmp;
 
@@ -299,9 +173,8 @@ Fpu::fpu_restore_16even(Fpu_regs *r)
                  [fcsr] "m"   (r->fcsr));
 }
 
-PRIVATE static inline
-void
-Fpu::fpu_restore_16odd(Fpu_regs *r)
+inline void
+fpu_restore_16odd(Fpu_arch::Fpu_regs *r)
 {
   set_mipsr2_fp64();
   asm volatile(".set   push                   \n"
@@ -328,9 +201,8 @@ Fpu::fpu_restore_16odd(Fpu_regs *r)
                :: [regs] "r" (r->regs));
 }
 
-IMPLEMENT
 void
-Fpu::save_state(Fpu_state *s)
+Fpu_arch::save_state(Fpu_state *s)
 {
   Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
 
@@ -342,9 +214,8 @@ Fpu::save_state(Fpu_state *s)
   fpu_save_16even(fpu_regs);
 }
 
-IMPLEMENT
 void
-Fpu::restore_state(Fpu_state *s)
+Fpu_arch::restore_state(Fpu_state *s, bool)
 {
   Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
 
@@ -356,51 +227,4 @@ Fpu::restore_state(Fpu_state *s)
   fpu_restore_16even(fpu_regs);
 }
 
-IMPLEMENT inline
-unsigned
-Fpu::state_size()
-{ return sizeof (Fpu_regs); }
-
-IMPLEMENT inline
-unsigned
-Fpu::state_align()
-{ return sizeof(Unsigned64); }
-
-IMPLEMENT
-void
-Fpu::init_state(Fpu_state *s)
-{
-  Fpu_regs *fpu_regs = reinterpret_cast<Fpu_regs *>(s->state_buffer());
-  static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
-                "Non-mword size of Fpu_regs");
-
-  // Load the FPU with signalling NANS.  This bit pattern we're using has
-  // the property that no matter whether considered as single or as double
-  // precision represents signaling NANS.
-  Mem::memset_mwords(fpu_regs, -1UL, sizeof (*fpu_regs) / sizeof(Mword));
-
-  // We initialize fcr31 to rounding to nearest, no exceptions.
-  fpu_regs->fcsr = 0;
-}
-
-PUBLIC static inline NEEDS ["cp0_status.h"]
-bool
-Fpu::is_enabled()
-{
-  return Cp0_status::read() & Cp0_status::ST_CU1;
-}
-
-PUBLIC static inline NEEDS ["cpu.h", "cp0_status.h"]
-void
-Fpu::enable()
-{
-  Cp0_status::set_status_bit(Cp0_status::ST_CU1);
-}
-
-PUBLIC static inline NEEDS ["cpu.h", "cp0_status.h"]
-void
-Fpu::disable()
-{
-  Cp0_status::clear_status_bit(Cp0_status::ST_CU1);
-}
 

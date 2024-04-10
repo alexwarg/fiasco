@@ -14,8 +14,6 @@ public:
   }
 
 private:
-  friend class Fpu_alloc;
-
   void *_state_buffer = nullptr;
 };
 
