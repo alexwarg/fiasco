@@ -1,6 +1,6 @@
-INTERFACE [amd64]:
+#pragma once
 
-#include "l4_types.h"
+#include <l4_types.h>
 
 // This is used as the architecture-specific version
 // in the vCPU state structure. This version has to be

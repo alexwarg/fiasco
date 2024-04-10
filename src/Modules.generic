@@ -26,7 +26,6 @@ INTERFACES_KERNEL	:= \
 			   kmem kmem_alloc mem_layout        \
 			   kip_init   \
 			   timer   \
-			   vcpu_host_regs                                    \
 			   context mem_unit \
 			   thread syscalls     \
 			   kernel_thread map_util        \
