@@ -1,5 +1,4 @@
 INTERFACE:
-
 #include <csetjmp>             // typedef jmp_buf
 #include "types.h"
 #include "clock.h"
@@ -22,37 +21,13 @@ INTERFACE:
 #include <cxx/function>
 
 #include <context_ptr.h>
+#include <context_space_ref.h>
+#include <drq.h>
+#include <drq_queue.h>
 
 class Entry_frame;
 class Context;
 class Kobject_iface;
-
-class Context_space_ref
-{
-public:
-  typedef Spin_lock_coloc<Space *> Space_n_lock;
-
-private:
-  Space_n_lock _s;
-  Address _v;
-
-public:
-  Space *space() const { return _s.get_unused(); }
-  Space_n_lock *lock() { return &_s; }
-  Address user_mode() const { return _v & 1; }
-  Space *vcpu_user() const { return reinterpret_cast<Space*>(_v & ~3); }
-  Space *vcpu_aware() const { return user_mode() ? vcpu_user() : space(); }
-
-  void space(Space *s) { _s.set_unused(s); }
-  void vcpu_user(Space *s) { _v = (Address)s; }
-  void user_mode(bool enable)
-  {
-    if (enable)
-      _v |= (Address)1;
-    else
-      _v &= (Address)(~1);
-  }
-};
 
 /** An execution context.  A context is a runnable, schedulable activity.
     It carries along some state used by other subsystems: A lock count,
@@ -85,63 +60,8 @@ protected:
 
 
 public:
-  /**
-   * \brief Deferred Request.
-   *
-   * Represents a request that can be queued for each Context
-   * and is executed by the target context just after switching to the
-   * target context.
-   */
-  class Drq : public Queue_item, public Context_member
-  {
-  public:
-    struct Result
-    {
-      unsigned char v;
-      CXX_BITFIELD_MEMBER(0, 0, need_resched, v);
-      CXX_BITFIELD_MEMBER(1, 1, no_answer, v);
-    };
-
-    static Result done()
-    { Result r; r.v = 0; return r; }
-
-    static Result no_answer()
-    { Result r; r.v = Result::no_answer_bfm_t::Mask; return r; }
-
-    static Result need_resched()
-    { Result r; r.v = Result::need_resched_bfm_t::Mask; return r; }
-
-    static Result no_answer_resched()
-    {
-      Result r;
-      r.v = Result::no_answer_bfm_t::Mask | Result::need_resched_bfm_t::Mask;
-      return r;
-    }
-
-    typedef Result (Request_func)(Drq *, Context *target, void *);
-    enum Wait_mode { No_wait = 0, Wait = 1 };
-    // enum State { Idle = 0, Handled = 1, Reply_handled = 2 };
-
-    Request_func *func;
-    void *arg;
-    // State state;
-  };
-
-  /**
-   * \brief Queue for deferred requests (Drq).
-   *
-   * A FIFO queue each Context aggregates to queue incoming Drq's
-   * that have to be executed directly after switching to a context.
-   */
-  class Drq_q : public Queue, public Context_member
-  {
-  public:
-    enum Drop_mode { Drop = true, No_drop = false };
-    void enq(Drq *rq);
-    bool dequeue(Drq *drq);
-    bool handle_requests(Drop_mode drop = No_drop);
-    bool execute_request(Drq *r, Drop_mode drop, bool local);
-  };
+  using Drq = ::Drq;
+  using Drq_q = Drq_queue;
 
   struct Migration
   {
@@ -922,23 +842,15 @@ Context::Ku_mem_ptr<Utcb> const &
 Context::utcb() const
 { return _utcb; }
 
-IMPLEMENT inline NEEDS["lock_guard.h", "assert.h"]
-void
-Context::Drq_q::enq(Drq *rq)
-{
-  assert(cpu_lock.test());
-  auto guard = lock_guard(q_lock());
-  enqueue(rq);
-}
-
-IMPLEMENT inline NEEDS["logdefs.h"]
+//IMPLEMENT inline NEEDS["logdefs.h"]
+PUBLIC inline NEEDS["logdefs.h"]
 bool
-Context::Drq_q::execute_request(Drq *r, Drop_mode drop, bool local)
+Context::execute_drq(Drq *r, Drq_q::Drop_mode drop, bool local)
 {
   bool need_resched = false;
-  Context *const self = context();
+  Context *const self = this;
   if (0)
-    printf("CPU[%2u:%p]: context=%p: handle request for %p (func=%p, arg=%p)\n", cxx::int_value<Cpu_number>(current_cpu()), current(), context(), r->context(), r->func, r->arg);
+    printf("CPU[%2u:%p]: context=%p: handle request for %p (func=%p, arg=%p)\n", cxx::int_value<Cpu_number>(current_cpu()), current(), self, r->context(), r->func, r->arg);
   if (r->context() == self)
     {
       LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
@@ -966,12 +878,12 @@ Context::Drq_q::execute_request(Drq *r, Drop_mode drop, bool local)
       );
 
       Drq::Result answer = Drq::done();
-      if (EXPECT_TRUE(drop == No_drop && r->func))
+      if (EXPECT_TRUE(drop == Drq_q::No_drop && r->func))
         {
           self->handle_remote_state_change();
           answer = r->func(r, self, r->arg);
         }
-      else if (EXPECT_FALSE(drop == Drop))
+      else if (EXPECT_FALSE(drop == Drq_q::Drop))
         // flag DRQ abort for requester
         r->arg = (void*)-1;
 
@@ -991,42 +903,6 @@ Context::Drq_q::execute_request(Drq *r, Drop_mode drop, bool local)
         }
     }
   return need_resched;
-}
-
-IMPLEMENT inline NEEDS["lock_guard.h"]
-bool
-Context::Drq_q::dequeue(Drq *drq)
-{
-  auto guard = lock_guard(q_lock());
-  if (!drq->queued())
-    return false;
-  return Queue::dequeue(drq);
-}
-
-IMPLEMENT inline NEEDS["mem.h", "lock_guard.h"]
-bool
-Context::Drq_q::handle_requests(Drop_mode drop)
-{
-  if (0)
-    printf("CPU[%2u:%p]: > Context::Drq_q::handle_requests() context=%p\n", cxx::int_value<Cpu_number>(current_cpu()), current(), context());
-  bool need_resched = false;
-  while (1)
-    {
-      Queue_item *qi;
-        {
-          auto guard = lock_guard(q_lock());
-          qi = first();
-          if (!qi)
-            return need_resched;
-
-          check (Queue::dequeue(qi));
-        }
-
-      Drq *r = static_cast<Drq*>(qi);
-      if (0)
-        printf("CPU[%2u:%p]: context=%p: handle request for %p (func=%p, arg=%p)\n", cxx::int_value<Cpu_number>(current_cpu()), current(), context(), r->context(), r->func, r->arg);
-      need_resched |= execute_request(r, drop, false);
-    }
 }
 
 /**
@@ -1082,7 +958,7 @@ Context::handle_drq()
     return resched;
 
   Mem::barrier();
-  resched |= _drq_q.handle_requests();
+  resched |= _drq_q.handle_requests(this);
   state.del_dirty(Thread_drq_ready);
 
   //LOG_MSG_3VAL(this, "xdrq", state(), 0, cpu_lock.test());
@@ -1385,7 +1261,7 @@ Context::enqueue_drq(Drq *rq)
       l->rq = rq;
   );
 
-  bool do_sched = _drq_q.execute_request(rq, Drq_q::No_drop, true);
+  bool do_sched = execute_drq(rq, Drq_q::No_drop, true);
   if (   access_once(&_home_cpu) == current_cpu()
       && (state() & Thread_ready_mask) && !in_ready_list())
     {
@@ -1796,7 +1672,7 @@ PRIVATE inline
 bool
 Context::_execute_drq(Drq *rq, bool offline_cpu = false)
 {
-  bool do_sched = _drq_q.execute_request(rq, Drq_q::No_drop, true);
+  bool do_sched = execute_drq(rq, Drq_q::No_drop, true);
   // the DRQ function executed above might be preemptible in the case
   // of local execution
   if (EXPECT_FALSE(!offline_cpu && home_cpu() != current_cpu()))
