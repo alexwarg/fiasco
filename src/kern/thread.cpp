@@ -1040,7 +1040,7 @@ Thread::migrate(Migration *info)
   assert (cpu_lock.test());
 
   LOG_TRACE("Thread migration", "mig", this, Migration_log,
-      l->state = state(false);
+      l->state = state();
       l->src_cpu = home_cpu();
       l->target_cpu = info->cpu;
       l->user_ip = regs()->ip();
@@ -1093,7 +1093,7 @@ Thread::migrate(Migration *info)
   assert (cpu_lock.test());
 
   LOG_TRACE("Thread migration", "mig", this, Migration_log,
-      l->state = state(false);
+      l->state = state();
       l->src_cpu = home_cpu();
       l->target_cpu = info->cpu;
       l->user_ip = regs()->ip();

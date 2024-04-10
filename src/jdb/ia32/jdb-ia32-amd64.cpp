@@ -502,7 +502,7 @@ Jdb::guess_thread_state(Thread *t)
 	}
     }
 
-  if (state == s_unknown && (t->state(false) & Thread_ipc_mask))
+  if (state == s_unknown && (t->state() & Thread_ipc_mask))
     state = s_ipc;
 
   return state;

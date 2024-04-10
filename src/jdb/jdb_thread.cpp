@@ -63,7 +63,7 @@ PUBLIC static
 void
 Jdb_thread::print_state_long(Thread *t, unsigned max_size = 119)
 {
-  max_size = print_state_bits(t->state(false), max_size);
+  max_size = print_state_bits(t->state(), max_size);
   if (!t->_remote_state_change.pending())
     return;
 
@@ -85,14 +85,14 @@ PUBLIC static
 bool
 Jdb_thread::has_partner(Thread *t)
 {
-  return (t->state(false) & Thread_ipc_mask) == Thread_receive_wait;
+  return (t->state() & Thread_ipc_mask) == Thread_receive_wait;
 }
 
 PUBLIC static
 bool
 Jdb_thread::has_snd_partner(Thread *t)
 {
-  return t->state(false) & Thread_send_wait;
+  return t->state() & Thread_send_wait;
 }
 
 PUBLIC static

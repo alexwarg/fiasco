@@ -4,6 +4,7 @@
 #include <config.h>
 #include <config_tcbsize.h>
 #include <processor.h>
+#include <thread_state.h>
 
 #include <cxx/atomic>
 #include <cassert>
@@ -38,6 +39,9 @@ public:
 
     Mword dirty() const noexcept
     { return s.load(cxx::memory_order_relaxed); }
+
+    Mword operator () () const noexcept
+    { return s.load(); }
 
     explicit operator Mword () const noexcept
     { return s.load(); }
@@ -104,28 +108,39 @@ public:
      * @param bits bits to be removed from state flags
      * @return 1 if all of the bits that were removed had previously been set
      */
-    void del(Mword bits)
+    Mword del(Mword bits)
     {
-      s &= ~bits;
+      return s.fetch_and(~bits);
     }
 
     void del_dirty(Mword bits)
     {
       s.fetch_and(~bits, cxx::memory_order_relaxed);
     }
+
+    /**
+     * Check if the context is inactive, i.e. has not yet been started or was killed.
+     * @return true if this context is inactive.
+     */
+    bool is_invalid() const
+    {
+      return s & Thread_dead;
+    }
   };
+
+  State state;
 
   void state_change_dirty(Mword mask, Mword bits, bool check = true)
   {
     (void)check;
-    _state.change_dirty(mask, bits);
+    state.change_dirty(mask, bits);
   }
 
   Mword state_change_safely(Mword mask, Mword bits)
-  { return _state.change_safely(mask, bits); }
+  { return state.change_safely(mask, bits); }
 
   Mword state_change(Mword mask, Mword bits)
-  { return _state.change(mask, bits); }
+  { return state.change(mask, bits); }
 
   /**
    * Atomically add bits to state flags.
@@ -133,7 +148,7 @@ public:
    * @return 1 if none of the bits that were added had been set before
    */
   void state_add(Mword bits)
-  { _state.add(bits); }
+  { state.add(bits); }
 
   /**
    * Add bits in state flags. Unsafe (non-atomic) and
@@ -144,7 +159,7 @@ public:
   void state_add_dirty(Mword bits, bool check = true)
   {
     (void)check;
-    _state.add_dirty(bits);
+    state.add_dirty(bits);
   }
 
   /**
@@ -153,7 +168,7 @@ public:
    * @return 1 if all of the bits that were removed had previously been set
    */
   void state_del(Mword bits)
-  { _state.del(bits); }
+  { state.del(bits); }
 
   /**
    * Delete bits in state flags. Unsafe (non-atomic) and
@@ -164,17 +179,8 @@ public:
   void state_del_dirty(Mword bits, bool check = true)
   {
     (void)check;
-    _state.del_dirty(bits);
+    state.del_dirty(bits);
   }
-
-  Mword state(bool check = false) const
-  {
-    (void)check;
-    return _state.dirty();
-  }
-
-protected:
-  State _state;
 
 private:
   friend Cpu_number current_cpu();

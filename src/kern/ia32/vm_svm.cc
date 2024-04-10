@@ -593,7 +593,7 @@ Vm_svm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
   (void)user_mode;
   assert (user_mode);
 
-  if (EXPECT_FALSE(!(ctxt->state(true) & Thread_ext_vcpu_enabled)))
+  if (EXPECT_FALSE(!(ctxt->state() & Thread_ext_vcpu_enabled)))
     {
       ctxt->arch_load_vcpu_kern_state(vcpu, true);
       force_kern_entry_vcpu_state(vcpu);

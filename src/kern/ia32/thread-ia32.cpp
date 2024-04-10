@@ -48,7 +48,7 @@ Thread::Thread(Ram_quota *q)
   _quota(q),
   _del_observer(0)
 {
-  assert (state(false) == 0);
+  assert (state() == 0);
 
   inc_ref();
   _space.space(Kernel_task::kernel_task());

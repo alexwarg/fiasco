@@ -457,12 +457,12 @@ Context::kernel_context(Cpu_number cpu, Context *ctxt)
  * Check if the context is inactive, i.e. has not yet been started or was killed.
  * @return true if this context is inactive.
  */
-PUBLIC inline NEEDS ["thread_state.h"]
+PUBLIC inline
 bool
 Context::is_invalid(bool check_cpu_local = false) const
 {
-  unsigned s = state(check_cpu_local);
-  return (s & Thread_dead);
+  assert(check_cpu_local || check_for_current_cpu());
+  return state.is_invalid();
 }
 
 //@}
@@ -853,9 +853,9 @@ Context::switch_exec_locked(Context *t, enum Helping_mode mode)
 
   // Can only switch to ready threads!
   // do not consider CPU locality here t can be temporarily migrated
-  if (EXPECT_FALSE (!(t->state(false) & Thread_ready_mask)))
+  if (EXPECT_FALSE (!(t->state() & Thread_ready_mask)))
     {
-      assert (state(false) & Thread_ready_mask);
+      assert (state() & Thread_ready_mask);
       return Switch::Failed;
     }
 
@@ -897,9 +897,9 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
 
   // Can only switch to ready threads!
   // do not consider CPU locality here t can be temporarily migrated
-  if (EXPECT_FALSE (!(t->state(false) & Thread_ready_mask)))
+  if (EXPECT_FALSE (!(t->state() & Thread_ready_mask)))
     {
-      assert (state(false) & Thread_ready_mask);
+      assert (state() & Thread_ready_mask);
       return Switch::Failed;
     }
 
@@ -1042,9 +1042,9 @@ PUBLIC inline NEEDS["thread_state.h"]
 void
 Context::try_finish_migration()
 {
-  if (state() & Thread_finish_migration)
+  if (state.dirty() & Thread_finish_migration)
     {
-      state_del_dirty(Thread_finish_migration);
+      state.del_dirty(Thread_finish_migration);
       finish_migration();
     }
 }
@@ -1221,20 +1221,20 @@ Context::drq(Drq *drq, Drq::Request_func *func, void *arg,
       l->wait = wait;
   );
   //assert (current() == src);
-  assert (!(wait == Drq::Wait && (cur->state() & Thread_drq_ready)) || cur->home_cpu() == home_cpu());
-  assert (!((wait == Drq::Wait || drq == &_drq) && cur->state() & Thread_drq_wait));
+  assert (!(wait == Drq::Wait && (cur->state.dirty() & Thread_drq_ready)) || cur->home_cpu() == home_cpu());
+  assert (!((wait == Drq::Wait || drq == &_drq) && cur->state.dirty() & Thread_drq_wait));
   assert (!drq->queued());
 
   drq->func  = func;
   drq->arg   = arg;
   if (wait == Drq::Wait)
-    cur->state_add(Thread_drq_wait);
+    cur->state.add(Thread_drq_wait);
 
 
   enqueue_drq(drq);
 
   //LOG_MSG_3VAL(src, "<drq", src->state(), Mword(this), 0);
-  while (wait == Drq::Wait && cur->state() & Thread_drq_wait)
+  while (wait == Drq::Wait && cur->state.dirty() & Thread_drq_wait)
     {
       cur->state_del(Thread_ready_mask);
       cur->schedule();
@@ -1802,7 +1802,7 @@ Context::_execute_drq(Drq *rq, bool offline_cpu = false)
   if (EXPECT_FALSE(!offline_cpu && home_cpu() != current_cpu()))
     return false;
 
-  if (!in_ready_list() && (state(false) & Thread_ready_mask))
+  if (!in_ready_list() && (state() & Thread_ready_mask))
     {
       if (EXPECT_FALSE(offline_cpu))
         Sched_context::rq.cpu(home_cpu()).ready_enqueue(sched());
@@ -1821,7 +1821,7 @@ Context::_deq_exec_drq(Drq *rq, bool offline_cpu = false)
   if (!_drq_q.dequeue(rq))
     return false; // already handled
 
-  if (!drq_pending() && EXPECT_FALSE(state(false) & Thread_drq_ready))
+  if (!drq_pending() && EXPECT_FALSE(state() & Thread_drq_ready))
     state_del_dirty(Thread_drq_ready);
 
   return _execute_drq(rq, offline_cpu);
@@ -1900,7 +1900,7 @@ Context::rcu_wait()
   auto guard = lock_guard(cpu_lock);
   state_change_dirty(~Thread_ready, Thread_waiting);
   Rcu::call(this, &rcu_unblock);
-  while (state() & Thread_waiting)
+  while (state.dirty() & Thread_waiting)
     {
       state_del_dirty(Thread_ready);
       schedule();

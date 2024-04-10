@@ -53,7 +53,7 @@ Jdb_utcb::print(Thread *t, bool overlayprint)
       t->utcb().kern()->print(clreol_lf);
     }
 
-  if (t->state(false) & Thread_vcpu_enabled)
+  if (t->state() & Thread_vcpu_enabled)
     {
       Vcpu_state *v = t->vcpu_state().kern();
       printf("%sVcpu-state-addr: %p%s", clreol_lf, v, clreol_lf);

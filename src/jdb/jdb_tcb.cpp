@@ -576,7 +576,7 @@ whole_screen:
   printf("\tprio: %02x\n",
          (unsigned)t->sched()->prio());
 
-  printf("state   : %03lx ", t->state(false));
+  printf("state   : %03lx ", t->state());
   Jdb_thread::print_state_long(t);
 
   putstr("\nwait for: ");
@@ -590,7 +590,7 @@ whole_screen:
 
   putstr("\trcv descr: ");
 
-  if ((t->state(false) & Thread_ipc_mask) == Thread_receive_wait
+  if ((t->state() & Thread_ipc_mask) == Thread_receive_wait
       && t->rcv_regs())
     printf("%08lx", t->rcv_regs()->from_spec());
   else
@@ -634,7 +634,7 @@ whole_screen:
 
 #if 0
   putstr("\tready  lnk: ");
-  if (t->state(false) & Thread_ready)
+  if (t->state() & Thread_ready)
     {
       if (t->_ready_next)
         Jdb_kobject::print_uid(Thread::lookup(t->_ready_next), 3);
@@ -657,7 +657,7 @@ whole_screen:
   putchar('\n');
 
   putstr("vCPU    : ");
-  if (t->state(false) & Thread_vcpu_enabled)
+  if (t->state() & Thread_vcpu_enabled)
     {
       char st1[7];
       char st2[7];
