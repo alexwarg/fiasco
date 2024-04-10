@@ -35,7 +35,7 @@ IMPLEMENT_OVERRIDE
 void
 Context::arch_vcpu_ext_shutdown()
 {
-  if (!(state() & Thread_ext_vcpu_enabled))
+  if (!state.has(Thread_ext_vcpu_enabled))
     return;
 
   state.del_dirty(Thread_ext_vcpu_enabled);
@@ -50,7 +50,7 @@ IMPLEMENT_OVERRIDE inline NEEDS[Context::vm_state,
 void
 Context::arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load)
 {
-  if (!(state() & Thread_ext_vcpu_enabled))
+  if (!state.has(Thread_ext_vcpu_enabled))
     {
       _tpidruro = vcpu->host.tpidruro;
       // vCPU user state has TGE set, so we need to reload HCR here
@@ -93,7 +93,7 @@ void
 Context::arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load)
 {
 
-  if (!(state() & Thread_ext_vcpu_enabled))
+  if (!state.has(Thread_ext_vcpu_enabled))
     {
       _hyp.hcr = Cpu::Hcr_non_vm_bits | Cpu::Hcr_tge;
       _tpidruro = vcpu->_regs.tpidruro;
@@ -145,8 +145,8 @@ Context::switch_vm_state(Context *t)
   store_tpidruro();
   t->_hyp.load();
 
-  Mword _state = state();
-  Mword _to_state = t->state();
+  Mword _state = state.dirty();
+  Mword _to_state = t->state.dirty();
   if (!((_state | _to_state) & Thread_ext_vcpu_enabled))
     return;
 

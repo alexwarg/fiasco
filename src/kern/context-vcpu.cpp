@@ -62,7 +62,7 @@ PUBLIC inline
 Mword
 Context::vcpu_disable_irqs()
 {
-  if (EXPECT_FALSE(state() & Thread_vcpu_enabled))
+  if (EXPECT_FALSE(state.has(Thread_vcpu_enabled)))
     {
       Vcpu_state *vcpu = vcpu_state().access();
       Mword s = vcpu->state;
@@ -77,7 +77,7 @@ void
 Context::vcpu_restore_irqs(Mword irqs)
 {
   if (EXPECT_FALSE((irqs & Vcpu_state::F_irqs)
-                   && (state() & Thread_vcpu_enabled)))
+                   && state.has(Thread_vcpu_enabled)))
     vcpu_state().access()->state |= Vcpu_state::F_irqs;
 }
 
@@ -141,7 +141,7 @@ PUBLIC inline
 bool
 Context::vcpu_irqs_enabled(Vcpu_state *vcpu) const
 {
-  return EXPECT_FALSE(state() & Thread_vcpu_enabled)
+  return EXPECT_FALSE(state.has(Thread_vcpu_enabled))
     && vcpu->state & Vcpu_state::F_irqs;
 }
 
@@ -149,7 +149,7 @@ PUBLIC inline
 bool
 Context::vcpu_pagefaults_enabled(Vcpu_state *vcpu) const
 {
-  return EXPECT_FALSE(state() & Thread_vcpu_enabled)
+  return EXPECT_FALSE(state.has(Thread_vcpu_enabled))
     && vcpu->state & Vcpu_state::F_page_faults;
 }
 
@@ -157,7 +157,7 @@ PUBLIC inline
 bool
 Context::vcpu_exceptions_enabled(Vcpu_state *vcpu) const
 {
-  return EXPECT_FALSE(state() & Thread_vcpu_enabled)
+  return EXPECT_FALSE(state.has(Thread_vcpu_enabled))
     && vcpu->state & Vcpu_state::F_exceptions;
 }
 
@@ -165,7 +165,7 @@ PUBLIC inline
 void
 Context::vcpu_set_irq_pending()
 {
-  if (EXPECT_FALSE(state() & Thread_vcpu_enabled))
+  if (EXPECT_FALSE(state.has(Thread_vcpu_enabled)))
     vcpu_state().access()->sticky_flags |= Vcpu_state::Sf_irq_pending;
 }
 
