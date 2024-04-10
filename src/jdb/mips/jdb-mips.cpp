@@ -6,7 +6,7 @@ IMPLEMENTATION [mips]:
 #include "mem_layout.h"
 #include "mem_unit.h"
 #include "static_init.h"
-
+#include <globalconfig.h>
 
 STATIC_INITIALIZE_P(Jdb, JDB_INIT_PRIO);
 
@@ -21,7 +21,9 @@ IMPLEMENT
 void
 Jdb::restore_irqs(Cpu_number cpu)
 {
+#ifdef CONFIG_MP
   Ipi::atomic_reset(cpu, Ipi::Debug);
+#endif
 }
 
 IMPLEMENT inline
