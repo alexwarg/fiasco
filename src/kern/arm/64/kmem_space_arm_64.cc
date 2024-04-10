@@ -1,14 +1,15 @@
-IMPLEMENTATION [arm]:
+
+#include <kmem_space.h>
+#include <globalconfig.h>
+#include <paging.h>
+#include <boot_infos.h>
 
 typedef Unsigned64 K_ptab_array[512] __attribute__((aligned(0x1000)));
 
 // initialize the kernel space (page table)
-IMPLEMENT inline void Kmem_space::init() {}
+void Kmem_space::init() {}
 
-// -----------------------------------------------------------------
-IMPLEMENTATION [arm && !cpu_virt]:
-
-#include "boot_infos.h"
+#if ! defined (CONFIG_CPU_VIRT)
 
 K_ptab_array kernel_l0_dir;
 static K_ptab_array kernel_l0_vdir;
@@ -29,10 +30,7 @@ static Boot_paging_info FIASCO_BOOT_PAGING_INFO _bs_pgin_dta =
   (1 << Num_scratch_pages) - 1
 };
 
-// -----------------------------------------------------------------
-IMPLEMENTATION [arm && cpu_virt]:
-
-#include "boot_infos.h"
+#else // CONFIG_CPU_VIRT
 
 K_ptab_array kernel_l0_dir;
 // Bootstrap should be able to map up to 256TB RAM with six pages,
@@ -49,3 +47,5 @@ static Boot_paging_info FIASCO_BOOT_PAGING_INFO _bs_pgin_dta =
   pdir_scratch,
   (1 << Num_scratch_pages) - 1
 };
+
+#endif // CONFIG_CPU_VIRT

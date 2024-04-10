@@ -1,6 +1,5 @@
-INTERFACE [arm]:
+#pragma once
 
-#include "paging.h"
 #include "mem_layout.h"
 
 class Kmem_space : public Mem_layout

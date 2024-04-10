@@ -136,7 +136,7 @@ VPATH 		+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 VPATH		+= jdb/arm/$(BITS) jdb/arm jdb
 PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
-INTERFACES_KERNEL += 	mem_op kmem_space    \
+INTERFACES_KERNEL += 	mem_op \
 			bootstrap                  \
 			outer_cache  \
 			smc_call psci
@@ -144,6 +144,7 @@ INTERFACES_KERNEL += 	mem_op kmem_space    \
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc \
 	irq_chip_generic.cc \
+	kmem_space_arm_$(BITS).cc \
 	entry_frame.cc \
 	__main.cc
 
@@ -191,7 +192,6 @@ mem_space_IMPL		:= mem_space mem_space-arm mem_space-arm-$(BITS) \
 mem_unit_IMPL		:= mem_unit mem_unit-arm-$(BITS)
 kmem_IMPL		:= kmem kmem-arm-$(BITS)
 kmem_alloc_IMPL		:= kmem_alloc kmem_alloc-arm
-kmem_space_IMPL		:= kmem_space kmem_space-arm-$(BITS)
 outer_cache_IMPL	:= outer_cache outer_cache-l2cxx0
 paging_IMPL	  	:= paging paging-arm paging-arm-$(BITS)
 perf_cnt_IMPL		:= perf_cnt perf_cnt-arm perf_cnt-arm-$(BITS)

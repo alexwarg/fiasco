@@ -12,6 +12,7 @@ IMPLEMENTATION [arm && !cpu_virt && noncont_mem]:
 
 #include "mem_layout.h"
 #include "kmem_space.h"
+#include <paging.h>
 
 PRIVATE //inline
 bool
@@ -36,7 +37,7 @@ Kmem_alloc::map_pmem(unsigned long phy, unsigned long size)
   return true;
 }
 
-PUBLIC inline NEEDS["kmem_space.h", "mem_layout.h"]
+PUBLIC inline NEEDS["kmem_space.h", "mem_layout.h", <paging.h>]
 Address
 Kmem_alloc::to_phys(void *v) const
 {
