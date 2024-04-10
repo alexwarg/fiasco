@@ -111,11 +111,12 @@ VPATH		+= jdb/mips/$(BITS) jdb/mips jdb
 PRIVATE_INCDIR 	+= kern/mips/$(BITS) kern/mips kern
 
 INTERFACES_KERNEL +=	boot_uart_init \
-			mips_cpu_irqs \
 			cpu_p5600
 
 CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
-		 alternatives.cc
+		 alternatives.cc \
+		 mips_cpu_irqs.cc
+
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
 

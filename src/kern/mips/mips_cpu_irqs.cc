@@ -1,25 +1,13 @@
-/*
- * MIPS top-level IRQ handling: provide a first stage IRQ chip with 8 slots for
- * Irq_base object that either signal IRQs to second level IRQ chips or to the
- * user.
- */
-INTERFACE:
 
-class Irq_chip_icu;
-
-class Mips_cpu_irqs
-{
-public:
-  static Irq_chip_icu *chip;
-};
-
-IMPLEMENTATION:
+#include <mips_cpu_irqs.h>
 
 #include <cxx/atomic>
 
 #include "irq_chip.h"
 #include "cp0_status.h"
 #include "mem.h"
+
+#include <globalconfig.h>
 
 class Mips_cpu_irq_chip : public Irq_chip_icu
 {
@@ -122,6 +110,11 @@ public:
     unmask(pin);
   }
 
+#ifdef CONFIG_JDB
+  char const *chip_type() const override
+  { return "MIPScpu"; }
+#endif
+
 private:
   Irq_base *_irqs[8];
 };
@@ -130,23 +123,16 @@ Irq_chip_icu *Mips_cpu_irqs::chip;
 
 static Static_object<Mips_cpu_irq_chip> _chip;
 
-PUBLIC static
 void
 Mips_cpu_irqs::init()
 {
   chip = _chip.construct();
 }
 
-extern "C" void
-handle_irq(unsigned long irq)
+extern "C" void handle_irq(unsigned long irq);
+
+extern "C" void handle_irq(unsigned long irq)
 {
   _chip->handle_irq<Mips_cpu_irq_chip>(irq, 0);
 }
-
-
-IMPLEMENTATION [debug]:
-
-PUBLIC char const *
-Mips_cpu_irq_chip::chip_type() const override
-{ return "MIPScpu"; }
 
