@@ -1,10 +1,8 @@
-IMPLEMENTATION[arm_smc_user]:
 
-#include "kobject_helper.h"
-#include "kobject_rpc.h"
-#include "smc_call.h"
-
-JDB_DEFINE_TYPENAME(Smc_user, "SMC");
+#include <kobject_helper.h>
+#include <kobject_rpc.h>
+#include <smc_call.h>
+#include <static_init.h>
 
 struct Smc_user : Kobject_h<Smc_user, Kobject>
 {
@@ -47,16 +45,19 @@ struct Smc_user : Kobject_h<Smc_user, Kobject>
 
     return commit_result(0, 4);
   }
+
+  static void init();
 };
 
 static Static_object<Smc_user> _glbl_smc_user;
 
-PUBLIC static
-void
+inline void
 Smc_user::init()
 {
   _glbl_smc_user.construct();
   initial_kobjects.register_obj(_glbl_smc_user, Initial_kobjects::Smc);
 }
+
+JDB_DEFINE_TYPENAME(Smc_user, "SMC");
 
 STATIC_INITIALIZE(Smc_user);
