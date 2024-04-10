@@ -479,7 +479,7 @@ Context::schedule()
       // Ensure ready-list sanity
       assert (next_to_run);
 
-      if (EXPECT_FALSE(!(next_to_run->state() & Thread_ready_mask)))
+      if (EXPECT_FALSE(!next_to_run->state.has(Thread_ready_mask)))
         rq->ready_dequeue(next_to_run->sched());
       else switch (schedule_switch_to_locked(next_to_run))
         {
@@ -567,7 +567,7 @@ Context::update_ready_list()
 {
   assert (this == current());
 
-  if ((state() & Thread_ready_mask) && sched()->left())
+  if (state.has(Thread_ready_mask) && sched()->left())
     Sched_context::rq.current().ready_enqueue(sched());
 }
 
@@ -762,9 +762,9 @@ Context::switch_exec_locked(Context *t, enum Helping_mode mode)
 
   // Can only switch to ready threads!
   // do not consider CPU locality here t can be temporarily migrated
-  if (EXPECT_FALSE (!(t->state() & Thread_ready_mask)))
+  if (EXPECT_FALSE (!t->state.has(Thread_ready_mask)))
     {
-      assert (state() & Thread_ready_mask);
+      assert (state.has(Thread_ready_mask));
       return Switch::Failed;
     }
 
@@ -806,9 +806,9 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
 
   // Can only switch to ready threads!
   // do not consider CPU locality here t can be temporarily migrated
-  if (EXPECT_FALSE (!(t->state() & Thread_ready_mask)))
+  if (EXPECT_FALSE (!t->state.has(Thread_ready_mask)))
     {
-      assert (state() & Thread_ready_mask);
+      assert (state.has(Thread_ready_mask));
       return Switch::Failed;
     }
 
@@ -853,7 +853,7 @@ Context::execute_drq(Drq *r, Drq_q::Drop_mode drop, bool local)
       //LOG_MSG_3VAL(current(), "hrP", current_cpu() | (drop ? 0x100: 0), (Mword)r->context(), (Mword)r->func);
       self->state.change_dirty(~Thread_drq_wait, Thread_ready);
       self->handle_remote_state_change();
-      return !(self->state() & Thread_ready_mask);
+      return !self->state.has(Thread_ready_mask);
     }
   else
     {
@@ -903,15 +903,12 @@ bool
 Context::drq_pending() const
 { return _drq_q.first(); }
 
-PUBLIC inline NEEDS["thread_state.h"]
+PUBLIC inline
 void
 Context::try_finish_migration()
 {
-  if (state.dirty() & Thread_finish_migration)
-    {
-      state.del_dirty(Thread_finish_migration);
-      finish_migration();
-    }
+  if (state.change_safely(~Thread_finish_migration, 0))
+    finish_migration();
 }
 
 
@@ -952,7 +949,7 @@ Context::handle_drq()
 
   //LOG_MSG_3VAL(this, "xdrq", state(), 0, cpu_lock.test());
 
-  return resched || !(state() & Thread_ready_mask);
+  return resched || !(state.has(Thread_ready_mask));
 }
 
 PRIVATE inline
@@ -1252,7 +1249,7 @@ Context::enqueue_drq(Drq *rq)
 
   bool do_sched = execute_drq(rq, Drq_q::No_drop, true);
   if (   access_once(&_home_cpu) == current_cpu()
-      && (state() & Thread_ready_mask) && !in_ready_list())
+      && state.has(Thread_ready_mask) && !in_ready_list())
     {
       Sched_context::rq.current().ready_enqueue(sched());
       return true;
@@ -1550,7 +1547,7 @@ Context::Pending_rqq::handle_requests(Context **mq)
             resched |= c->handle_drq();
         }
 
-      if (EXPECT_TRUE(c != curr && (c->state() & Thread_ready_mask)))
+      if (EXPECT_TRUE(c != curr && c->state.has(Thread_ready_mask)))
         {
           Sched_context *cs = (curr->home_cpu() == curr->get_current_cpu())
                             ? curr->sched()
@@ -1667,7 +1664,7 @@ Context::_execute_drq(Drq *rq, bool offline_cpu = false)
   if (EXPECT_FALSE(!offline_cpu && home_cpu() != current_cpu()))
     return false;
 
-  if (!in_ready_list() && (state() & Thread_ready_mask))
+  if (!in_ready_list() && state.has(Thread_ready_mask))
     {
       if (EXPECT_FALSE(offline_cpu))
         Sched_context::rq.cpu(home_cpu()).ready_enqueue(sched());
@@ -1686,7 +1683,7 @@ Context::_deq_exec_drq(Drq *rq, bool offline_cpu = false)
   if (!_drq_q.dequeue(rq))
     return false; // already handled
 
-  if (!drq_pending() && EXPECT_FALSE(state() & Thread_drq_ready))
+  if (!drq_pending() && EXPECT_FALSE(state.has(Thread_drq_ready)))
     state.del_dirty(Thread_drq_ready);
 
   return _execute_drq(rq, offline_cpu);
@@ -1783,7 +1780,7 @@ Context::spill_fpu()
 {
   // If we own the FPU, we should never be getting an "FPU unavailable" trap
   assert (Fpu::fpu.current().owner() == this);
-  assert (state() & Thread_fpu_owner);
+  assert (state.has(Thread_fpu_owner));
   assert (fpu_state());
 
   // Save the FPU state of the previous FPU owner (lazy) if applicable
@@ -1804,7 +1801,7 @@ Context::switch_fpu(Context *t)
   Fpu &f = Fpu::fpu.current();
   if (f.is_owner(this))
     f.disable();
-  else if (f.is_owner(t) && !(t->state() & Thread_vcpu_fpu_disabled))
+  else if (f.is_owner(t) && !t->state.has(Thread_vcpu_fpu_disabled))
     f.enable();
 }
 
@@ -1813,7 +1810,7 @@ void
 Context::spill_fpu_if_owner()
 {
   // spill FPU state into memory before migration
-  if (!(state() & Thread_fpu_owner))
+  if (!state.has(Thread_fpu_owner))
     return;
 
   Fpu &f = Fpu::fpu.current();
@@ -1878,13 +1875,13 @@ Context::switch_fpu(Context *t)
 {
   Fpu &f = Fpu::fpu.current();
 
-  if (state() & Thread_vcpu_fpu_disabled)
+  if (state.has(Thread_vcpu_fpu_disabled))
     f.enable();
 
   spill_fpu();
   f.restore_state(t->fpu_state());
 
-  if (t->state() & Thread_vcpu_fpu_disabled)
+  if (t->state.has(Thread_vcpu_fpu_disabled))
     f.disable();
 }
 

@@ -40,6 +40,9 @@ public:
     Mword dirty() const noexcept
     { return s.load(cxx::memory_order_relaxed); }
 
+    Mword has(Mword flags) const noexcept
+    { return dirty() & flags; }
+
     Mword operator () () const noexcept
     { return s.load(); }
 
@@ -65,7 +68,7 @@ public:
      */
     Mword change_safely(Mword mask, Mword bits)
     {
-      Mword old = s;
+      Mword old = s.load(cxx::memory_order_relaxed);
       do
         {
           if ((old & bits & mask) | (~old & ~mask))
