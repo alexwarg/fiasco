@@ -192,7 +192,7 @@ public:
       return;
 
     if (sender_list()->empty())
-      vcpu_state().access()->sticky_flags &= ~Vcpu_state::Sf_irq_pending;
+      vcpu_state().access()->clear_irq_pending();
   }
 
 protected:
@@ -253,7 +253,7 @@ private:
 
     LOG_TRACE("VCPU events", "vcpu", this, Vcpu_log,
         l->type = 1;
-        l->state = vcpu->_saved_state;
+        l->state = vcpu->saved_state();
         l->ip = Mword(sender);
         l->sp = regs()->sp();
         l->space = ~0; //vcpu_user_space() ? static_cast<Task*>(vcpu_user_space())->dbg_id() : ~0;

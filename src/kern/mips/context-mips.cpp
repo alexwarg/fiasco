@@ -189,7 +189,7 @@ Context::vz_load_state(int guest_id)
   state.add_dirty(Thread_vcpu_vz_owner);
 }
 
-IMPLEMENT_OVERRIDE inline
+PUBLIC inline
 void Context::vcpu_pv_switch_to_kernel(Vcpu_state *vs, bool current)
 {
   if (!current)

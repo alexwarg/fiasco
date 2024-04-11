@@ -666,9 +666,9 @@ whole_screen:
       print_kobject(static_cast<Task*>(t->vcpu_user_space()));
       putchar('\n');
       printf("vCPU    : c=%s s=%s sf=%c e-ip=%08lx e-sp=%08lx\n",
-             vcpu_state_str(v->state, st1, sizeof(st1)),
-             vcpu_state_str(v->_saved_state, st2, sizeof(st2)),
-             (v->sticky_flags & Vcpu_state::Sf_irq_pending) ? 'P' : '-',
+             vcpu_state_str(v->state(), st1, sizeof(st1)),
+             vcpu_state_str(v->saved_state(), st2, sizeof(st2)),
+             v->pending_irqs() ? 'P' : '-',
              v->_entry_ip, v->_entry_sp);
     }
   else

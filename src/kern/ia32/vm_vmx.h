@@ -196,8 +196,7 @@ public:
             assert(cpu_lock.test());
             Ipi::send(Ipi::Global_request, current_cpu(), current_cpu());
           }
-        else if (   !(vcpu->_saved_state & Vcpu_state::F_irqs)
-                 && (vcpu->sticky_flags & Vcpu_state::Sf_irq_pending))
+        else if (!vcpu->saved_irqs_enabled() && vcpu->pending_irqs())
           {
             // when injection did not yet occur (the valid bit in the interrupt
             // information field is still 1), tell the VMM we were interrupted

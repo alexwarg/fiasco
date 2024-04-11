@@ -19,7 +19,7 @@ public:
 protected:
   static void force_kern_entry_vcpu_state(Vcpu_state *vcpu)
   {
-    vcpu->state &= ~(Vcpu_state::F_traps | Vcpu_state::F_user_mode);
+    vcpu->kern_entry_state();
   }
 
   /*

@@ -114,7 +114,7 @@ Context::fill_user_state()
     Cpu::set_gs_base(&_gs_base);
 }
 
-IMPLEMENT_OVERRIDE inline
+PUBLIC inline
 void
 Context::vcpu_pv_switch_to_kernel(Vcpu_state *vcpu, bool current)
 {
@@ -153,7 +153,7 @@ Context::vcpu_pv_switch_to_kernel(Vcpu_state *vcpu, bool current)
     Cpu::set_gs_base(&_gs_base);
 }
 
-IMPLEMENT_OVERRIDE inline
+PUBLIC inline
 void
 Context::vcpu_pv_switch_to_user(Vcpu_state *vcpu, bool current)
 {

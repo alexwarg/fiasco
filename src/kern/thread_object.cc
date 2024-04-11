@@ -68,8 +68,7 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
           return commit_error(utcb, err);
       }
 
-  if ((vcpu->_saved_state & Vcpu_state::F_irqs)
-      && (vcpu->sticky_flags & Vcpu_state::Sf_irq_pending))
+  if (vcpu->saved_irqs_enabled() && vcpu->pending_irqs())
     {
       assert(cpu_lock.test());
       do_ipc(L4_msg_tag(), 0, 0, true, 0,
@@ -86,14 +85,14 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
           Address sp;
 
           // tried to resume to user mode, so an IRQ enters from user mode
-          if (vcpu->_saved_state & Vcpu_state::F_user_mode)
+          if (vcpu->saved_user_mode())
             sp = vcpu->_entry_sp;
           else
             sp = vcpu->_regs.s.sp();
 
           LOG_TRACE("VCPU events", "vcpu", this, Vcpu_log,
               l->type = 4;
-              l->state = vcpu->state;
+              l->state = vcpu->state();
               l->ip = vcpu->_entry_ip;
               l->sp = sp;
               l->space = static_cast<Task*>(_space.vcpu_aware())->dbg_id();
@@ -103,18 +102,18 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
         }
     }
 
-  vcpu->state = vcpu->_saved_state;
+  Unsigned16 vstate = vcpu->restore_state();
   Task *target_space = nonull_static_cast<Task*>(space());
   bool user_mode = false;
 
-  if (vcpu->state & Vcpu_state::F_user_mode)
+  if (vstate & Vcpu_state::F_user_mode)
     {
       if (!vcpu_user_space())
         return commit_result(-L4_err::ENoent);
 
       user_mode = true;
 
-      if (!(vcpu->state & Vcpu_state::F_fpu_enabled))
+      if (!(vstate & Vcpu_state::F_fpu_enabled))
         {
           state.add_dirty(Thread_vcpu_fpu_disabled);
           Fpu::fpu.current().disable();
@@ -129,7 +128,7 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
 
   LOG_TRACE("VCPU events", "vcpu", this, Vcpu_log,
       l->type = 0;
-      l->state = vcpu->state;
+      l->state = vstate;
       l->ip = vcpu->_regs.s.ip();
       l->sp = vcpu->_regs.s.sp();
       l->space = target_space->dbg_id();

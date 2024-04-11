@@ -58,8 +58,8 @@ Jdb_utcb::print(Thread *t, bool overlayprint)
       Vcpu_state *v = t->vcpu_state().kern();
       printf("%sVcpu-state-addr: %p%s", clreol_lf, v, clreol_lf);
       printf("state: %x    saved-state:  %x  sticky: %x%s",
-             (unsigned)v->state, (unsigned)v->_saved_state,
-             (unsigned)v->sticky_flags, clreol_lf);
+             (unsigned)v->_state, (unsigned)v->_saved_state,
+             (unsigned)v->_sticky_flags, clreol_lf);
       printf("entry_sp = %lx    entry_ip = %lx  sp = %lx%s",
              v->_entry_sp, v->_entry_ip, v->_sp, clreol_lf);
       v->_regs.dump();

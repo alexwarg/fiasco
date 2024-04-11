@@ -25,9 +25,23 @@ INTERFACE:
 #include <context_space_ref.h>
 #include <context_vcpu_arch_base.h>
 #include <context_drq.h>
+#include <context_vcpu.h>
 #include <drq.h>
 #include <drq_queue.h>
+#include <ku_mem_ptr.h>
 #include <globalconfig.h>
+
+INTERFACE[!fpu]:
+
+#include <context_no_fpu.h>
+
+INTERFACE[fpu && lazy_fpu]:
+
+#include <context_lazy_fpu.h>
+
+INTERFACE[fpu && !lazy_fpu]:
+
+#include <context_eager_fpu.h>
 
 //#if defined(CONFIG_MP)
 INTERFACE [mp]:
@@ -59,7 +73,9 @@ class Context :
   public Context_mp_up_x<Context>,
   public Context_drq_x<Context>,
   protected Rcu_item,
-  public Context_vcpu_arch_base
+  public Context_vcpu_arch_base,
+  public Context_fpu_x<Context>,
+  public Context_vcpu_x<Context>
 {
   MEMBER_OFFSET();
   friend class Jdb_thread;
@@ -72,6 +88,7 @@ class Context :
   friend class Switch_lock;
   friend Context_mp_up_x<Context>;
   friend Context_drq_x<Context>;
+  friend Context_vcpu_x<Context>;
 
   struct State_request
   {
@@ -97,41 +114,6 @@ public:
     bool in_progress;
 
     Migration() : in_progress(false) {}
-  };
-
-  template<typename T>
-  class Ku_mem_ptr : public Context_member
-  {
-    MEMBER_OFFSET();
-
-  private:
-    typename User<T>::Ptr _u;
-    T *_k;
-
-  public:
-    Ku_mem_ptr() : _u(0), _k(0) {}
-    Ku_mem_ptr(typename User<T>::Ptr const &u, T *k) : _u(u), _k(k) {}
-
-    void set(typename User<T>::Ptr const &u, T *k)
-    { _u = u; _k = k; }
-
-    T *access(bool is_current = false) const
-    {
-      // assert (!is_current || current() == context());
-      if (is_current
-          && (int)Config::Access_user_mem == Config::Access_user_mem_direct)
-        return _u.get();
-
-      Cpu_number const cpu = current_cpu();
-      if ((int)Config::Access_user_mem == Config::Must_access_user_mem_direct
-          && cpu == context()->home_cpu()
-          && Mem_space::current_mem_space(cpu) == context()->space())
-        return _u.get();
-      return _k;
-    }
-
-    typename User<T>::Ptr usr() const { return _u; }
-    T* kern() const { return _k; }
   };
 
   /**
@@ -512,9 +494,6 @@ private:
   /// low level page table switching
   void switchin_context(Context *) asm ("switchin_context_label") FIASCO_FASTCALL;
 
-  /// low level fpu switching
-  void switch_fpu(Context *t);
-
   /// low level cpu switching
   void switch_cpu(Context *t);
 
@@ -638,7 +617,6 @@ IMPLEMENTATION:
 #include "cpu.h"
 #include "cpu_lock.h"
 #include "entry_frame.h"
-#include "fpu.h"
 #include "globals.h"		// current()
 #include "lock_guard.h"
 #include "logdefs.h"
@@ -861,175 +839,4 @@ void
 Context::copy_and_sanitize_trap_state(Trap_state *dst,
                                       Trap_state const *src) const
 { dst->copy_and_sanitize(src); }
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [fpu && lazy_fpu]:
-
-#include "assert.h"
-#include "fpu.h"
-
-PUBLIC inline NEEDS ["fpu.h"]
-void
-Context::spill_fpu()
-{
-  // If we own the FPU, we should never be getting an "FPU unavailable" trap
-  assert (Fpu::fpu.current().owner() == this);
-  assert (state.has(Thread_fpu_owner));
-  assert (fpu_state());
-
-  // Save the FPU state of the previous FPU owner (lazy) if applicable
-  Fpu::save_state(fpu_state());
-  state.del_dirty(Thread_fpu_owner);
-}
-
-/**
- * When switching away from the FPU owner, disable the FPU to cause
- * the next FPU access to trap.
- * When switching back to the FPU owner, enable the FPU so we don't
- * get an FPU trap on FPU access.
- */
-IMPLEMENT inline NEEDS ["fpu.h"]
-void
-Context::switch_fpu(Context *t)
-{
-  Fpu &f = Fpu::fpu.current();
-  if (f.is_owner(this))
-    f.disable();
-  else if (f.is_owner(t) && !t->state.has(Thread_vcpu_fpu_disabled))
-    f.enable();
-}
-
-PUBLIC inline NEEDS["fpu.h"]
-void
-Context::spill_fpu_if_owner()
-{
-  // spill FPU state into memory before migration
-  if (!state.has(Thread_fpu_owner))
-    return;
-
-  Fpu &f = Fpu::fpu.current();
-
-  if (current() != this)
-    f.enable();
-
-  spill_fpu();
-  f.set_owner(0);
-  f.disable();
-}
-
-PUBLIC static
-void
-Context::spill_current_fpu(Cpu_number cpu)
-{
-  (void)cpu;
-  assert (cpu == current_cpu());
-
-  Fpu &f = Fpu::fpu.current();
-  if (f.owner())
-    {
-      f.enable();
-      f.owner()->spill_fpu();
-      f.set_owner(0);
-      f.disable();
-    }
-}
-
-
-PUBLIC inline NEEDS["fpu.h"]
-void
-Context::release_fpu_if_owner()
-{
-  // If this context owns the FPU, no one owns it now
-  Fpu &f = Fpu::fpu.current();
-  if (f.is_owner(this))
-    {
-      f.set_owner(0);
-      f.disable();
-    }
-}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [fpu && !lazy_fpu]:
-
-#include "fpu.h"
-
-PUBLIC inline NEEDS ["fpu.h"]
-void
-Context::spill_fpu()
-{
-  assert (fpu_state());
-
-  // Save the FPU state of the previous FPU owner
-  Fpu::save_state(fpu_state());
-}
-
-IMPLEMENT inline NEEDS ["fpu.h"]
-void
-Context::switch_fpu(Context *t)
-{
-  Fpu &f = Fpu::fpu.current();
-
-  if (state.has(Thread_vcpu_fpu_disabled))
-    f.enable();
-
-  spill_fpu();
-  f.restore_state(t->fpu_state());
-
-  if (t->state.has(Thread_vcpu_fpu_disabled))
-    f.disable();
-}
-
-PUBLIC inline
-void
-Context::spill_fpu_if_owner()
-{
-  if (current() != this)
-    return;
-
-  spill_fpu();
-}
-
-PUBLIC static
-void
-Context::spill_current_fpu(Cpu_number cpu)
-{
-  (void)cpu;
-  assert (cpu == current_cpu());
-
-  current()->spill_fpu();
-}
-
-
-PUBLIC inline
-void
-Context::release_fpu_if_owner()
-{}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [!fpu]:
-
-PUBLIC inline
-void
-Context::spill_fpu_if_owner()
-{}
-
-PUBLIC static
-void
-Context::spill_current_fpu(Cpu_number)
-{}
-
-PUBLIC inline
-void
-Context::spill_fpu()
-{}
-
-PUBLIC inline
-void
-Context::release_fpu_if_owner()
-{}
-
-IMPLEMENT inline
-void
-Context::switch_fpu(Context *)
-{}
 

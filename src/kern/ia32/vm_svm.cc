@@ -605,14 +605,13 @@ Vm_svm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
     {
       // in the case of disabled IRQs and a pending IRQ directly simulate an
       // external interrupt intercept
-      if (   !(vcpu->_saved_state & Vcpu_state::F_irqs)
-	  && (vcpu->sticky_flags & Vcpu_state::Sf_irq_pending))
-	{
-	  vmcb_s->control_area.exitcode = 0x60;
+      if (!vcpu->saved_irqs_enabled() && vcpu->pending_irqs())
+        {
+          vmcb_s->control_area.exitcode = 0x60;
           ctxt->arch_load_vcpu_kern_state(vcpu, true);
           force_kern_entry_vcpu_state(vcpu);
-	  return 1; // return 1 to indicate pending IRQs (IPCs)
-	}
+          return 1; // return 1 to indicate pending IRQs (IPCs)
+        }
 
       int r = do_resume_vcpu(ctxt, vcpu, vmcb_s);
 

@@ -15,7 +15,7 @@ IMPLEMENT void FIASCO_FLATTEN sys_ipc_wrapper()
 
 #ifndef NDEBUG
   if ((current()->state() & Thread_vcpu_enabled)
-      && (current()->vcpu_state().access()->state & Vcpu_state::F_irqs)
+      && current()->vcpu_state().access()->irqs_enabled()
       && (f->ref().have_recv() || f->tag().items() || f->tag().words()))
     WARN("VCPU makes syscall with IRQs enabled: PC=%lx\n", current()->regs()->ip());
 #endif
