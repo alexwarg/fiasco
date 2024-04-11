@@ -544,45 +544,12 @@ private:
 INTERFACE [debug]:
 
 #include "tb_entry.h"
+#include <drq_log.h>
 
 EXTENSION class Context
 {
 public:
-  struct Drq_log : public Tb_entry
-  {
-    void *func;
-    Context *thread;
-    Drq const *rq;
-    Cpu_number target_cpu;
-    enum class Type
-    {
-      Send, Do_send, Do_request, Send_reply, Do_reply, Done
-    } type;
-    bool wait;
-    void print(String_buffer *buf) const;
-    Group_order has_partner() const
-    {
-      switch (type)
-        {
-        case Type::Send: return Group_order::first();
-        case Type::Do_send: return Group_order(1);
-        case Type::Do_request: return Group_order(2);
-        case Type::Send_reply: return Group_order(3);
-        case Type::Do_reply: return Group_order(4);
-        case Type::Done: return Group_order::last();
-        }
-      return Group_order::none();
-    }
-
-    Group_order is_partner(Drq_log const *o) const
-    {
-      if (rq != o->rq || func != o->func)
-        return Group_order::none();
-
-      return o->has_partner();
-    }
-  };
-
+  using Drq_log = ::Drq_log;
 
   struct Vcpu_log : public Tb_entry
   {
@@ -1314,22 +1281,6 @@ Mword *
 Context::get_kernel_sp() const
 {
   return _kernel_sp;
-}
-
-IMPLEMENT
-void
-Context::Drq_log::print(String_buffer *buf) const
-{
-  static char const *const _types[] =
-    { "send", "do send", "do request", "send reply", "do reply", "done" };
-
-  char const *t = "unk";
-  if ((unsigned)type < sizeof(_types)/sizeof(_types[0]))
-    t = _types[(unsigned)type];
-
-  buf->printf("%s(%s) rq=%p to ctxt=%lx/%p (func=%p) cpu=%u",
-      t, wait ? "wait" : "no-wait", rq, Kobject_dbg::pointer_to_id(thread),
-      thread, func, cxx::int_value<Cpu_number>(target_cpu));
 }
 
 // context switch
