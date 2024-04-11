@@ -224,6 +224,11 @@ public:
     return *have_recv || ((flags & L4_obj_ref::Ipc_send) && *partner);
   }
 
+#ifdef CONFIG_JDB
+  void halt();
+#endif
+
+  // --- static fns -----
   static void assert_irq_entry()
   {
     assert(Sched_context::rq.current().schedule_in_progress
@@ -232,6 +237,8 @@ public:
                                    | Thread_waiting
                                    | Thread_ipc_transfer));
   }
+
+  [[noreturn]] static void system_abort();
 
 private:
   void *operator new(size_t);	///< Default new operator undefined
@@ -291,7 +298,6 @@ public:
 
   /** nesting level in debugger (always critical) if >1 */
   static Per_cpu<unsigned long> nested_trap_recover;
-  static void handle_remote_requests_irq() asm ("handle_remote_cpu_requests");
   static void handle_global_remote_requests_irq() asm ("ipi_remote_call");
 
   bool arch_ext_vcpu_enabled();
@@ -677,9 +683,6 @@ bool
 Thread::arch_ext_vcpu_enabled()
 { return false; }
 
-
-// ---------------------------------------------------------------------------
-
 //---------------------------------------------------------------------------
 IMPLEMENTATION [!log]:
 
@@ -697,12 +700,6 @@ IMPLEMENTATION [mp]:
 #include "ipi.h"
 #include <sched.h>
 
-IMPLEMENT
-void
-Thread::handle_remote_requests_irq()
-{
-  Sched<>::handle_remote_requests_irq();
-}
 
 IMPLEMENT
 void
@@ -722,8 +719,8 @@ IMPLEMENTATION [debug]:
 #include "kdb_ke.h"
 #include "terminate.h"
 
-PUBLIC static
-void FIASCO_NORETURN
+IMPLEMENT
+void
 Thread::system_abort()
 {
   if (nested_trap_handler)
@@ -732,7 +729,7 @@ Thread::system_abort()
   terminate(EXIT_FAILURE);
 }
 
-PUBLIC
+IMPLEMENT
 void
 Thread::halt()
 {
@@ -746,23 +743,12 @@ Thread::halt()
       schedule();
 }
 
-PUBLIC static
-void
-Thread::halt_current()
-{
-  for (;;)
-    {
-      current_thread()->halt();
-      kdb_ke("Thread not halted");
-    }
-}
-
 //----------------------------------------------------------------------------
 IMPLEMENTATION [!debug]:
 
 #include "terminate.h"
 
-PUBLIC static
-void FIASCO_NORETURN
+IMPLEMENT
+void
 Thread::system_abort()
 { terminate(EXIT_FAILURE); }

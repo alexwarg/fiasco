@@ -677,6 +677,7 @@ IMPLEMENTATION [mips && mp]:
 
 #include "ipi.h"
 #include "mips_cpu_irqs.h"
+#include <sched.h>
 
 class Thread_remote_irq : public Irq_base
 {
@@ -689,7 +690,7 @@ public:
     Ipi::hw->ack_ipi(c);
 
     if (ipi->atomic_reset(Ipi::Request))
-      Thread::handle_remote_requests_irq();
+      Sched<>::handle_remote_requests_irq();
 
     if (ipi->atomic_reset(Ipi::Global_request))
       Thread::handle_global_remote_requests_irq();

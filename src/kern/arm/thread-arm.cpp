@@ -515,6 +515,7 @@ IMPLEMENTATION [mp]:
 
 #include "ipi.h"
 #include "irq_mgr.h"
+#include <sched.h>
 
 EXTENSION class Thread
 {
@@ -543,7 +544,7 @@ class Thread_remote_rq_irq : public Irq_base
 public:
   // we assume IPIs to be top level, no upstream IRQ chips
   void handle(Upstream_irq const *)
-  { Thread::handle_remote_requests_irq(); }
+  { Sched<>::handle_remote_requests_irq(); }
 
   Thread_remote_rq_irq()
   {

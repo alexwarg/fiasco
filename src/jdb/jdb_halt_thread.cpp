@@ -18,6 +18,15 @@ private:
 
 Kobject *Jdb_halt_thread::threadid;
 
+static void halt_current_thread_helper()
+{
+  for (;;)
+    {
+      current_thread()->halt();
+      kdb_ke("Thread not halted");
+    }
+}
+
 PUBLIC
 Jdb_module::Action_code
 Jdb_halt_thread::action(int cmd, void *&, char const *&, int &) override
@@ -31,7 +40,7 @@ Jdb_halt_thread::action(int cmd, void *&, char const *&, int &) override
     return NOTHING;
 
   t->regs()->cs(Gdt::gdt_code_kernel | Gdt::Selector_kernel);
-  t->regs()->ip(reinterpret_cast<Address>(&Thread::halt_current));
+  t->regs()->ip(reinterpret_cast<Address>(&halt_current_thread_helper));
   t->regs()->flags(0);  // disable interrupts
   putchar('\n');
 

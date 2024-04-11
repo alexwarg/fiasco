@@ -17,7 +17,7 @@ public:
   take_cpu_offline(Cpu_number cpu, bool drain_rqq = false);
 
   static void
-  handle_remote_requests_irq();
+  handle_remote_requests_irq() asm ("handle_remote_cpu_requests");
 
   static void
   force_to_invalid_cpu(Context *c);

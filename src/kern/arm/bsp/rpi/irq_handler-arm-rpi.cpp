@@ -11,6 +11,7 @@ IMPLEMENTATION [arm && mp && (pf_rpi_rpi2 || pf_rpi_rpi3)]:
 
 #include "ipi.h"
 #include "thread.h"
+#include <sched.h>
 
 inline NEEDS["ipi.h", "thread.h"]
 void handle_ipis()
@@ -18,7 +19,7 @@ void handle_ipis()
   Ipi::Message m = Ipi::pending();
   switch (m)
     {
-    case Ipi::Request: Thread::handle_remote_requests_irq(); break;
+    case Ipi::Request: Sched<>::handle_remote_requests_irq(); break;
     case Ipi::Global_request: Thread::handle_global_remote_requests_irq(); break;
     case Ipi::Debug: Thread::handle_debug_remote_requests_irq(); break;
     case Ipi::Timer: Thread::handle_timer_remote_requests_irq(0); break;
