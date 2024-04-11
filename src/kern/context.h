@@ -28,6 +28,7 @@
 #include <context_vcpu.h>
 #include <context_arch.h>
 #include <context_cpu_state.h>
+#include <context_migration.h>
 #include <drq.h>
 #include <drq_queue.h>
 #include <ku_mem_ptr.h>
@@ -94,6 +95,9 @@ class Context :
   friend Context_vcpu_x<Context>;
   friend Context_arch_x<Context>;
 
+  template<typename>
+  friend class Sched;
+
   struct State_request
   {
     Spin_lock<> lock;
@@ -103,22 +107,12 @@ class Context :
     bool pending() const { return access_once(&add) || access_once(&del); }
   };
 
-protected:
-  virtual bool initiate_migration() = 0;
-  virtual void finish_migration() = 0;
-
 public:
   using Drq = ::Drq;
   using Drq_q = Drq_queue;
+  using Migration = Ctxt::Migration;
+  using Migration_ptr = Ctxt::Migration_ptr;
 
-  struct Migration
-  {
-    Cpu_number cpu;
-    L4_sched_param const *sp;
-    bool in_progress;
-
-    Migration() : in_progress(false) {}
-  };
 
   /**
    * Definition of different helping modes
@@ -199,7 +193,7 @@ public:
   [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
 
   bool migration_pending() const
-  { return _migration.load(cxx::memory_order_relaxed); }
+  { return _migration.pending(); }
 
   void inc_lock_cnt()
   {
@@ -212,6 +206,12 @@ public:
   }
 
   Cpu_number home_cpu() const { return _home_cpu; }
+  Cpu_number atomic_home_cpu() const
+  {
+    Cpu_number n;
+    __atomic_load(&_home_cpu, &n, (int)cxx::memory_order_seq_cst);
+    return n;
+  }
 
   bool check_for_current_cpu() const
   {
@@ -238,8 +238,6 @@ public:
   {
     return sched()->in_ready_list();
   }
-
-
 
   Context_space_ref *space_ref()
   { return &_cpu_state.space; }
@@ -463,6 +461,11 @@ public:
   }
 
 protected:
+  void finish_migration()
+  {
+    enqueue_timeout_again();
+  }
+
   /**
    * Set Context's currently active Sched_context.
    * @param sched Sched_context to be activated
@@ -585,13 +588,14 @@ private:
   // Pointer to floating point register state
   Fpu_state _fpu_state;
 
-protected:
   // XXX Timeout for both, sender and receiver! In normal case we would have
   // to define own timeouts in Receiver and Sender but because only one
   // timeout can be set at one time we use the same timeout. The timeout
   // has to be defined here because Dirq::hit has to be able to reset the
   // timeout (Irq::_irq_thread is of type Receiver).
-  Timeout *_timeout;
+  Timeout *_timeout = nullptr;
+
+protected:
   void *_utcb_handler;
   Ku_mem_ptr<Utcb> _utcb;
 
@@ -604,10 +608,7 @@ private:
   // Thread::kill needs to know
   cxx::atomic<int> _lock_cnt;
 
-protected:
-  cxx::atomic<Migration *> _migration;
-
-private:
+  Migration_ptr _migration;
   State_request _remote_state_change;
 
 protected:

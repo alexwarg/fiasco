@@ -42,4 +42,12 @@ Tb_entry_ctx_sw::print(String_buffer *buf) const
   buf->printf(" krnl " L4_PTR_FMT " @ " L4_PTR_FMT, kernel_ip, _ip);
 }
 
+void
+Migration_log::print(String_buffer *buf) const
+{
+  buf->printf("migrate from %u to %u (state=%lx user ip=%lx)",
+              cxx::int_value<Cpu_number>(src_cpu),
+              cxx::int_value<Cpu_number>(target_cpu), state, user_ip);
+}
+
 

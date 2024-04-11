@@ -293,7 +293,6 @@ Thread::Thread(Ram_quota *q)
   // been overrun
   _magic = magic;
   _recover_jmpbuf = 0;
-  _timeout = 0;
 
   prepare_switch_to(&user_invoke);
 

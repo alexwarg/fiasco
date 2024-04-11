@@ -22,3 +22,13 @@ public:
   void print(String_buffer *buf) const;
 };
 
+struct Migration_log : public Tb_entry
+{
+  Mword    state;
+  Address  user_ip;
+  Cpu_number src_cpu;
+  Cpu_number target_cpu;
+
+  void print(String_buffer *) const;
+};
+

@@ -10,8 +10,6 @@
 #include <drq.h>
 #include <drq_queue.h>
 #include <drq_log.h>
-#include <sched_context.h>
-#include <logdefs.h>
 
 #include <cassert>
 
@@ -161,7 +159,6 @@ protected:
   Queue_item _pending_rq;
 
   static Per_cpu<Pending_rqq> _pending_rqq;
-
 };
 
 template<typename CONTEXT>
@@ -185,12 +182,6 @@ public:
         Mem::mp_wmb();
         _running_under_lock.reset();
       }
-  }
-
-  void try_finish_migration()
-  {
-    if (_ctxt()->state.change_safely(~Thread_finish_migration, 0))
-      _ctxt()->finish_migration();
   }
 
   bool running_on_different_cpu()
@@ -225,55 +216,6 @@ public:
     return false;
   }
 
-  bool handle_remote_request(CONTEXT **mq, CONTEXT *curr)
-  {
-    CONTEXT *self = _ctxt();
-    assert (self->check_for_current_cpu());
-
-    bool resched = false;
-
-    self->handle_remote_state_change();
-    if (EXPECT_FALSE(self->migration_pending()))
-      {
-        // if the currently executing thread shall be migrated we must defer
-        // this until we have handled the whole request queue, otherwise we
-        // would miss the remaining requests or execute them on the wrong CPU.
-        if (self != curr)
-          {
-            // we can directly migrate the thread...
-            resched |= self->initiate_migration();
-
-            // if migrated away skip the resched test below
-            if (access_once(&self->_home_cpu) != curr->get_current_cpu())
-              return resched;
-          }
-        else
-          *mq = self;
-      }
-    else
-      self->try_finish_migration();
-
-    if (EXPECT_TRUE(self->drq_pending()))
-      {
-        if (EXPECT_FALSE(self == curr))
-          return self->handle_drq() || resched;
-        else
-          self->state.add(Thread_drq_ready);
-      }
-
-    // here we had no DRQ pending, or made this thread
-    // Thread_drq_ready if not currently running
-    if (EXPECT_TRUE(self != curr && self->state.has(Thread_ready_mask)))
-      {
-        Sched_context *cs = (curr->home_cpu() == curr->get_current_cpu())
-                          ? curr->sched()
-                          : 0;
-
-        return Sched_context::rq.current().deblock(self->sched(), cs) || resched;
-      }
-
-    return resched;
-  }
 
   void pending_rqq_enqueue()
   {
@@ -373,60 +315,11 @@ public:
     return self->do_drq(rq, offline_cpu);
   }
 
-
-  static bool take_cpu_offline(Cpu_number cpu, bool drain_rqq = false)
-  {
-    assert (cpu == current_cpu());
-    assert (!Proc::interrupts());
-
-    for (;;)
-      {
-        auto &q = CONTEXT::_pending_rqq.current();
-
-          {
-            auto guard = lock_guard(q.q_lock());
-
-            if (!q.first())
-              {
-                Cpu::cpus.current().set_online(false);
-                break;
-              }
-
-            if (!drain_rqq)
-              return false;
-          }
-
-        // Pending_rqq::handle_requests must be called without the
-        // queue lock held.
-        Context *migration_q = 0;
-        q.handle_requests(current(), &migration_q);
-        // assume we run from the idle thread, and the idle thread does
-        // never migrate so `migration_q` must be 0
-        assert (!migration_q);
-      }
-
-    Mem::mp_mb();
-
-    // As the interrupts are disabled (this is acceptable as this function is
-    // called during system suspend only), the loop safely drains all the RCU
-    // queues of the current CPU without race conditions. And the enter_idle()
-    // does safely remove the CPU from the list of active CPUs.
-    do
-      {
-        Rcu::do_pending_work(cpu);
-        Proc::pause();
-      }
-    while (!Rcu::idle(cpu));
-    Rcu::enter_idle(cpu);
-
-    Cpu_call::handle_global_requests();
-
-    return true;
-  }
-
   static void take_cpu_online(Cpu_number cpu)
   {
     Cpu::cpus.cpu(cpu).set_online(true);
     Rcu::leave_idle(cpu);
   }
+
 };
+

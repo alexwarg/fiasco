@@ -20,7 +20,7 @@ public:
     return context_of(qi);
   }
 
-  template<typename CONTEXT>
+  template<typename S, typename CONTEXT>
   bool handle_requests(CONTEXT *curr, CONTEXT **mq)
   {
     bool resched = false;
@@ -30,8 +30,9 @@ public:
         if (!c)
           return resched;
 
-        resched |= c->handle_remote_request(mq, curr);
+        resched |= S::handle_remote_request(c, mq, curr);
       }
   }
+
 };
 

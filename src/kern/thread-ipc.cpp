@@ -364,7 +364,7 @@ Thread::setup_timer(L4_timeout timeout, Utcb const *utcb, Timeout *timer)
       return;
     }
 
-  assert (!_timeout);
+  assert (!have_timeout());
 
   Unsigned64 sysclock = Timer::system_clock();
   Unsigned64 tval = timeout.microsecs(sysclock, utcb);

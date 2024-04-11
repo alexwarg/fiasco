@@ -7,7 +7,7 @@
 #include "l4_types.h"
 #include "entry_frame.h"
 #include "sched_context.h"
-
+#include <sched.h>
 
 class Scheduler : public Icu_h<Scheduler>, public Irq_chip_soft, public Scheduler_iface
 {
@@ -129,7 +129,7 @@ Scheduler::sys_run(L4_fpage::Rights, Syscall_frame *f, Utcb const *utcb)
            cxx::int_value<Cpu_number>(sched_param->cpus.offset()),
            cxx::int_value<Order>(sched_param->cpus.granularity()));
 
-  thread->migrate(&info);
+  Sched<>::migrate(thread, &info);
 
   return commit_result(0);
 }

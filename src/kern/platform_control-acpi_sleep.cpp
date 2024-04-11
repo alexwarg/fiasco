@@ -11,6 +11,7 @@ IMPLEMENTATION:
 #include "timer.h"
 #include "timer_tick.h"
 #include "reset.h"
+#include <sched.h>
 
 static bool _system_suspend_enabled;
 // Values cached from ACPI FADT, initialized in Platform_control::init
@@ -106,7 +107,7 @@ suspend_ap_cpus()
           Cpu &cpu = Cpu::cpus.current();
           Pm_object::run_on_suspend_hooks(cpun);
           cpu.pm_suspend();
-          check (Context::take_cpu_offline(cpun, true));
+          check (Sched<>::take_cpu_offline(cpun, true));
           // We assume that Platform_control::cpu_suspend() does never return
           // under any circumstances -- otherwise we'd run with inconsistent
           // state into the scheduler.
@@ -120,7 +121,7 @@ suspend_ap_cpus()
     }, true);
 
   // Wind up pending Rcu and Drq changes together with all _cpus_to_suspend
-  check (Context::take_cpu_offline(current_cpu(), true));
+  check (Sched<>::take_cpu_offline(current_cpu(), true));
 
   while (!_cpus_to_suspend.empty())
     {
