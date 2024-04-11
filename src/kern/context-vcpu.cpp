@@ -91,7 +91,6 @@ Context::vcpu_save_state_and_upcall()
 
 PUBLIC inline NEEDS["fpu.h", "space.h",
                     Context::vcpu_enable_fpu_if_disabled,
-                    Context::arch_load_vcpu_kern_state,
                     Context::vcpu_pv_switch_to_kernel]
 bool
 Context::vcpu_enter_kernel_mode(Vcpu_state *vcpu)
@@ -174,49 +173,4 @@ Space *
 Context::vcpu_user_space() const
 { return _space.vcpu_user(); }
 
-
-// --------------------------------------------------------------------------
-INTERFACE [debug]:
-
-EXTENSION class Context
-{
-  static unsigned vcpu_log_fmt(Tb_entry *, int, char *)
-  asm ("__context_vcpu_log_fmt");
-};
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
-
-#include "kobject_dbg.h"
-#include "string_buffer.h"
-
-IMPLEMENT
-void
-Context::Vcpu_log::print(String_buffer *buf) const
-{
-  switch (type)
-    {
-    case 0:
-    case 4:
-      buf->printf("%sret pc=%lx sp=%lx state=%lx task=D:%lx",
-                  type == 4 ? "f" : "", ip, sp, state, space);
-      break;
-    case 1:
-      buf->printf("ipc from D:%lx task=D:%lx sp=%lx",
-                  Kobject_dbg::pointer_to_id((Kobject*)ip), state, sp);
-      break;
-    case 2:
-      buf->printf("exc #%x err=%lx pc=%lx sp=%lx state=%lx task=D:%lx",
-                  (unsigned)trap, err, ip, sp, state, space);
-      break;
-    case 3:
-      buf->printf("pf  pc=%lx pfa=%lx err=%lx state=%lx task=D:%lx",
-                  ip, sp, err, state, space);
-      break;
-    default:
-      buf->printf("vcpu: unknown");
-      break;
-    }
-}
 

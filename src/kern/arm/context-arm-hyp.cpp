@@ -31,7 +31,7 @@ Context::Vm_state *
 Context::vm_state(Vcpu_state *vs)
 { return reinterpret_cast<Vm_state *>(reinterpret_cast<char *>(vs) + 0x400); }
 
-IMPLEMENT_OVERRIDE
+PROTECTED
 void
 Context::arch_vcpu_ext_shutdown()
 {
@@ -43,10 +43,10 @@ Context::arch_vcpu_ext_shutdown()
   arm_hyp_load_non_vm_state(true);
 }
 
-IMPLEMENT_OVERRIDE inline NEEDS[Context::vm_state,
-                                Context::arm_ext_vcpu_switch_to_host,
-                                Context::arm_ext_vcpu_load_host_regs,
-                                Context::arm_ext_vcpu_switch_to_host_no_load]
+PUBLIC inline NEEDS[Context::vm_state,
+                    Context::arm_ext_vcpu_switch_to_host,
+                    Context::arm_ext_vcpu_load_host_regs,
+                    Context::arm_ext_vcpu_switch_to_host_no_load]
 void
 Context::arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load)
 {
@@ -85,10 +85,10 @@ Context::arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load)
     arm_ext_vcpu_load_host_regs(vcpu, v);
 }
 
-IMPLEMENT_OVERRIDE inline NEEDS[Context::vm_state,
-                                Context::arm_ext_vcpu_switch_to_guest,
-                                Context::arm_ext_vcpu_switch_to_guest_no_load,
-                                Context::arm_ext_vcpu_load_guest_regs]
+PROTECTED inline NEEDS[Context::vm_state,
+                       Context::arm_ext_vcpu_switch_to_guest,
+                       Context::arm_ext_vcpu_switch_to_guest_no_load,
+                       Context::arm_ext_vcpu_load_guest_regs]
 void
 Context::arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load)
 {

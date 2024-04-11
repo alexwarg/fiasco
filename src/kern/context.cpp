@@ -23,6 +23,7 @@ INTERFACE:
 #include <cxx/atomic>
 #include <context_ptr.h>
 #include <context_space_ref.h>
+#include <context_vcpu_arch_base.h>
 #include <context_drq.h>
 #include <drq.h>
 #include <drq_queue.h>
@@ -57,7 +58,8 @@ class Context :
   public Context_base,
   public Context_mp_up_x<Context>,
   public Context_drq_x<Context>,
-  protected Rcu_item
+  protected Rcu_item,
+  public Context_vcpu_arch_base
 {
   MEMBER_OFFSET();
   friend class Jdb_thread;
@@ -160,6 +162,14 @@ public:
     _kernel_sp = reinterpret_cast<Mword*>(regs());
   }
 
+  Mword *get_kernel_sp() const
+  {
+    return _kernel_sp;
+  }
+
+  void recover_jmp_buf(jmp_buf *b)
+  { _recover_jmpbuf = b; }
+
   Ku_mem_ptr<Utcb> const &utcb() const
   { return _utcb; }
 
@@ -205,7 +215,6 @@ public:
   void fill_user_state();
   void copy_and_sanitize_trap_state(Trap_state *dst,
                                     Trap_state const *src) const;
-  void arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load);
 
   [[gnu::pure]] Space *space() const { return _space.space(); }
   [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
@@ -263,6 +272,22 @@ public:
   {
     return reinterpret_cast<Entry_frame *>
       (Cpu::stack_align(reinterpret_cast<Mword>(this) + Size)) - 1;
+  }
+
+  void set_home_cpu(Cpu_number cpu)
+  {
+    auto guard = lock_guard(_remote_state_change.lock);
+
+    if (_remote_state_change.pending())
+      {
+        Mword add = access_once(&_remote_state_change.add);
+        Mword del = access_once(&_remote_state_change.del);
+        _remote_state_change.add = 0;
+        _remote_state_change.del = 0;
+        state.change_dirty(~del, add);
+      }
+
+    write_now(&_home_cpu, cpu);
   }
 
   /**
@@ -383,6 +408,38 @@ public:
 
   Switch switch_exec_helping(Context *t, Mword const *lock, Mword val);
 
+  /**
+   * \brief Queue a DRQ for changing the contexts state.
+   * \param mask bit mask for the state (state &= mask).
+   * \param add bits to add to the state (state |= add).
+   * \note This function is a preemption point.
+   *
+   * This function must be used to change the state of contexts that are
+   * potentially running on a different CPU.
+   */
+  bool xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
+  {
+    Cpu_number current_cpu = ::current_cpu();
+    if (EXPECT_FALSE(access_once(&_home_cpu) != current_cpu))
+      {
+        auto guard = lock_guard(_remote_state_change.lock);
+        if (EXPECT_TRUE(access_once(&_home_cpu) != current_cpu))
+          {
+            _remote_state_change.add = (_remote_state_change.add & mask) | add;
+            _remote_state_change.del = (_remote_state_change.del & ~add)  | ~mask;
+            guard.reset();
+            pending_rqq_enqueue();
+            return false;
+          }
+      }
+
+    state.change_dirty(mask, add);
+    if (add & Thread_ready_mask)
+      return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
+    return false;
+  }
+
+
 
   // -- static fns --
   static Context *kernel_context(Cpu_number cpu)
@@ -398,11 +455,6 @@ protected:
     if (Config::Fine_grained_cputime)
       consume_time(_clock.current().delta());
   }
-
-
-  void arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load);
-  void arch_update_vcpu_state(Vcpu_state *vcpu);
-  void arch_vcpu_ext_shutdown();
 
   /**
    * Set Context's currently active Sched_context.
@@ -435,7 +487,22 @@ protected:
     return switch_exec_locked(t, Not_Helping);
   }
 
+  void handle_remote_state_change()
+  {
+    if (!_remote_state_change.pending())
+      return;
 
+    Mword add, del;
+      {
+        auto guard = lock_guard(_remote_state_change.lock);
+        add = access_once(&_remote_state_change.add);
+        del = access_once(&_remote_state_change.del);
+        _remote_state_change.add = 0;
+        _remote_state_change.del = 0;
+      }
+
+    state.change_dirty(~del, add);
+  }
 
   // -- static fns --
   static void kernel_context(Cpu_number cpu, Context *ctxt)
@@ -462,12 +529,46 @@ private:
       Sched_context::rq.current().ready_enqueue(sched());
   }
 
+  // update the ready list after a DRQ
+  bool update_ready_list_drq(bool resched, bool offline_cpu = false)
+  {
+    // migrated awy, to a non-offlien CPU, so we are done
+    if (EXPECT_FALSE(!offline_cpu && home_cpu() != current_cpu()))
+      return false;
+
+    // already in ready list or not ready, done and pass resched
+    if (in_ready_list() || !state.has(Thread_ready_mask))
+      return resched;
+
+    // need to enqueue, on foreign CPU if offline, on current CPU else
+    if (EXPECT_FALSE(offline_cpu))
+      Sched_context::rq.cpu(home_cpu()).ready_enqueue(sched());
+    else
+      Sched_context::rq.current().ready_enqueue(sched());
+
+    // need to reschedule in this case
+    return true;
+  }
+
+  // execute DRQ and update ready list according to new state
+  bool do_drq(Drq *rq, bool offline_cpu = false)
+  {
+    return update_ready_list_drq(execute_drq(rq, Drq_queue::No_drop, true),
+                                 offline_cpu);
+  }
+
+  // handle a DRQ in switch_exec*, DRQs are only handled if
+  // executing on the home CPU
   Switch switch_handle_drq()
   {
     if (EXPECT_TRUE(home_cpu() == get_current_cpu()))
       return EXPECT_FALSE(handle_drq()) ? Switch::Resched : Switch::Ok;
     return Switch::Ok;
   }
+
+
+  // -- static fns --
+  static bool rcu_unblock(Rcu_item *i);
 
 protected:
   Cpu_number _home_cpu = Cpu::invalid();
@@ -485,10 +586,6 @@ private:
 
   // Pointer to floating point register state
   Fpu_state _fpu_state;
-
-private: // DRQ budle of ate
-  Drq _drq;
-  Drq_q _drq_q;
 
 protected:
   // XXX Timeout for both, sender and receiver! In normal case we would have
@@ -528,26 +625,9 @@ private:
 
 INTERFACE [debug]:
 
-#include "tb_entry.h"
 #include <drq_log.h>
-
-EXTENSION class Context
-{
-public:
-  using Drq_log = ::Drq_log;
-
-  struct Vcpu_log : public Tb_entry
-  {
-    Mword state;
-    Mword ip;
-    Mword sp;
-    Mword space;
-    Mword err;
-    unsigned char type;
-    unsigned char trap;
-    void print(String_buffer *buf) const;
-  };
-};
+#include <vcpu_log.h>
+#include <context_dbg.h>
 
 // --------------------------------------------------------------------------
 IMPLEMENTATION:
@@ -766,110 +846,15 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
   return switch_handle_drq();
 }
 
-PROTECTED inline
-void
-Context::handle_remote_state_change()
-{
-  if (!_remote_state_change.pending())
-    return;
-
-  Mword add, del;
-    {
-      auto guard = lock_guard(_remote_state_change.lock);
-      add = access_once(&_remote_state_change.add);
-      del = access_once(&_remote_state_change.del);
-      _remote_state_change.add = 0;
-      _remote_state_change.del = 0;
-    }
-
-  state.change_dirty(~del, add);
-}
-
-PUBLIC inline
-void
-Context::set_home_cpu(Cpu_number cpu)
-{
-  auto guard = lock_guard(_remote_state_change.lock);
-
-  if (_remote_state_change.pending())
-    {
-      Mword add = access_once(&_remote_state_change.add);
-      Mword del = access_once(&_remote_state_change.del);
-      _remote_state_change.add = 0;
-      _remote_state_change.del = 0;
-      state.change_dirty(~del, add);
-    }
-
-  write_now(&_home_cpu, cpu);
-}
 
 
-/**
- * \brief Queue a DRQ for changing the contexts state.
- * \param mask bit mask for the state (state &= mask).
- * \param add bits to add to the state (state |= add).
- * \note This function is a preemption point.
- *
- * This function must be used to change the state of contexts that are
- * potentially running on a different CPU.
- */
-PUBLIC inline NEEDS["thread_state.h"]
-bool
-Context::xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
-{
-  Cpu_number current_cpu = ::current_cpu();
-  if (EXPECT_FALSE(access_once(&_home_cpu) != current_cpu))
-    {
-      auto guard = lock_guard(_remote_state_change.lock);
-      if (EXPECT_TRUE(access_once(&_home_cpu) != current_cpu))
-        {
-          _remote_state_change.add = (_remote_state_change.add & mask) | add;
-          _remote_state_change.del = (_remote_state_change.del & ~add)  | ~mask;
-          guard.reset();
-          pending_rqq_enqueue();
-          return false;
-        }
-    }
-
-  state.change_dirty(mask, add);
-  if (add & Thread_ready_mask)
-    return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
-  return false;
-}
-
-
-PRIVATE static
+IMPLEMENT
 bool
 Context::rcu_unblock(Rcu_item *i)
 {
   assert(cpu_lock.test());
   return static_cast<Context*>(i)->xcpu_state_change(~Thread_waiting, Thread_ready);
 }
-
-PUBLIC inline
-void
-Context::recover_jmp_buf(jmp_buf *b)
-{ _recover_jmpbuf = b; }
-
-IMPLEMENT_DEFAULT inline
-void
-Context::arch_load_vcpu_kern_state(Vcpu_state *, bool)
-{}
-
-IMPLEMENT_DEFAULT inline
-void
-Context::arch_load_vcpu_user_state(Vcpu_state *, bool)
-{}
-
-IMPLEMENT_DEFAULT inline
-void
-Context::arch_vcpu_ext_shutdown()
-{}
-
-IMPLEMENT_DEFAULT inline
-void
-Context::arch_update_vcpu_state(Vcpu_state *)
-{}
 
 IMPLEMENT_DEFAULT inline
 void
@@ -1047,80 +1032,4 @@ IMPLEMENT inline
 void
 Context::switch_fpu(Context *)
 {}
-
-//----------------------------------------------------------------------------
-INTERFACE [debug]:
-
-#include "tb_entry.h"
-
-/** logged context switch. */
-class Tb_entry_ctx_sw : public Tb_entry
-{
-public:
-  using Tb_entry::_ip;
-
-  Context const *dst;		///< switcher target
-  Context const *dst_orig;
-  Address kernel_ip;
-  Mword lock_cnt;
-  Space const *from_space;
-  Sched_context const *from_sched;
-  Mword from_prio;
-  void print(String_buffer *buf) const;
-};
-
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
-
-#include "kobject_dbg.h"
-#include "string_buffer.h"
-
-PUBLIC inline
-Mword *
-Context::get_kernel_sp() const
-{
-  return _kernel_sp;
-}
-
-// context switch
-IMPLEMENT
-void
-Tb_entry_ctx_sw::print(String_buffer *buf) const
-{
-  Context *sctx = 0;
-  Mword sctxid = ~0UL;
-  Mword dst;
-  Mword dst_orig;
-
-  sctx = from_sched->context();
-  sctxid = Kobject_dbg::pointer_to_id(sctx);
-
-  dst = Kobject_dbg::pointer_to_id(this->dst);
-  dst_orig = Kobject_dbg::pointer_to_id(this->dst_orig);
-
-  if (sctx != ctx())
-    buf->printf("(%lx)", sctxid);
-
-  buf->printf(" ==> %lx ", dst);
-
-  if (dst != dst_orig || lock_cnt)
-    buf->printf("(");
-
-  if (dst != dst_orig)
-    buf->printf("want %lx", dst_orig);
-
-  if (dst != dst_orig && lock_cnt)
-    buf->printf(" ");
-
-  if (lock_cnt)
-    buf->printf("lck %lu", lock_cnt);
-
-  if (dst != dst_orig || lock_cnt)
-    buf->printf(") ");
-
-  buf->printf(" krnl " L4_PTR_FMT " @ " L4_PTR_FMT, kernel_ip, _ip);
-}
-
 

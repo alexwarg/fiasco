@@ -119,7 +119,7 @@ PROTECTED inline void Context::arch_setup_utcb_ptr()
   _tpidrurw = _tpidruro = reinterpret_cast<Mword>(utcb().usr().get());
 }
 
-IMPLEMENT_OVERRIDE inline
+PROTECTED inline
 void
 Context::arch_update_vcpu_state(Vcpu_state *vcpu)
 {
@@ -143,7 +143,7 @@ Context::tpidruro() const
 // ------------------------------------------------------------------------
 IMPLEMENTATION [arm_v6plus && !cpu_virt]:
 
-IMPLEMENT_OVERRIDE inline
+PUBLIC inline
 void
 Context::arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load)
 {
@@ -152,7 +152,7 @@ Context::arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load)
     load_tpidruro();
 }
 
-IMPLEMENT_OVERRIDE inline
+PUBLIC inline
 void
 Context::arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load)
 {

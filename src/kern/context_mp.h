@@ -302,26 +302,13 @@ public:
       Ipi::send(Ipi::Request, current_cpu(), cpu);
   }
 
-  bool enqueue_drq(Drq *rq)
+  bool do_enqueue_drq(Drq *rq)
   {
-    assert (cpu_lock.test());
-
     Cpu_number cpu = access_once(&_ctxt()->_home_cpu);
     Cpu_number current_cpu = ::current_cpu();
 
-    LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
-        l->type = rq->context() == _ctxt()
-                                   ? Drq_log::Type::Send_reply
-                                   : Drq_log::Type::Do_send;
-        l->func = (void*)rq->func;
-        l->thread = _ctxt();
-        l->target_cpu = cpu;
-        l->wait = 0;
-        l->rq = rq;
-    );
-
     if (EXPECT_FALSE(cpu == current_cpu))
-      return _execute_drq(rq);
+      return _ctxt()->do_drq(rq);
 
     _ctxt()->_drq_q.enq(rq);
 
@@ -348,13 +335,7 @@ public:
         if (EXPECT_FALSE(!Cpu::online(cpu)))
           return _deq_exec_drq(rq, true);
 
-        if (!_pending_rq.queued())
-          {
-            if (!q.first())
-              ipi = true;
-
-            q.enqueue(&_pending_rq);
-          }
+        ipi = pending_rqq_do_enqueue(&q);
       }
 
     if (ipi)
@@ -387,7 +368,7 @@ public:
     if (!self->drq_pending() && EXPECT_FALSE(self->state.has(Thread_drq_ready)))
       self->state.del_dirty(Thread_drq_ready);
 
-    return _execute_drq(rq, offline_cpu);
+    return self->do_drq(rq, offline_cpu);
   }
 
 
@@ -445,27 +426,5 @@ public:
   {
     Cpu::cpus.cpu(cpu).set_online(true);
     Rcu::leave_idle(cpu);
-  }
-
-private:
-  bool _execute_drq(Drq *rq, bool offline_cpu = false)
-  {
-    CONTEXT *self = _ctxt();
-    bool do_sched = self->execute_drq(rq, Drq_queue::No_drop, true);
-    // the DRQ function executed above might be preemptible in the case
-    // of local execution
-    if (EXPECT_FALSE(!offline_cpu && self->home_cpu() != current_cpu()))
-      return false;
-
-    if (!self->in_ready_list() && self->state.has(Thread_ready_mask))
-      {
-        if (EXPECT_FALSE(offline_cpu))
-          Sched_context::rq.cpu(self->home_cpu()).ready_enqueue(self->sched());
-        else
-          Sched_context::rq.current().ready_enqueue(self->sched());
-        return true;
-      }
-
-    return do_sched;
   }
 };

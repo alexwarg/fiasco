@@ -37,31 +37,9 @@ public:
     _ctxt()->_lock_cnt.sub_fetch(1, cxx::memory_order_relaxed);
   }
 
-  bool enqueue_drq(Drq *rq)
+  bool do_enqueue_drq(Drq *rq)
   {
-    assert (cpu_lock.test());
-
-    CONTEXT *self = _ctxt();
-
-    LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
-        l->type = rq->context() == self
-                                   ? Drq_log::Type::Send_reply
-                                   : Drq_log::Type::Do_send;
-        l->func = (void*)rq->func;
-        l->thread = self;
-        l->target_cpu = self->home_cpu();
-        l->wait = 0;
-        l->rq = rq;
-    );
-
-    bool do_sched = self->execute_drq(rq, Drq_queue::No_drop, true);
-    if (   access_once(&self->_home_cpu) == current_cpu()
-        && self->state.has(Thread_ready_mask) && !self->in_ready_list())
-      {
-        Sched_context::rq.current().ready_enqueue(self->sched());
-        return true;
-      }
-    return do_sched;
+    return _ctxt()->do_drq(rq);
   }
 
   void rcu_wait()

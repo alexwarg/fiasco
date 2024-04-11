@@ -207,7 +207,7 @@ void Context::vcpu_pv_switch_to_kernel(Vcpu_state *vs, bool current)
   // LOG_MSG_3VAL(this, "svz", (Mword)s, 0, 0);
 }
 
-IMPLEMENT_OVERRIDE
+PROTECTED
 void
 Context::arch_vcpu_ext_shutdown()
 {

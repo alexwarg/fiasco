@@ -16,6 +16,10 @@ class Context_drq_base
 {
 protected:
   struct Kernel_drq : Drq { Context *src; };
+
+  Drq _drq;
+  Drq_queue _drq_q;
+
   static Per_cpu<Kernel_drq> _kernel_drq;
 };
 
@@ -38,6 +42,24 @@ public:
       return execute_drq_reply(r);
     else
       return execute_drq_request(r, drop, local);
+  }
+
+  bool enqueue_drq(Drq *rq)
+  {
+    assert (cpu_lock.test());
+
+    LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
+        l->type = rq->context() == _this()
+                                   ? Drq_log::Type::Send_reply
+                                   : Drq_log::Type::Do_send;
+        l->func = (void*)rq->func;
+        l->thread = _this();
+        l->target_cpu = _this()->home_cpu();
+        l->wait = 0;
+        l->rq = rq;
+    );
+
+    return _this()->do_enqueue_drq(rq);
   }
 
   /**
