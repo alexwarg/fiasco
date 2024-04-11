@@ -26,7 +26,7 @@ INTERFACES_KERNEL	:= \
 			   kmem kmem_alloc mem_layout        \
 			   kip_init   \
 			   timer   \
-			   context mem_unit \
+			   mem_unit \
 			   thread syscalls     \
 			   kernel_thread map_util        \
 			   vmem_alloc paging      \
@@ -41,6 +41,7 @@ CXXSRC_KERNEL += \
 	boot_alloc.cc \
 	config.cc \
 	config_arch.cc \
+	context.cc \
 	context_drq.cc \
 	cpu_call.cc \
 	cpu_lock.cc \
