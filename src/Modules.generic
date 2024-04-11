@@ -81,7 +81,8 @@ CXXSRC_KERNEL += \
 
 CXXSRC_KERNEL-$(CONFIG_FPU) += fpu_alloc.cc fpu.cc fpu_arch.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
-			      app_cpu_thread.cc ipi.cc
+			      app_cpu_thread.cc ipi.cc \
+			      context_mp.cc
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc vkey_serial.cc
 CXXSRC_KERNEL-a$(CONFIG_SERIAL) += vkey_noserial.cc

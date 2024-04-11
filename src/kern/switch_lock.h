@@ -283,7 +283,7 @@ Switch_lock::clear_lock_owner()
 inline bool NO_INSTRUMENT
 Switch_lock::set_lock_owner(Context *o)
 {
-  bool have_no_locks = access_once(&o->_lock_cnt) < 1;
+  bool have_no_locks = o->_lock_cnt.load(cxx::memory_order_relaxed) < 1;
 
   if (have_no_locks)
     {

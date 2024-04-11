@@ -20,10 +20,29 @@ INTERFACE:
 #include <fiasco_defs.h>
 #include <cxx/function>
 
+#include <cxx/atomic>
 #include <context_ptr.h>
 #include <context_space_ref.h>
 #include <drq.h>
 #include <drq_queue.h>
+#include <globalconfig.h>
+
+//#if defined(CONFIG_MP)
+INTERFACE [mp]:
+#include <context_mp.h>
+
+template<typename C>
+using Context_mp_up_x = Context_mp_x<C>;
+
+//#else // CONFIG_MP
+INTERFACE [!mp]:
+#include <context_up.h>
+
+template<typename C>
+using Context_mp_up_x = Context_up_x<C>;
+
+//#endif // CONFIG_MP
+INTERFACE:
 
 class Entry_frame;
 class Context;
@@ -35,15 +54,19 @@ class Kobject_iface;
  */
 class Context :
   public Context_base,
+  public Context_mp_up_x<Context>,
   protected Rcu_item
 {
   MEMBER_OFFSET();
   friend class Jdb_thread;
   friend class Jdb_thread_list;
-  friend class Context_ptr;
   friend class Jdb_utcb;
   friend class Jdb;
   friend class Jdb_tcb;
+
+  friend class Context_ptr;
+  friend class Switch_lock;
+  friend Context_mp_up_x<Context>;
 
   struct State_request
   {
@@ -57,8 +80,8 @@ class Context :
 protected:
   struct Kernel_drq : Drq { Context *src; };
 
-  virtual void finish_migration() = 0;
   virtual bool initiate_migration() = 0;
+  virtual void finish_migration() = 0;
 
 public:
   using Drq = ::Drq;
@@ -151,6 +174,11 @@ public:
   [[gnu::pure]] Space *space() const { return _space.space(); }
   [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
 
+  void inc_lock_cnt()
+  {
+    _lock_cnt.add_fetch(1, cxx::memory_order_relaxed);
+  }
+
   Cpu_number home_cpu() const { return _home_cpu; }
 
 protected:
@@ -212,7 +240,7 @@ private:
   // how many locks does this thread hold on other threads
   // incremented in Thread::lock, decremented in Thread::clear
   // Thread::kill needs to know
-  int _lock_cnt;
+  cxx::atomic<int> _lock_cnt;
 
 protected:
   cxx::atomic<Migration *> _migration;
@@ -309,6 +337,7 @@ IMPLEMENTATION:
 #include "thread_state.h"
 #include "timer.h"
 #include "timeout.h"
+#include "assert.h"
 
 DEFINE_PER_CPU Per_cpu<Clock> Context::_clock(Per_cpu_data::Cpu_num);
 DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;
@@ -388,7 +417,7 @@ PUBLIC inline
 int
 Context::lock_cnt() const
 {
-  return _lock_cnt;
+  return _lock_cnt.load(cxx::memory_order_relaxed);
 }
 
 /**
@@ -998,7 +1027,7 @@ Context::set_home_cpu(Cpu_number cpu)
  * This function must be used to change the state of contexts that are
  * potentially running on a different CPU.
  */
-PUBLIC inline NEEDS[Context::pending_rqq_enqueue, "thread_state.h"]
+PUBLIC inline NEEDS["thread_state.h"]
 bool
 Context::xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
 {
@@ -1039,7 +1068,7 @@ Context::xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
  *
  * This function enqueues a DRQ and blocks the current context for a reply DRQ.
  */
-PUBLIC inline NEEDS[Context::enqueue_drq, "logdefs.h", "thread_state.h"]
+PUBLIC inline NEEDS["logdefs.h", "thread_state.h"]
 void
 Context::drq(Drq *drq, Drq::Request_func *func, void *arg,
              Drq::Wait_mode wait = Drq::Wait)
@@ -1156,584 +1185,9 @@ bool Context::migration_pending() const
 { return _migration.load(cxx::memory_order_relaxed); }
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [!mp]:
-
-#include "assert.h"
-#include "warn.h"
-
-PRIVATE inline
-void
-Context::handle_lock_holder_preemption()
-{}
-
-/** Increment lock count.
-    @post lock_cnt() > 0 */
-PUBLIC inline
-void
-Context::inc_lock_cnt()
-{
-  ++_lock_cnt;
-}
-
-/** Decrement lock count.
-    @pre lock_cnt() > 0
- */
-PUBLIC inline
-void
-Context::dec_lock_cnt()
-{
-  --_lock_cnt;
-}
-
-PRIVATE inline
-bool
-Context::running_on_different_cpu()
-{ return false; }
-
-PRIVATE inline
-bool
-Context::need_help(Mword const *, Mword)
-{ return true; }
-
-
-PRIVATE inline
-void
-Context::pending_rqq_enqueue()
-{
-  if (!Cpu::online(home_cpu()))
-    handle_remote_state_change();
-}
-
-PUBLIC
-bool
-Context::enqueue_drq(Drq *rq)
-{
-  assert (cpu_lock.test());
-
-  LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
-      l->type = rq->context() == this
-                                 ? Drq_log::Type::Send_reply
-                                 : Drq_log::Type::Do_send;
-      l->func = (void*)rq->func;
-      l->thread = this;
-      l->target_cpu = home_cpu();
-      l->wait = 0;
-      l->rq = rq;
-  );
-
-  bool do_sched = execute_drq(rq, Drq_q::No_drop, true);
-  if (   access_once(&_home_cpu) == current_cpu()
-      && state.has(Thread_ready_mask) && !in_ready_list())
-    {
-      Sched_context::rq.current().ready_enqueue(sched());
-      return true;
-    }
-  return do_sched;
-}
-
-PUBLIC inline
-void
-Context::rcu_wait()
-{
-  // The UP case does not need to block for the next grace period, because
-  // the CPU is always in a quiescent state when the interrupts where enabled
-}
-
-//----------------------------------------------------------------------------
-INTERFACE [mp]:
-
-#include <remote_ready_queue.h>
-
-EXTENSION class Context
-{
-private:
-  friend class Switch_lock;
-  friend class Locks_test;
-
-  /**
-   * The running-under-lock state machine.
-   *
-   * This state machine handles state transitions for the
-   * Context::_running_under_lock variable to ensure correct multi-
-   * processor helping semantics.
-   *
-   * We use three states:
-   * 1. `Not_running` --- The thread is not running on a foreign CPU. However,
-   *    it might be running on its home CPU without holding any helping lock.
-   * 2. `Trying` --- A thread on a foreign CPU has the intention to start
-   *    helping but has yet to evaluate if this thread owns the desired lock.
-   * 3. `Running` --- This thread is running on a CPU while usually holding
-   *    at least one helping lock.
-   */
-  class Running_under_lock
-  {
-    friend class Locks_test; // Locks_test::test_switch_lock_acquire_free()
-
-    // FIXME: could be a byte, but nee cas byte for that
-    enum State : Mword
-    {
-      Not_running = 0,
-      Trying      = 1,
-      Running     = 2,
-    };
-
-    cxx::atomic<State> _s;
-
-  public:
-    /**
-     * Atomic transition from `Not_running` to `Trying`.
-     *
-     * \retval true, on success. This means no other thread is currently
-     *         helping or trying to help. However, the thread might
-     *         currently execute on its home CPU.
-     * \retval false, another thread is currently helping or trying to help.
-     *         This means the helper shall retry to grab the helping lock.
-     *
-     * Must be used by a potential helper thread before double checking
-     * if this thread owns the desired lock. If yes, then
-     * Running_under_lock::help() must be called before helping starts.
-     * If no, Running_under_lock::reset() must be called.
-     */
-    bool try_to_help()
-    {
-      if (_s.load(cxx::memory_order_relaxed))
-        return false; // either running or already trying
-
-      State not_running = Not_running;
-      return _s.compare_exchange_strong(not_running, Trying, cxx::memory_order_acquire);
-    }
-
-    /**
-     * Atomic transition from `Not_running` to `Running`.
-     *
-     * \pre Must be called by the current thread on its own
-     *      `_running_under_lock` member only.
-     *
-     * \retval true, on success. This means no other thread is currently
-     *         helping or trying to help.
-     * \retval false, another thread is currently trying to help. This means
-     *         the caller must wait before grabbing the first lock until the
-     *         potential helper aborted its helping.
-     */
-    bool try_dispatch()
-    {
-      if (_s.load(cxx::memory_order_relaxed))
-        return false;
-
-      State not_running = Not_running;
-      return _s.compare_exchange_strong(not_running, Running, cxx::memory_order_acquire);
-    }
-
-    /**
-     * Transition from Trying to Running.
-     *
-     * Before calling this method Running_under_lock::try_to_help() must
-     * have returned success.
-     */
-    void help() { _s.store(Running, cxx::memory_order_relaxed); }
-
-    /**
-     * Dirty transition to Not_running.
-     *
-     * This method is to be used to abort an unsuccessful attempt to help
-     * or after clearing the last lock when running on the home CPU.
-     */
-    void reset()
-    {
-      _s.store(Not_running, cxx::memory_order_release);
-    }
-
-    /**
-     * Safe transition from Running to Not_running.
-     *
-     * This method has to be used to safely mark a thread as not running
-     * in the preemption code (after switching away from this thread).
-     */
-    void preempt()
-    {
-      if (_s.load(cxx::memory_order_relaxed) == Running)
-        _s.store(Not_running, cxx::memory_order_release);
-    }
-
-    /// Check the current running under lock state.
-    operator bool () const { return _s.load(cxx::memory_order_relaxed); }
-  };
-
-  /**
-   * Synchronization variable for multi-processor helping.
-   *
-   * This variable in combination with the _lock_cnt variable is used to
-   * synchronize dispatching of this context during cross-processor helping.
-   */
-  Running_under_lock _running_under_lock;
-
-protected:
-  using Pending_rqq = Remote_ready_queue;
-
-  [[gnu::nonnull]]
-  bool pending_rqq_do_enqueue(Queue *q)
-  {
-    if (_pending_rq.queued())
-      return false;
-
-    bool ipi = !q->first();
-    q->enqueue(&_pending_rq);
-    return ipi;
-  }
-
-  Queue_item _pending_rq;
-
-  static Per_cpu<Pending_rqq> _pending_rqq;
-};
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [mp]:
-
-#include "assert.h"
-#include "cpu_call.h"
-#include "globals.h"
-#include "ipi.h"
-#include "lock_guard.h"
-#include "mem.h"
-
-DEFINE_PER_CPU Per_cpu<Context::Pending_rqq> Context::_pending_rqq;
-
-PUBLIC inline
-void
-Context::try_finish_migration()
-{
-  if (state.change_safely(~Thread_finish_migration, 0))
-    finish_migration();
-}
-
-
-PRIVATE inline
-void
-Context::handle_lock_holder_preemption()
-{
-  assert (current() != this);
-  _running_under_lock.preempt();
-}
-
-/** Increment lock count.
-    @post lock_cnt() > 0 */
-PUBLIC inline
-void
-Context::inc_lock_cnt()
-{
-  write_now(&_lock_cnt, _lock_cnt + 1);
-}
-
-/** Decrement lock count.
-    @pre lock_cnt() > 0
- */
-PUBLIC inline
-void
-Context::dec_lock_cnt()
-{
-  int ncnt = _lock_cnt - 1;
-  write_now(&_lock_cnt, ncnt);
-  if (EXPECT_TRUE(ncnt == 0 && home_cpu() == current_cpu()))
-    {
-      Mem::mp_wmb();
-      _running_under_lock.reset();
-    }
-}
-
-PRIVATE inline
-bool
-Context::running_on_different_cpu()
-{
-  if (   EXPECT_TRUE(access_once(&_lock_cnt) == 0)
-      && EXPECT_TRUE(!_running_under_lock))
-    return false;
-
-  if (EXPECT_FALSE(!_running_under_lock.try_dispatch()))
-    return true;
-
-  if (EXPECT_FALSE(access_once(&_lock_cnt) == 0))
-    _running_under_lock.reset();
-
-  return false;
-}
-
-PRIVATE inline
-bool
-Context::need_help(Mword const *lock, Mword val)
-{
-  if (EXPECT_FALSE(!_running_under_lock.try_to_help()))
-    return false;
-
-  // double check if the lock is held by us
-  if (EXPECT_TRUE(access_once(&_lock_cnt) != 0 && access_once(lock) == val))
-    {
-      _running_under_lock.help();
-      return true;
-    }
-
-  _running_under_lock.reset();
-  return false;
-}
-
-PUBLIC inline
-bool
-Context::handle_remote_request(Context **mq, Context *curr = current())
-{
-  assert (check_for_current_cpu());
-
-  bool resched = false;
-
-  handle_remote_state_change();
-  if (EXPECT_FALSE(migration_pending()))
-    {
-      // if the currently executing thread shall be migrated we must defer
-      // this until we have handled the whole request queue, otherwise we
-      // would miss the remaining requests or execute them on the wrong CPU.
-      if (this != curr)
-        {
-          // we can directly migrate the thread...
-          resched |= initiate_migration();
-
-          // if migrated away skip the resched test below
-          if (access_once(&_home_cpu) != curr->get_current_cpu())
-            return resched;
-        }
-      else
-        *mq = this;
-    }
-  else
-    try_finish_migration();
-
-  if (EXPECT_TRUE(drq_pending()))
-    {
-      if (EXPECT_FALSE(this == curr))
-        return handle_drq() || resched;
-      else
-        state.add(Thread_drq_ready);
-    }
-
-  // here we had no DRQ pending, or made this thread
-  // Thread_drq_ready if not currently running
-  if (EXPECT_TRUE(this != curr && state.has(Thread_ready_mask)))
-    {
-      Sched_context *cs = (curr->home_cpu() == curr->get_current_cpu())
-                        ? curr->sched()
-                        : 0;
-
-      return Sched_context::rq.current().deblock(sched(), cs) || resched;
-    }
-
-  return resched;
-}
-
-PUBLIC static inline NEEDS["cpu_call.h"]
-bool
-Context::take_cpu_offline(Cpu_number cpu, bool drain_rqq = false)
-{
-  assert (cpu == current_cpu());
-  assert (!Proc::interrupts());
-
-  for (;;)
-    {
-      auto &q = _pending_rqq.current();
-
-        {
-          auto guard = lock_guard(q.q_lock());
-
-          if (!q.first())
-            {
-              Cpu::cpus.current().set_online(false);
-              break;
-            }
-
-          if (!drain_rqq)
-            return false;
-        }
-
-      // Pending_rqq::handle_requests must be called without the
-      // queue lock held.
-      Context *migration_q = 0;
-      q.handle_requests(current(), &migration_q);
-      // assume we run from the idle thread, and the idle thread does
-      // never migrate so `migration_q` must be 0
-      assert (!migration_q);
-    }
-
-  Mem::mp_mb();
-
-  // As the interrupts are disabled (this is acceptable as this function is
-  // called during system suspend only), the loop safely drains all the RCU
-  // queues of the current CPU without race conditions. And the enter_idle()
-  // does safely remove the CPU from the list of active CPUs.
-  do
-    {
-      Rcu::do_pending_work(cpu);
-      Proc::pause();
-    }
-  while (!Rcu::idle(cpu));
-  Rcu::enter_idle(cpu);
-
-  Cpu_call::handle_global_requests();
-
-  return true;
-}
-
-PUBLIC static inline
-void
-Context::take_cpu_online(Cpu_number cpu)
-{
-  Cpu::cpus.cpu(cpu).set_online(true);
-  Rcu::leave_idle(cpu);
-}
-
-PRIVATE
-void
-Context::pending_rqq_enqueue()
-{
-  bool ipi = false;
-  // read cpu again we may've been migrated meanwhile
-  Cpu_number cpu = access_once(&_home_cpu);
-  Queue &q = Context::_pending_rqq.cpu(cpu);
-
-    {
-      auto guard = lock_guard(q.q_lock());
-
-      // migrated between getting the lock and reading the CPU, so the
-      // new CPU is responsible for executing our request
-      if (access_once(&_home_cpu) != cpu)
-        return;
-
-      if (!Cpu::online(cpu))
-        {
-          handle_remote_state_change();
-          return;
-        }
-
-      ipi = pending_rqq_do_enqueue(&q);
-    }
-
-  if (ipi)
-    Ipi::send(Ipi::Request, current_cpu(), cpu);
-}
-
-PRIVATE inline
-bool
-Context::_execute_drq(Drq *rq, bool offline_cpu = false)
-{
-  bool do_sched = execute_drq(rq, Drq_q::No_drop, true);
-  // the DRQ function executed above might be preemptible in the case
-  // of local execution
-  if (EXPECT_FALSE(!offline_cpu && home_cpu() != current_cpu()))
-    return false;
-
-  if (!in_ready_list() && state.has(Thread_ready_mask))
-    {
-      if (EXPECT_FALSE(offline_cpu))
-        Sched_context::rq.cpu(home_cpu()).ready_enqueue(sched());
-      else
-        Sched_context::rq.current().ready_enqueue(sched());
-      return true;
-    }
-
-  return do_sched;
-}
-
-PRIVATE inline
-bool
-Context::_deq_exec_drq(Drq *rq, bool offline_cpu = false)
-{
-  if (!_drq_q.dequeue(rq))
-    return false; // already handled
-
-  if (!drq_pending() && EXPECT_FALSE(state.has(Thread_drq_ready)))
-    state.del_dirty(Thread_drq_ready);
-
-  return _execute_drq(rq, offline_cpu);
-}
-
-PUBLIC
-bool
-Context::enqueue_drq(Drq *rq)
-{
-  assert (cpu_lock.test());
-
-  Cpu_number cpu = access_once(&_home_cpu);
-  Cpu_number current_cpu = ::current_cpu();
-
-  LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
-      l->type = rq->context() == this
-                                 ? Drq_log::Type::Send_reply
-                                 : Drq_log::Type::Do_send;
-      l->func = (void*)rq->func;
-      l->thread = this;
-      l->target_cpu = cpu;
-      l->wait = 0;
-      l->rq = rq;
-  );
-
-  if (EXPECT_FALSE(cpu == current_cpu))
-    return _execute_drq(rq);
-
-  _drq_q.enq(rq);
-
-  // re-read the cpu number, we may have been migrated. We need to be sure to
-  // signal the right CPU that there is work for us.
-  cpu = access_once(&_home_cpu);
-
-  // check if we migrated to the current_cpu, in this case we have to execute
-  // the DRQ directly
-  if (EXPECT_FALSE(cpu == current_cpu))
-    return _deq_exec_drq(rq);
-
-  bool ipi = false;
-
-    {
-      Queue &q = Context::_pending_rqq.cpu(cpu);
-      auto guard = lock_guard(q.q_lock());
-
-      // migrated between getting the lock and reading the CPU, so the
-      // new CPU is responsible for executing our request
-      if (access_once(&_home_cpu) != cpu)
-        return false;
-
-      if (EXPECT_FALSE(!Cpu::online(cpu)))
-        return _deq_exec_drq(rq, true);
-
-      if (!_pending_rq.queued())
-        {
-          if (!q.first())
-            ipi = true;
-
-          q.enqueue(&_pending_rq);
-        }
-    }
-
-  if (ipi)
-    Ipi::send(Ipi::Request, current_cpu, cpu);
-
-  return false;
-}
-
-/**
- * Block and wait for the next grace period.
- */
-PUBLIC inline NEEDS["cpu_lock.h", "lock_guard.h"]
-void
-Context::rcu_wait()
-{
-  auto guard = lock_guard(cpu_lock);
-  state.change_dirty(~Thread_ready, Thread_waiting);
-  Rcu::call(this, &rcu_unblock);
-  while (state.dirty() & Thread_waiting)
-    {
-      state.del_dirty(Thread_ready);
-      schedule();
-    }
-}
-
-//----------------------------------------------------------------------------
 IMPLEMENTATION [fpu && lazy_fpu]:
 
+#include "assert.h"
 #include "fpu.h"
 
 PUBLIC inline NEEDS ["fpu.h"]
