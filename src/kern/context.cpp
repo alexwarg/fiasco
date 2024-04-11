@@ -125,6 +125,17 @@ public:
     Failed  = 2
   };
 
+  Context() noexcept
+  : _kernel_sp(reinterpret_cast<Mword*>(regs()))
+  {}
+
+  virtual ~Context() noexcept = default;
+
+  void reset_kernel_sp() noexcept
+  {
+    _kernel_sp = reinterpret_cast<Mword*>(regs());
+  }
+
   /**
    * Return consumed CPU time.
    * @return Consumed CPU time in usecs
@@ -304,35 +315,6 @@ DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;
 DEFINE_PER_CPU Per_cpu<Context::Kernel_drq> Context::_kernel_drq;
 
 #include <cstdio>
-
-/**
- * Initialize a context.
- *
- * After setup, a switch_exec_locked to this context results in a return to user
- * code using the return registers at regs(). The return registers are not
- * initialized however; neither is the Space to be used in thread switching.
- *
- * \pre (_kernel_sp == 0)  &&  (* (stack end) == 0)
- */
-PUBLIC inline NEEDS ["entry_frame.h"]
-Context::Context()
-: _kernel_sp(reinterpret_cast<Mword*>(regs()))
-{
-}
-
-PUBLIC inline
-void
-Context::reset_kernel_sp()
-{
-  _kernel_sp = reinterpret_cast<Mword*>(regs());
-}
-
-
-/** Destroy context.
- */
-PUBLIC virtual
-Context::~Context()
-{}
 
 PUBLIC inline
 bool
