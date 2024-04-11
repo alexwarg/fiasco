@@ -903,15 +903,6 @@ bool
 Context::drq_pending() const
 { return _drq_q.first(); }
 
-PUBLIC inline
-void
-Context::try_finish_migration()
-{
-  if (state.change_safely(~Thread_finish_migration, 0))
-    finish_migration();
-}
-
-
 /**
  * \brief Handle all pending DRQs.
  * \pre cpu_lock.test() (The CPU lock must be held).
@@ -1424,6 +1415,15 @@ IMPLEMENTATION [mp]:
 #include "mem.h"
 
 DEFINE_PER_CPU Per_cpu<Context::Pending_rqq> Context::_pending_rqq;
+
+PUBLIC inline
+void
+Context::try_finish_migration()
+{
+  if (state.change_safely(~Thread_finish_migration, 0))
+    finish_migration();
+}
+
 
 PRIVATE inline
 void
