@@ -148,7 +148,7 @@ Thread::copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,
   return true;
 }
 
-IMPLEMENT inline NEEDS[Thread::exception_triggered]
+IMPLEMENT inline
 void
 Thread::user_ip(Mword ip)
 {

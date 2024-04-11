@@ -72,7 +72,7 @@ Thread::Thread(Ram_quota *q)
   // ok, we're ready to go!
 }
 
-IMPLEMENT inline NEEDS[Thread::exception_triggered]
+IMPLEMENT inline
 Mword
 Thread::user_ip() const
 { return exception_triggered()?_exc_cont.ip():regs()->ip(); }
@@ -568,7 +568,7 @@ Thread::sys_gdt_x86(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
 //----------------------------------------------------------------------------
 IMPLEMENTATION [amd64]:
 
-IMPLEMENT inline NEEDS[Thread::exception_triggered]
+IMPLEMENT inline
 void
 Thread::user_ip(Mword ip)
 {

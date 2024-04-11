@@ -17,12 +17,12 @@ Thread::mangle_kernel_lib_page_fault(Mword pc, Mword error_code)
   return error_code;
 }
 
-IMPLEMENT inline NEEDS[Thread::exception_triggered]
+IMPLEMENT inline
 Mword
 Thread::user_ip() const
 { return exception_triggered() ? _exc_cont.ip() : regs()->ip(); }
 
-IMPLEMENT inline NEEDS[Thread::exception_triggered]
+IMPLEMENT inline
 void
 Thread::user_ip(Mword ip)
 {

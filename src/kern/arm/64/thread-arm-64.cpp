@@ -190,8 +190,7 @@ Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
   return ret;
 }
 
-PRIVATE static inline NEEDS[Thread::save_fpu_state_to_utcb,
-                            Thread::store_tpidruro,
+PRIVATE static inline NEEDS[Thread::store_tpidruro,
                             "trap_state.h"]
 bool FIASCO_WARN_RESULT
 Thread::copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,

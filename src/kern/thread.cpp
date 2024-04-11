@@ -1,3 +1,15 @@
+INTERFACE [fpu && lazy_fpu]:
+
+#include <thread_lazy_fpu.h>
+
+INTERFACE [fpu && !lazy_fpu]:
+
+#include <thread_eager_fpu.h>
+
+INTERFACE [!fpu]:
+
+#include <thread_no_fpu.h>
+
 INTERFACE:
 
 #include <cxx/atomic>
@@ -15,6 +27,12 @@ INTERFACE:
 #include "sender.h"
 #include "spin_lock.h"
 
+#include <kmem_alloc.h>
+#include <task.h>
+#include <kernel_task.h>
+#include <irq_chip.h>
+#include <timer.h>
+
 class Return_frame;
 class Syscall_frame;
 class Task;
@@ -29,7 +47,8 @@ typedef Context_ptr_base<Thread> Thread_ptr;
 class Thread :
   public Receiver,
   public Sender,
-  public cxx::Dyn_castable<Thread, Kobject>
+  public cxx::Dyn_castable<Thread, Kobject>,
+  public Thread_fpu_x<Thread>
 {
   MEMBER_OFFSET();
 
@@ -85,15 +104,143 @@ public:
 public:
   typedef void (Utcb_copy_func)(Thread *sender, Thread *receiver);
 
-  /**
-   * Constructor.
-   *
-   * @post state() != 0.
-   */
+  void *operator new(size_t, Ram_quota *q) noexcept
+  {
+    void *t = Kmem_alloc::allocator()->q_alloc(q, Bytes(Thread::Size));
+    if (t)
+      memset(t, 0, sizeof(Thread));
+
+    return t;
+  }
+
+  // construct a thread
   explicit Thread(Ram_quota *);
+
+  virtual ~Thread() noexcept;
+
+  Ram_quota *quota() const
+  {
+    return _quota;
+  }
+
+  // bind a thread to a kernel task t
+  void kbind(Task *t)
+  {
+    auto guard = lock_guard(_cpu_state.space.lock());
+    _cpu_state.space.space(t);
+    t->inc_ref();
+  }
+
+  // bind the thread to a task (incl. UTCB)
+  bool bind(Task *t, User<Utcb>::Ptr utcb);
+
+  // unbind the thread from its task
+  void unbind();
+
+  // register an IRQ to be triggered for IPC gate deletion
+  bool register_delete_irq(Irq_base *irq);
+
+  // unregister the del IRQ
+  void unregister_delete_irq();
+
+  void remove_delete_irq(Irq_base *irq)
+  {
+    _del_observer.compare_exchange_strong(irq, (Irq_base *)nullptr);
+  }
+
+  void ipc_gate_deleted(Mword id)
+  {
+    (void) id;
+    auto g = lock_guard(cpu_lock);
+    if (auto irq = _del_observer.load(cxx::memory_order_relaxed))
+      irq->hit(0);
+  }
+
 
   int handle_page_fault(Address pfa, Mword error, Mword pc,
                         Return_frame *regs);
+
+  bool exception_triggered() const
+  {
+    return _exc_cont.valid(regs());
+  }
+
+  bool continuation_test_and_restore()
+  {
+    bool v = _exc_cont.valid(regs());
+    if (v)
+      _exc_cont.restore(regs());
+    return v;
+  }
+
+  void handle_timer_interrupt()
+  {
+    Cpu_number _cpu = current_cpu();
+    // XXX: This assumes periodic timers (i.e. bogus in one-shot mode)
+    if (!Config::Fine_grained_cputime)
+      consume_time(Config::Scheduler_granularity);
+
+    bool resched = Rcu::do_pending_work(_cpu);
+
+    // Check if we need to reschedule due to timeouts or wakeups
+    if ((Timeout_q::timeout_queue.cpu(_cpu).do_timeouts() || resched)
+        && !Sched_context::rq.current().schedule_in_progress)
+      {
+        schedule();
+        assert (timeslice_timeout.cpu(current_cpu())->is_set());	// Coma check
+      }
+  }
+
+  static Drq::Result handle_kill_helper(Drq *src, Context *, void *);
+  static Drq::Result handle_migration_helper(Drq *rq, Context *, void *p);
+
+  void put_n_reap(Kobject ***reap_list);
+
+  bool kill();
+
+  void set_sched_params(L4_sched_param const *p);
+
+  long control(Thread_ptr const &pager, Thread_ptr const &exc_handler);
+
+  bool check_sys_ipc(unsigned flags, Thread **partner, Thread **sender,
+                     bool *have_recv) const
+  {
+    if (flags & L4_obj_ref::Ipc_recv)
+      {
+        *sender = flags & L4_obj_ref::Ipc_open_wait ? 0 : const_cast<Thread*>(this);
+        *have_recv = true;
+      }
+
+    if (flags & L4_obj_ref::Ipc_send)
+      *partner = const_cast<Thread*>(this);
+
+    // FIXME: shall be removed flags == 0 is no-op
+    if (!flags)
+      {
+        *sender = const_cast<Thread*>(this);
+        *partner = const_cast<Thread*>(this);
+        *have_recv = true;
+      }
+
+    return *have_recv || ((flags & L4_obj_ref::Ipc_send) && *partner);
+  }
+
+  bool initiate_migration() override;
+
+  void finish_migration() override
+  {
+    enqueue_timeout_again();
+  }
+
+
+  static void assert_irq_entry()
+  {
+    assert(Sched_context::rq.current().schedule_in_progress
+           || current()->state.has(  Thread_ready_mask
+                                   | Thread_drq_wait
+                                   | Thread_waiting
+                                   | Thread_ipc_transfer));
+  }
 
 private:
   struct Migration_helper_info
@@ -103,6 +250,8 @@ private:
   };
 
   void *operator new(size_t);	///< Default new operator undefined
+
+  bool do_kill();
 
   bool handle_sigma0_page_fault (Address pfa);
 
@@ -115,6 +264,57 @@ private:
   static void user_invoke() FIASCO_NORETURN;
 
   static void do_leave_and_kill_myself() asm("thread_do_leave_and_kill_myself");
+  static Drq::Result handle_remote_kill(Drq *, Context *self, void *);
+
+  static void user_invoke_generic()
+  {
+    Context *const c = current();
+    assert (c->state() & Thread_ready_mask);
+
+    if (c->handle_drq())
+      c->schedule();
+
+    // release CPU lock explicitly, because
+    // * the context that switched to us holds the CPU lock
+    // * we run on a newly-created stack without a CPU lock guard
+    cpu_lock.clear();
+  }
+
+  void prepare_kill()
+  {
+    extern void  FIASCO_NORETURN leave_and_kill_myself() asm ("leave_and_kill_myself");
+
+    if (state() & (Thread_dying | Thread_dead))
+      return;
+
+    inc_ref();
+    state.add_dirty(Thread_dying | Thread_cancel | Thread_ready);
+    _exc_cont.restore(regs()); // overwrite an already triggered exception
+    do_trigger_exception(regs(), (void*)&leave_and_kill_myself);
+  }
+
+  Migration *start_migration()
+  {
+    assert(cpu_lock.test());
+    Migration *m = _migration;
+
+    assert (!((Mword)m & 0x3)); // ensure alignment
+
+    if (!m || !_migration.compare_exchange_strong(m, nullptr))
+      return reinterpret_cast<Migration*>(0x2); // bit one == 0 --> no need to reschedule
+
+    if (m->cpu == home_cpu())
+      {
+        set_sched_params(m->sp);
+        Mem::mp_mb();
+        write_now(&m->in_progress, true);
+        return reinterpret_cast<Migration*>(0x1); // bit one == 1 --> need to reschedule
+      }
+
+    return m; // need to do real migration
+  }
+
+  bool do_migration();
 
 public:
   static bool pagein_tcb_request(Return_frame *regs);
@@ -135,7 +335,23 @@ public:
   bool arch_ext_vcpu_enabled();
 
 protected:
-  explicit Thread(Ram_quota *, Context_mode_kernel);
+  /**
+   * Cut-down version of Thread constructor; only for kernel threads
+   * Do only what's necessary to get a kernel thread started --
+   * skip all fancy stuff, no locking is necessary.
+   */
+  explicit Thread(Ram_quota *q, Context_mode_kernel)
+  : Receiver(), Sender(), _quota(q), _del_observer(0), _magic(magic)
+  {
+    inc_ref();
+    _cpu_state.space.space(Kernel_task::kernel_task());
+
+    if (Config::Stack_depth)
+      std::memset((char*)this + sizeof(Thread), '5',
+                  Thread::Size-sizeof(Thread) - 64);
+
+    alloc_eager_fpu_state();
+  }
 
   // More ipc state
   Thread_ptr _pager;
@@ -159,7 +375,6 @@ IMPLEMENTATION:
 #include <cstring>
 #include <cxx/atomic>
 #include "entry_frame.h"
-#include "fpu_alloc.h"
 #include "globals.h"
 #include "irq_chip.h"
 #include "kdb_ke.h"
@@ -178,28 +393,15 @@ IMPLEMENTATION:
 JDB_DEFINE_TYPENAME(Thread,  "\033[32mThread\033[m");
 DEFINE_PER_CPU Per_cpu<unsigned long> Thread::nested_trap_recover;
 
+/** Currently executing thread.
+    @return currently executing thread.
+ */
+inline
+Thread*
+current_thread()
+{ return nonull_static_cast<Thread*>(current()); }
 
-PUBLIC inline
-void *
-Thread::operator new(size_t, Ram_quota *q) throw ()
-{
-  void *t = Kmem_alloc::allocator()->q_alloc(q, Bytes(Thread::Size));
-  if (t)
-    memset(t, 0, sizeof(Thread));
-
-  return t;
-}
-
-PUBLIC
-void
-Thread::kbind(Task *t)
-{
-  auto guard = lock_guard(_cpu_state.space.lock());
-  _cpu_state.space.space(t);
-  t->inc_ref();
-}
-
-PUBLIC
+IMPLEMENT
 bool
 Thread::bind(Task *t, User<Utcb>::Ptr utcb)
 {
@@ -222,7 +424,7 @@ Thread::bind(Task *t, User<Utcb>::Ptr utcb)
 }
 
 
-PUBLIC
+IMPLEMENT
 void
 Thread::unbind()
 {
@@ -253,31 +455,13 @@ Thread::unbind()
     delete old;
 }
 
-/** Cut-down version of Thread constructor; only for kernel threads
-    Do only what's necessary to get a kernel thread started --
-    skip all fancy stuff, no locking is necessary.
- */
-IMPLEMENT inline NEEDS["kernel_task.h"]
-Thread::Thread(Ram_quota *q, Context_mode_kernel)
-  : Receiver(), Sender(), _quota(q), _del_observer(0), _magic(magic)
-{
-  inc_ref();
-  _cpu_state.space.space(Kernel_task::kernel_task());
-
-  if (Config::Stack_depth)
-    std::memset((char*)this + sizeof(Thread), '5',
-                Thread::Size-sizeof(Thread) - 64);
-
-  alloc_eager_fpu_state();
-}
-
 
 /** Destructor.  Reestablish the Context constructor's precondition.
     @pre state() == Thread_dead
     @pre lock_cnt() == 0
     @post (_kernel_sp == 0)  &&  (* (stack end) == 0)  &&  !exists()
  */
-PUBLIC virtual
+IMPLEMENT
 Thread::~Thread()		// To be called in locked state.
 {
   // Thread::do_kill() already unregistered deletion IRQ, but in the meantime a
@@ -289,7 +473,7 @@ Thread::~Thread()		// To be called in locked state.
 
   _cpu_state.kernel_sp = 0;
   *--init_sp = 0;
-  Fpu_alloc::free_state(fpu_state());
+  free_fpu_state();
   assert (!in_ready_list());
 }
 
@@ -304,35 +488,21 @@ class Del_irq_chip : public Irq_chip_soft
 {
 public:
   static Del_irq_chip chip;
+
+  static Thread *thread(Mword pin)
+  { return (Thread*)pin; }
+
+  static Mword pin(Thread *t)
+  { return (Mword)t; }
+
+  void unbind(Irq_base *irq) override
+  { thread(irq->pin())->remove_delete_irq(irq); }
+
 };
 
 Del_irq_chip Del_irq_chip::chip;
 
-PUBLIC static inline
-Thread *Del_irq_chip::thread(Mword pin)
-{ return (Thread*)pin; }
-
-PUBLIC static inline
-Mword Del_irq_chip::pin(Thread *t)
-{ return (Mword)t; }
-
-PUBLIC inline
-void
-Del_irq_chip::unbind(Irq_base *irq) override
-{ thread(irq->pin())->remove_delete_irq(irq); }
-
-
-PUBLIC inline NEEDS["irq_chip.h"]
-void
-Thread::ipc_gate_deleted(Mword id)
-{
-  (void) id;
-  auto g = lock_guard(cpu_lock);
-  if (auto irq = _del_observer.load(cxx::memory_order_relaxed))
-    irq->hit(0);
-}
-
-PUBLIC
+IMPLEMENT
 bool
 Thread::register_delete_irq(Irq_base *irq)
 {
@@ -350,7 +520,7 @@ Thread::register_delete_irq(Irq_base *irq)
   return false;
 }
 
-PUBLIC
+IMPLEMENT
 void
 Thread::unregister_delete_irq()
 {
@@ -367,81 +537,13 @@ Thread::unregister_delete_irq()
   while (!_del_observer.compare_exchange_weak(irq, nullptr));
 }
 
-PUBLIC
-void
-Thread::remove_delete_irq(Irq_base *irq)
-{
-  _del_observer.compare_exchange_strong(irq, (Irq_base *)nullptr);
-}
 
 // end of: IPC-gate deletion stuff -------------------------------
-
-/** Currently executing thread.
-    @return currently executing thread.
- */
-inline
-Thread*
-current_thread()
-{ return nonull_static_cast<Thread*>(current()); }
-
-PUBLIC inline
-bool
-Thread::exception_triggered() const
-{ return _exc_cont.valid(regs()); }
-
-PUBLIC inline
-bool
-Thread::continuation_test_and_restore()
-{
-  bool v = _exc_cont.valid(regs());
-  if (v)
-    _exc_cont.restore(regs());
-  return v;
-}
-
 //
 // state requests/manipulation
 //
 
-PUBLIC inline NEEDS ["config.h", "timeout.h"]
-void
-Thread::handle_timer_interrupt()
-{
-  Cpu_number _cpu = current_cpu();
-  // XXX: This assumes periodic timers (i.e. bogus in one-shot mode)
-  if (!Config::Fine_grained_cputime)
-    consume_time(Config::Scheduler_granularity);
-
-  bool resched = Rcu::do_pending_work(_cpu);
-
-  // Check if we need to reschedule due to timeouts or wakeups
-  if ((Timeout_q::timeout_queue.cpu(_cpu).do_timeouts() || resched)
-      && !Sched_context::rq.current().schedule_in_progress)
-    {
-      schedule();
-      assert (timeslice_timeout.cpu(current_cpu())->is_set());	// Coma check
-    }
-}
-
-
-PRIVATE static inline
-void
-Thread::user_invoke_generic()
-{
-  Context *const c = current();
-  assert (c->state() & Thread_ready_mask);
-
-  if (c->handle_drq())
-    c->schedule();
-
-  // release CPU lock explicitly, because
-  // * the context that switched to us holds the CPU lock
-  // * we run on a newly-created stack without a CPU lock guard
-  cpu_lock.clear();
-}
-
-
-IMPLEMENT /* static */
+IMPLEMENT
 void
 Thread::do_leave_and_kill_myself()
 {
@@ -452,7 +554,7 @@ Thread::do_leave_and_kill_myself()
   kdb_ke("DEAD SCHED");
 }
 
-PUBLIC static
+IMPLEMENT
 Context::Drq::Result
 Thread::handle_kill_helper(Drq *src, Context *, void *)
 {
@@ -464,21 +566,20 @@ Thread::handle_kill_helper(Drq *src, Context *, void *)
   return Drq::no_answer_resched();
 }
 
-PUBLIC
+IMPLEMENT
 void
 Thread::put_n_reap(Kobject ***reap_list)
 {
-  if (dec_ref() == 0)
-    {
-      // we need to re-add the reference
-      // that is released during Reap_list::del
-      inc_ref();
-      initiate_deletion(reap_list);
-    }
+  if (dec_ref() != 0)
+    return;
+
+  // we need to re-add the reference
+  // that is released during Reap_list::del
+  inc_ref();
+  initiate_deletion(reap_list);
 }
 
-
-PRIVATE
+IMPLEMENT
 bool
 Thread::do_kill()
 {
@@ -570,22 +671,7 @@ Thread::do_kill()
   return true;
 }
 
-PRIVATE inline
-void
-Thread::prepare_kill()
-{
-  extern void  FIASCO_NORETURN leave_and_kill_myself() asm ("leave_and_kill_myself");
-
-  if (state() & (Thread_dying | Thread_dead))
-    return;
-
-  inc_ref();
-  state.add_dirty(Thread_dying | Thread_cancel | Thread_ready);
-  _exc_cont.restore(regs()); // overwrite an already triggered exception
-  do_trigger_exception(regs(), (void*)&leave_and_kill_myself);
-}
-
-PRIVATE static
+IMPLEMENT
 Context::Drq::Result
 Thread::handle_remote_kill(Drq *, Context *self, void *)
 {
@@ -594,7 +680,7 @@ Thread::handle_remote_kill(Drq *, Context *self, void *)
 }
 
 
-PUBLIC
+IMPLEMENT
 bool
 Thread::kill()
 {
@@ -612,8 +698,7 @@ Thread::kill()
   return true;
 }
 
-
-PUBLIC
+IMPLEMENT
 void
 Thread::set_sched_params(L4_sched_param const *p)
 {
@@ -633,7 +718,7 @@ Thread::set_sched_params(L4_sched_param const *p)
     rq.ready_enqueue(sched());
 }
 
-PUBLIC
+IMPLEMENT
 long
 Thread::control(Thread_ptr const &pager, Thread_ptr const &exc_handler)
 {
@@ -651,42 +736,10 @@ bool
 Thread::arch_ext_vcpu_enabled()
 { return false; }
 
-PUBLIC static inline
-void
-Thread::assert_irq_entry()
-{
-  assert(Sched_context::rq.current().schedule_in_progress
-             || current_thread()->state() & (Thread_ready_mask | Thread_drq_wait | Thread_waiting | Thread_ipc_transfer));
-}
 
 // ---------------------------------------------------------------------------
 
-PUBLIC inline
-bool
-Thread::check_sys_ipc(unsigned flags, Thread **partner, Thread **sender,
-                      bool *have_recv) const
-{
-  if (flags & L4_obj_ref::Ipc_recv)
-    {
-      *sender = flags & L4_obj_ref::Ipc_open_wait ? 0 : const_cast<Thread*>(this);
-      *have_recv = true;
-    }
-
-  if (flags & L4_obj_ref::Ipc_send)
-    *partner = const_cast<Thread*>(this);
-
-  // FIXME: shall be removed flags == 0 is no-op
-  if (!flags)
-    {
-      *sender = const_cast<Thread*>(this);
-      *partner = const_cast<Thread*>(this);
-      *have_recv = true;
-    }
-
-  return *have_recv || ((flags & L4_obj_ref::Ipc_send) && *partner);
-}
-
-PUBLIC static
+IMPLEMENT
 Context::Drq::Result
 Thread::handle_migration_helper(Drq *rq, Context *, void *p)
 {
@@ -698,30 +751,7 @@ Thread::handle_migration_helper(Drq *rq, Context *, void *p)
   return Drq::no_answer_resched();
 }
 
-PRIVATE inline
-Thread::Migration *
-Thread::start_migration()
-{
-  assert(cpu_lock.test());
-  Migration *m = _migration;
-
-  assert (!((Mword)m & 0x3)); // ensure alignment
-
-  if (!m || !_migration.compare_exchange_strong(m, nullptr))
-    return reinterpret_cast<Migration*>(0x2); // bit one == 0 --> no need to reschedule
-
-  if (m->cpu == home_cpu())
-    {
-      set_sched_params(m->sp);
-      Mem::mp_mb();
-      write_now(&m->in_progress, true);
-      return reinterpret_cast<Migration*>(0x1); // bit one == 1 --> need to reschedule
-    }
-
-  return m; // need to do real migration
-}
-
-PRIVATE
+IMPLEMENT
 bool
 Thread::do_migration()
 {
@@ -745,9 +775,10 @@ Thread::do_migration()
       return resched; // we already are chosen by the scheduler...
     }
 }
-PUBLIC
+
+IMPLEMENT
 bool
-Thread::initiate_migration() override
+Thread::initiate_migration()
 {
   assert (current() != this);
   Migration *inf = start_migration();
@@ -762,168 +793,6 @@ Thread::initiate_migration() override
   resched |= migrate_to(target_cpu, false);
   return resched;
 }
-
-PUBLIC
-void
-Thread::finish_migration() override
-{ enqueue_timeout_again(); }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [fpu && lazy_fpu]:
-
-#include "fpu.h"
-#include "fpu_alloc.h"
-#include "fpu_state.h"
-
-/*
- * Handle FPU trap for this context. Assumes disabled interrupts
- */
-PUBLIC inline NEEDS ["fpu_alloc.h","fpu_state.h"]
-int
-Thread::switchin_fpu(bool alloc_new_fpu = true)
-{
-  if (state() & Thread_vcpu_fpu_disabled)
-    return 0;
-
-  (void)alloc_new_fpu;
-
-  Fpu &f = Fpu::fpu.current();
-  // If we own the FPU, we should never be getting an "FPU unavailable" trap
-  assert (f.owner() != this);
-
-  // Allocate FPU state slab if we didn't already have one
-  if (!fpu_state()->state_buffer()
-      && (EXPECT_FALSE((!alloc_new_fpu
-                        || (state() & Thread_alien))
-                       || !Fpu_alloc::alloc_state(_quota, fpu_state()))))
-    return 0;
-
-  // Enable the FPU before accessing it, otherwise recursive trap
-  f.enable();
-
-  // Save the FPU state of the previous FPU owner (lazy) if applicable
-  if (f.owner())
-    f.owner()->spill_fpu();
-
-  // Become FPU owner and restore own FPU state
-  f.restore_state(fpu_state());
-
-  state.add_dirty(Thread_fpu_owner);
-  f.set_owner(this);
-  return 1;
-}
-
-PUBLIC inline
-bool
-Thread::alloc_eager_fpu_state()
-{ return true; }
-
-PUBLIC inline NEEDS["fpu.h", "fpu_alloc.h"]
-void
-Thread::transfer_fpu(Thread *to) //, Trap_state *trap_state, Utcb *to_utcb)
-{
-  if (to->fpu_state()->state_buffer())
-    Fpu_alloc::free_state(to->fpu_state());
-
-  to->fpu_state()->state_buffer(fpu_state()->state_buffer());
-  fpu_state()->state_buffer(0);
-
-  if (home_cpu() != to->home_cpu())
-    {
-      assert (!(to->state() & Thread_fpu_owner));
-      assert (!(state() & Thread_fpu_owner));
-      return;
-    }
-
-  assert (current() == this || current() == to);
-
-  Fpu &f = Fpu::fpu.current();
-
-  f.disable(); // it will be reenabled in switch_fpu
-
-  if (EXPECT_FALSE(f.owner() == to))
-    {
-      assert (to->state() & Thread_fpu_owner);
-
-      f.set_owner(0);
-      to->state.del_dirty(Thread_fpu_owner);
-    }
-  else if (f.owner() == this)
-    {
-      assert (state() & Thread_fpu_owner);
-
-      state.del_dirty(Thread_fpu_owner);
-
-      to->state.add_dirty (Thread_fpu_owner);
-      f.set_owner(to);
-      if (EXPECT_FALSE(current() == to))
-        f.enable();
-    }
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [fpu && !lazy_fpu]:
-
-#include "fpu.h"
-#include "fpu_alloc.h"
-#include "fpu_state.h"
-
-/*
- * Handle FPU trap for this context. Assumes disabled interrupts
- */
-PUBLIC inline
-int
-Thread::switchin_fpu(bool alloc_new_fpu = true)
-{
-  if (state() & Thread_vcpu_fpu_disabled)
-    return 0;
-
-  (void)alloc_new_fpu;
-  panic("must not see any FPU trap with eager FPU\n");
-}
-
-PUBLIC inline NEEDS["fpu.h", "fpu_alloc.h"]
-bool
-Thread::alloc_eager_fpu_state()
-{
-  return Fpu_alloc::alloc_state(_quota, fpu_state());
-}
-
-PUBLIC inline NEEDS["fpu.h", "fpu_state.h"]
-void
-Thread::transfer_fpu(Thread *to) //, Trap_state *trap_state, Utcb *to_utcb)
-{
-  auto *curr = current();
-  if (this == curr)
-    Fpu::save_state(to->fpu_state());
-  else if (curr == to)
-    Fpu::fpu.current().restore_state(fpu_state());
-  else
-    memcpy(to->fpu_state()->state_buffer(), fpu_state()->state_buffer(), Fpu::state_size());
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [!fpu]:
-
-PUBLIC inline
-int
-Thread::switchin_fpu(bool alloc_new_fpu = true)
-{
-  (void)alloc_new_fpu;
-  return 0;
-}
-
-PUBLIC inline
-bool
-Thread::alloc_eager_fpu_state()
-{
-  return true;
-}
-
-PUBLIC inline
-void
-Thread::transfer_fpu(Thread *)
-{}
 
 //---------------------------------------------------------------------------
 IMPLEMENTATION [!log]:
