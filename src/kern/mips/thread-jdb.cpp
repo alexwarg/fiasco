@@ -34,6 +34,8 @@ IMPLEMENTATION [mips && debug]:
 #include "mem_layout.h"
 #include "thread.h"
 
+#include <dbg_stack.h>
+
 #include <cstring>
 
 Thread::Dbg_extension_entry Thread::dbg_extension[64];
@@ -90,7 +92,7 @@ Thread::call_nested_trap_handler(Trap_state *ts)
   void *stack = 0;
 
   if (!ntr)
-    stack = dbg_stack.cpu(log_cpu).stack_top;
+    stack = Dbg::dbg_stack.cpu(log_cpu).stack_top;
 
 #if 0
   Mem_space *m = Mem_space::current_mem_space(log_cpu);

@@ -93,7 +93,8 @@ CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)
 
 CXXSRC_KERNEL-$(CONFIG_JDB) += \
 	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc \
-	tb_entry_generic.cc drq_log.cc vcpu_log.cc context_dbg.cc
+	tb_entry_generic.cc drq_log.cc vcpu_log.cc context_dbg.cc \
+	dbg_stack.cc
 
 CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)

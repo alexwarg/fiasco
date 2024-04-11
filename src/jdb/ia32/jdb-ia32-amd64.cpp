@@ -136,6 +136,8 @@ IMPLEMENTATION[ia32,amd64]:
 #include "vkey.h"
 #include "watchdog.h"
 
+#include <dbg_stack.h>
+
 char Jdb::_connected;			// Jdb::init() was done
 // explicit single_step command
 DEFINE_PER_CPU Per_cpu<char> Jdb::permanent_single_step;
@@ -299,9 +301,9 @@ struct On_dbg_stack
   On_dbg_stack(Mword sp) : sp(sp) {}
   bool operator () (Cpu_number cpu) const
   {
-    Thread::Dbg_stack const &st = Thread::dbg_stack.cpu(cpu);
+    Dbg::Dbg_stack const &st = Dbg::dbg_stack.cpu(cpu);
     return sp <= Mword(st.stack_top) 
-       && sp >= Mword(st.stack_top) - Thread::Dbg_stack::Stack_size;
+       && sp >= Mword(st.stack_top) - Dbg::Dbg_stack::Stack_size;
   }
 };
 

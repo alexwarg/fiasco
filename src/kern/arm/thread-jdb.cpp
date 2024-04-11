@@ -35,6 +35,8 @@ IMPLEMENTATION [arm && debug]:
 #include "mem_layout.h"
 #include "mmu.h"
 
+#include <dbg_stack.h>
+
 Trap_state::Handler Thread::nested_trap_handler FIASCO_FASTCALL;
 
 IMPLEMENT
@@ -55,7 +57,7 @@ Thread::call_nested_trap_handler(Trap_state *ts)
   void *stack = 0;
 
   if (!ntr)
-    stack = dbg_stack.cpu(log_cpu).stack_top;
+    stack = Dbg::dbg_stack.cpu(log_cpu).stack_top;
 
   Mem_space *m = Mem_space::current_mem_space(log_cpu);
 

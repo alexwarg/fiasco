@@ -261,6 +261,7 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
 IMPLEMENTATION [ia32 & (debug | kdb)]:
 
 #include "kernel_task.h"
+#include <dbg_stack.h>
 
 /** Call the nested trap handler (either Jdb::enter_kdebugger() or the
  * gdb stub. Setup our own stack frame */
@@ -288,7 +289,7 @@ Thread::call_nested_trap_handler(Trap_state *ts)
   } p;
 
   if (!ntr)
-    p.stack = dbg_stack.cpu(log_cpu).stack_top;
+    p.stack = Dbg::dbg_stack.cpu(log_cpu).stack_top;
   else
     p.stack = 0;
 
