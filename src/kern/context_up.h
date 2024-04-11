@@ -3,6 +3,7 @@
 #include <logdefs.h>
 #include <drq_queue.h>
 #include <drq.h>
+#include <drq_log.h>
 
 template<typename CONTEXT>
 class Context_up_x
@@ -42,10 +43,10 @@ public:
 
     CONTEXT *self = _ctxt();
 
-    LOG_TRACE("DRQ handling", "drq", current(), typename CONTEXT::Drq_log,
+    LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
         l->type = rq->context() == self
-                                   ? CONTEXT::Drq_log::Type::Send_reply
-                                   : CONTEXT::Drq_log::Type::Do_send;
+                                   ? Drq_log::Type::Send_reply
+                                   : Drq_log::Type::Do_send;
         l->func = (void*)rq->func;
         l->thread = self;
         l->target_cpu = self->home_cpu();

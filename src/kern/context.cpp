@@ -23,6 +23,7 @@ INTERFACE:
 #include <cxx/atomic>
 #include <context_ptr.h>
 #include <context_space_ref.h>
+#include <context_drq.h>
 #include <drq.h>
 #include <drq_queue.h>
 #include <globalconfig.h>
@@ -55,6 +56,7 @@ class Kobject_iface;
 class Context :
   public Context_base,
   public Context_mp_up_x<Context>,
+  public Context_drq_x<Context>,
   protected Rcu_item
 {
   MEMBER_OFFSET();
@@ -67,6 +69,7 @@ class Context :
   friend class Context_ptr;
   friend class Switch_lock;
   friend Context_mp_up_x<Context>;
+  friend Context_drq_x<Context>;
 
   struct State_request
   {
@@ -78,8 +81,6 @@ class Context :
   };
 
 protected:
-  struct Kernel_drq : Drq { Context *src; };
-
   virtual bool initiate_migration() = 0;
   virtual void finish_migration() = 0;
 
@@ -161,21 +162,6 @@ public:
 
   Ku_mem_ptr<Utcb> const &utcb() const
   { return _utcb; }
-
-  /**
-   * Get the queue item of the context.
-   *
-   * \return The queue item of the context.
-   *
-   * The queue item can be used to enqueue the context to a Queue.
-   * a context must be in at most one queue at a time.
-   * To figure out the context corresponding to a queue item
-   * context_of() can be used.
-   */
-  Queue_item *queue_item()
-  {
-    return &_drq;
-  }
 
   /**
    * \brief Check for pending DRQs.
@@ -537,7 +523,6 @@ protected:
 private:
   static Per_cpu<Clock> _clock;
   static Per_cpu<Context *> _kernel_ctxt;
-  static Per_cpu<Kernel_drq> _kernel_drq;
 };
 
 
@@ -589,7 +574,6 @@ IMPLEMENTATION:
 
 DEFINE_PER_CPU Per_cpu<Clock> Context::_clock(Per_cpu_data::Cpu_num);
 DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;
-DEFINE_PER_CPU Per_cpu<Context::Kernel_drq> Context::_kernel_drq;
 
 IMPLEMENT
 void
@@ -781,100 +765,6 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
   switch_cpu(t);
   return switch_handle_drq();
 }
-//IMPLEMENT inline NEEDS["logdefs.h"]
-PUBLIC inline NEEDS["logdefs.h"]
-bool
-Context::execute_drq(Drq *r, Drq_q::Drop_mode drop, bool local)
-{
-  bool need_resched = false;
-  Context *const self = this;
-  if (0)
-    printf("CPU[%2u:%p]: context=%p: handle request for %p (func=%p, arg=%p)\n", cxx::int_value<Cpu_number>(current_cpu()), current(), self, r->context(), r->func, r->arg);
-  if (r->context() == self)
-    {
-      LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
-          l->type = Drq_log::Type::Do_reply;
-          l->rq = r;
-          l->func = (void*)r->func;
-          l->thread = r->context();
-          l->target_cpu = current_cpu();
-          l->wait = 0;
-      );
-      //LOG_MSG_3VAL(current(), "hrP", current_cpu() | (drop ? 0x100: 0), (Mword)r->context(), (Mword)r->func);
-      self->state.change_dirty(~Thread_drq_wait, Thread_ready);
-      self->handle_remote_state_change();
-      return !self->state.has(Thread_ready_mask);
-    }
-  else
-    {
-      LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
-          l->type = Drq_log::Type::Do_request;
-          l->rq = r;
-          l->func = (void*)r->func;
-          l->thread = r->context();
-          l->target_cpu = current_cpu();
-          l->wait = 0;
-      );
-
-      Drq::Result answer = Drq::done();
-      if (EXPECT_TRUE(drop == Drq_q::No_drop && r->func))
-        {
-          self->handle_remote_state_change();
-          answer = r->func(r, self, r->arg);
-        }
-      else if (EXPECT_FALSE(drop == Drq_q::Drop))
-        // flag DRQ abort for requester
-        r->arg = (void*)-1;
-
-      need_resched |= answer.need_resched();
-
-      // enqueue answer
-      if (!(answer.no_answer()))
-        {
-          Context *c = r->context();
-          if (local)
-            {
-              c->state.change_dirty(~Thread_drq_wait, Thread_ready);
-              return need_resched;
-            }
-          else
-            need_resched |= c->enqueue_drq(r);
-        }
-    }
-  return need_resched;
-}
-
-IMPLEMENT
-bool
-Context::handle_drq()
-{
-
-  assert (check_for_current_cpu());
-  assert (cpu_lock.test());
-
-  bool resched = false;
-  Mword st = state();
-  if (EXPECT_FALSE(st & Thread_switch_hazards))
-    {
-      state.del_dirty(Thread_switch_hazards);
-      if (st & Thread_finish_migration)
-        finish_migration();
-
-      if (st & Thread_need_resched)
-        resched = true;
-    }
-
-  if (EXPECT_TRUE(!drq_pending()))
-    return resched;
-
-  Mem::barrier();
-  resched |= _drq_q.handle_requests(this);
-  state.del_dirty(Thread_drq_ready);
-
-  //LOG_MSG_3VAL(this, "xdrq", state(), 0, cpu_lock.test());
-
-  return resched || !(state.has(Thread_ready_mask));
-}
 
 PROTECTED inline
 void
@@ -947,95 +837,6 @@ Context::xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
   return false;
 }
 
-
-/**
- * \brief Initiate a DRQ for the context.
- * \pre \a src must be the currently running context.
- * \param src the source of the DRQ (the context who initiates the DRQ).
- * \param func the DRQ handler.
- * \param arg the argument for the DRQ handler.
- *
- * DRQs are requests that any context can queue to any other context. DRQs are
- * the basic mechanism to initiate actions on remote CPUs in an MP system,
- * however, are also allowed locally.
- * DRQ handlers of pending DRQs are executed by Context::handle_drq() in the
- * context of the target context. Context::handle_drq() is basically called
- * after switching to a context in Context::switch_exec_locked().
- *
- * This function enqueues a DRQ and blocks the current context for a reply DRQ.
- */
-PUBLIC inline NEEDS["logdefs.h", "thread_state.h"]
-void
-Context::drq(Drq *drq, Drq::Request_func *func, void *arg,
-             Drq::Wait_mode wait = Drq::Wait)
-{
-  if (0)
-    printf("CPU[%2u:%p]: > Context::drq(this=%p, func=%p, arg=%p)\n", cxx::int_value<Cpu_number>(current_cpu()), current(), this, func,arg);
-  Context *cur = current();
-  LOG_TRACE("DRQ handling", "drq", cur, Drq_log,
-      l->type = Drq_log::Type::Send;
-      l->rq = drq;
-      l->func = (void*)func;
-      l->thread = this;
-      l->target_cpu = home_cpu();
-      l->wait = wait;
-  );
-  //assert (current() == src);
-  assert (!(wait == Drq::Wait && (cur->state.dirty() & Thread_drq_ready)) || cur->home_cpu() == home_cpu());
-  assert (!((wait == Drq::Wait || drq == &_drq) && cur->state.dirty() & Thread_drq_wait));
-  assert (!drq->queued());
-
-  drq->func  = func;
-  drq->arg   = arg;
-  if (wait == Drq::Wait)
-    cur->state.add(Thread_drq_wait);
-
-
-  enqueue_drq(drq);
-
-  //LOG_MSG_3VAL(src, "<drq", src->state(), Mword(this), 0);
-  while (wait == Drq::Wait && cur->state.dirty() & Thread_drq_wait)
-    {
-      cur->state.del(Thread_ready_mask);
-      cur->schedule();
-    }
-
-  LOG_TRACE("DRQ handling", "drq", cur, Drq_log,
-      l->type = Drq_log::Type::Done;
-      l->rq = drq;
-      l->func = (void*)func;
-      l->thread = this;
-      l->target_cpu = home_cpu();
-      l->wait = wait;
-  );
-  //LOG_MSG_3VAL(src, "drq>", src->state(), Mword(this), 0);
-}
-
-PUBLIC
-bool
-Context::kernel_context_drq(Drq::Request_func *func, void *arg)
-{
-  if (EXPECT_TRUE(home_cpu() == get_current_cpu()))
-    update_ready_list();
-
-  Context *kc = kernel_context(current_cpu());
-  if (current() == kc)
-    return func(0, kc, arg).need_resched();
-
-  Kernel_drq *mdrq = new (&_kernel_drq.current()) Kernel_drq;
-
-  mdrq->src = this;
-  mdrq->func  = func;
-  mdrq->arg   = arg;
-  kc->_drq_q.enq(mdrq);
-  return schedule_switch_to_locked(kc) != Switch::Ok;
-}
-
-PUBLIC inline NEEDS[Context::drq]
-void
-Context::drq(Drq::Request_func *func, void *arg,
-             Drq::Wait_mode wait = Drq::Wait)
-{ return drq(&current()->_drq, func, arg, wait); }
 
 PRIVATE static
 bool

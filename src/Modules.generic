@@ -41,6 +41,7 @@ CXXSRC_KERNEL += \
 	boot_alloc.cc \
 	config.cc \
 	config_arch.cc \
+	context_drq.cc \
 	cpu_call.cc \
 	cpu_lock.cc \
 	factory.cc \

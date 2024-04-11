@@ -9,6 +9,7 @@
 #include <rcupdate.h>
 #include <drq.h>
 #include <drq_queue.h>
+#include <drq_log.h>
 #include <sched_context.h>
 #include <logdefs.h>
 
@@ -308,10 +309,10 @@ public:
     Cpu_number cpu = access_once(&_ctxt()->_home_cpu);
     Cpu_number current_cpu = ::current_cpu();
 
-    LOG_TRACE("DRQ handling", "drq", current(), typename CONTEXT::Drq_log,
+    LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
         l->type = rq->context() == _ctxt()
-                                   ? CONTEXT::Drq_log::Type::Send_reply
-                                   : CONTEXT::Drq_log::Type::Do_send;
+                                   ? Drq_log::Type::Send_reply
+                                   : Drq_log::Type::Do_send;
         l->func = (void*)rq->func;
         l->thread = _ctxt();
         l->target_cpu = cpu;
