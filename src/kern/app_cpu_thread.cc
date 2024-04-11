@@ -19,6 +19,8 @@
 #include "spin_lock.h"
 #include "warn.h"
 
+#include <fpu.h>
+
 /**
  * unit test interface for app cores.
  */

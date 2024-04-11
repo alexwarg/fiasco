@@ -11,6 +11,8 @@
 
 #else // CONFIG_FPU
 
+struct Fpu_state;
+
 struct Fpu_arch
 {
   static void init_state(Fpu_state *)
@@ -22,7 +24,7 @@ struct Fpu_arch
   static unsigned state_align()
   { return 1; }
 
-  void init(Cpu_number, bool)
+  static void init(Cpu_number, bool)
   {}
 
   static void save_state(Fpu_state *)

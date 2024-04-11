@@ -329,9 +329,12 @@ PRIVATE inline
 void
 Thread::save_fpu_state_to_utcb(Trap_state *ts, Utcb *u)
 {
+  (void)ts; (void)u;
+#ifdef CONFIG_FPU
   char *esu = (char *)&u->values[21];
   Fpu::save_user_exception_state(state() & Thread_fpu_owner,  fpu_state(),
                                  ts, (Fpu::Exception_state_user *)esu);
+#endif
 }
 
 PROTECTED inline

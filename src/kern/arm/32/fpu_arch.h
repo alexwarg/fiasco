@@ -215,12 +215,3 @@ private:
   static bool save_32r;
 };
 
-#ifndef CONFIG_FPU
-
-class Trap_state;
-
-inline void
-Fpu_arch::save_user_exception_state(bool, Fpu_state *, Trap_state *, Exception_state_user *)
-{}
-
-#endif // CONFIG_FPU
