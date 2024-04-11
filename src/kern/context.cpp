@@ -1269,8 +1269,7 @@ Context::rcu_wait()
 //----------------------------------------------------------------------------
 INTERFACE [mp]:
 
-#include "queue.h"
-#include "queue_item.h"
+#include <remote_ready_queue.h>
 
 EXTENSION class Context
 {
@@ -1396,28 +1395,21 @@ private:
   Running_under_lock _running_under_lock;
 
 protected:
+  using Pending_rqq = Remote_ready_queue;
 
-  class Pending_rqq : public Queue
+  [[gnu::nonnull]]
+  bool pending_rqq_do_enqueue(Queue *q)
   {
-  public:
-    bool handle_requests(Context **);
-    Context *dequeue_first()
-    {
-      auto guard = lock_guard(q_lock());
-      Queue_item *qi = first();
-      if (!qi)
-        return nullptr;
+    if (_pending_rq.queued())
+      return false;
 
-      check (dequeue(qi));
-      return context_of(qi);
-    }
+    bool ipi = !q->first();
+    q->enqueue(&_pending_rq);
+    return ipi;
+  }
 
-  };
+  Queue_item _pending_rq;
 
-  class Pending_rq : public Queue_item, public Context_member
-  {} _pending_rq;
-
-protected:
   static Per_cpu<Pending_rqq> _pending_rqq;
 };
 
@@ -1501,66 +1493,55 @@ Context::need_help(Mword const *lock, Mword val)
   return false;
 }
 
-/**
- * \brief Wakeup all contexts with pending DRQs.
- *
- * This function wakes up all context from the pending queue.
- */
-IMPLEMENT
+PUBLIC inline
 bool
-Context::Pending_rqq::handle_requests(Context **mq)
+Context::handle_remote_request(Context **mq, Context *curr = current())
 {
-  //LOG_MSG_3VAL(current(), "phq", current_cpu(), 0, 0);
-  if (0)
-    printf("CPU[%2u:%p]: Context::Pending_rqq::handle_requests() this=%p\n", cxx::int_value<Cpu_number>(current_cpu()), current(), this);
+  assert (check_for_current_cpu());
+
   bool resched = false;
-  Context *curr = current();
-  while (1)
+
+  handle_remote_state_change();
+  if (EXPECT_FALSE(migration_pending()))
     {
-      Context *c = dequeue_first();
-      if (!c)
-        return resched;
-
-      assert (c->check_for_current_cpu());
-
-      c->handle_remote_state_change();
-      if (EXPECT_FALSE(c->migration_pending()))
+      // if the currently executing thread shall be migrated we must defer
+      // this until we have handled the whole request queue, otherwise we
+      // would miss the remaining requests or execute them on the wrong CPU.
+      if (this != curr)
         {
-          // if the currently executing thread shall be migrated we must defer
-          // this until we have handled the whole request queue, otherwise we
-          // would miss the remaining requests or execute them on the wrong CPU.
-          if (c != curr)
-            {
-              // we can directly migrate the thread...
-              resched |= c->initiate_migration();
+          // we can directly migrate the thread...
+          resched |= initiate_migration();
 
-              // if migrated away skip the resched test below
-              if (access_once(&c->_home_cpu) != current_cpu())
-                continue;
-            }
-          else
-            *mq = c;
+          // if migrated away skip the resched test below
+          if (access_once(&_home_cpu) != curr->get_current_cpu())
+            return resched;
         }
       else
-        c->try_finish_migration();
-
-      if (EXPECT_TRUE(c->drq_pending()))
-        {
-          if (EXPECT_TRUE(c != curr))
-            c->state.add(Thread_drq_ready);
-          else
-            resched |= c->handle_drq();
-        }
-
-      if (EXPECT_TRUE(c != curr && c->state.has(Thread_ready_mask)))
-        {
-          Sched_context *cs = (curr->home_cpu() == curr->get_current_cpu())
-                            ? curr->sched()
-                            : 0;
-
-          resched |= Sched_context::rq.current().deblock(c->sched(), cs);
-        }
+        *mq = this;
     }
+  else
+    try_finish_migration();
+
+  if (EXPECT_TRUE(drq_pending()))
+    {
+      if (EXPECT_FALSE(this == curr))
+        return handle_drq() || resched;
+      else
+        state.add(Thread_drq_ready);
+    }
+
+  // here we had no DRQ pending, or made this thread
+  // Thread_drq_ready if not currently running
+  if (EXPECT_TRUE(this != curr && state.has(Thread_ready_mask)))
+    {
+      Sched_context *cs = (curr->home_cpu() == curr->get_current_cpu())
+                        ? curr->sched()
+                        : 0;
+
+      return Sched_context::rq.current().deblock(sched(), cs) || resched;
+    }
+
+  return resched;
 }
 
 PUBLIC static inline NEEDS["cpu_call.h"]
@@ -1590,7 +1571,7 @@ Context::take_cpu_offline(Cpu_number cpu, bool drain_rqq = false)
       // Pending_rqq::handle_requests must be called without the
       // queue lock held.
       Context *migration_q = 0;
-      q.handle_requests(&migration_q);
+      q.handle_requests(current(), &migration_q);
       // assume we run from the idle thread, and the idle thread does
       // never migrate so `migration_q` must be 0
       assert (!migration_q);
@@ -1646,13 +1627,7 @@ Context::pending_rqq_enqueue()
           return;
         }
 
-      if (!_pending_rq.queued())
-        {
-          if (!q.first())
-            ipi = true;
-
-          q.enqueue(&_pending_rq);
-        }
+      ipi = pending_rqq_do_enqueue(&q);
     }
 
   if (ipi)

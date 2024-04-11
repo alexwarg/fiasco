@@ -1153,7 +1153,7 @@ Thread::handle_remote_requests_irq()
   // this during the processing of the request queue. In this case we get the
   // thread in migration_q and do this here.
   Context *migration_q = 0;
-  bool resched = _pending_rqq.current().handle_requests(&migration_q);
+  bool resched = _pending_rqq.current().handle_requests(c, &migration_q);
 
   resched |= Rcu::do_pending_work(current_cpu());
 
@@ -1243,7 +1243,6 @@ Thread::migrate_away(Migration *inf, bool remote)
       Mem::mp_wmb();
 
       assert (!in_ready_list());
-      assert (!_pending_rq.queued());
 
       // The migration must be finished on the new CPU core before executing any
       // userland code. This will be done by Context::switch_handle_drq() after
@@ -1284,15 +1283,7 @@ Thread::migrate_to(Cpu_number target_cpu, bool /*remote*/)
           return resched | Sched_context::rq.current().deblock(sched(), current()->sched());
         }
 
-      if (!_pending_rq.queued())
-        {
-          if (!q.first())
-            ipi = true;
-
-          q.enqueue(&_pending_rq);
-        }
-      else
-        assert (_pending_rq.queue() == &q);
+      ipi = pending_rqq_do_enqueue(&q);
     }
 
   if (ipi)
@@ -1335,13 +1326,7 @@ Thread::migrate_xcpu(Cpu_number cpu)
           // wird unter spinlock gemacht !!!!
         }
 
-      if (!_pending_rq.queued())
-        {
-          if (!q.first())
-            ipi = true;
-
-          q.enqueue(&_pending_rq);
-        }
+      ipi = pending_rqq_do_enqueue(&q);
     }
 
   if (ipi)
