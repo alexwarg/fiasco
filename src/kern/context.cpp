@@ -159,11 +159,61 @@ public:
     _kernel_sp = reinterpret_cast<Mword*>(regs());
   }
 
+  Ku_mem_ptr<Utcb> const &utcb() const
+  { return _utcb; }
+
+  /**
+   * Get the queue item of the context.
+   *
+   * \return The queue item of the context.
+   *
+   * The queue item can be used to enqueue the context to a Queue.
+   * a context must be in at most one queue at a time.
+   * To figure out the context corresponding to a queue item
+   * context_of() can be used.
+   */
+  Queue_item *queue_item()
+  {
+    return &_drq;
+  }
+
+  /**
+   * \brief Check for pending DRQs.
+   * \return true if there are DRQs pending, false if not.
+   */
+  bool drq_pending() const
+  { return _drq_q.first(); }
+
+  /**
+   * \brief Handle all pending DRQs.
+   * \pre cpu_lock.test() (The CPU lock must be held).
+   * \pre current() == this (only the currently running context is allowed to
+   *      call this function).
+   * \return true if re-scheduling is needed (ready queue has changed),
+   *         false if not.
+   */
+  bool handle_drq();
+
   /**
    * Return consumed CPU time.
    * @return Consumed CPU time in usecs
    */
-  Cpu_time consumed_time();
+  Cpu_time consumed_time()
+  {
+    if (Config::Fine_grained_cputime)
+      return _clock.cpu(home_cpu()).us(_consumed_time);
+
+    return _consumed_time;
+  }
+
+  /**
+   * Add to consumed CPU time.
+   * @param quantum Implementation-specific time quantum (TSC ticks or usecs)
+   */
+  void consume_time(Clock::Time quantum)
+  {
+    _consumed_time += quantum;
+  }
 
   void spill_user_state();
   void fill_user_state();
@@ -174,23 +224,236 @@ public:
   [[gnu::pure]] Space *space() const { return _space.space(); }
   [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
 
+  bool migration_pending() const
+  { return _migration.load(cxx::memory_order_relaxed); }
+
   void inc_lock_cnt()
   {
     _lock_cnt.add_fetch(1, cxx::memory_order_relaxed);
   }
 
+  int lock_cnt() const
+  {
+    return _lock_cnt.load(cxx::memory_order_relaxed);
+  }
+
   Cpu_number home_cpu() const { return _home_cpu; }
+
+  bool check_for_current_cpu() const
+  {
+    Cpu_number hc = access_once(&_home_cpu);
+    bool r = hc == current_cpu() || !Cpu::online(hc);
+    if (0 && EXPECT_FALSE(!r)) // debug output disabled
+      printf("FAIL: cpu=%u (current=%u) %p current=%p\n",
+             cxx::int_value<Cpu_number>(hc),
+             cxx::int_value<Cpu_number>(current_cpu()), this, current());
+    return r;
+  }
+
+  bool is_invalid(bool check_cpu_local = false) const
+  {
+    assert(check_cpu_local || check_for_current_cpu());
+    return state.is_invalid();
+  }
+
+  /**
+   * Check if Context is in ready-list.
+   * @return 1 if thread is in ready-list, 0 otherwise
+   */
+  Mword in_ready_list() const
+  {
+    return sched()->in_ready_list();
+  }
+
+
+
+  Context_space_ref *space_ref()
+  { return &_space; }
+
+  Space *vcpu_aware_space() const
+  { return _space.vcpu_aware(); }
+
+  Entry_frame *regs() const
+  {
+    return reinterpret_cast<Entry_frame *>
+      (Cpu::stack_align(reinterpret_cast<Mword>(this) + Size)) - 1;
+  }
+
+  /**
+   * Switch active timeslice of this Context.
+   * @param next Sched_context to switch to
+   */
+  void switch_sched(Sched_context *next, Sched_context::Ready_queue *queue)
+  {
+    queue->switch_sched(sched(), next);
+    set_sched(next);
+  }
+
+  /**
+   * Select a different context for running and activate it.
+   */
+  void schedule();
+
+  /**
+   * \brief Activate a newly created thread.
+   *
+   * This function sets a new thread onto the ready list and switches to
+   * the thread if it can preempt the currently running thread.
+   */
+  void activate();
+
+  void schedule_if(bool s)
+  {
+    if (!s || Sched_context::rq.current().schedule_in_progress)
+      return;
+
+    schedule();
+  }
+
+  /**
+   * Return Context's Sched_context with id 'id'; return time slice 0 as default.
+   * @return Sched_context with id 'id' or 0
+   */
+  Sched_context *sched_context(unsigned short const id = 0) const
+  {
+    if (EXPECT_TRUE (!id))
+      return const_cast<Sched_context*>(&_sched_context);
+    return 0;
+  }
+
+  /**
+   * Return Context's currently active Sched_context.
+   * @return Active Sched_context
+   */
+  Sched_context *sched() const
+  {
+    return _sched;
+  }
+
+  /**
+   * Helper.  Context that helps us by donating its time to us. It is
+   * set by switch_exec() if the calling thread says so.
+   * @return context that helps us and should be activated after freeing a lock.
+   */
+  Context *helper() const
+  {
+    return _helper;
+  }
+
+  void set_helper(Helping_mode const mode)
+  {
+    switch (mode)
+      {
+      case Helping:
+        _helper = current();
+        break;
+      case Not_Helping:
+        _helper = this;
+        break;
+      case Ignore_Helping:
+        // don't change _helper value
+        break;
+      }
+  }
+
+  void set_kernel_sp(Mword *sp)
+  {
+    _kernel_sp = sp;
+  }
+
+  Fpu_state *fpu_state()
+  {
+    return &_fpu_state;
+  }
+
+  void switch_to_locked(Context *t)
+  {
+    if (EXPECT_FALSE(schedule_switch_to_locked(t) != Switch::Ok))
+      schedule();
+  }
+
+  bool deblock_and_schedule(Context *to)
+  {
+    if (Sched_context::rq.current().deblock(to->sched(), sched(), true))
+      {
+        switch_to_locked(to);
+        return true;
+      }
+
+    return false;
+  }
+
+  /**
+   * Switch to a specific different execution context.
+   *        If that context is currently locked, switch to its locker instead
+   *        (except if current() is the locker)
+   * @pre current() == this  &&  current() != t
+   * @param t thread that shall be activated.
+   * @param mode helping mode; we either help, don't help or leave the
+   *             helping state unchanged
+   */
+  FIASCO_WARN_RESULT
+  Switch switch_exec_locked(Context *t, enum Helping_mode mode);
+
+  Switch switch_exec_helping(Context *t, Mword const *lock, Mword val);
+
+
+  // -- static fns --
+  static Context *kernel_context(Cpu_number cpu)
+  { return _kernel_ctxt.cpu(cpu); }
 
 protected:
   /**
    * Update consumed CPU time during each context switch and when
    *        reading out the current thread's consumed CPU time.
    */
-  void update_consumed_time();
+  void update_consumed_time()
+  {
+    if (Config::Fine_grained_cputime)
+      consume_time(_clock.current().delta());
+  }
+
 
   void arch_load_vcpu_user_state(Vcpu_state *vcpu, bool do_load);
   void arch_update_vcpu_state(Vcpu_state *vcpu);
   void arch_vcpu_ext_shutdown();
+
+  /**
+   * Set Context's currently active Sched_context.
+   * @param sched Sched_context to be activated
+   */
+  void set_sched(Sched_context *sched)
+  {
+    _sched = sched;
+  }
+
+  /**
+   * Switch scheduling context and execution context.
+   * @param t Destination thread whose scheduling context and execution context
+   *          should be activated.
+   */
+  FIASCO_WARN_RESULT
+  Switch schedule_switch_to_locked(Context *t)
+  {
+     // Must be called with CPU lock held
+    assert (cpu_lock.test());
+
+    Sched_context::Ready_queue &rq = Sched_context::rq.current();
+    // Switch to destination thread's scheduling context
+    if (rq.current_sched() != t->sched())
+      rq.set_current_sched(t->sched());
+
+    if (EXPECT_FALSE(t == this))
+      return switch_handle_drq();
+
+    return switch_exec_locked(t, Not_Helping);
+  }
+
+
+
+  // -- static fns --
+  static void kernel_context(Cpu_number cpu, Context *ctxt)
+  { _kernel_ctxt.cpu(cpu) = ctxt; }
 
 private:
   /// low level page table switching
@@ -201,6 +464,24 @@ private:
 
   /// low level cpu switching
   void switch_cpu(Context *t);
+
+  /**
+   * Enqueue current() if ready to fix up ready-list invariant.
+   */
+  void update_ready_list()
+  {
+    assert (this == current());
+
+    if (state.has(Thread_ready_mask) && sched()->left())
+      Sched_context::rq.current().ready_enqueue(sched());
+  }
+
+  Switch switch_handle_drq()
+  {
+    if (EXPECT_TRUE(home_cpu() == get_current_cpu()))
+      return EXPECT_FALSE(handle_drq()) ? Switch::Resched : Switch::Ok;
+    return Switch::Ok;
+  }
 
 protected:
   Cpu_number _home_cpu = Cpu::invalid();
@@ -343,99 +624,7 @@ DEFINE_PER_CPU Per_cpu<Clock> Context::_clock(Per_cpu_data::Cpu_num);
 DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;
 DEFINE_PER_CPU Per_cpu<Context::Kernel_drq> Context::_kernel_drq;
 
-#include <cstdio>
-
-PUBLIC inline
-bool
-Context::check_for_current_cpu() const
-{
-  Cpu_number hc = access_once(&_home_cpu);
-  bool r = hc == current_cpu() || !Cpu::online(hc);
-  if (0 && EXPECT_FALSE(!r)) // debug output disabled
-    printf("FAIL: cpu=%u (current=%u) %p current=%p\n",
-           cxx::int_value<Cpu_number>(hc),
-           cxx::int_value<Cpu_number>(current_cpu()), this, current());
-  return r;
-}
-
-PUBLIC static inline
-Context*
-Context::kernel_context(Cpu_number cpu)
-{ return _kernel_ctxt.cpu(cpu); }
-
-PROTECTED static inline
-void
-Context::kernel_context(Cpu_number cpu, Context *ctxt)
-{ _kernel_ctxt.cpu(cpu) = ctxt; }
-
-
-/** @name State manipulation */
-//@{
-//-
-
-/**
- * Check if the context is inactive, i.e. has not yet been started or was killed.
- * @return true if this context is inactive.
- */
-PUBLIC inline
-bool
-Context::is_invalid(bool check_cpu_local = false) const
-{
-  assert(check_cpu_local || check_for_current_cpu());
-  return state.is_invalid();
-}
-
-//@}
-//-
-
-
-PUBLIC inline
-Context_space_ref *
-Context::space_ref()
-{ return &_space; }
-
-PUBLIC inline
-Space *
-Context::vcpu_aware_space() const
-{ return _space.vcpu_aware(); }
-
-/** Registers used when iret'ing to user mode.
-    @return return registers
- */
-PUBLIC inline NEEDS["cpu.h", "entry_frame.h"]
-Entry_frame *
-Context::regs() const
-{
-  return reinterpret_cast<Entry_frame *>
-    (Cpu::stack_align(reinterpret_cast<Mword>(this) + Size)) - 1;
-}
-
-/** Lock count.
-    @return lock count
- */
-PUBLIC inline
-int
-Context::lock_cnt() const
-{
-  return _lock_cnt.load(cxx::memory_order_relaxed);
-}
-
-/**
- * Switch active timeslice of this Context.
- * @param next Sched_context to switch to
- */
-PUBLIC
-void
-Context::switch_sched(Sched_context *next, Sched_context::Ready_queue *queue)
-{
-  queue->switch_sched(sched(), next);
-  set_sched(next);
-}
-
-/**
- * Select a different context for running and activate it.
- */
-PUBLIC
+IMPLEMENT
 void
 Context::schedule()
 {
@@ -518,89 +707,7 @@ Context::schedule()
     }
 }
 
-
-PUBLIC inline
-void
-Context::schedule_if(bool s)
-{
-  if (!s || Sched_context::rq.current().schedule_in_progress)
-    return;
-
-  schedule();
-}
-
-/**
- * Return Context's Sched_context with id 'id'; return time slice 0 as default.
- * @return Sched_context with id 'id' or 0
- */
-PUBLIC inline
-Sched_context *
-Context::sched_context(unsigned short const id = 0) const
-{
-  if (EXPECT_TRUE (!id))
-    return const_cast<Sched_context*>(&_sched_context);
-  return 0;
-}
-
-/**
- * Return Context's currently active Sched_context.
- * @return Active Sched_context
- */
-PUBLIC inline
-Sched_context *
-Context::sched() const
-{
-  return _sched;
-}
-
-/**
- * Set Context's currently active Sched_context.
- * @param sched Sched_context to be activated
- */
-PROTECTED inline
-void
-Context::set_sched(Sched_context * const sched)
-{
-  _sched = sched;
-}
-
-// queue operations
-
-// XXX for now, synchronize with global kernel lock
-//-
-
-/**
- * Enqueue current() if ready to fix up ready-list invariant.
- */
-PRIVATE inline
-void
-Context::update_ready_list()
-{
-  assert (this == current());
-
-  if (state.has(Thread_ready_mask) && sched()->left())
-    Sched_context::rq.current().ready_enqueue(sched());
-}
-
-/**
- * Check if Context is in ready-list.
- * @return 1 if thread is in ready-list, 0 otherwise
- */
-PUBLIC inline
-Mword
-Context::in_ready_list() const
-{
-  return sched()->in_ready_list();
-}
-
-
-/**
- * \brief Activate a newly created thread.
- *
- * This function sets a new thread onto the ready list and switches to
- * the thread if it can preempt the currently running thread.
- */
-PUBLIC
+IMPLEMENT
 void
 Context::activate()
 {
@@ -609,141 +716,12 @@ Context::activate()
     current()->switch_to_locked(this);
 }
 
+// queue operations
 
-/** Helper.  Context that helps us by donating its time to us. It is
-    set by switch_exec() if the calling thread says so.
-    @return context that helps us and should be activated after freeing a lock.
-*/
-PUBLIC inline
-Context *
-Context::helper() const
-{
-  return _helper;
-}
-
-
-PUBLIC inline
-void
-Context::set_helper(Helping_mode const mode)
-{
-  switch (mode)
-    {
-    case Helping:
-      _helper = current();
-      break;
-    case Not_Helping:
-      _helper = this;
-      break;
-    case Ignore_Helping:
-      // don't change _helper value
-      break;
-    }
-}
-
-PUBLIC inline
-void
-Context::set_kernel_sp(Mword * const esp)
-{
-  _kernel_sp = esp;
-}
-
-PUBLIC inline
-Fpu_state *
-Context::fpu_state()
-{
-  return &_fpu_state;
-}
-
-/**
- * Add to consumed CPU time.
- * @param quantum Implementation-specific time quantum (TSC ticks or usecs)
- */
-PUBLIC inline
-void
-Context::consume_time(Clock::Time quantum)
-{
-  _consumed_time += quantum;
-}
-
-/**
- * Update consumed CPU time during each context switch and when
- *        reading out the current thread's consumed CPU time.
- */
-IMPLEMENT inline NEEDS ["cpu.h"]
-void
-Context::update_consumed_time()
-{
-  if (Config::Fine_grained_cputime)
-    consume_time(_clock.current().delta());
-}
-
-IMPLEMENT inline NEEDS ["config.h", "cpu.h"]
-Cpu_time
-Context::consumed_time()
-{
-  if (Config::Fine_grained_cputime)
-    return _clock.cpu(home_cpu()).us(_consumed_time);
-
-  return _consumed_time;
-}
-
-
-/**
- * Switch scheduling context and execution context.
- * @param t Destination thread whose scheduling context and execution context
- *          should be activated.
- */
-PROTECTED inline NEEDS ["assert.h", Context::switch_handle_drq]
-Context::Switch FIASCO_WARN_RESULT
-Context::schedule_switch_to_locked(Context *t)
-{
-   // Must be called with CPU lock held
-  assert (cpu_lock.test());
-
-  Sched_context::Ready_queue &rq = Sched_context::rq.current();
-  // Switch to destination thread's scheduling context
-  if (rq.current_sched() != t->sched())
-    rq.set_current_sched(t->sched());
-
-  if (EXPECT_FALSE(t == this))
-    return switch_handle_drq();
-
-  return switch_exec_locked(t, Not_Helping);
-}
-
-PUBLIC inline NEEDS [Context::schedule_switch_to_locked]
-void
-Context::switch_to_locked(Context *t)
-{
-  if (EXPECT_FALSE(schedule_switch_to_locked(t) != Switch::Ok))
-    schedule();
-}
-
-PUBLIC inline NEEDS [Context::switch_to_locked]
-bool
-Context::deblock_and_schedule(Context *to)
-{
-  if (Sched_context::rq.current().deblock(to->sched(), sched(), true))
-    {
-      switch_to_locked(to);
-      return true;
-    }
-
-  return false;
-}
-
-
-/**
- * Switch to a specific different execution context.
- *        If that context is currently locked, switch to its locker instead
- *        (except if current() is the locker)
- * @pre current() == this  &&  current() != t
- * @param t thread that shall be activated.
- * @param mode helping mode; we either help, don't help or leave the
- *             helping state unchanged
- */
-PUBLIC
-Context::Switch FIASCO_WARN_RESULT //L4_IPC_CODE
+// XXX for now, synchronize with global kernel lock
+//-
+IMPLEMENT
+Context::Switch
 Context::switch_exec_locked(Context *t, enum Helping_mode mode)
 {
   // Must be called with CPU lock held
@@ -795,7 +773,7 @@ Context::switch_exec_locked(Context *t, enum Helping_mode mode)
   return switch_handle_drq();
 }
 
-PUBLIC
+IMPLEMENT
 Context::Switch
 Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
 {
@@ -836,12 +814,6 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
   switch_cpu(t);
   return switch_handle_drq();
 }
-
-PUBLIC inline
-Context::Ku_mem_ptr<Utcb> const &
-Context::utcb() const
-{ return _utcb; }
-
 //IMPLEMENT inline NEEDS["logdefs.h"]
 PUBLIC inline NEEDS["logdefs.h"]
 bool
@@ -905,24 +877,7 @@ Context::execute_drq(Drq *r, Drq_q::Drop_mode drop, bool local)
   return need_resched;
 }
 
-/**
- * \brief Check for pending DRQs.
- * \return true if there are DRQs pending, false if not.
- */
-PUBLIC inline
-bool
-Context::drq_pending() const
-{ return _drq_q.first(); }
-
-/**
- * \brief Handle all pending DRQs.
- * \pre cpu_lock.test() (The CPU lock must be held).
- * \pre current() == this (only the currently running context is allowed to
- *      call this function).
- * \return true if re-scheduling is needed (ready queue has changed),
- *         false if not.
- */
-PUBLIC //inline
+IMPLEMENT
 bool
 Context::handle_drq()
 {
@@ -952,32 +907,6 @@ Context::handle_drq()
   //LOG_MSG_3VAL(this, "xdrq", state(), 0, cpu_lock.test());
 
   return resched || !(state.has(Thread_ready_mask));
-}
-
-PRIVATE inline
-Context::Switch
-Context::switch_handle_drq()
-{
-  if (EXPECT_TRUE(home_cpu() == get_current_cpu()))
-    return EXPECT_FALSE(handle_drq()) ? Switch::Resched : Switch::Ok;
-  return Switch::Ok;
-}
-
-/**
- * Get the queue item of the context.
- *
- * \return The queue item of the context.
- *
- * The queue item can be used to enqueue the context to a Queue.
- * a context must be in at most one queue at a time.
- * To figure out the context corresponding to a queue item
- * context_of() can be used.
- */
-PUBLIC inline
-Queue_item *
-Context::queue_item()
-{
-  return &_drq;
 }
 
 PROTECTED inline
@@ -1179,10 +1108,6 @@ void
 Context::copy_and_sanitize_trap_state(Trap_state *dst,
                                       Trap_state const *src) const
 { dst->copy_and_sanitize(src); }
-
-PUBLIC inline
-bool Context::migration_pending() const
-{ return _migration.load(cxx::memory_order_relaxed); }
 
 //----------------------------------------------------------------------------
 IMPLEMENTATION [fpu && lazy_fpu]:
