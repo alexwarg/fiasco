@@ -8,11 +8,6 @@ class Context_vcpu_base
 {
 protected:
   static char upcall[] asm ("leave_by_vcpu_upcall");
-
-public:
-  // override these functions per arch if needed
-  void vcpu_pv_switch_to_kernel(Vcpu_state *, bool) {}
-  void vcpu_pv_switch_to_user(Vcpu_state *, bool) {}
 };
 
 template<typename CTXT>
@@ -63,7 +58,7 @@ public:
   }
 
   Space *vcpu_user_space() const
-  { return _this()->_space.vcpu_user(); }
+  { return _this()->_cpu_state.space.vcpu_user(); }
 
   Mword vcpu_disable_irqs()
   {
@@ -92,10 +87,10 @@ public:
     _this()->state.del_dirty(Thread_vcpu_user);
     vcpu->kern_entry(_this()->regs());
 
-    if (!_this()->_space.user_mode())
+    if (!_this()->_cpu_state.space.user_mode())
       return false;
 
-    _this()->_space.user_mode(false);
+    _this()->_cpu_state.space.user_mode(false);
     _this()->state.del_dirty(Thread_vcpu_fpu_disabled);
 
     bool load_cpu_state = current() == _this();

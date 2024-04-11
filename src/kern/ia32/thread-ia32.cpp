@@ -51,7 +51,7 @@ Thread::Thread(Ram_quota *q)
   assert (state() == 0);
 
   inc_ref();
-  _space.space(Kernel_task::kernel_task());
+  _cpu_state.space.space(Kernel_task::kernel_task());
 
   if (Config::Stack_depth)
     std::memset((char*)this + sizeof(Thread), '5',
@@ -215,7 +215,7 @@ Thread::handle_slow_trap(Trap_state *ts)
   if (EXPECT_FALSE(ts->_trapno == 2))
     goto generic_debug;        // NMI always enters kernel debugger
 
-  if (from_user && _space.user_mode())
+  if (from_user && _cpu_state.space.user_mode())
     {
       if (ts->_trapno == 14 && Kmem::is_io_bitmap_page_fault(ts->_cr2))
         {
@@ -509,8 +509,8 @@ void
 Thread::arch_init_vcpu_state(Vcpu_state *vcpu_state, bool ext)
 {
   vcpu_state->version = Vcpu_arch_version;
-  vcpu_state->host.fs_base = _fs_base;
-  vcpu_state->host.gs_base = _gs_base;
+  vcpu_state->host.fs_base = _cpu_state.fs_base;
+  vcpu_state->host.gs_base = _cpu_state.gs_base;
   vcpu_state->host.ds = 0;
   vcpu_state->host.es = 0;
   vcpu_state->host.fs = 0;
@@ -548,7 +548,7 @@ Thread::sys_gdt_x86(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
   unsigned idx = 0;
 
   for (unsigned entry_number = utcb->values[1];
-      entry_number < Gdt_user_entries
+      entry_number < _cpu_state.gdt_user_entries.Num
       && Utcb::val_idx(Utcb::val64_idx(2) + idx) < tag.words();
       ++idx, ++entry_number)
     {
@@ -556,11 +556,11 @@ Thread::sys_gdt_x86(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
       if (d.unsafe())
         return Kobject_iface::commit_result(-L4_err::EInval);
 
-      _gdt_user_entries[entry_number] = d;
+      _cpu_state.gdt_user_entries[entry_number] = d;
     }
 
   if (this == current_thread())
-    load_gdt_user_entries();
+    _cpu_state.gdt_user_entries.load();
 
   return Kobject_iface::commit_result((utcb->values[1] << 3) + Gdt::gdt_user_entry1 + 3);
 }

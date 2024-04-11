@@ -117,7 +117,6 @@ apic_IMPL		:= apic-ia32 apic-ia32-mp
 boot_console_IMPL	:= boot_console-ia32-amd64
 boot_info_IMPL		:= boot_info boot_info-ia32
 clock_IMPL              := clock clock-ia32
-context_IMPL		:= context context-ia32 context-ia32-32
 continuation_IMPL	:= continuation-ia32-32
 cpu_IMPL		:= cpu cpu-ia32 cpu-32
 dirq_IMPL		:= dirq-ia32

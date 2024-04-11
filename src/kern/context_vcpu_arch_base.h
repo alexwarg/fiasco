@@ -14,7 +14,4 @@ protected:
 
   void arch_vcpu_ext_shutdown()
   {}
-
-  void arch_update_vcpu_state(Vcpu_state *)
-  {}
 };

@@ -49,7 +49,7 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
 	 ef->_ax, ef->_si, ef->_bx, ef->_di,
 	 ef->_cx, ef->_bp, ef->_dx, ef->sp(),
 	 ef->_r8,  ef->_r9, ef->_r10, ef->_r11,
-	 ef->_r12, ef->_r13, ef->_r14, ef->_r15, t->_fs_base,
+	 ef->_r12, ef->_r13, ef->_r14, ef->_r15, t->_cpu_state.fs_base,
 	 ef->_trapno, ef->_err, ef->from_user() ? "user" : "kernel",
          ef->_trapno == 14 ? pfa : "",
 	 Jdb::esc_emph, ef->ip(), ef->flags());

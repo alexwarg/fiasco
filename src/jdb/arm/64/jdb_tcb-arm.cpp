@@ -49,7 +49,7 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
 
   printf("psr=%016lx tpidr: urw=%016lx uro=%016lx\n"
          " pc=%s%016lx\033[m %csp=%016lx x30=%016lx\n",
-         ef->psr, t->tpidrurw(), t->tpidruro(), Jdb::esc_iret,
+         ef->psr, t->_cpu_state.tpidrurw(), t->_cpu_state.tpidruro(), Jdb::esc_iret,
          ef->ip(), user ? 'u' : 'k', user ? ef->sp() : (Mword)(ef + 1),
          ef->r[30]);
 }

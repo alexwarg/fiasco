@@ -5,10 +5,10 @@
 #include "entry_frame.h"
 #include "processor.h"
 #include "globalconfig.h"
+#include "mem.h"
 
 #if ! defined(CONFIG_CPU_VIRT)
 #include "processor.h"
-#include "mem.h"
 #endif // ! CONFIG_CPU_VIRT
 
 
@@ -43,6 +43,14 @@ public:
     psr = access_once(&src->psr);
     psr &= ~(Proc::Status_mode_mask | Proc::Status_interrupts_mask);
     psr |= Proc::Status_mode_user | Proc::Status_always_mask;
+  }
+#else // ! CONFIG_CPU_VIRT
+  void copy(Trap_state const *src)
+  {
+    // copy pf_addresss, esr, r0..r12, usp, ulr, km_lr
+    Mem::memcpy_mwords(this, src, 18);
+    pc = src->pc;
+    psr = access_once(&src->psr);
   }
 #endif // ! CONFIG_CPU_VIRT
 

@@ -144,11 +144,13 @@ protected:
     return ipi;
   }
 
+public:
   void handle_lock_holder_preemption()
   {
     _running_under_lock.preempt();
   }
 
+protected:
   /**
    * Synchronization variable for multi-processor helping.
    *

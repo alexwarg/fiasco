@@ -61,8 +61,8 @@ Thread::vcpu_set_user_space(Task *t)
   if (t)
     t->inc_ref();
 
-  Task *old = static_cast<Task*>(_space.vcpu_user());
-  _space.vcpu_user(t);
+  Task *old = static_cast<Task*>(_cpu_state.space.vcpu_user());
+  _cpu_state.space.vcpu_user(t);
 
   if (old && !old->dec_ref())
     delete old;

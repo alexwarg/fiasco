@@ -60,7 +60,7 @@ Kernel_thread::Kernel_thread(Ram_quota *q)
 PUBLIC inline
 Mword *
 Kernel_thread::init_stack()
-{ return _kernel_sp; }
+{ return _cpu_state.kernel_sp; }
 
 // the kernel bootstrap routine
 IMPLEMENT FIASCO_INIT

@@ -180,9 +180,9 @@ Mem_op::arm_mem_cache_maint(int op, void const *start, void const *end)
 
   Context *c = current();
 
-  c->set_ignore_mem_op_in_progress(true);
+  c->kernel_mem_op.set_ignore(true);
   __arm_mem_cache_maint(op, start, end);
-  c->set_ignore_mem_op_in_progress(false);
+  c->kernel_mem_op.set_ignore(false);
 }
 
 // ------------------------------------------------------------------------

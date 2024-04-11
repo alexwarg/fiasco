@@ -37,7 +37,7 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
   printf("%08lx %08lx %s%08lx\033[m\n"
          "psr=%08lx tpidr: urw=%08lx uro=%08lx\n",
          ef->usp, ef->ulr, Jdb::esc_iret, ef->pc,
-         ef->psr, t->tpidrurw(), t->tpidruro());
+         ef->psr, t->_cpu_state.tpidrurw(), t->_cpu_state.tpidruro());
 }
 
 IMPLEMENT

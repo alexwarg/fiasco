@@ -60,9 +60,9 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *)
       if (tag.words() < 2)
         return commit_result(-L4_err::EMsgtooshort);
 
-      _ulr = access_once(&utcb->values[1]);
+      _cpu_state.ulr = access_once(&utcb->values[1]);
       if (current() == this)
-        Proc::set_ulr(_ulr);
+        Proc::set_ulr(_cpu_state.ulr);
       return Kobject_iface::commit_result(0);
 
     case 0x14:
@@ -102,7 +102,7 @@ Thread::Thread(Ram_quota *q)
   assert(state() == 0);
 
   inc_ref();
-  _space.space(Kernel_task::kernel_task());
+  _cpu_state.space.space(Kernel_task::kernel_task());
 
   if (Config::Stack_depth)
     std::memset((char*)this + sizeof(Thread), '5',
@@ -235,7 +235,7 @@ Thread::handle_slow_trap(Trap_state::Cause cause, Trap_state *ts,
   if (save_bad && from_user)
     save_bad_instr(ts);
 
-  if (from_user && _space.user_mode() && send_exception(ts))
+  if (from_user && _cpu_state.space.user_mode() && send_exception(ts))
     return 0;
 
   if (EXPECT_FALSE(!from_user))
@@ -381,9 +381,9 @@ Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
   Trex const *r = reinterpret_cast<Trex const *>(snd_utcb->values);
   // this skips the eret/continuation work already
   ts->copy_and_sanitize(&r->s);
-  rcv->_ulr = access_once(&r->ulr);
+  rcv->_cpu_state.ulr = access_once(&r->ulr);
   if (rcv == current())
-    Proc::set_ulr(rcv->_ulr);
+    Proc::set_ulr(rcv->_cpu_state.ulr);
 
   if (tag.transfer_fpu() && (rights & L4_fpage::Rights::CS()))
     snd->transfer_fpu(rcv);
@@ -406,7 +406,7 @@ Thread::copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,
     Utcb *rcv_utcb = rcv->utcb().access();
     Trex *r = reinterpret_cast<Trex *>(rcv_utcb->values);
     r->s = *ts;
-    r->ulr = snd->_ulr;
+    r->ulr = snd->_cpu_state.ulr;
 
     if (rcv_utcb->inherit_fpu() && (rights & L4_fpage::Rights::CS()))
       {

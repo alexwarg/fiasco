@@ -182,7 +182,7 @@ PUBLIC static inline
 bool
 Thread::check_for_kernel_mem_access_pf(Trap_state *ts, Thread *t)
 {
-  if (EXPECT_FALSE(t->is_kernel_mem_op_hit_and_clear()))
+  if (t->kernel_mem_op.hit_and_clear())
     {
       Mword pc = t->exception_triggered() ? t->_exc_cont.ip() : ts->pc;
 

@@ -165,9 +165,9 @@ extern "C" {
     // cache operations we carry out for user space might cause PFs, we just
     // ignore those
     if (EXPECT_FALSE(!PF::is_usermode_error(error_code))
-        && EXPECT_FALSE(t->is_ignore_mem_op_in_progress()))
+        && EXPECT_FALSE(t->kernel_mem_op.is_ignore()))
       {
-        t->set_kernel_mem_op_hit();
+        t->kernel_mem_op.set_hit();
         ret_frame->pc += 4;
         return 1;
       }
@@ -283,7 +283,7 @@ Thread::Thread(Ram_quota *q)
   assert (state() == 0);
 
   inc_ref();
-  _space.space(Kernel_task::kernel_task());
+  _cpu_state.space.space(Kernel_task::kernel_task());
 
   if (Config::Stack_depth)
     std::memset((char *)this + sizeof(Thread), '5',
@@ -462,12 +462,12 @@ Thread::set_tpidruro(L4_msg_tag tag, Utcb const *utcb)
   if (EXPECT_FALSE(tag.words() < 2))
     return commit_result(-L4_err::EInval);
 
-  _tpidruro = utcb->values[1];
+  _cpu_state.tpidruro(utcb->values[1]);
   if (EXPECT_FALSE(state() & Thread_vcpu_enabled))
     arch_update_vcpu_state(vcpu_state().access());
 
   if (this == current_thread())
-    load_tpidruro();
+    _cpu_state.load_tpidruro();
 
   return commit_result(0);
 }
@@ -476,16 +476,16 @@ PRIVATE inline
 void
 Thread::set_tpidruro(Trex const *t)
 {
-  _tpidruro = access_once(&t->tpidruro);
+  _cpu_state.tpidruro(access_once(&t->tpidruro));
   if (this == current_thread())
-    load_tpidruro();
+    _cpu_state.load_tpidruro();
 }
 
 PRIVATE inline
 void
 Thread::store_tpidruro(Trex *t)
 {
-  t->tpidruro = _tpidruro;
+  t->tpidruro = _cpu_state.tpidruro();
 }
 
 // ------------------------------------------------------------------------
@@ -636,9 +636,9 @@ PUBLIC static inline template<typename T>
 T Thread::peek_user(T const *adr, Context *c)
 {
   T v;
-  c->set_ignore_mem_op_in_progress(true);
+  c->kernel_mem_op.set_ignore(true);
   v = *adr;
-  c->set_ignore_mem_op_in_progress(false);
+  c->kernel_mem_op.set_ignore(false);
   return v;
 }
 

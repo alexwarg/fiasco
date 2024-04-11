@@ -119,17 +119,11 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
         switch (utcb->values[0] >> 16)
           {
           case 0:
-            _fs = 0;
-            _fs_base = base;
-            if (current() == this)
-              Cpu::set_fs_base(&_fs_base);
+            _cpu_state.set_fs_base(base, current() == this);
             break;
 
           case 1:
-            _gs = 0;
-            _gs_base = base;
-            if (current() == this)
-              Cpu::set_gs_base(&_gs_base);
+            _cpu_state.set_gs_base(base, current() == this);
             break;
 
           default: return commit_result(-L4_err::EInval);
@@ -225,16 +219,16 @@ Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
       ts->cs(cs & ~0x80);
     }
 
-  rcv->_fs_base = access_once(&src->fs_base);
-  rcv->_gs_base = access_once(&src->gs_base);
+  rcv->_cpu_state.fs_base = access_once(&src->fs_base);
+  rcv->_cpu_state.gs_base = access_once(&src->gs_base);
 
-  rcv->_ds = access_once(&src->ds);
-  rcv->_es = access_once(&src->es);
-  rcv->_fs = access_once(&src->fs);
-  rcv->_gs = access_once(&src->gs);
+  rcv->_cpu_state.ds = access_once(&src->ds);
+  rcv->_cpu_state.es = access_once(&src->es);
+  rcv->_cpu_state.fs = access_once(&src->fs);
+  rcv->_cpu_state.gs = access_once(&src->gs);
 
   if (rcv == current())
-    rcv->load_gdt_user_entries(rcv);
+    rcv->_cpu_state.gdt_user_entries.load();
 
   if (tag.transfer_fpu() && (rights & L4_fpage::Rights::CS()))
     snd->transfer_fpu(rcv);
@@ -256,12 +250,12 @@ Thread::copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,
     {
       auto guard = lock_guard(cpu_lock);
 
-      dst->ds = snd->_ds;
-      dst->es = snd->_es;
-      dst->fs = snd->_fs;
-      dst->gs = snd->_gs;
-      dst->fs_base = snd->_fs_base;
-      dst->gs_base = snd->_gs_base;
+      dst->ds = snd->_cpu_state.ds;
+      dst->es = snd->_cpu_state.es;
+      dst->fs = snd->_cpu_state.fs;
+      dst->gs = snd->_cpu_state.gs;
+      dst->fs_base = snd->_cpu_state.fs_base;
+      dst->gs_base = snd->_cpu_state.gs_base;
 
       if (EXPECT_FALSE(snd->exception_triggered()))
         {

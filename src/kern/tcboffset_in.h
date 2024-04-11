@@ -1,5 +1,5 @@
   DUMP_MEMBER1 (THREAD, Context, state, 		STATE)
-  DUMP_MEMBER1 (THREAD, Context, _kernel_sp,		KERNEL_SP)
+  DUMP_MEMBER1 (THREAD, Context, _cpu_state.kernel_sp,		KERNEL_SP)
   DUMP_MEMBER1 (THREAD, Context, _lock_cnt,		LOCK_CNT)
   DUMP_MEMBER1 (THREAD, Context, _sched_context,	SCHED_CONTEXT)
   DUMP_MEMBER1 (THREAD, Context, _sched,		SCHED)
@@ -9,7 +9,7 @@
   DUMP_MEMBER1 (THREAD, Receiver, _partner,		PARTNER)
   DUMP_MEMBER1 (THREAD, Receiver, _rcv_regs,		RCV_REGS)
   DUMP_MEMBER1 (THREAD, Thread, _timeout,		TIMEOUT)
-  DUMP_MEMBER1 (THREAD, Thread, _space,		SPACE)
+  DUMP_MEMBER1 (THREAD, Thread, _cpu_state.space,		SPACE)
   DUMP_MEMBER1 (THREAD, Thread, _pager,			PAGER)
   DUMP_MEMBER1 (THREAD, Thread, _recover_jmpbuf,	RECOVER_JMPBUF)
 #if defined(CONFIG_ARM) && defined(CONFIG_BIT32)
@@ -97,5 +97,5 @@
   DUMP_CONSTANT(KERNEL__START, Mem_layout::Kernel_start)
 #endif
 #ifdef  CONFIG_MIPS
-  DUMP_MEMBER1 (THREAD, Context, _ulr, ULR)
+  DUMP_MEMBER1 (THREAD, Context, _cpu_state.ulr, ULR)
 #endif

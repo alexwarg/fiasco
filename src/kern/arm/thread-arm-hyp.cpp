@@ -75,7 +75,7 @@ Thread::peek_user(T const *adr, Context *c)
     return *reinterpret_cast<T const *>(cxx::mask_lsb(pa, 12)
                                         | cxx::get_lsb((Address)adr, 12));
 
-  c->set_kernel_mem_op_hit();
+  c->kernel_mem_op.set_hit();
   return T(~0);
 }
 

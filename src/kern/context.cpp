@@ -26,6 +26,8 @@ INTERFACE:
 #include <context_vcpu_arch_base.h>
 #include <context_drq.h>
 #include <context_vcpu.h>
+#include <context_arch.h>
+#include <context_cpu_state.h>
 #include <drq.h>
 #include <drq_queue.h>
 #include <ku_mem_ptr.h>
@@ -71,9 +73,9 @@ class Kobject_iface;
 class Context :
   public Context_base,
   public Context_mp_up_x<Context>,
+  public Context_arch_x<Context>,
   public Context_drq_x<Context>,
   protected Rcu_item,
-  public Context_vcpu_arch_base,
   public Context_fpu_x<Context>,
   public Context_vcpu_x<Context>
 {
@@ -89,6 +91,7 @@ class Context :
   friend Context_mp_up_x<Context>;
   friend Context_drq_x<Context>;
   friend Context_vcpu_x<Context>;
+  friend Context_arch_x<Context>;
 
   struct State_request
   {
@@ -133,20 +136,18 @@ public:
     Failed  = 2
   };
 
-  Context() noexcept
-  : _kernel_sp(reinterpret_cast<Mword*>(regs()))
-  {}
+  Context() noexcept = default;
 
   virtual ~Context() noexcept = default;
 
   void reset_kernel_sp() noexcept
   {
-    _kernel_sp = reinterpret_cast<Mword*>(regs());
+    _cpu_state.kernel_sp = reinterpret_cast<Mword*>(regs());
   }
 
   Mword *get_kernel_sp() const
   {
-    return _kernel_sp;
+    return _cpu_state.kernel_sp;
   }
 
   void recover_jmp_buf(jmp_buf *b)
@@ -193,12 +194,7 @@ public:
     _consumed_time += quantum;
   }
 
-  void spill_user_state();
-  void fill_user_state();
-  void copy_and_sanitize_trap_state(Trap_state *dst,
-                                    Trap_state const *src) const;
-
-  [[gnu::pure]] Space *space() const { return _space.space(); }
+  [[gnu::pure]] Space *space() const { return _cpu_state.space.space(); }
   [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
 
   bool migration_pending() const
@@ -245,10 +241,10 @@ public:
 
 
   Context_space_ref *space_ref()
-  { return &_space; }
+  { return &_cpu_state.space; }
 
   Space *vcpu_aware_space() const
-  { return _space.vcpu_aware(); }
+  { return _cpu_state.space.vcpu_aware(); }
 
   Entry_frame *regs() const
   {
@@ -351,7 +347,7 @@ public:
 
   void set_kernel_sp(Mword *sp)
   {
-    _kernel_sp = sp;
+    _cpu_state.kernel_sp = sp;
   }
 
   Fpu_state *fpu_state()
@@ -427,7 +423,6 @@ public:
   static Context *kernel_context(Cpu_number cpu)
   { return _kernel_ctxt.cpu(cpu); }
 
-protected:
   /**
    * Update consumed CPU time during each context switch and when
    *        reading out the current thread's consumed CPU time.
@@ -438,6 +433,7 @@ protected:
       consume_time(_clock.current().delta());
   }
 
+protected:
   /**
    * Set Context's currently active Sched_context.
    * @param sched Sched_context to be activated
@@ -493,10 +489,14 @@ protected:
 private:
   /// low level page table switching
   void switchin_context(Context *) asm ("switchin_context_label") FIASCO_FASTCALL;
-
+#if 0
   /// low level cpu switching
-  void switch_cpu(Context *t);
-
+  void switch_cpu(Context *t)
+  {
+    update_consumed_time();
+    _cpu_state.switch_cpu(&t->_cpu_state);
+  }
+#endif
   /**
    * Enqueue current() if ready to fix up ready-list invariant.
    */
@@ -551,8 +551,6 @@ private:
 
 protected:
   Cpu_number _home_cpu = Cpu::invalid();
-  Mword *_kernel_sp;
-  Context_space_ref _space;
 
 private:
   // The scheduling parameters.  We would only need to keep an
@@ -632,6 +630,16 @@ IMPLEMENTATION:
 
 DEFINE_PER_CPU Per_cpu<Clock> Context::_clock(Per_cpu_data::Cpu_num);
 DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;
+
+IMPLEMENT
+[[gnu::flatten]]
+void
+Context::switchin_context(Context *from)
+{
+  assert (this == current());
+  assert (state() & Thread_ready_mask);
+  switchin_context_arch(from);
+}
 
 IMPLEMENT
 void
@@ -768,7 +776,7 @@ Context::switch_exec_locked(Context *t, enum Helping_mode mode)
 
 
   // Ensure kernel stack pointer is non-null if thread is ready
-  assert (t->_kernel_sp);
+  assert (t->_cpu_state.kernel_sp);
 
   t->set_helper(mode);
 
@@ -812,7 +820,7 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
 
 
   // Ensure kernel stack pointer is non-null if thread is ready
-  assert (t->_kernel_sp);
+  assert (t->_cpu_state.kernel_sp);
 
   if (EXPECT_TRUE(get_current_cpu() == home_cpu()))
     update_ready_list();
@@ -824,8 +832,6 @@ Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
   return switch_handle_drq();
 }
 
-
-
 IMPLEMENT
 bool
 Context::rcu_unblock(Rcu_item *i)
@@ -833,10 +839,4 @@ Context::rcu_unblock(Rcu_item *i)
   assert(cpu_lock.test());
   return static_cast<Context*>(i)->xcpu_state_change(~Thread_waiting, Thread_ready);
 }
-
-IMPLEMENT_DEFAULT inline
-void
-Context::copy_and_sanitize_trap_state(Trap_state *dst,
-                                      Trap_state const *src) const
-{ dst->copy_and_sanitize(src); }
 

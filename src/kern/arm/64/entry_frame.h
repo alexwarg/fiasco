@@ -111,15 +111,21 @@ public:
 class Entry_frame : public Return_frame
 {
 public:
-  void copy_and_sanitize(Entry_frame const *src)
+  void copy(Entry_frame const *src)
   {
     // omit eret_work, ksp, esr, pf_address
     Mem::memcpy_mwords(&r[0], &src->r[0], 31);
     usp = src->usp;
     pc  = src->pc;
-    pstate = access_once(&src->pstate);
+    psr = access_once(&src->psr);
+  }
+#if ! defined(CONFIG_CPU_VIRT)
+  void copy_and_sanitize(Entry_frame const *src)
+  {
+    copy(src);
     pstate &= ~(Proc::Status_mode_mask | Proc::Status_interrupts_mask);
     pstate |= Proc::Status_mode_user | Proc::Status_always_mask;
   }
+#endif 
 };
 

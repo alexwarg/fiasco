@@ -4,6 +4,50 @@
 
 #include "cpu.h"
 
+struct Context_hyp : Context_hyp_generic
+{
+public:
+  // Banked registers for irq, svc, abt, and und modes
+  struct Banked_mode_regs
+  {
+    Mword sp, lr, spsr;
+  };
+
+  // Banked registers for fiq mode
+  struct Banked_fiq_regs
+  {
+    Mword r8, r9, r10, r11, r12, sp, lr, spsr;
+  };
+
+  // we need to store all banked registers for PL1 modes
+  // because a hyp kernel runs applications in system mode (PL1)
+  Banked_fiq_regs fiq;
+  Banked_mode_regs irq, svc, abt, und;
+
+  void save();
+  void load();
+
+  [[gnu::nonnull]]
+  void sanitize_psr(Mword *psr) const
+  {
+    if (hcr & Cpu::Hcr_tge)
+    {
+      // Must run in user mode if HCR.TGE is set. Otherwise the behaviour
+      // is unpredictable (Armv7) or leads to an illegal exception return
+      // (Armv8).
+      *psr = (*psr & ~Proc::Status_mode_mask) | Proc::PSR_m_usr;
+    }
+  else
+    {
+      // allow all but hyp or mon mode
+      Unsigned32 const forbidden = ~0x888f0000U;
+      if ((1UL << (*psr & Proc::Status_mode_mask)) & forbidden)
+        *psr = (*psr & ~Proc::Status_mode_mask) | Proc::PSR_m_sys;
+    }
+  }
+
+};
+
 class Hyp_vm_state : public Hyp_vm_state_generic
 {
 public:
@@ -77,30 +121,177 @@ public:
 
   Unsigned32 fpinst;
   Unsigned32 fpinst2;
-};
 
-struct Context_hyp : Context_hyp_generic
-{
-public:
-  // Banked registers for irq, svc, abt, and und modes
-  struct Banked_mode_regs
+  void save()
   {
-    Mword sp, lr, spsr;
-  };
+    // save vm state
+    asm volatile ("mrc p15, 2, %0, c0, c0, 0" : "=r"(csselr));
 
-  // Banked registers for fiq mode
-  struct Banked_fiq_regs
+    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r"(sctlr));
+    // we unconditionally trap actlr accesses
+    // asm ("mrc p15, 0, %0, c1, c0, 1" : "=r"(v->actlr));
+    asm volatile ("mrc p15, 0, %0, c1, c0, 2" : "=r"(cpacr));
+
+    asm volatile ("mrrc p15, 0, %Q0, %R0, c2" : "=r"(ttbr0));
+    asm volatile ("mrrc p15, 1, %Q0, %R0, c2" : "=r"(ttbr1));
+    asm volatile ("mrc p15, 0, %0, c2, c0, 2" : "=r"(ttbcr));
+
+    asm volatile ("mrc p15, 0, %0, c3, c0, 0" : "=r"(dacr));
+
+    asm volatile ("mrc p15, 0, %0, c5, c0, 0" : "=r"(dfsr));
+    asm volatile ("mrc p15, 0, %0, c5, c0, 1" : "=r"(ifsr));
+    asm volatile ("mrc p15, 0, %0, c5, c1, 0" : "=r"(adfsr));
+    asm volatile ("mrc p15, 0, %0, c5, c1, 1" : "=r"(aifsr));
+
+    asm volatile ("mrc p15, 0, %0, c6, c0, 0" : "=r"(dfar));
+    asm volatile ("mrc p15, 0, %0, c6, c0, 2" : "=r"(ifar));
+
+    asm volatile ("mrc p15, 0, %0, c10, c2, 0" : "=r"(mair0));
+    asm volatile ("mrc p15, 0, %0, c10, c2, 1" : "=r"(mair1));
+
+    asm volatile ("mrc p15, 0, %0, c10, c3, 0" : "=r"(amair0));
+    asm volatile ("mrc p15, 0, %0, c10, c3, 1" : "=r"(amair1));
+
+    asm volatile ("mrc p15, 0, %0, c12, c0, 0" : "=r"(vbar));
+
+    asm volatile ("mrc p15, 0, %0, c13, c0, 0" : "=r"(fcseidr));
+  }
+
+  void load(bool el0_only) const
   {
-    Mword r8, r9, r10, r11, r12, sp, lr, spsr;
-  };
+    asm volatile ("mcr p15, 4, %0, c1, c1, 3" : : "r"(Cpu::Hstr_vm)); // HSTR
+    asm volatile ("mcr p15, 2, %0, c0, c0, 0" : : "r"(csselr));
 
-  // we need to store all banked registers for PL1 modes
-  // because a hyp kernel runs applications in system mode (PL1)
-  Banked_fiq_regs fiq;
-  Banked_mode_regs irq, svc, abt, und;
+    Unsigned32 _sctlr = access_once(&sctlr);
+    if (el0_only)
+      _sctlr &= ~Cpu::Cp15_c1_mmu;
 
-  void save();
-  void load();
+    asm volatile ("mcr p15, 0, %0, c1, c0, 0" : : "r"(_sctlr));
+    // we unconditionally trap actlr accesses
+    // asm ("mcr p15, 0, %0, c1, c0, 1" : : "r"(v->actlr));
+    asm volatile ("mcr p15, 0, %0, c1, c0, 2" : : "r"(cpacr));
+
+    asm volatile ("mcrr p15, 0, %Q0, %R0, c2" : : "r"(ttbr0));
+    asm volatile ("mcrr p15, 1, %Q0, %R0, c2" : : "r"(ttbr1));
+    asm volatile ("mcr p15, 0, %0, c2, c0, 2" : : "r"(ttbcr));
+
+    asm volatile ("mcr p15, 0, %0, c3, c0, 0" : : "r"(dacr));
+
+    asm volatile ("mcr p15, 0, %0, c5, c0, 0" : : "r"(dfsr));
+    asm volatile ("mcr p15, 0, %0, c5, c0, 1" : : "r"(ifsr));
+    asm volatile ("mcr p15, 0, %0, c5, c1, 0" : : "r"(adfsr));
+    asm volatile ("mcr p15, 0, %0, c5, c1, 1" : : "r"(aifsr));
+
+    asm volatile ("mcr p15, 0, %0, c6, c0, 0" : : "r"(dfar));
+    asm volatile ("mcr p15, 0, %0, c6, c0, 2" : : "r"(ifar));
+
+    asm volatile ("mcr p15, 0, %0, c10, c2, 0" : : "r"(mair0));
+    asm volatile ("mcr p15, 0, %0, c10, c2, 1" : : "r"(mair1));
+
+    asm volatile ("mcr p15, 0, %0, c10, c3, 0" : : "r"(amair0));
+    asm volatile ("mcr p15, 0, %0, c10, c3, 1" : : "r"(amair1));
+
+    asm volatile ("mcr p15, 0, %0, c12, c0, 0" : : "r"(vbar));
+
+    asm volatile ("mcr p15, 0, %0, c13, c0, 0" : : "r"(fcseidr));
+
+    asm volatile ("mcr  p15, 4, %0, c0, c0, 5" : : "r" (vmpidr));
+    asm volatile ("mcr  p15, 4, %0, c0, c0, 0" : : "r" (vpidr));
+  }
+
+  static Unsigned32 arm_host_sctlr()
+  {
+    return (Cpu::sctlr | Cpu::Cp15_c1_cache_bits) & ~(Cpu::Cp15_c1_mmu | (1 << 28));
+  }
+
+  void switch_to_host(Mword tpidruro)
+  {
+    asm volatile ("mrc p15, 0, %0, c13, c0, 3"
+                  : "=r"(tpidruro));
+    asm volatile ("mrc p15, 0, %0, c1,  c0, 0"
+                  : "=r"(guest_regs.sctlr));
+    asm volatile ("mrc p15, 0, %0, c13, c0, 0"
+                  : "=r"(guest_regs.fcseidr));
+
+    // fcse not supported in vmm
+    asm volatile ("mcr p15, 0, %0, c13, c0, 0" : : "r"(0));
+    asm volatile ("mcr p15, 0, %0, c1,  c0, 0" : : "r"(arm_host_sctlr()));
+
+    asm volatile ("mrc p15, 0, %0, c14, c3, 1" : "=r" (guest_regs.cntv_ctl));
+    // disable VTIMER
+    asm volatile ("mcr p15, 0, %0, c14, c3, 1" : : "r"(0));
+    asm volatile ("mcr p15, 4, %0, c14, c1, 0" : : "r"(Host_cnthctl));
+  }
+
+  [[gnu::nonnull]]
+  void switch_to_host_no_load(Context_hyp *hyp)
+  {
+    guest_regs.sctlr      = sctlr;
+    guest_regs.fcseidr    = fcseidr;
+    guest_regs.cntv_ctl   = hyp->cntv_ctl;
+
+    sctlr      = arm_host_sctlr();
+    fcseidr    = 0;
+    hyp->cntv_ctl = 0;
+  }
+
+  void load_host_regs(Mword tpidruro) const
+  {
+    asm volatile ("mcr p15, 0, %0, c13, c0, 3" : : "r"(tpidruro));
+    asm volatile ("mcr p15, 4, %0, c1,  c1, 0" : : "r"(Cpu::Hcr_host_bits));
+  }
+
+  [[gnu::nonnull]]
+  void switch_to_guest(Context_hyp *hyp) const
+  {
+    asm volatile ("mcr p15, 0, %0, c13, c0, 0"
+                  : : "r"(guest_regs.fcseidr));
+
+    asm volatile ("mcr p15, 0, %0, c1,  c0, 0" : : "r" (guest_regs.sctlr));
+    asm volatile ("mcr p15, 0, %0, c14, c3, 1" : : "r" (guest_regs.cntv_ctl));
+    hyp->cntvoff = cntvoff;
+    asm volatile ("mcrr p15, 4, %Q0, %R0, c14" : : "r" (cntvoff));
+
+    asm volatile ("mcr  p15, 4, %0, c0, c0, 5" : : "r" (vmpidr));
+    asm volatile ("mcr  p15, 4, %0, c0, c0, 0" : : "r" (vpidr));
+    asm volatile ("mcr  p15, 4, %0, c14, c1, 0" : : "r" (Guest_cnthctl));
+  }
+
+  [[gnu::nonnull]]
+  void switch_to_guest_no_load(Context_hyp *hyp)
+  {
+    fcseidr    = guest_regs.fcseidr;
+    sctlr      = guest_regs.sctlr;
+    hyp->cntv_ctl = guest_regs.cntv_ctl;
+    hyp->cntvoff  = cntvoff;
+  }
+
+  static Mword load_guest_regs(Unsigned64 hcr, Mword tpidruro)
+  {
+    Mword old_tpidruro;
+    asm volatile ("mrc p15, 0, %0, c13, c0, 3" : "=r"(old_tpidruro));
+    Cpu::hcr(hcr);
+    asm volatile ("mcr p15, 0, %0, c13, c0, 3" : : "r"(tpidruro));
+    return old_tpidruro;
+  }
+
+  static void load_non_vm_state()
+  {
+    asm volatile ("mcr p15, 4, %0, c1, c1, 0"
+                  : : "r"(Cpu::Hcr_non_vm_bits));
+    asm volatile ("mcr p15, 4, %0, c1, c1, 3" : : "r"(Cpu::Hstr_non_vm)); // HSTR
+    // load normal SCTLR ...
+    asm volatile ("mcr p15, 0, %0, c1, c0, 0"
+                  : : "r" ((Cpu::sctlr | Cpu::Cp15_c1_cache_bits) & ~Cpu::Cp15_c1_mmu));
+    asm volatile ("mcr p15, 0, %0,  c1, c0, 2" : : "r" (0xf00000));
+    asm volatile ("mcr p15, 0, %0, c13, c0, 0" : : "r" (0));
+    asm volatile("mcr p15, 4, %0, c14, c1, 0" : : "r"(Host_cnthctl));
+  }
+
+  static void load_cnthctl(Unsigned32 cnthctl)
+  {
+    asm volatile ("mcr p15, 4, %0, c14, c1, 0" : : "r"(cnthctl));
+  }
 };
 
 inline

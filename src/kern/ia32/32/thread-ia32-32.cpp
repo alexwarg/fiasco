@@ -106,10 +106,10 @@ Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
     }
 
   // reset segments
-  rcv->_gs = rcv->_fs = 0;
+  rcv->_cpu_state.gs = rcv->_cpu_state.fs = 0;
 
   if (rcv == current())
-    rcv->load_gdt_user_entries(rcv);
+    rcv->_cpu_state.gdt_user_entries.load();
 
   if (tag.transfer_fpu() && (rights & L4_fpage::Rights::CS()))
     snd->transfer_fpu(rcv);

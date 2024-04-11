@@ -16,9 +16,6 @@ private:
   { return static_cast<CONTEXT const *>(this); }
 
 protected:
-  void handle_lock_holder_preemption()
-  {}
-
   bool running_on_different_cpu() const
   { return false; }
 
@@ -32,6 +29,9 @@ protected:
   }
 
 public:
+  void handle_lock_holder_preemption()
+  {}
+
   void dec_lock_cnt()
   {
     _ctxt()->_lock_cnt.sub_fetch(1, cxx::memory_order_relaxed);

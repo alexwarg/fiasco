@@ -211,8 +211,8 @@ PUBLIC
 void
 Thread::kbind(Task *t)
 {
-  auto guard = lock_guard(_space.lock());
-  _space.space(t);
+  auto guard = lock_guard(_cpu_state.space.lock());
+  _cpu_state.space.space(t);
   t->inc_ref();
 }
 
@@ -226,11 +226,11 @@ Thread::bind(Task *t, User<Utcb>::Ptr utcb)
   if (EXPECT_FALSE(!u))
     return false;
 
-  auto guard = lock_guard(_space.lock());
-  if (_space.space() != Kernel_task::kernel_task())
+  auto guard = lock_guard(_cpu_state.space.lock());
+  if (_cpu_state.space.space() != Kernel_task::kernel_task())
     return false;
 
-  _space.space(t);
+  _cpu_state.space.space(t);
   t->inc_ref();
 
   _utcb.set(utcb, u->kern_addr(utcb));
@@ -249,13 +249,13 @@ Thread::unbind()
   Task *old;
 
     {
-      auto guard = lock_guard(_space.lock());
+      auto guard = lock_guard(_cpu_state.space.lock());
 
-      if (_space.space() == Kernel_task::kernel_task())
+      if (_cpu_state.space.space() == Kernel_task::kernel_task())
         return;
 
-      old = static_cast<Task*>(_space.space());
-      _space.space(Kernel_task::kernel_task());
+      old = static_cast<Task*>(_cpu_state.space.space());
+      _cpu_state.space.space(Kernel_task::kernel_task());
 
       // switch to a safe page table if the thread is to be going itself
       if (   current() == this
@@ -279,7 +279,7 @@ Thread::Thread(Ram_quota *q, Context_mode_kernel)
   : Receiver(), Sender(), _quota(q), _del_observer(0), _magic(magic)
 {
   inc_ref();
-  _space.space(Kernel_task::kernel_task());
+  _cpu_state.space.space(Kernel_task::kernel_task());
 
   if (Config::Stack_depth)
     std::memset((char*)this + sizeof(Thread), '5',
@@ -304,7 +304,7 @@ Thread::~Thread()		// To be called in locked state.
   unsigned long *init_sp = reinterpret_cast<unsigned long*>
     (reinterpret_cast<unsigned long>(this) + Size - sizeof(Entry_frame));
 
-  _kernel_sp = 0;
+  _cpu_state.kernel_sp = 0;
   *--init_sp = 0;
   Fpu_alloc::free_state(fpu_state());
   assert (!in_ready_list());
