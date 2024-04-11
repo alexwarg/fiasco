@@ -418,6 +418,34 @@ public:
     return false;
   }
 
+  void set_timeout(Timeout *t)
+  {
+    _timeout = t;
+  }
+
+  void set_timeout(Timeout *t, Unsigned64 tval)
+  {
+    _timeout = t;
+    t->set(tval, home_cpu());
+  }
+
+  void enqueue_timeout_again()
+  {
+    if (_timeout && Cpu::online(home_cpu()))
+      _timeout->set_again(home_cpu());
+  }
+
+  void reset_timeout()
+  {
+    if (EXPECT_TRUE(!_timeout))
+      return;
+
+    _timeout->reset();
+    _timeout = 0;
+  }
+
+  bool have_timeout() const
+  { return _timeout != nullptr; }
 
 
   // -- static fns --
