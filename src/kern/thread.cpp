@@ -928,24 +928,12 @@ Thread::transfer_fpu(Thread *)
 //---------------------------------------------------------------------------
 IMPLEMENTATION [!log]:
 
-PUBLIC inline
-unsigned Thread::sys_ipc_log(Syscall_frame *)
-{ return 0; }
-
-PUBLIC inline
-unsigned Thread::sys_ipc_trace(Syscall_frame *)
-{ return 0; }
-
 static inline
 void Thread::page_fault_log(Address, unsigned, unsigned)
 {}
 
 PUBLIC static inline
 int Thread::log_page_fault()
-{ return 0; }
-
-PUBLIC inline
-unsigned Thread::sys_fpage_unmap_log(Syscall_frame *)
 { return 0; }
 
 // ----------------------------------------------------------------------------
