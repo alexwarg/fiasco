@@ -10,6 +10,8 @@ IMPLEMENTATION [mips]:
 #include "processor.h"
 #include "types.h"
 
+#include <thread_vcpu.h>
+
 PROTECTED inline
 int
 Thread::sys_control_arch(Utcb const *, Utcb *)
@@ -295,7 +297,7 @@ thread_handle_tlb_fault(Mword cause, Trap_state *ts, Mword pfa)
       // TODO: Think about t->state_del(Thread_cancel); and sync with
       // at least ARM
       Thread::save_bad_instr(ts);
-      if (t->vcpu_pagefault(pfa, cause, ts->epc))
+      if (Thread_vcpu::vcpu_pagefault(t, pfa, cause, ts->epc))
         return;
 
       if (!t->handle_page_fault(pfa, cause, ts->epc, ts)

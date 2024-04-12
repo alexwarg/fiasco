@@ -23,6 +23,8 @@ IMPLEMENTATION [arm]:
 #include "types.h"
 #include "warn.h"
 
+#include <thread_vcpu.h>
+
 enum {
   FSR_STATUS_MASK = 0x0d,
   FSR_TRANSL      = 0x05,
@@ -178,7 +180,7 @@ extern "C" {
         error_code = Thread::mangle_kernel_lib_page_fault(pc, error_code);
 
         // TODO: Avoid calling Thread::map_fsr_user here everytime!
-        if (t->vcpu_pagefault(pfa, Thread::map_fsr_user(error_code, true), pc))
+        if (Thread_vcpu::vcpu_pagefault(t, pfa, Thread::map_fsr_user(error_code, true), pc))
           return 1;
         t->state.del(Thread_cancel);
       }

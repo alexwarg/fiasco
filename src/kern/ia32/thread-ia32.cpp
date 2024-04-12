@@ -378,6 +378,7 @@ Thread::update_local_map(Address, Mword)
 //----------------------------------------------------------------------------
 IMPLEMENTATION [ia32 || amd64]:
 
+#include <thread_vcpu.h>
 /**
  * The low-level page fault handler called from entry.S.  We're invoked with
  * interrupts turned off.  Apart from turning on interrupts in almost
@@ -407,7 +408,7 @@ thread_page_fault(Address pfa, Mword error_code, Address ip, Mword flags,
 
   // Pagefault in user mode or interrupts were enabled
   if (EXPECT_TRUE(PF::is_usermode_error(error_code))
-      && t->vcpu_pagefault(pfa, error_code, ip))
+      && Thread_vcpu::vcpu_pagefault(t, pfa, error_code, ip))
     return 1;
 
   if(EXPECT_TRUE(PF::is_usermode_error(error_code))
