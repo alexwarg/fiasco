@@ -244,6 +244,10 @@ thread_handle_trap(Trap_state *ts, Cpu_number)
   return handle_slow_trap(current_thread(), ts);
 }
 
+extern "C" FIASCO_FASTCALL
+int
+thread_page_fault(Address pfa, Mword error_code, Address ip, Mword flags,
+		  Return_frame *regs);
 
 /**
  * The low-level page fault handler called from entry.S.  We're invoked with
@@ -254,9 +258,8 @@ thread_handle_trap(Trap_state *ts, Cpu_number)
  * @param error_code CPU error code
  * @return true if page fault could be resolved, false otherwise
  */
-extern "C" FIASCO_FASTCALL
 int
-thread_page_fault(Address pfa, Mword error_code, Address ip, Mword flags,
+thread_page_fault(Address pfa, Mword error_code, Address ip, Mword /*flags*/,
 		  Return_frame *regs)
 {
 
