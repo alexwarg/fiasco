@@ -31,12 +31,12 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
         return commit_result(-L4_err::EPerm);
 
       if (task != vcpu_user_space())
-        vcpu_set_user_space(task);
+        set_vcpu_user_space(task);
 
       reinterpret_cast<Mword &>(vcpu->user_task) |= L4_obj_ref::Ipc_send;
     }
   else if (user_task.op() == L4_obj_ref::Ipc_reply)
-    vcpu_set_user_space(0);
+    set_vcpu_user_space(nullptr);
 
   L4_snd_item_iter snd_items(utcb, tag.words());
   int items = tag.items();
@@ -330,7 +330,7 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
       add_state |= Thread_vcpu_enabled;
       _vcpu_state.set(vcpu, vcpu_m->kern_addr(vcpu));
 
-      Vcpu_state *s = _vcpu_state.access();
+      Vcpu_state *s = new (_vcpu_state.access()) Vcpu_state;
       arch_init_vcpu_state(s, add_state & Thread_ext_vcpu_enabled);
       arch_update_vcpu_state(s);
     }

@@ -124,6 +124,19 @@ public:
     return _quota;
   }
 
+  void set_vcpu_user_space(Task *t)
+  {
+    assert (current() == this);
+    if (t)
+      t->inc_ref();
+
+    Task *old = static_cast<Task*>(_cpu_state.space.vcpu_user());
+    _cpu_state.space.vcpu_user(t);
+
+    if (old && !old->dec_ref())
+      delete old;
+  }
+
   // bind a thread to a kernel task t
   void kbind(Task *t)
   {
@@ -610,7 +623,7 @@ Thread::do_kill()
   vcpu_update_state();
 
   unbind();
-  vcpu_set_user_space(0);
+  set_vcpu_user_space(nullptr);
 
   cpu_lock.lock();
 

@@ -25,25 +25,25 @@ public:
   };
 
   /// vCPU ABI version (must be checked by the user for equality).
-  Mword version;
+  Mword version = Vcpu_arch_version;
   /// user-specific data
   Mword user_data[7];
 
   Trex _regs;
   Syscall_frame _ipc_regs;
 
-  cxx::atomic<Unsigned16> _state;
-  cxx::atomic<Unsigned16> _saved_state;
-  cxx::atomic<Unsigned16> _sticky_flags;
-  Unsigned16 _reserved;
+  cxx::atomic<Unsigned16> _state{0};
+  cxx::atomic<Unsigned16> _saved_state{0};
+  cxx::atomic<Unsigned16> _sticky_flags{0};
+  Unsigned16 _reserved = 0;
 
   L4_obj_ref user_task;
 
-  Mword _entry_sp;
-  Mword _entry_ip;
+  Mword _entry_sp = 0;
+  Mword _entry_ip = 0;
 
   // kernel-internal private state
-  Mword _sp;
+  Mword _sp = 0;
   Vcpu_host_regs host;
 
   Unsigned16 save_state_disable(Unsigned16 del)

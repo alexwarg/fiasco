@@ -494,8 +494,6 @@ IMPLEMENT_OVERRIDE inline NEEDS[Thread::_hw_virt_arch_init_vcpu_state]
 void
 Thread::arch_init_vcpu_state(Vcpu_state *vcpu_state, bool ext)
 {
-  vcpu_state->version = Vcpu_arch_version;
-
   if (ext)
     _hw_virt_arch_init_vcpu_state(vcpu_state);
 }
@@ -507,7 +505,6 @@ IMPLEMENT_OVERRIDE inline NEEDS[Thread::_hw_virt_arch_init_vcpu_state]
 void
 Thread::arch_init_vcpu_state(Vcpu_state *vcpu_state, bool ext)
 {
-  vcpu_state->version = Vcpu_arch_version;
   vcpu_state->host.fs_base = _cpu_state.fs_base;
   vcpu_state->host.gs_base = _cpu_state.gs_base;
   vcpu_state->host.ds = 0;

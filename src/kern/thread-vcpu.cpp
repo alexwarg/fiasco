@@ -49,24 +49,8 @@ Mword Thread::arch_check_vcpu_state(bool)
 IMPLEMENT_DEFAULT inline
 void Thread::arch_init_vcpu_state(Vcpu_state *vcpu, bool /*ext*/)
 {
-  vcpu->version = Vcpu_arch_version;
 }
 
-
-PUBLIC inline NEEDS["task.h"]
-void
-Thread::vcpu_set_user_space(Task *t)
-{
-  assert (current() == this);
-  if (t)
-    t->inc_ref();
-
-  Task *old = static_cast<Task*>(_cpu_state.space.vcpu_user());
-  _cpu_state.space.vcpu_user(t);
-
-  if (old && !old->dec_ref())
-    delete old;
-}
 
 PUBLIC inline NEEDS["logdefs.h", "vcpu.h"]
 bool
