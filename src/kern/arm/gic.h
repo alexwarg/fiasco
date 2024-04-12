@@ -93,8 +93,6 @@ public:
 
   void init_ap(Cpu_number cpu, bool resume) override
   {
-    _cpu.disable();
-
     if (!resume)
       self()->cpu_local_init(cpu);
 
@@ -182,7 +180,6 @@ public:
 protected:
   unsigned init_dist(int nr_irqs_override = -1)
   {
-    _cpu.disable();
     unsigned num = _dist.init(typename IMPL::Version(),
                               Cpu::Cpu_prio_val, nr_irqs_override);
     return num;
