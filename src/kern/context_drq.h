@@ -129,6 +129,7 @@ public:
 private:
   bool execute_drq_reply(Drq *r)
   {
+    (void)r;
     LOG_TRACE("DRQ handling", "drq", current(), Drq_log,
         l->type = Drq_log::Type::Do_reply;
         l->rq = r;

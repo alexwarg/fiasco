@@ -226,6 +226,7 @@ public:
 
   bool is_invalid(bool check_cpu_local = false) const
   {
+    (void) check_cpu_local;
     assert(check_cpu_local || check_for_current_cpu());
     return state.is_invalid();
   }
