@@ -35,6 +35,10 @@ Kernel_thread::bootstrap_arch()
   // install our slow trap handler
   //
   nested_trap_handler      = Trap_state::base_handler;
+
+  extern FIASCO_FASTCALL
+  int thread_handle_trap(Trap_state *ts, Cpu_number) asm ("thread_handle_trap");
+
   Trap_state::base_handler = thread_handle_trap;
 
   // initialize the profiling timer

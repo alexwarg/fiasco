@@ -1,3 +1,44 @@
+IMPLEMENTATION [io]:
+
+PRIVATE //inline
+unsigned
+Thread::check_io_bitmap_delimiter_fault(Trap_state *ts)
+{
+  // check for page fault at the byte following the IO bitmap
+  if (ts->_trapno == 14           // page fault?
+      && (ts->_err & 4) == 0         // in supervisor mode?
+      && ts->ip() <= Mem_layout::User_max   // delimiter byte accessed?
+      && (ts->_cr2 == Mem_layout::Io_bitmap + Mem_layout::Io_port_max / 8))
+    {
+      // page fault in the first byte following the IO bitmap
+      // map in the cpu_page read_only at the place
+      Mem_space::Status result =
+	mem_space()->v_insert(
+	    Mem_space::Phys_addr(mem_space()->virt_to_phys_s0((void*)Kmem::io_bitmap_delimiter_page())),
+	    Virt_addr(Mem_layout::Io_bitmap + Mem_layout::Io_port_max / 8),
+	    Mem_space::Page_order(Config::PAGE_SHIFT),
+	    Page::Attr(Page::Rights::R(), Page::Type::Normal(), Page::Kern::Global()));
+
+      switch (result)
+	{
+	case Mem_space::Insert_ok:
+	  return 1; // success
+	case Mem_space::Insert_err_nomem:
+	  // kernel failure, translate this into a general protection
+	  // violation and hope that somebody handles it
+	  ts->_trapno = 13;
+	  ts->_err    =  0;
+	  return 0; // fail
+	default:
+	  // no other error code possible
+	  assert (false);
+	}
+    }
+
+  return 1;
+}
+
+
 IMPLEMENTATION [io && (ia32 || amd64) && !no_io_pagefault]:
 
 //
@@ -130,7 +171,7 @@ Thread::get_ioport(Address eip, Trap_state *ts, unsigned *port, unsigned *size)
   return false;
 }
 
-PRIVATE inline
+PUBLIC inline
 int
 Thread::handle_io_page_fault(Trap_state *ts)
 {
@@ -211,7 +252,7 @@ Thread::handle_io_page_fault(Trap_state *ts)
 // ----------------------------------------------------------
 IMPLEMENTATION [io && no_io_pagefault]:
 
-PRIVATE inline
+PUBLIC inline
 int
 Thread::handle_io_page_fault(Trap_state *ts)
 {

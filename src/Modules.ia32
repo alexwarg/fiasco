@@ -104,6 +104,7 @@ CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc
 CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
+	traps.cc \
 	task_vcpu_resume.cc \
 	io_space.cc \
 	acpi.cc \

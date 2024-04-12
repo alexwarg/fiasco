@@ -102,6 +102,7 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc
 CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	task_vcpu_resume.cc \
+	traps.cc \
 	io_space.cc \
 	acpi.cc \
 	checksum.cc \
