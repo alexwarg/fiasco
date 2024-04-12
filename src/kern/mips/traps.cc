@@ -3,6 +3,7 @@
 #include <alternatives.h>
 #include <thread_vcpu.h>
 #include <traps.h>
+#include <handle_pagefault.h>
 
 #include <globalconfig.h>
 
@@ -214,7 +215,7 @@ user_page_fault(Thread *t, Mword cause, Trap_state *ts, Mword pfa)
     return 0;
 
   Proc::sti();
-  return t->handle_user_space_page_fault(pfa, cause);
+  return handle_user_space_page_fault(t, pfa, cause);
 }
 
 inline
@@ -225,7 +226,7 @@ kern_page_fault(Thread *t, Mword cause, Trap_state *ts, Mword pfa)
   if (!Mem_layout::in_kernel(pfa))
     {
       Proc::sti();
-      return t->handle_user_space_page_fault(pfa, cause);
+      return handle_user_space_page_fault(t, pfa, cause);
     }
 
   WARN("No page-fault handler for 0x%lx, cause 0x%lx, pc " L4_PTR_FMT "\n",

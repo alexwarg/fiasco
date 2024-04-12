@@ -171,8 +171,6 @@ public:
   }
 
 
-  int handle_page_fault(Address pfa, Mword error, Mword pc,
-                        Return_frame *regs);
 
   bool exception_triggered() const
   {
@@ -257,8 +255,6 @@ private:
   void *operator new(size_t);	///< Default new operator undefined
 
   bool do_kill();
-
-  bool handle_sigma0_page_fault (Address pfa);
 
   /**
    * Return to user.

@@ -4,6 +4,7 @@
 #include <thread_vcpu.h>
 #include <processor.h>
 #include <traps_bits.h>
+#include <handle_pagefault.h>
 
 #include <globalconfig.h>
 #include <nested_trap_handler.h>
@@ -83,7 +84,7 @@ Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
   t->state.del(Thread_cancel);
   Proc::sti();
 
-  return t->handle_user_space_page_fault(pfa, error_code);
+  return handle_user_space_page_fault(t, pfa, error_code);
 }
 
 void slowtrap_entry(Trap_state *ts)
@@ -240,7 +241,7 @@ Mword kern_pagefault_entry(Mword pfa, Mword error_code,
   if (EXPECT_TRUE(!Mem_layout::in_kernel(pfa)))
     {
       Proc::sti();
-      return t->handle_user_space_page_fault(pfa, error_code);
+      return handle_user_space_page_fault(t, pfa, error_code);
     }
 
   if (Mem_layout::is_caps_area(pfa))

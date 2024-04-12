@@ -1,4 +1,5 @@
 
+#include <handle_pagefault.h>
 #include <traps_bits.h>
 #include <thread.h>
 #include <kmem.h>
@@ -291,14 +292,14 @@ thread_page_fault(Address pfa, Mword error_code, Address ip, Mword /*flags*/,
         return 0;
 
       Proc::sti();
-      return t->handle_user_space_page_fault(pfa, error_code);
+      return handle_user_space_page_fault(t, pfa, error_code);
     }
 
   // Check for page fault in user memory area
   if (!Mem_layout::in_kernel(pfa))
     {
       Proc::sti();
-      return t->handle_user_space_page_fault(pfa, error_code);
+      return handle_user_space_page_fault(t, pfa, error_code);
     }
 
   if (Mem_layout::is_caps_area(pfa))

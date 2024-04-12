@@ -205,7 +205,7 @@ sys_call_page_IMPL	:= sys_call_page $(if $(CONFIG_BIT32), sys_call_page-arm)
 task_IMPL		:= task task-arm
 thread_IMPL	  	:= thread thread-arm \
 			   thread-ipc \
-			   thread-pagefault  thread-log \
+			   thread-log \
 			   thread-arm-$(BITS)
 timer_IMPL		:= timer timer-arm
 timer_tick_IMPL		:= timer_tick timer_tick-arm

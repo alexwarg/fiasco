@@ -203,21 +203,6 @@ Thread::update_local_map(Address, Mword)
 //----------------------------------------------------------------------------
 IMPLEMENTATION [ia32 || amd64]:
 
-//
-// Public services
-//
-
-IMPLEMENT inline
-bool
-Thread::handle_sigma0_page_fault(Address pfa)
-{
-  Mem_space::Page_order size = mem_space()->sigma0_page_size();
-  Virt_addr va = cxx::mask_lsb(Virt_addr(pfa), size);
-
-  return mem_space()->v_insert(Mem_space::Phys_addr(va), va, size,
-                               Mem_space::Attr(L4_fpage::Rights::URWX()))
-    != Mem_space::Insert_err_nomem;
-}
 
 PRIVATE static inline
 void

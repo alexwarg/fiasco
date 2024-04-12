@@ -177,16 +177,6 @@ Thread::user_invoke()
   // never returns
 }
 
-IMPLEMENT inline NEEDS["space.h", "types.h", "config.h"]
-bool Thread::handle_sigma0_page_fault(Address pfa)
-{
-  Mem_space::Page_order size = mem_space()->sigma0_page_size();
-  Virt_addr va = cxx::mask_lsb(Virt_addr(pfa), size);
-  return mem_space()->v_insert(Mem_space::Phys_addr(va), va, size,
-                               Mem_space::Attr(L4_fpage::Rights::URWX()))
-    != Mem_space::Insert_err_nomem;
-}
-
 PROTECTED inline
 int
 Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)

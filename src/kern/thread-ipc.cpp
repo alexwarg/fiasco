@@ -227,10 +227,9 @@ Thread::snd_regs(Syscall_frame *r)
     @param pfa page-fault virtual address
     @param error_code page-fault error code.
  */
-PRIVATE
+PUBLIC
 bool
-Thread::handle_page_fault_pager(Thread_ptr const &_pager,
-                                Address pfa, Mword error_code,
+Thread::handle_page_fault_pager(Address pfa, Mword error_code,
                                 L4_msg_tag::Protocol protocol)
 {
   if (EXPECT_FALSE((state() & Thread_alien)))
