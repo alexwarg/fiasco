@@ -136,6 +136,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include "vkey.h"
 #include "watchdog.h"
 
+#include <doublefault.h>
 #include <dbg_stack.h>
 
 char Jdb::_connected;			// Jdb::init() was done
@@ -194,7 +195,7 @@ void Jdb::init()
   Kconsole::console()->register_console(push_cons());
 
   _connected = true;
-  Thread::may_enter_jdb = true;
+  Dbf::may_enter_dbg = true;
 }
 
 PUBLIC static inline bool
