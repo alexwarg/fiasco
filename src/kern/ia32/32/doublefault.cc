@@ -1,16 +1,5 @@
-INTERFACE:
 
-EXTENSION class Thread
-{
-private:
-  static void handle_double_fault (void) asm ("thread_handle_double_fault");
-
-public:
-  static bool may_enter_jdb;
-};
-
-
-IMPLEMENTATION:
+#include <doublefault.h>
 
 #include <cstdio>
 #include "cpu.h"
@@ -20,13 +9,15 @@ IMPLEMENTATION:
 #include "trap_state.h"
 #include "tss.h"
 #include "watchdog.h"
+#include <thread.h>
 
+namespace Dbf {
 
-bool Thread::may_enter_jdb = false;
+bool may_enter_dbg = false;
 
-IMPLEMENT
-void
-Thread::handle_double_fault (void)
+void handle_double_fault(void) asm ("thread_handle_double_fault");
+
+void handle_double_fault()
 {
   // cannot use current_cpu() here because this must run on a thread stack,
   // not on a dbf stack
@@ -49,7 +40,7 @@ Thread::handle_double_fault (void)
 	  tss->_eflags, tss->_eip, tss->_cs & 0xffff,
           cxx::int_value<Cpu_number>(current_cpu()));
 
-  if (may_enter_jdb)
+  if (may_enter_dbg)
     {
       puts ("Return reboots, \"k\" tries to enter the L4 kernel debugger...");
 
@@ -85,17 +76,19 @@ Thread::handle_double_fault (void)
 	    (
 	     "call   *%2	\n\t"
 	     : "=a"(dummy)
-	     : "a"(&ts), "m"(nested_trap_handler)
+	     : "a"(&ts), "m"(Thread::nested_trap_handler)
 	     : "ecx", "edx", "memory");
 	}
     }
   else
     {
-      puts ("Return reboots");
+      puts("Return reboots");
       while ((Kconsole::console()->getchar(false)) == -1)
 	Proc::pause();
     }
 
-  puts ("\033[1mRebooting...\033[0m");
+  puts("\033[1mRebooting...\033[0m");
   platform_reset();
+}
+
 }
