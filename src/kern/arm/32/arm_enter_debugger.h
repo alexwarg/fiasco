@@ -1,8 +1,10 @@
-IMPLEMENTATION [arm && 32bit && debug]:
+#pragma once
 
-PRIVATE static inline int
-Thread::arm_enter_debugger(Trap_state *ts, Cpu_number log_cpu,
-                           unsigned long *ntr, void *stack)
+#include <thread.h>
+
+inline int
+arm_enter_debugger(Trap_state *ts, Cpu_number log_cpu,
+                   unsigned long *ntr, void *stack)
 {
   Mword dummy1, tmp;
   register Mword _ts asm("r0") = (Mword)ts;
@@ -28,7 +30,7 @@ Thread::arm_enter_debugger(Trap_state *ts, Cpu_number log_cpu,
       : [origstack] "=&r" (dummy1), [tmp] "=&r" (tmp),
         "=r" (_ts), "=r" (_lcpu)
       : [ntr] "r" (ntr), [stack] "r" (stack),
-        [handler] "r" (*nested_trap_handler),
+        [handler] "r" (*Thread::nested_trap_handler),
         "2" (_ts), "3" (_lcpu)
       : "memory", "r2", "r3", "r9", "r12", "r14");
 

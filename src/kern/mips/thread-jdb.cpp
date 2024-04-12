@@ -22,9 +22,6 @@ public:
     Op_kdebug_text = 1,
     Op_kdebug_call = 2,
   };
-
-private:
-  static Trap_state::Handler nested_trap_handler FIASCO_FASTCALL;
 };
 
 //------------------------------------------------------------------------------

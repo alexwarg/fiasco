@@ -344,6 +344,11 @@ protected:
   // Debugging facilities
   unsigned _magic;
   static const unsigned magic = 0xf001c001;
+
+public:
+#ifdef CONFIG_JDB
+  static Trap_state::Handler nested_trap_handler FIASCO_FASTCALL;
+#endif
 };
 
 

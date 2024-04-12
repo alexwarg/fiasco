@@ -2,6 +2,7 @@
 
 #include <processor.h>
 #include <globalconfig.h>
+#include <nested_trap_handler.h>
 
 #define ARM_USE_ESR_TRAPS 1
 
@@ -205,18 +206,18 @@ void arm_kernel_sync_entry(Trap_state *ts)
       if (EXPECT_FALSE(!handle_cap_area_fault(ts)))
         {
           ts->pf_address = get_fault_pfa(esr, false, false);
-          Thread::call_nested_trap_handler(ts);
+          call_nested_trap_handler(ts);
         }
       break;
 
     case 0x3c: // BRK
-      Thread::call_nested_trap_handler(ts);
+      call_nested_trap_handler(ts);
       ts->pc += 4;
       break;
 
     default:
       ts->pf_address = get_fault_pfa(esr, false, false);
-      Thread::call_nested_trap_handler(ts);
+      call_nested_trap_handler(ts);
       break;
     }
 }

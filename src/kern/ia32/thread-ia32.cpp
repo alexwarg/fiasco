@@ -14,9 +14,6 @@ private:
    * Return code segment used for exception reflection to user mode
    */
   static Mword exception_cs();
-
-protected:
-  static Trap_state::Handler nested_trap_handler FIASCO_FASTCALL;
 };
 
 //----------------------------------------------------------------------------

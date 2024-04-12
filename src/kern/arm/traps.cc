@@ -6,6 +6,7 @@
 #include <traps_bits.h>
 
 #include <globalconfig.h>
+#include <nested_trap_handler.h>
 
 #ifdef CONFIG_ARM_LPAE
 
@@ -144,7 +145,7 @@ void slowtrap_entry(Trap_state *ts)
 
   if (Thread::is_debug_exception(ts->error_code))
     {
-      Thread::call_nested_trap_handler(ts);
+      call_nested_trap_handler(ts);
       return;
     }
 
