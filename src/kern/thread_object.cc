@@ -306,7 +306,7 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
     vcpu = User<Vcpu_state>::Ptr((Vcpu_state*)utcb->values[1]);
 
   Mword del_state = 0;
-  Mword add_state = 0;
+  Thread_state add_state = 0;
 
   if (vcpu)
     {
@@ -316,22 +316,22 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
           if (!arch_ext_vcpu_enabled())
             return commit_result(-L4_err::ENosys);
           size = Config::PAGE_SIZE;
-          add_state |= Thread_ext_vcpu_enabled;
+          add_state.vcpu_enabled() = true;
         }
 
       Space::Ku_mem const *vcpu_m = space()->find_ku_mem(vcpu, size);
       if (!vcpu_m)
         return commit_result(-L4_err::EInval);
 
-      Mword ret = arch_check_vcpu_state(add_state & Thread_ext_vcpu_enabled);
+      Mword ret = arch_check_vcpu_state(add_state.vcpu_enabled());
       if (ret != 0)
         return commit_result(ret);
 
-      add_state |= Thread_vcpu_enabled;
+      add_state.vcpu_enabled() = true;
       _vcpu_state.set(vcpu, vcpu_m->kern_addr(vcpu));
 
       Vcpu_state *s = new (_vcpu_state.access()) Vcpu_state;
-      arch_init_vcpu_state(s, add_state & Thread_ext_vcpu_enabled);
+      arch_init_vcpu_state(s, add_state.vcpu_enabled());
       arch_update_vcpu_state(s);
     }
   else
@@ -345,7 +345,7 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
     }
   */
 
-  if (xcpu_state_change(~del_state, add_state, true))
+  if (xcpu_state_change(~del_state, add_state.state, true))
     current()->switch_to_locked(this);
 
   return commit_result(0);
