@@ -37,6 +37,9 @@ public:
     Identity_map = 0,
   };
 
+  Page_order sigma0_page_size() const
+  { return Virt_order(Config::SUPERPAGE_SHIFT); }
+
   Phys_mem_addr dir_phys() const { return _dir_phys; }
 
   static void kernel_space(Mem_space *);

@@ -47,6 +47,9 @@ public:
     Identity_map = 0,
   };
 
+  Page_order sigma0_page_size() const
+  { return largest_page_size(); }
+
 protected:
   // DATA
   Dir_type *_dir;
