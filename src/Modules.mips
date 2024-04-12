@@ -119,6 +119,8 @@ CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
+CXXSRC_KERNEL-$(CONFIG_JDB) += traps.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += ipi_handler.cc
 
 #missing: jdb_extensions
 
