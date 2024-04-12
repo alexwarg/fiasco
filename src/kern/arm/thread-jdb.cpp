@@ -2,7 +2,7 @@ INTERFACE [arm]:
 
 EXTENSION class Thread
 {
-protected:
+public:
   static int call_nested_trap_handler(Trap_state *ts) asm ("call_nested_trap_handler");
 };
 

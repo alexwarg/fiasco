@@ -1,0 +1,224 @@
+#pragma once
+
+#include <processor.h>
+#include <globalconfig.h>
+
+#define ARM_USE_ESR_TRAPS 1
+
+#ifdef CONFIG_CPU_VIRT
+#  define EL_REG(x) #x "_EL2"
+#else
+#  define EL_REG(x) #x "_EL1"
+#endif
+
+inline Mword
+pagefault_entry(Mword pfa, Mword error_code,
+                Mword pc, Return_frame *ret_frame);
+
+extern "C" void
+slowtrap_entry(Trap_state *ts);
+
+inline Arm_esr get_esr()
+{
+  Arm_esr esr;
+  asm volatile ("mrs %0, " EL_REG(ESR) : "=r"(esr));
+  return esr;
+}
+
+constexpr inline bool
+is_syscall_pc(Address)
+{
+  return false;
+}
+
+constexpr inline Mword
+get_lr_for_mode(Return_frame const *rf)
+{
+  return rf->r[30];
+}
+
+#ifdef CONFIG_CPU_VIRT
+
+inline Address
+get_fault_pfa(Arm_esr hsr, bool /*insn_abt*/, bool ext_vcpu)
+{
+  if (EXPECT_FALSE(hsr.pf_fnv())) // bit is RES0 on IFSC!=0x10 / DFSC!=0x10
+    return ~0UL;
+
+  Address a;
+  asm volatile ("mrs %0, FAR_EL2" : "=r"(a));
+  if (EXPECT_TRUE(!ext_vcpu) || !(Proc::sctlr_el1() & Cpu::Sctlr_m))
+    return a;
+
+  if (hsr.pf_s1ptw() || (hsr.pf_fsc() < 0xc))
+    // stage 1 walk or access flag translation or size fault
+    {
+      Mword ipa;
+      asm ("mrs %0, HPFAR_EL2" : "=r" (ipa));
+      return (ipa << 8) | (a & 0xfff);
+    }
+
+  Mword par_tmp, res;
+  asm ("mrs %[tmp], PAR_EL1 \n"
+       "at  s1e1r, %[va]    \n"
+       "isb                 \n"
+       "mrs %[res], PAR_EL1 \n"
+       "msr PAR_EL1, %[tmp] \n"
+       : [tmp] "=&r" (par_tmp),
+         [res] "=r" (res)
+       : [va]  "r" (a));
+
+  if (res & 1)
+    return ~0UL;
+
+  return (res & 0x00fffffffffff000) | (a & 0xfff);
+}
+
+inline bool
+handle_cap_area_fault(Trap_state *)
+{
+  return false; // cannot happen in HYP mode
+}
+
+#else // CONFIG_CPU_VIRT
+
+inline Address
+get_fault_pfa(Arm_esr hsr, bool /*insn_abt*/, bool /*ext_vcpu*/)
+{
+  if (EXPECT_FALSE(hsr.pf_fnv())) // bit is RES0 on IFSC!=0x10 / DFSC!=0x10
+    return ~0UL;
+
+  Address a;
+  asm volatile ("mrs %0, FAR_EL1" : "=r"(a));
+  return a;
+}
+
+inline bool
+handle_cap_area_fault(Trap_state *ts)
+{
+  Address pfa;
+  asm volatile ("mrs %0, FAR_EL1" : "=r"(pfa));
+
+  if (EXPECT_FALSE(!Mem_layout::is_caps_area(pfa)))
+    return false;
+
+  if (EXPECT_FALSE(!Thread::pagein_tcb_request(ts)))
+    return false;
+
+  return true;
+}
+
+#endif // CONFIG_CPU_VIRT
+
+#ifdef CONFIG_FPU
+
+static bool
+handle_fpu_trap(Trap_state *ts)
+{
+  if (Fpu::is_enabled())
+    {
+      ts->esr.ec() = 0; // tag fpu undef insn
+    }
+  else if (current_thread()->switchin_fpu())
+    {
+      return true;
+    }
+  else
+    {
+      ts->esr.ec() = 0x07;
+      ts->esr.cv() = 1;
+      ts->esr.cpt_cpnr() = 10;
+    }
+
+  return false;
+}
+
+#else // CONFIG_FPU
+
+inline bool handle_fpu_trap(Trap_state *)
+{
+  return false;
+}
+
+#endif // CONFIG_FPU
+
+inline bool
+check_and_handle_coproc_faults(Thread *, Trap_state *)
+{
+  return false;
+}
+
+inline void
+do_syscall()
+{
+  typedef void Syscall(void);
+  extern Syscall *sys_call_table[];
+  sys_call_table[0]();
+}
+
+
+inline void
+handle_svc(Context *c, Trap_state *ts)
+{
+  Mword state = c->state.dirty();
+  c->state.del(Thread_cancel);
+  if (state & (Thread_vcpu_user | Thread_alien))
+    {
+      if (state & Thread_dis_alien)
+        {
+          c->state.del_dirty(Thread_dis_alien);
+          do_syscall();
+
+          ts->error_code |= 1 << 16; // ts->esr().alien_after_syscall() = 1;
+        }
+
+      slowtrap_entry(ts);
+      return;
+    }
+
+  do_syscall();
+}
+
+
+extern "C" void arm_kernel_sync_entry(Trap_state *ts);
+void arm_kernel_sync_entry(Trap_state *ts)
+{
+  auto esr = get_esr();
+  ts->esr = esr;
+
+  if (ts->psr & (1UL << 20))
+    {
+      // Illegal execution state: This could happen in hyp mode if PPSR_EL2
+      // contains an invalid mode during ERET (``Illegal return event from
+      // AArch64 state'').
+      ts->psr &= ~(Proc::Status_mode_mask | Proc::Status_interrupts_mask);
+      ts->psr |= Proc::Status_mode_user | Proc::Status_always_mask;
+      ts->esr.ec() = 0xe;
+      ts->pf_address = 0UL;
+      current_thread()->send_exception(ts);
+      return;
+    }
+
+  switch (esr.ec())
+    {
+    case 0x25: // data abort from kernel mode
+      if (EXPECT_FALSE(!handle_cap_area_fault(ts)))
+        {
+          ts->pf_address = get_fault_pfa(esr, false, false);
+          Thread::call_nested_trap_handler(ts);
+        }
+      break;
+
+    case 0x3c: // BRK
+      Thread::call_nested_trap_handler(ts);
+      ts->pc += 4;
+      break;
+
+    default:
+      ts->pf_address = get_fault_pfa(esr, false, false);
+      Thread::call_nested_trap_handler(ts);
+      break;
+    }
+}
+
+

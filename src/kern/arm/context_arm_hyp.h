@@ -8,6 +8,9 @@ template<typename CTXT>
 class Context_arch_base :  public Context_arch_bits
 {
 private:
+  template<typename T>
+  friend class Thread_vcpu_arch_t;
+
   using Context = CTXT;
 
   Context *_this()

@@ -430,23 +430,6 @@ IMPLEMENTATION [mips && mips_vz]:
 
 #include "cpu.h"
 #include "vz.h"
-
-IMPLEMENT_OVERRIDE inline NEEDS["cpu.h"]
-bool
-Thread::arch_ext_vcpu_enabled()
-{ return Cpu::options.vz(); }
-
-IMPLEMENT_OVERRIDE
-void
-Thread::arch_init_vcpu_state(Vcpu_state *vcpu_state, bool ext)
-{
-  if (!ext || (state() & Thread_ext_vcpu_enabled))
-    return;
-
-  Vz::State *v = vm_state(vcpu_state);
-  v->init();
-}
-
 PRIVATE inline
 int
 Thread::sys_vz_save_state(L4_msg_tag tag, Utcb const *utcb)

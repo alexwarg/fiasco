@@ -10,6 +10,8 @@
 #include "timer.h"
 #include "kobject_rpc.h"
 
+#include <thread_vcpu.h>
+
 inline
 L4_msg_tag
 Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
@@ -313,7 +315,7 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
       Mword size = sizeof(Vcpu_state);
       if (utcb->values[0] & Vcpu_ctl_extended_vcpu)
         {
-          if (!arch_ext_vcpu_enabled())
+          if (!Thread_vcpu::ext_vcpu_available())
             return commit_result(-L4_err::ENosys);
           size = Config::PAGE_SIZE;
           add_state.vcpu_enabled() = true;
@@ -323,15 +325,14 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
       if (!vcpu_m)
         return commit_result(-L4_err::EInval);
 
-      Mword ret = arch_check_vcpu_state(add_state.vcpu_enabled());
-      if (ret != 0)
+      if (int ret = Thread_vcpu::pre_check(this, add_state.vcpu_enabled()))
         return commit_result(ret);
 
       add_state.vcpu_enabled() = true;
       _vcpu_state.set(vcpu, vcpu_m->kern_addr(vcpu));
 
       Vcpu_state *s = new (_vcpu_state.access()) Vcpu_state;
-      arch_init_vcpu_state(s, add_state.vcpu_enabled());
+      Thread_vcpu::init_state(this, s, add_state.vcpu_enabled());
       arch_update_vcpu_state(s);
     }
   else

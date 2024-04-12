@@ -313,8 +313,6 @@ public:
   static Per_cpu<unsigned long> nested_trap_recover;
   static void handle_global_remote_requests_irq() asm ("ipi_remote_call");
 
-  bool arch_ext_vcpu_enabled();
-
 protected:
   /**
    * Cut-down version of Thread constructor; only for kernel threads
@@ -690,11 +688,6 @@ Thread::control(Thread_ptr const &pager, Thread_ptr const &exc_handler)
 
   return 0;
 }
-
-IMPLEMENT_DEFAULT inline
-bool
-Thread::arch_ext_vcpu_enabled()
-{ return false; }
 
 //---------------------------------------------------------------------------
 IMPLEMENTATION [!log]:

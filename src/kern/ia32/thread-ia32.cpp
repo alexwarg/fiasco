@@ -458,69 +458,6 @@ Thread::save_fpu_state_to_utcb(Trap_state *, Utcb *)
 {}
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [!(vmx || svm) && (ia32 || amd64)]:
-
-PRIVATE inline void Thread::_hw_virt_arch_init_vcpu_state(Vcpu_state *) {}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [(vmx || svm) && (ia32 || amd64)]:
-
-#include "vmx.h"
-#include "svm.h"
-
-PRIVATE inline NEEDS["vmx.h", "svm.h", "cpu.h"]
-void
-Thread::_hw_virt_arch_init_vcpu_state(Vcpu_state *vcpu_state)
-{
-  if (Vmx::cpus.current().vmx_enabled())
-    Vmx::cpus.current().init_vmcs_infos(vcpu_state);
-
-  if (Cpu::boot_cpu()->vendor() == Cpu::Vendor_intel)
-    vcpu_state->user_data[6] = (Mword)Cpu::ucode_revision();
-
-  // currently we do nothing for SVM here
-}
-
-IMPLEMENT_OVERRIDE
-bool
-Thread::arch_ext_vcpu_enabled()
-{
-  return Vmx::cpus.current().vmx_enabled() || Svm::cpus.current().svm_enabled();
-}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [ia32]:
-
-IMPLEMENT_OVERRIDE inline NEEDS[Thread::_hw_virt_arch_init_vcpu_state]
-void
-Thread::arch_init_vcpu_state(Vcpu_state *vcpu_state, bool ext)
-{
-  if (ext)
-    _hw_virt_arch_init_vcpu_state(vcpu_state);
-}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [amd64]:
-
-IMPLEMENT_OVERRIDE inline NEEDS[Thread::_hw_virt_arch_init_vcpu_state]
-void
-Thread::arch_init_vcpu_state(Vcpu_state *vcpu_state, bool ext)
-{
-  vcpu_state->host.fs_base = _cpu_state.fs_base;
-  vcpu_state->host.gs_base = _cpu_state.gs_base;
-  vcpu_state->host.ds = 0;
-  vcpu_state->host.es = 0;
-  vcpu_state->host.fs = 0;
-  vcpu_state->host.gs = 0;
-  vcpu_state->host.user_ds32 = Gdt::gdt_data_user | Gdt::Selector_user;
-  vcpu_state->host.user_cs64 = Gdt::gdt_code_user | Gdt::Selector_user;
-  vcpu_state->host.user_cs32 = Gdt::gdt_code_user32 | Gdt::Selector_user;
-
-  if (ext)
-    _hw_virt_arch_init_vcpu_state(vcpu_state);
-}
-
-//----------------------------------------------------------------------------
 IMPLEMENTATION [ia32 || amd64]:
 
 #include <feature.h>
