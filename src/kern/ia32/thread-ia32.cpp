@@ -203,48 +203,6 @@ Thread::update_local_map(Address, Mword)
 //----------------------------------------------------------------------------
 IMPLEMENTATION [ia32 || amd64]:
 
-#include <thread_vcpu.h>
-/**
- * The low-level page fault handler called from entry.S.  We're invoked with
- * interrupts turned off.  Apart from turning on interrupts in almost
- * all cases (except for kernel page faults in TCB area), just forwards
- * the call to Thread::handle_page_fault().
- * @param pfa page-fault virtual address
- * @param error_code CPU error code
- * @return true if page fault could be resolved, false otherwise
- */
-extern "C" FIASCO_FASTCALL
-int
-thread_page_fault(Address pfa, Mword error_code, Address ip, Mword flags,
-		  Return_frame *regs)
-{
-
-  // XXX: need to do in a different way, if on debug stack e.g.
-#if 0
-  // If we're in the GDB stub -- let generic handler handle it
-  if (EXPECT_FALSE (!in_context_area((void*)Proc::stack_pointer())))
-    return false;
-#endif
-
-  Thread *t = current_thread();
-
-  if (t->update_local_map(pfa, error_code))
-    return 1;
-
-  // Pagefault in user mode or interrupts were enabled
-  if (EXPECT_TRUE(PF::is_usermode_error(error_code))
-      && Thread_vcpu::vcpu_pagefault(t, pfa, error_code, ip))
-    return 1;
-
-  if(EXPECT_TRUE(PF::is_usermode_error(error_code))
-     || (flags & EFLAGS_IF)
-     || !Kmem::is_kmem_page_fault(pfa, error_code))
-    Proc::sti();
-
-  return t->handle_page_fault(pfa, error_code, ip, regs);
-}
-
-
 //
 // Public services
 //

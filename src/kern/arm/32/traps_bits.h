@@ -17,16 +17,6 @@ inline Arm_esr get_esr()
 
 #ifdef CONFIG_CPU_VIRT
 #define ARM_USE_ESR_TRAPS 1
-
-inline Mword
-pagefault_entry(Mword pfa, Mword error_code,
-                Mword pc, Return_frame *ret_frame);
-
-#else
-extern "C" Mword
-pagefault_entry(Mword pfa, Mword error_code,
-                Mword pc, Return_frame *ret_frame);
-
 #endif
 
 inline bool

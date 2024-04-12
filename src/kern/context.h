@@ -148,6 +148,12 @@ public:
   void recover_jmp_buf(jmp_buf *b)
   { _recover_jmpbuf = b; }
 
+  void do_recover_jmp_buf()
+  {
+    if (_recover_jmpbuf)
+      longjmp(*_recover_jmpbuf, 1);
+  }
+
   Ku_mem_ptr<Utcb> const &utcb() const
   { return _utcb; }
 

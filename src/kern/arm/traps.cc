@@ -62,59 +62,28 @@ inline Mword map_fsr_user(Mword fsr, bool)
 
 #endif // CONFIG_ARM_LPAE
 
-/**
- * The low-level page fault handler called from entry.S.  We're invoked with
- * interrupts turned off.  Apart from turning on interrupts in almost
- * all cases (except for kernel page faults in TCB area), just forwards
- * the call to Thread::handle_page_fault().
- * @param pfa page-fault virtual address
- * @param error_code CPU error code
- * @return true if page fault could be resolved, false otherwise
- */
-Mword pagefault_entry(Mword pfa, Mword error_code,
-                      Mword pc, Return_frame *ret_frame)
+inline
+Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
 {
-  if (EXPECT_FALSE(PF::is_alignment_error(error_code)))
-    {
-      WARNX(Warning,
-            "KERNEL%d: alignment error at %08lx (PC: %08lx, SP: %08lx, FSR: %lx, PSR: %lx)\n",
-            cxx::int_value<Cpu_number>(current_cpu()), pfa, pc,
-            ret_frame->usp, error_code, ret_frame->psr);
-      return false;
-    }
-
-  if (EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
+  if (!IS_ENABLED(CONFIG_ARM_LPAE)
+      && EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
     return 0;
 
-  Thread *t = current_thread();
-
-  // cache operations we carry out for user space might cause PFs, we just
-  // ignore those
-  if (EXPECT_FALSE(!PF::is_usermode_error(error_code))
-      && EXPECT_FALSE(t->kernel_mem_op.is_ignore()))
-    {
-      t->kernel_mem_op.set_hit();
-      ret_frame->pc += 4;
-      return 1;
-    }
-
   // Pagefault in user mode
-  if (PF::is_usermode_error(error_code))
-    {
-      error_code = Thread::mangle_kernel_lib_page_fault(pc, error_code);
+  error_code = Thread::mangle_kernel_lib_page_fault(pc, error_code);
 
-      // TODO: Avoid calling Thread::map_fsr_user here everytime!
-      if (Thread_vcpu::vcpu_pagefault(t, pfa, map_fsr_user(error_code, true), pc))
-        return 1;
-      t->state.del(Thread_cancel);
-    }
+  Thread *t = current_thread();
+  // TODO: Avoid calling Thread::map_fsr_user here everytime!
+  if (Thread_vcpu::vcpu_pagefault(t, pfa, map_fsr_user(error_code, true), pc))
+    return 1;
 
-  if (EXPECT_TRUE(PF::is_usermode_error(error_code))
-      || !(ret_frame->psr & Proc::Status_preempt_disabled)
-      || !Kmem::is_kmem_page_fault(pfa, error_code))
-    Proc::sti();
+  if (Mem_layout::in_kernel(pfa))
+      return 0;
 
-  return t->handle_page_fault(pfa, error_code, pc, ret_frame);
+  t->state.del(Thread_cancel);
+  Proc::sti();
+
+  return t->handle_user_space_page_fault(pfa, error_code);
 }
 
 void slowtrap_entry(Trap_state *ts)
@@ -156,7 +125,6 @@ void slowtrap_entry(Trap_state *ts)
   t->kill();
 }
 
-
 #ifdef ARM_USE_ESR_TRAPS
 
 extern "C" void arm_esr_entry(Return_frame *rf);
@@ -175,7 +143,7 @@ void arm_esr_entry(Return_frame *rf)
     {
     case 0x20: // Instruction abort from a lower exception level
       tmp = get_fault_pfa(esr, true, state & Thread_ext_vcpu_enabled);
-      if (!pagefault_entry(tmp, esr.raw(), rf->pc, rf))
+      if (!user_pagefault_entry(tmp, esr.raw(), rf->pc))
         {
           Proc::cli();
           ts->pf_address = tmp;
@@ -186,7 +154,7 @@ void arm_esr_entry(Return_frame *rf)
 
     case 0x24: // Data abort from a lower exception Level
       tmp = get_fault_pfa(esr, false, state & Thread_ext_vcpu_enabled);
-      if (!pagefault_entry(tmp, esr.raw(), rf->pc, rf))
+      if (!user_pagefault_entry(tmp, esr.raw(), rf->pc))
         {
           Proc::cli();
           ts->pf_address = tmp;
@@ -245,6 +213,81 @@ void arm_esr_entry(Return_frame *rf)
       ct->send_exception(ts);
       break;
     }
+}
+
+#else // ARM_USE_ESR_TRAPS
+
+inline
+Mword kern_pagefault_entry(Mword pfa, Mword error_code,
+                           Mword pc, Return_frame *ret_frame)
+{
+  if (EXPECT_FALSE(PF::is_alignment_error(error_code)))
+    {
+      WARNX(Warning,
+            "KERNEL%d: alignment error at %08lx (PC: %08lx, SP: %08lx, FSR: %lx, PSR: %lx)\n",
+            cxx::int_value<Cpu_number>(current_cpu()), pfa, pc,
+            ret_frame->usp, error_code, ret_frame->psr);
+      return 0;
+    }
+
+  if (!IS_ENABLED(CONFIG_ARM_LPAE)
+      && EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
+    return 0;
+
+  Thread *t = current_thread();
+
+  // Check for page fault in user memory area
+  if (EXPECT_TRUE(!Mem_layout::in_kernel(pfa)))
+    {
+      Proc::sti();
+      return t->handle_user_space_page_fault(pfa, error_code);
+    }
+
+  if (Mem_layout::is_caps_area(pfa))
+    {
+      // Test for special case -- see function documentation
+      if (t->pagein_tcb_request(ret_frame))
+        return 2;
+
+      printf("Fiasco BUG: Invalid CAP access (pc=%lx, pfa=%lx)\n", pc, pfa);
+      kdb_ke("Fiasco BUG: Invalid access to Caps area");
+      return 0;
+    }
+
+  // cache operations we carry out for user space might cause PFs, we just
+  // ignore those
+  if (EXPECT_FALSE(t->kernel_mem_op.is_ignore()))
+    {
+      t->kernel_mem_op.set_hit();
+      ret_frame->pc += 4;
+      return 1;
+    }
+
+  t->do_recover_jmp_buf();
+  return 0;
+}
+
+/**
+ * The low-level page fault handler called from entry.S.  We're invoked with
+ * interrupts turned off.  Apart from turning on interrupts in almost
+ * all cases (except for kernel page faults in TCB area), just forwards
+ * the call to Thread::handle_page_fault().
+ * @param pfa page-fault virtual address
+ * @param error_code CPU error code
+ * @return true if page fault could be resolved, false otherwise
+ */
+extern "C" Mword
+pagefault_entry(Mword pfa, Mword error_code,
+                Mword pc, Return_frame *ret_frame);
+
+[[gnu::flatten]]
+Mword pagefault_entry(Mword pfa, Mword error_code,
+                      Mword pc, Return_frame *ret_frame)
+{
+  if (EXPECT_TRUE(PF::is_usermode_error(error_code)))
+    return user_pagefault_entry(pfa, error_code, pc);
+  else
+    return kern_pagefault_entry(pfa, error_code, pc, ret_frame);
 }
 
 #endif // ARM_USE_ESR_TRAPS

@@ -20,10 +20,14 @@ IMPLEMENTATION [arm]:
 #include "mem_unit.h"
 #include "paging.h"
 #include <cassert>
+#include <std_macros.h>
 
-IMPLEMENT inline
-Mword Kmem::is_kmem_page_fault(Mword pfa, Mword)
+IMPLEMENT inline NEEDS[<std_macros.h>]
+Mword Kmem::is_kmem_page_fault(Mword pfa, Mword error_code)
 {
+  if (IS_ENABLED(CONFIG_CPU_VIRT) && !PF::is_usermode_error(error_code))
+    return true;
+
   return in_kernel(pfa);
 }
 

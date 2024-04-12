@@ -13,7 +13,33 @@ IMPLEMENTATION:
 #include "warn.h"
 #include "paging.h"
 
+PUBLIC inline
+int
+Thread::handle_user_space_page_fault(Address pfa, Mword error_code)
+{
+  // Make sure that we do not handle page faults that do not
+  // belong to this thread.
+  //assert (mem_space() == current_mem_space());
 
+  if (EXPECT_FALSE(mem_space()->is_sigma0()))
+    {
+      // special case: sigma0 can map in anything from the kernel
+      if(handle_sigma0_page_fault(pfa))
+        return 1;
+    }
+
+  // user mode page fault -- send pager request
+  else if (handle_page_fault_pager(_pager, pfa, error_code,
+                                   L4_msg_tag::Label_page_fault))
+    return 1;
+
+  if (_recover_jmpbuf)
+    longjmp(*_recover_jmpbuf, 1);
+
+  return 0;
+}
+
+#if 0
 /** 
  * The global page fault handler switch.
  * Handles page-fault monitoring, classification of page faults based on
@@ -39,32 +65,9 @@ int Thread::handle_page_fault(Address pfa, Mword error_code, Mword pc,
   if (EXPECT_FALSE(log_page_fault()))
     page_fault_log(pfa, error_code, pc);
 
-  L4_msg_tag ipc_code = L4_msg_tag(0, 0, 0, 0);
-
   // Check for page fault in user memory area
   if (EXPECT_TRUE(!Kmem::is_kmem_page_fault(pfa, error_code)))
-    {
-      // Make sure that we do not handle page faults that do not
-      // belong to this thread.
-      //assert (mem_space() == current_mem_space());
-
-      if (EXPECT_FALSE(mem_space()->is_sigma0()))
-        {
-          // special case: sigma0 can map in anything from the kernel
-	  if(handle_sigma0_page_fault(pfa))
-            return 1;
-
-          ipc_code.set_error();
-          goto error;
-        }
-
-      // user mode page fault -- send pager request
-      if (handle_page_fault_pager(_pager, pfa, error_code,
-                                  L4_msg_tag::Label_page_fault))
-        return 1;
-
-      goto error;
-    }
+    return handle_user_space_page_fault(pfa, error_code);
 
   // Check for page fault in kernel memory region caused by user mode
   else if (EXPECT_FALSE(PF::is_usermode_error(error_code)))
@@ -97,12 +100,10 @@ int Thread::handle_page_fault(Address pfa, Mword error_code, Mword pc,
   WARN("No page-fault handler for 0x%lx, error 0x%lx, pc " L4_PTR_FMT "\n",
         pfa, error_code, pc);
 
-  // An error occurred.  Our last chance to recover is an exception
-  // handler a kernel function may have set.
- error:
-
   if (_recover_jmpbuf)
     longjmp(*_recover_jmpbuf, 1);
 
   return 0;
 }
+
+#endif

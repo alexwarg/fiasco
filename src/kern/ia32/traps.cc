@@ -7,8 +7,11 @@
 #include <kernel_task.h>
 #include <dbg_stack.h>
 #include <kernel_console.h>
+#include <thread_vcpu.h>
 #include <terminate.h>
 #include <keycodes.h>
+#include <kdb_ke.h>
+#include <warn.h>
 #include <globalconfig.h>
 
 #ifndef CONFIG_JDB
@@ -239,6 +242,78 @@ int
 thread_handle_trap(Trap_state *ts, Cpu_number)
 {
   return handle_slow_trap(current_thread(), ts);
+}
+
+
+/**
+ * The low-level page fault handler called from entry.S.  We're invoked with
+ * interrupts turned off.  Apart from turning on interrupts in almost
+ * all cases (except for kernel page faults in TCB area), just forwards
+ * the call to Thread::handle_page_fault().
+ * @param pfa page-fault virtual address
+ * @param error_code CPU error code
+ * @return true if page fault could be resolved, false otherwise
+ */
+extern "C" FIASCO_FASTCALL
+int
+thread_page_fault(Address pfa, Mword error_code, Address ip, Mword flags,
+		  Return_frame *regs)
+{
+
+  // XXX: need to do in a different way, if on debug stack e.g.
+#if 0
+  // If we're in the GDB stub -- let generic handler handle it
+  if (EXPECT_FALSE (!in_context_area((void*)Proc::stack_pointer())))
+    return false;
+#endif
+
+  Thread *t = current_thread();
+
+  if (t->update_local_map(pfa, error_code))
+    return 1;
+
+  // Check for page fault in IO bit map or in delimiter byte behind IO bitmap
+  // assume it is caused by an input/output instruction and fall through to
+  // handle_slow_trap
+  if (EXPECT_FALSE(Kmem::is_io_bitmap_page_fault(pfa)))
+    return 0;
+
+  // Pagefault in user mode or interrupts were enabled
+  if (EXPECT_TRUE(PF::is_usermode_error(error_code)))
+    {
+      if (Thread_vcpu::vcpu_pagefault(t, pfa, error_code, ip))
+        return 1;
+
+      if (Mem_layout::in_kernel(pfa))
+        return 0;
+
+      Proc::sti();
+      return t->handle_user_space_page_fault(pfa, error_code);
+    }
+
+  // Check for page fault in user memory area
+  if (!Mem_layout::in_kernel(pfa))
+    {
+      Proc::sti();
+      return t->handle_user_space_page_fault(pfa, error_code);
+    }
+
+  if (Mem_layout::is_caps_area(pfa))
+    {
+      // Test for special case -- see function documentation
+      if (t->pagein_tcb_request(regs))
+        return 2;
+
+      printf("Fiasco BUG: Invalid CAP access (ip=%lx, pfa=%lx)\n", ip, pfa);
+      kdb_ke("Fiasco BUG: Invalid access to Caps area");
+      return 0;
+    }
+
+  WARN("No page-fault handler for 0x%lx, error 0x%lx, ip " L4_PTR_FMT "\n",
+        pfa, error_code, ip);
+
+  t->do_recover_jmp_buf();
+  return 0;
 }
 
 

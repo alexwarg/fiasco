@@ -18,6 +18,7 @@
 #include "kobject_helper.h"
 #include "kobject_rpc.h"
 #include "minmax.h"
+#include <kdb_ke.h>
 
 extern "C" void sys_invoke_debug(Kobject_iface *o, Syscall_frame *f) __attribute__((weak));
 

@@ -203,6 +203,38 @@ void handle_fpu_trap(Trap_state::Cause cause, Trap_state *ts)
     ct->kill();
 }
 
+inline
+int
+user_page_fault(Thread *t, Mword cause, Trap_state *ts, Mword pfa)
+{
+  if (Thread_vcpu::vcpu_pagefault(t, pfa, cause, ts->epc))
+    return 1;
+
+  if (Mem_layout::in_kernel(pfa))
+    return 0;
+
+  Proc::sti();
+  return t->handle_user_space_page_fault(pfa, cause);
+}
+
+inline
+int
+kern_page_fault(Thread *t, Mword cause, Trap_state *ts, Mword pfa)
+{
+  // Check for page fault in user memory area
+  if (!Mem_layout::in_kernel(pfa))
+    {
+      Proc::sti();
+      return t->handle_user_space_page_fault(pfa, cause);
+    }
+
+  WARN("No page-fault handler for 0x%lx, cause 0x%lx, pc " L4_PTR_FMT "\n",
+        pfa, cause, ts->epc);
+
+  t->do_recover_jmp_buf();
+  return 0;
+}
+
 [[gnu::flatten]]
 void thread_handle_tlb_fault(Mword cause, Trap_state *ts, Mword pfa)
 {
@@ -228,8 +260,13 @@ void thread_handle_tlb_fault(Mword cause, Trap_state *ts, Mword pfa)
       if (Thread_vcpu::vcpu_pagefault(t, pfa, cause, ts->epc))
         return;
 
-      if (!t->handle_page_fault(pfa, cause, ts->epc, ts)
-          && handle_slow_trap(t, cause, ts, false))
+      int res;
+      if (PF::is_usermode_error(cause))
+        res = user_page_fault(t, cause, ts, pfa);
+      else
+        res = kern_page_fault(t, cause, ts, pfa);
+
+      if (!res && handle_slow_trap(t, cause, ts, false))
         {
           t->kill();
           return;
