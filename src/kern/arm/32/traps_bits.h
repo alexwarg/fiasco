@@ -180,21 +180,6 @@ get_lr_for_mode(Return_frame const *rf)
     }
 }
 
-template<typename T>
-inline T peek_user(T const *adr, Context *c)
-{
-  Address pa;
-  asm ("mcr p15, 0, %1, c7, c8, 6 \n"
-       "mrc p15, 0, %0, c7, c4, 0 \n"
-       : "=r" (pa) : "r"(adr) );
-  if (EXPECT_TRUE(!(pa & 1)))
-    return *reinterpret_cast<T const *>(cxx::mask_lsb(pa, 12)
-                                        | cxx::get_lsb((Address)adr, 12));
-
-  c->kernel_mem_op.set_hit();
-  return T(~0);
-}
-
 inline void handle_svc(Context *c, Trap_state *ts)
 {
   Unsigned32 pc = ts->pc;
@@ -288,6 +273,36 @@ void hyp_mode_fault(Mword abort_type, Trap_state *ts)
 
   kdb_ke("In-kernel fault");
 }
+#ifdef CONFIG_FPU
+
+template<typename T>
+inline T peek_user(T const *adr, Context *c)
+{
+  Address pa;
+  asm ("mcr p15, 0, %1, c7, c8, 6 \n"
+       "mrc p15, 0, %0, c7, c4, 0 \n"
+       : "=r" (pa) : "r"(adr) );
+  if (EXPECT_TRUE(!(pa & 1)))
+    return *reinterpret_cast<T const *>(cxx::mask_lsb(pa, 12)
+                                        | cxx::get_lsb((Address)adr, 12));
+
+  c->kernel_mem_op.set_hit();
+  return T(~0);
+}
+#endif // CONFIG_FPU
+#else // CONFIG_CPU_VIRT
+#ifdef CONFIG_FPU
+
+template<typename T>
+inline T peek_user(T const *adr, Context *c)
+{
+  T v;
+  c->kernel_mem_op.set_ignore(true);
+  v = *adr;
+  c->kernel_mem_op.set_ignore(false);
+  return v;
+}
+#endif
 
 #endif // CONFIG_CPU_VIRT
 
@@ -329,6 +344,19 @@ handle_fpu_trap(Unsigned32 opcode, Trap_state *ts)
 }
 
 inline bool
+check_for_kernel_mem_access_pf(Trap_state *ts, Thread *t)
+{
+  if (!t->kernel_mem_op.hit_and_clear())
+    return false;
+
+  assert (cxx::as_type<Return_frame *>(ts) == t->regs());
+  Mword pc = t->user_ip();
+  pc -= (ts->psr & Proc::Status_thumb) ? 2 : 4;
+  t->user_ip(pc);
+  return true;
+}
+
+inline bool
 check_and_handle_coproc_faults(Thread *c, Trap_state *ts)
 {
   if (!ts->exception_is_undef_insn())
@@ -340,7 +368,7 @@ check_and_handle_coproc_faults(Thread *c, Trap_state *ts)
     {
       Unsigned16 v = peek_user((Unsigned16 *)(ts->pc - 2), c);
 
-      if (EXPECT_FALSE(Thread::check_for_kernel_mem_access_pf(ts, c)))
+      if (EXPECT_FALSE(check_for_kernel_mem_access_pf(ts, c)))
         return true;
 
       if ((v >> 11) <= 0x1c)
@@ -351,7 +379,7 @@ check_and_handle_coproc_faults(Thread *c, Trap_state *ts)
   else
     opcode = peek_user((Unsigned32 *)(ts->pc - 4), c);
 
-  if (EXPECT_FALSE(Thread::check_for_kernel_mem_access_pf(ts, c)))
+  if (EXPECT_FALSE(check_for_kernel_mem_access_pf(ts, c)))
     return true;
 
   if (ts->psr & Proc::Status_thumb)
@@ -382,3 +410,4 @@ check_and_handle_coproc_faults(Thread *, Trap_state *)
 }
 
 #endif // CONFIG_FPU
+

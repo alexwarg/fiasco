@@ -92,28 +92,3 @@ Thread::copy_ts_to_utcb(L4_msg_tag, Thread *snd, Thread *rcv,
   return true;
 }
 
-//-----------------------------------------------------------------------------
-IMPLEMENTATION [arm && 32bit && fpu]:
-
-PUBLIC static inline
-bool
-Thread::check_for_kernel_mem_access_pf(Trap_state *ts, Thread *t)
-{
-  if (t->kernel_mem_op.hit_and_clear())
-    {
-      Mword pc = t->exception_triggered() ? t->_exc_cont.ip() : ts->pc;
-
-      pc -= (ts->psr & Proc::Status_thumb) ? 2 : 4;
-
-      if (t->exception_triggered())
-        t->_exc_cont.ip(pc);
-      else
-        ts->pc = pc;
-
-      return true;
-    }
-
-  return false;
-}
-
-
