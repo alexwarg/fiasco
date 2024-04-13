@@ -10,6 +10,7 @@
 #include <l4_types.h>
 #include <tb_entry.h>
 #include <l4_buf_iter.h>
+#include <entry.h>
 
 #include <cassert>
 
@@ -199,7 +200,7 @@ private:
         l->space = t->vcpu_user_space() ? static_cast<Task*>(t->vcpu_user_space())->dbg_id() : ~0;
         );
     vcpu->_regs.s = *ts;
-    t->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_sp, t->vcpu_state().usr().get());
+    Entry::vcpu_return_to_kernel(t, vcpu->_entry_ip, vcpu->_sp, t->vcpu_state().usr().get());
     // does not return
 
     return false; // this is a dummy

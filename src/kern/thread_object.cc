@@ -11,6 +11,7 @@
 #include "kobject_rpc.h"
 
 #include <thread_vcpu.h>
+#include <entry.h>
 #include <globalconfig.h>
 
 #ifdef CONFIG_JDB
@@ -105,7 +106,7 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
               l->space = static_cast<Task*>(_cpu_state.space.vcpu_aware())->dbg_id();
               );
 
-          vcpu_return_to_kernel(vcpu->_entry_ip, sp, vcpu_state().usr().get());
+          Entry::vcpu_return_to_kernel(this, vcpu->_entry_ip, sp, vcpu_state().usr().get());
         }
     }
 

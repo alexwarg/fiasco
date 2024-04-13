@@ -1,4 +1,5 @@
 #include <thread.h>
+#include <entry.h>
 
 extern "C" [[noreturn]]
 void leave_by_vcpu_upcall(Trap_state *ts);
@@ -12,6 +13,6 @@ void leave_by_vcpu_upcall(Trap_state *ts)
   vcpu->_regs.s.usp = ts->usp;
   vcpu->_regs.s.pc = ts->pc;
   vcpu->_regs.s.pstate = ts->pstate;
-  c->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_sp, c->vcpu_state().usr().get());
+  Entry::vcpu_return_to_kernel(c, vcpu->_entry_ip, vcpu->_sp, c->vcpu_state().usr().get());
 }
 

@@ -1,25 +1,5 @@
 IMPLEMENTATION[ia32]:
 
-PUBLIC template<typename T> inline
-void FIASCO_NORETURN
-Thread::vcpu_return_to_kernel(Mword ip, Mword sp, T arg)
-{
-  assert(cpu_lock.test());
-  assert(current() == this);
-  assert((regs()->cs() & 3) == 3);
-
-  regs()->ip(ip);
-  regs()->sp(sp);
-  regs()->flags(EFLAGS_IF);
-  asm volatile
-    ("mov %0, %%esp \t\n"
-     "iret         \t\n"
-     :
-     : "r" (static_cast<Return_frame*>(regs())), "a" (arg)
-    );
-  __builtin_trap();
-}
-
 PROTECTED inline
 int
 Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)

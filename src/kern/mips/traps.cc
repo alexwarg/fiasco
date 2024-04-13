@@ -466,7 +466,7 @@ thread_handle_gva_tlb_fault(Mword cause, Trap_state *ts, Mword pfa)
   vcpu->_regs.s = *ts;
   vcpu->_regs.s.bad_v_addr = pfa;
   Context::vm_state(vcpu)->ctl_0 = (Context::vm_state(vcpu)->ctl_0 & ~0x3c) | (10 << 2);
-  t->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_sp, t->vcpu_state().usr().get());
+  Entry::vcpu_return_to_kernel(t, vcpu->_entry_ip, vcpu->_sp, t->vcpu_state().usr().get());
 }
 
 extern "C" FIASCO_FASTCALL

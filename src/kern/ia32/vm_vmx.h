@@ -7,6 +7,7 @@
 #include "ipi.h"
 
 #include <thread.h>
+#include <entry.h>
 
 #include <cassert>
 
@@ -244,8 +245,8 @@ public:
           {
             force_kern_entry_vcpu_state(vcpu);
             ctxt->arch_load_vcpu_kern_state(vcpu, true);
-            t->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_entry_sp,
-                                     t->vcpu_state().usr().get());
+            ::Entry::vcpu_return_to_kernel(t, vcpu->_entry_ip, vcpu->_entry_sp,
+                                           t->vcpu_state().usr().get());
           }
       }
   }
