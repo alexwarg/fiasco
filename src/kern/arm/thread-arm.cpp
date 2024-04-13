@@ -150,9 +150,7 @@ IMPLEMENTATION [arm]:
  */
 IMPLEMENT
 Thread::Thread(Ram_quota *q)
-: _pager(Thread_ptr::Invalid),
-  _exc_handler(Thread_ptr::Invalid),
-  _quota(q),
+: _quota(q),
   _del_observer(0)
 {
   assert (state() == 0);
@@ -199,7 +197,7 @@ Mword
 Thread::user_flags() const
 { return 0; }
 
-PRIVATE inline
+PROTECTED inline
 void
 Thread::save_fpu_state_to_utcb(Trap_state *ts, Utcb *u)
 {

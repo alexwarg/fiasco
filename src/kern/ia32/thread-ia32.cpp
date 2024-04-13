@@ -40,9 +40,7 @@ Trap_state::Handler Thread::nested_trap_handler FIASCO_FASTCALL;
 
 IMPLEMENT
 Thread::Thread(Ram_quota *q)
-: _pager(Thread_ptr::Invalid),
-  _exc_handler(Thread_ptr::Invalid),
-  _quota(q),
+: _quota(q),
   _del_observer(0)
 {
   assert (state() == 0);
@@ -204,7 +202,7 @@ Thread::update_local_map(Address, Mword)
 IMPLEMENTATION [ia32 || amd64]:
 
 
-PRIVATE static inline
+PROTECTED static inline
 void
 Thread::save_fpu_state_to_utcb(Trap_state *, Utcb *)
 {}

@@ -169,8 +169,10 @@ public:
       vcpu_state().access()->clear_irq_pending();
   }
 
-protected:
-  Receiver() = default;
+  bool prepared() const
+  {
+    return _rcv_regs;
+  }
 
   bool is_partner(Sender *s) const
   {
@@ -182,6 +184,9 @@ protected:
     return _partner != nullptr;
   }
 
+protected:
+  Receiver() = default;
+
   void set_rcv_regs(Syscall_frame* regs)
   {
     _rcv_regs = regs;
@@ -191,11 +196,6 @@ protected:
   {
     set_rcv_regs(regs);  // message should be poked in here
     set_partner(partner);
-  }
-
-  bool prepared() const
-  {
-    return _rcv_regs;
   }
 
 private:

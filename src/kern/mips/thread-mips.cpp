@@ -95,9 +95,7 @@ IMPLEMENT inline void  Thread::user_ip(Mword ip)  { regs()->ip(ip); }
  */
 IMPLEMENT
 Thread::Thread(Ram_quota *q)
-: _pager(Thread_ptr::Invalid),
-  _exc_handler(Thread_ptr::Invalid),
-  _quota(q),
+:  _quota(q),
   _del_observer(0)
 {
 
@@ -240,12 +238,12 @@ extern "C" void leave_by_vcpu_upcall()
   c->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_entry_sp, c->vcpu_state().usr().get());
 }
 
-PRIVATE static inline
+PROTECTED static inline
 void
 Thread::save_fpu_state_to_utcb(Trap_state *, Utcb *)
 {}
 
-PRIVATE static inline
+PROTECTED static inline
 bool FIASCO_WARN_RESULT
 Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
                         L4_fpage::Rights rights)
@@ -273,7 +271,7 @@ Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
   return ret;
 }
 
-PRIVATE static inline NEEDS["trap_state.h"]
+PROTECTED static inline NEEDS["trap_state.h"]
 bool FIASCO_WARN_RESULT
 Thread::copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,
                         L4_fpage::Rights rights)

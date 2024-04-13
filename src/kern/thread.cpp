@@ -33,6 +33,7 @@ INTERFACE:
 #include <irq_chip.h>
 #include <sched.h>
 #include <timer.h>
+#include <thread_ipc.h>
 
 class Return_frame;
 class Syscall_frame;
@@ -41,17 +42,17 @@ class Thread;
 class Vcpu_state;
 class Irq_base;
 
-typedef Context_ptr_base<Thread> Thread_ptr;
-
 /** A thread.  This class is the driver class for most kernel functionality.
  */
 class Thread :
   public Receiver,
-  public Sender,
+  public Thread_ipc<Thread>,
   public cxx::Dyn_castable<Thread, Kobject>,
   public Thread_fpu_x<Thread>
 {
   MEMBER_OFFSET();
+
+  friend Thread_ipc<Thread>;
 
   friend class Jdb;
   friend class Jdb_bt;
@@ -235,6 +236,41 @@ public:
     return *have_recv || ((flags & L4_obj_ref::Ipc_send) && *partner);
   }
 
+  /**
+   * Setup a IPC-like timer for the given timeout.
+   * \param timeout  The L4 ABI timeout value that shall be used
+   * \param utcb     The UTCB that might contain an absolute timeout
+   * \param timer    The timeout/timer object that shall be queued.
+   *
+   * This function does nothing if the timeout is *never*.
+   * Sets Thread_ready and Thread_timeout in the thread state
+   * if the timeout is zero or has already hit (is in the past).
+   * Or enqueues the given timer object with the finite timeout calculated
+   * from `timeout`.
+   */
+  void setup_timer(L4_timeout timeout, Utcb const *utcb, Timeout *timer)
+  {
+    if (EXPECT_TRUE(timeout.is_never()))
+      return;
+
+    if (EXPECT_FALSE(timeout.is_zero()))
+      {
+        state.add_dirty(Thread_ready | Thread_timeout);
+        return;
+      }
+
+    assert (!have_timeout());
+
+    Unsigned64 sysclock = Timer::system_clock();
+    Unsigned64 tval = timeout.microsecs(sysclock, utcb);
+
+    if (EXPECT_TRUE((tval > sysclock)))
+      set_timeout(timer, tval);
+    else // timeout already hit
+      state.add_dirty(Thread_ready | Thread_timeout);
+  }
+
+
 #ifdef CONFIG_JDB
   void halt();
 #endif
@@ -316,7 +352,7 @@ protected:
    * skip all fancy stuff, no locking is necessary.
    */
   explicit Thread(Ram_quota *q, Context_mode_kernel)
-  : Receiver(), Sender(), _quota(q), _del_observer(0), _magic(magic)
+  : Receiver(), _quota(q), _del_observer(0), _magic(magic)
   {
     inc_ref();
     _cpu_state.space.space(Kernel_task::kernel_task());
@@ -327,10 +363,6 @@ protected:
 
     alloc_eager_fpu_state();
   }
-
-  // More ipc state
-  Thread_ptr _pager;
-  Thread_ptr _exc_handler;
 
 protected:
   Ram_quota *_quota;
@@ -689,6 +721,21 @@ Thread::control(Thread_ptr const &pager, Thread_ptr const &exc_handler)
 
   return 0;
 }
+
+PUBLIC
+void
+Thread::ipc_receiver_aborted() override
+{
+  assert (cpu_lock.test());
+  assert (wait_queue());
+  set_wait_queue(0);
+
+  utcb().access()->error = L4_error::Canceled;
+
+  if (xcpu_state_change(~0UL, Thread_transfer_failed | Thread_ready, true))
+    current()->switch_to_locked(this);
+}
+
 
 //---------------------------------------------------------------------------
 IMPLEMENTATION [!log]:

@@ -148,8 +148,7 @@ startup_IMPL		:= startup startup-ia32
 sys_call_page_IMPL	:= sys_call_page sys_call_page-abs-ia32
 tb_entry_IMPL		:= tb_entry tb_entry-ia32-32
 timer_IMPL		:= timer timer-ia32-amd64
-thread_IMPL		:= thread thread-ia32 thread-ia32-32 \
-			   thread-ipc
+thread_IMPL		:= thread thread-ia32 thread-ia32-32
 utcb_init_IMPL		:= utcb_init utcb_init-ia32
 vmem_alloc_IMPL		:= vmem_alloc vmem_alloc-ia32
 

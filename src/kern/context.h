@@ -603,7 +603,6 @@ private:
   Timeout *_timeout = nullptr;
 
 protected:
-  void *_utcb_handler;
   Ku_mem_ptr<Utcb> _utcb;
 
 private:
