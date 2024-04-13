@@ -5,6 +5,7 @@
 #include <processor.h>
 #include <traps_bits.h>
 #include <handle_pagefault.h>
+#include <log_pagefault.h>
 
 #include <globalconfig.h>
 #include <nested_trap_handler.h>
@@ -69,6 +70,8 @@ Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
   if (!IS_ENABLED(CONFIG_ARM_LPAE)
       && EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
     return 0;
+
+  Log::page_fault(pfa, error_code, pc);
 
   // Pagefault in user mode
   error_code = Thread::mangle_kernel_lib_page_fault(pc, error_code);
@@ -234,6 +237,8 @@ Mword kern_pagefault_entry(Mword pfa, Mword error_code,
   if (!IS_ENABLED(CONFIG_ARM_LPAE)
       && EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
     return 0;
+
+  Log::page_fault(pfa, error_code, pc);
 
   Thread *t = current_thread();
 

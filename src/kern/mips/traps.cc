@@ -4,6 +4,7 @@
 #include <thread_vcpu.h>
 #include <traps.h>
 #include <handle_pagefault.h>
+#include <log_pagefault.h>
 
 #include <globalconfig.h>
 
@@ -211,6 +212,8 @@ user_page_fault(Thread *t, Mword cause, Trap_state *ts, Mword pfa)
   if (Thread_vcpu::vcpu_pagefault(t, pfa, cause, ts->epc))
     return 1;
 
+  Log::page_fault(pfa, cause, ts->epc);
+
   if (Mem_layout::in_kernel(pfa))
     return 0;
 
@@ -222,6 +225,7 @@ inline
 int
 kern_page_fault(Thread *t, Mword cause, Trap_state *ts, Mword pfa)
 {
+  Log::page_fault(pfa, cause, ts->epc);
   // Check for page fault in user memory area
   if (!Mem_layout::in_kernel(pfa))
     {

@@ -14,6 +14,7 @@
 #include <kdb_ke.h>
 #include <warn.h>
 #include <globalconfig.h>
+#include <log_pagefault.h>
 
 #ifndef CONFIG_JDB
 /** There is no nested trap handler if both jdb and kdb are disabled.
@@ -275,6 +276,8 @@ thread_page_fault(Address pfa, Mword error_code, Address ip, Mword /*flags*/,
 
   if (t->update_local_map(pfa, error_code))
     return 1;
+
+  Log::page_fault(pfa, error_code, ip);
 
   // Check for page fault in IO bit map or in delimiter byte behind IO bitmap
   // assume it is caused by an input/output instruction and fall through to
