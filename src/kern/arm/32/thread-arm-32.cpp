@@ -1,22 +1,5 @@
 IMPLEMENTATION [arm && 32bit]:
 
-/**
- * Mangle the error code in case of a kernel lib page fault.
- *
- * All page faults caused by code on the kernel lib page are
- * write page faults, because the code implements atomic
- * read-modify-write.
- */
-PUBLIC static inline
-Mword
-Thread::mangle_kernel_lib_page_fault(Mword pc, Mword error_code)
-{
-  if (EXPECT_FALSE((pc & Kmem::Kern_lib_base) == Kmem::Kern_lib_base))
-    return error_code | (1UL << 6);
-
-  return error_code;
-}
-
 PUBLIC static inline void FIASCO_NORETURN
 Thread::arm_fast_exit(void *sp, void *pc, void *arg)
 {

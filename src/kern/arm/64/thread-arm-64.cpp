@@ -3,17 +3,6 @@ IMPLEMENTATION [arm && 64bit]:
 #include "fpu.h"
 #include "slowtrap_entry.h"
 
-/**
- * Mangle the error code in case of a kernel lib page fault.
- *
- * On 64bit (ARMv8+) this is a nop, there is no kernel lib.
- */
-PUBLIC static inline
-Mword
-Thread::mangle_kernel_lib_page_fault(Mword, Mword error_code)
-{ return error_code; }
-
-
 PUBLIC static inline void FIASCO_NORETURN
 Thread::arm_fast_exit(void *sp, void *pc, void *arg)
 {

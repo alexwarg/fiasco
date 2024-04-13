@@ -30,6 +30,15 @@ pagein_tcb_request(Return_frame *regs)
   return true;
 }
 
+/**
+ * Mangle the error code in case of a kernel lib page fault.
+ *
+ * On 64bit (ARMv8+) this is a nop, there is no kernel lib.
+ */
+inline Mword
+mangle_kernel_lib_page_fault(Mword, Mword error_code)
+{ return error_code; }
+
 inline Mword
 pagefault_entry(Mword pfa, Mword error_code,
                 Mword pc, Return_frame *ret_frame);

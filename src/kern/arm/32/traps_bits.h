@@ -23,6 +23,22 @@ pagein_tcb_request(Return_frame *regs)
   return false;
 }
 
+/**
+ * Mangle the error code in case of a kernel lib page fault.
+ *
+ * All page faults caused by code on the kernel lib page are
+ * write page faults, because the code implements atomic
+ * read-modify-write.
+ */
+inline Mword
+mangle_kernel_lib_page_fault(Mword pc, Mword error_code)
+{
+  if (EXPECT_FALSE((pc & Kmem::Kern_lib_base) == Kmem::Kern_lib_base))
+    return error_code | (1UL << 6);
+
+  return error_code;
+}
+
 
 extern "C" void
 slowtrap_entry(Trap_state *ts);

@@ -74,7 +74,7 @@ Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
   Log::page_fault(pfa, error_code, pc);
 
   // Pagefault in user mode
-  error_code = Thread::mangle_kernel_lib_page_fault(pc, error_code);
+  error_code = mangle_kernel_lib_page_fault(pc, error_code);
 
   Thread *t = current_thread();
   // TODO: Avoid calling Thread::map_fsr_user here everytime!
