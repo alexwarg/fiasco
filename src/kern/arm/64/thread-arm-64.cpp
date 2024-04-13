@@ -18,17 +18,6 @@ Thread::arm_fast_exit(void *sp, void *pc, void *arg)
 }
 
 
-extern "C" void leave_by_vcpu_upcall(Trap_state *ts)
-{
-  Thread *c = current_thread();
-  Vcpu_state *vcpu = c->vcpu_state().access();
-  Mem::memcpy_mwords(vcpu->_regs.s.r, ts->r, 31);
-  vcpu->_regs.s.usp = ts->usp;
-  vcpu->_regs.s.pc = ts->pc;
-  vcpu->_regs.s.pstate = ts->pstate;
-  c->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_sp, c->vcpu_state().usr().get());
-}
-
 PROTECTED static inline
 bool FIASCO_WARN_RESULT
 Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,

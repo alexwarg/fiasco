@@ -157,6 +157,7 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc gic_$(BITS).cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc
+CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_PSCI) += psci.cc
 

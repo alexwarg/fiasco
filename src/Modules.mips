@@ -115,7 +115,8 @@ INTERFACES_KERNEL +=	boot_uart_init \
 
 CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
 		 alternatives.cc \
-		 mips_cpu_irqs.cc
+		 mips_cpu_irqs.cc \
+		 entry_cc.cc
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
