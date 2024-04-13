@@ -158,7 +158,7 @@ sys_call_page_IMPL	:= sys_call_page
 timer_IMPL		?= timer timer-mips
 timer_tick_IMPL         := timer_tick
 thread_IMPL		:= thread thread-log \
-			   thread-mips thread-ipc thread-jdb
+			   thread-mips thread-ipc
 vmem_alloc_IMPL		:= vmem_alloc
 tb_entry_IMPL		:= tb_entry tb_entry-mips
 
