@@ -144,6 +144,10 @@ template< typename T >
 inline typename cxx::remove_reference<T>::type &&
 move(T &t) { return static_cast<typename cxx::remove_reference<T>::type &&>(t); }
 
+template<typename T, typename U>
+T as_type(U &&v) noexcept
+{ return v; }
+
 template< bool, typename T = void >
 struct enable_if {};
 
