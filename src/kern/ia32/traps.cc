@@ -88,6 +88,73 @@ handle_not_nested_trap(Trap_state *ts)
   return 0;
 }
 
+static unsigned
+check_io_bitmap_delimiter_fault(Thread *ct, Trap_state *ts)
+{
+  // check for page fault at the byte following the IO bitmap
+  if (ts->_trapno == 14           // page fault?
+      && (ts->_err & 4) == 0         // in supervisor mode?
+      && ts->ip() <= Mem_layout::User_max   // delimiter byte accessed?
+      && (ts->_cr2 == Mem_layout::Io_bitmap + Mem_layout::Io_port_max / 8))
+    {
+      Mem_space *m = ct->mem_space();
+      // page fault in the first byte following the IO bitmap
+      // map in the cpu_page read_only at the place
+      Mem_space::Status result =
+	m->v_insert(
+	    Mem_space::Phys_addr(m->virt_to_phys_s0((void*)Kmem::io_bitmap_delimiter_page())),
+	    Virt_addr(Mem_layout::Io_bitmap + Mem_layout::Io_port_max / 8),
+	    Mem_space::Page_order(Config::PAGE_SHIFT),
+	    Page::Attr(Page::Rights::R(), Page::Type::Normal(), Page::Kern::Global()));
+
+      switch (result)
+	{
+	case Mem_space::Insert_ok:
+	  return 1; // success
+	case Mem_space::Insert_err_nomem:
+	  // kernel failure, translate this into a general protection
+	  // violation and hope that somebody handles it
+	  ts->_trapno = 13;
+	  ts->_err    =  0;
+	  return 0; // fail
+	default:
+	  // no other error code possible
+	  assert (false);
+	}
+    }
+
+  return 1;
+}
+
+
+inline int
+handle_io_page_fault(Thread *ct, Trap_state *ts)
+{
+  Address eip = ts->ip();
+  if (!check_io_bitmap_delimiter_fault(ct, ts))
+    return 0;
+
+  // Check for IO page faults. If we got exception #14, the IO bitmap page is
+  // not available. If we got exception #13, the IO bitmap is available but
+  // the according bit is set. In both cases we have to dispatch the code at
+  // the faulting eip to determine the IO port and send an IO flexpage to our
+  // pager. If it was a page fault, check the faulting address to prevent
+  // touching userland.
+  if (eip <= Mem_layout::User_max &&
+      ((ts->_trapno == 13 && (ts->_err & 7) == 0) ||
+       (ts->_trapno == 14 && Kmem::is_io_bitmap_page_fault(ts->_cr2))))
+    {
+      ts->_cr2 = 0;
+      ts->_trapno = 13;
+      ts->_err = 0;
+      ct->recover_jmp_buf(nullptr);
+      if (ct->send_exception(ts))
+        return 1;
+      else
+        return 2; // fail, don't send exception again
+    }
+  return 0; // fail
+}
 /**
  * The global trap handler switch.
  * This function handles CPU-exception reflection, int3 debug messages,
@@ -172,7 +239,7 @@ handle_slow_trap(Thread *c, Trap_state *ts)
 
   c->recover_jmp_buf(&pf_recovery);
 
-  switch (c->handle_io_page_fault(ts))
+  switch (handle_io_page_fault(c, ts))
     {
     case 1:
       c->recover_jmp_buf(nullptr);
