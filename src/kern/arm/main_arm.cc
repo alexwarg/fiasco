@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <entry.h>
 
 #include "config.h"
 #include "globals.h"
@@ -88,7 +89,7 @@ kernel_main()
 
   extern char call_bootstrap[];
   // switch to stack of kernel thread and bootstrap the kernel
-  Thread::arm_fast_exit(kernel->init_stack(), call_bootstrap, kernel);
+  Entry::arm_fast_exit(kernel->init_stack(), call_bootstrap, kernel);
 
   // never returns here
 }

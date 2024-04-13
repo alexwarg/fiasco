@@ -23,6 +23,7 @@ IMPLEMENTATION [arm]:
 #include "warn.h"
 
 #include <thread_vcpu.h>
+#include <entry.h>
 
 PRIVATE static
 void
@@ -39,7 +40,7 @@ Thread::print_page_fault_error(Mword e)
          (e & 0x00020000)?'r':'w');
 }
 
-PUBLIC inline NEEDS[Thread::arm_fast_exit]
+PUBLIC inline NEEDS[<entry.h>]
 void FIASCO_NORETURN
 Thread::vcpu_return_to_kernel(Mword ip, Mword sp, Vcpu_state *arg)
 {
@@ -64,7 +65,7 @@ Thread::vcpu_return_to_kernel(Mword ip, Mword sp, Vcpu_state *arg)
     }
 
   assert(r->check_valid_user_psr());
-  arm_fast_exit(nonull_static_cast<Return_frame*>(r), __iret, arg);
+  Entry::arm_fast_exit(nonull_static_cast<Return_frame*>(r), __iret, arg);
 
   // never returns here
 }
@@ -108,7 +109,7 @@ Thread::user_invoke()
     regs->psr |= Proc::Status_always_mask;
   Proc::cli();
   extern char __return_from_user_invoke[];
-  arm_fast_exit(ts, __return_from_user_invoke, ts);
+  Entry::arm_fast_exit(ts, __return_from_user_invoke, ts);
 
   // never returns here
 }

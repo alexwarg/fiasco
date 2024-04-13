@@ -3,21 +3,6 @@ IMPLEMENTATION [arm && 64bit]:
 #include "fpu.h"
 #include "slowtrap_entry.h"
 
-PUBLIC static inline void FIASCO_NORETURN
-Thread::arm_fast_exit(void *sp, void *pc, void *arg)
-{
-  register void *r0 asm("x0") = arg;
-  asm volatile
-    ("  mov sp, %[stack_p]    \n"    // set stack pointer to regs structure
-     "  br  %[rfe]            \n"
-     : :
-     [stack_p] "r" (sp),
-     [rfe]     "r" (pc),
-     "r" (r0));
-  __builtin_unreachable();
-}
-
-
 PROTECTED static inline
 bool FIASCO_WARN_RESULT
 Thread::copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
