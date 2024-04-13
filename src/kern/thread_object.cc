@@ -374,7 +374,7 @@ Thread_object::ex_regs(Address ip, Address sp,
 
   if (o_sp) *o_sp = user_sp();
   if (o_ip) *o_ip = user_ip();
-  if (o_flags) *o_flags = user_flags();
+  if (o_flags) *o_flags = regs()->flags();
 
   // Changing the run state is only possible when the thread is not in
   // an exception.
@@ -403,7 +403,7 @@ Thread_object::ex_regs(Address ip, Address sp,
     user_ip(ip);
 
   if (sp != ~0UL)
-    user_sp (sp);
+    user_sp(sp);
 
   if (current() == this)
     fill_user_state();

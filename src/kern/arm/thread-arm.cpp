@@ -182,21 +182,6 @@ Thread::Thread(Ram_quota *q)
   // ok, we're ready to go!
 }
 
-IMPLEMENT inline
-Mword
-Thread::user_sp() const
-{ return regs()->sp(); }
-
-IMPLEMENT inline
-void
-Thread::user_sp(Mword sp)
-{ return regs()->sp(sp); }
-
-IMPLEMENT inline
-Mword
-Thread::user_flags() const
-{ return 0; }
-
 PROTECTED inline
 void
 Thread::save_fpu_state_to_utcb(Trap_state *ts, Utcb *u)

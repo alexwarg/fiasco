@@ -66,16 +66,6 @@ Thread::Thread(Ram_quota *q)
   // ok, we're ready to go!
 }
 
-IMPLEMENT inline
-Mword
-Thread::user_ip() const
-{ return exception_triggered()?_exc_cont.ip():regs()->ip(); }
-
-IMPLEMENT inline
-Mword
-Thread::user_flags() const
-{ return regs()->flags(); }
-
 PRIVATE static inline
 Mword
 Thread::sanitize_user_flags(Mword flags)
@@ -247,22 +237,6 @@ Thread::sys_gdt_x86(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
     _cpu_state.gdt_user_entries.load();
 
   return Kobject_iface::commit_result((utcb->values[1] << 3) + Gdt::gdt_user_entry1 + 3);
-}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [amd64]:
-
-IMPLEMENT inline
-void
-Thread::user_ip(Mword ip)
-{
-  if (exception_triggered())
-    _exc_cont.ip(ip);
-  else
-    {
-      Entry_frame *r = regs();
-      r->ip(ip);
-    }
 }
 
 //----------------------------------------------------------------------------

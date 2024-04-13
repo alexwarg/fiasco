@@ -20,16 +20,6 @@ Thread::vcpu_return_to_kernel(Mword ip, Mword sp, T arg)
   __builtin_trap();
 }
 
-IMPLEMENT inline
-Mword
-Thread::user_sp() const
-{ return regs()->sp(); }
-
-IMPLEMENT inline
-void
-Thread::user_sp(Mword sp)
-{ regs()->sp(sp); }
-
 PROTECTED inline
 int
 Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)
@@ -146,16 +136,6 @@ Thread::copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,
         snd->transfer_fpu(rcv);
     }
   return true;
-}
-
-IMPLEMENT inline
-void
-Thread::user_ip(Mword ip)
-{
-  if (exception_triggered())
-    _exc_cont.ip(ip);
-  else
-    regs()->ip(ip);
 }
 
 IMPLEMENT

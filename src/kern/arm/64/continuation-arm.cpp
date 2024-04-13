@@ -27,5 +27,9 @@ public:
   void restore(Return_frame *regs)
   { regs->eret_work = 0; }
 
+  Mword cond_ip(Return_frame *r) const { return r->ip(); }
+  void cond_ip(Return_frame *r, Mword val) { r->ip(val); }
+  Mword cond_sp(Return_frame *r) const { return r->sp(); }
+  void cond_sp(Return_frame *r, Mword val) { r->sp(val); }
 };
 

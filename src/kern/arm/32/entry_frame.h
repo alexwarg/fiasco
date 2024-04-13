@@ -55,19 +55,22 @@ public:
   }
 
   Mword ip() const
-  { return Return_frame::pc; }
+  { return pc; }
 
   Mword ip_syscall_page_user() const
   { return Return_frame::pc; }
 
   void ip(Mword _pc)
-  { Return_frame::pc = _pc; }
+  { pc = _pc; }
 
   Mword sp() const
   { return Return_frame::usp; }
 
   void sp(Mword sp)
   { Return_frame::usp = sp; }
+
+  Mword flags() const
+  { return psr; }
 
 #if defined (CONFIG_CPU_VIRT)
   bool check_valid_user_psr() const

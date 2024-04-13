@@ -178,6 +178,18 @@ public:
     return _exc_cont.valid(regs());
   }
 
+  Mword user_ip() const
+  { return _exc_cont.cond_ip(regs()); }
+
+  void user_ip(Mword ip)
+  { _exc_cont.cond_ip(regs(), ip); }
+
+  Mword user_sp() const
+  { return _exc_cont.cond_sp(regs()); }
+
+  void user_sp(Mword sp)
+  { _exc_cont.cond_sp(regs(), sp); }
+
   bool continuation_test_and_restore()
   {
     bool v = _exc_cont.valid(regs());
@@ -332,14 +344,6 @@ private:
 
 public:
   static bool pagein_tcb_request(Return_frame *regs);
-
-  inline Mword user_ip() const;
-  inline void user_ip(Mword);
-
-  inline Mword user_sp() const;
-  inline void user_sp(Mword);
-
-  inline Mword user_flags() const;
 
   /** nesting level in debugger (always critical) if >1 */
   static Per_cpu<unsigned long> nested_trap_recover;

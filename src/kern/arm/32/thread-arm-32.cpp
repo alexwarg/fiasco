@@ -18,24 +18,6 @@ Thread::mangle_kernel_lib_page_fault(Mword pc, Mword error_code)
 }
 
 IMPLEMENT inline
-Mword
-Thread::user_ip() const
-{ return exception_triggered() ? _exc_cont.ip() : regs()->ip(); }
-
-IMPLEMENT inline
-void
-Thread::user_ip(Mword ip)
-{
-  if (exception_triggered())
-    _exc_cont.ip(ip);
-  else
-    {
-      Entry_frame *r = regs();
-      r->ip(ip);
-    }
-}
-
-IMPLEMENT inline
 bool
 Thread::pagein_tcb_request(Return_frame *regs)
 {

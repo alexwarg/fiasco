@@ -116,6 +116,9 @@ public:
   void ip(Mword pc)
   { epc = pc; }
 
+  Mword flags() const
+  { return status; }
+
   bool user_mode() const
   { return status & Cp0_status::ST_KSU_USER; }
 

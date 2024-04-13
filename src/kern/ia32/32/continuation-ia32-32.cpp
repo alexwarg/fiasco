@@ -31,6 +31,20 @@ public:
   Mword sp(Return_frame const *o) const { return o->sp(); }
   void sp(Return_frame *o, Mword sp) { o->sp(sp); }
 
+  Mword cond_ip(Return_frame *r) const
+  { return valid(r) ? _ip : r->ip(); }
+  void cond_ip(Return_frame *r, Mword val)
+  {
+    if (valid(r))
+      _ip = val;
+    else
+      r->ip(val);
+  }
+  Mword cond_sp(Return_frame *r) const
+  { return r->sp(); }
+  void cond_sp(Return_frame *r, Mword val)
+  { r->sp(val); }
+
   void save(Return_frame const *regs)
   {
     _ip  = regs->ip();

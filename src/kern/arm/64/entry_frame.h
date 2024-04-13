@@ -76,6 +76,9 @@ public:
   void ip(Mword pc)
   { this->pc = pc; }
 
+  Mword flags() const
+  { return psr; }
+
   Syscall_frame *syscall_frame()
   { return reinterpret_cast<Syscall_frame *>(&r[0]); }
 

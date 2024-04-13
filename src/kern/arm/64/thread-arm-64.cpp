@@ -14,16 +14,6 @@ Thread::mangle_kernel_lib_page_fault(Mword, Mword error_code)
 { return error_code; }
 
 IMPLEMENT inline
-Mword
-Thread::user_ip() const
-{ return regs()->ip(); }
-
-IMPLEMENT inline
-void
-Thread::user_ip(Mword ip)
-{ regs()->ip(ip); }
-
-IMPLEMENT inline
 bool
 Thread::pagein_tcb_request(Return_frame *regs)
 {

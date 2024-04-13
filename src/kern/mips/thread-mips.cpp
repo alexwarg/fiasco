@@ -84,12 +84,6 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *)
     }
 }
 
-IMPLEMENT inline Mword Thread::user_sp() const    { return regs()->sp(); }
-IMPLEMENT inline void  Thread::user_sp(Mword sp)  { regs()->sp(sp); }
-IMPLEMENT inline Mword Thread::user_flags() const { return regs()->status; }
-IMPLEMENT inline Mword Thread::user_ip() const    { return regs()->ip(); }
-IMPLEMENT inline void  Thread::user_ip(Mword ip)  { regs()->ip(ip); }
-
 /** Constructor.
     @post state() != 0
  */

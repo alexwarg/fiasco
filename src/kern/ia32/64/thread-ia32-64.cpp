@@ -140,21 +140,6 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *out)
     };
 }
 
-IMPLEMENT inline
-Mword
-Thread::user_sp() const
-{ return exception_triggered()?_exc_cont.sp(regs()):regs()->sp(); }
-
-IMPLEMENT inline
-void
-Thread::user_sp(Mword sp)
-{
-  if (exception_triggered())
-    _exc_cont.sp(regs(), sp);
-  else
-    regs()->sp(sp);
-}
-
 PROTECTED inline
 int
 Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)
