@@ -343,8 +343,6 @@ private:
   }
 
 public:
-  static bool pagein_tcb_request(Return_frame *regs);
-
   /** nesting level in debugger (always critical) if >1 */
   static Per_cpu<unsigned long> nested_trap_recover;
   static void handle_global_remote_requests_irq() asm ("ipi_remote_call");

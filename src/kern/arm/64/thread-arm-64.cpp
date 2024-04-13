@@ -13,24 +13,6 @@ Mword
 Thread::mangle_kernel_lib_page_fault(Mword, Mword error_code)
 { return error_code; }
 
-IMPLEMENT inline
-bool
-Thread::pagein_tcb_request(Return_frame *regs)
-{
-  assert (!regs->esr.pf_write()); // must be a read
-  assert (regs->esr.il());        // must be a 32bit wide insn
-  // we assume the instruction is a ldr with the target register
-  // in the lower 5 bits
-  unsigned rt = *(Mword*)regs->pc & 0x1f;
-
-  // skip faulting instruction
-  regs->pc += 4;
-  // tell program that a pagefault occurred we cannot handle
-  regs->psr |= 0x40000000;	// set zero flag in psr
-  regs->r[rt] = 0;
-
-  return true;
-}
 
 PUBLIC static inline void FIASCO_NORETURN
 Thread::arm_fast_exit(void *sp, void *pc, void *arg)

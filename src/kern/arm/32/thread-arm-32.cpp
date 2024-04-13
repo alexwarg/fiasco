@@ -17,25 +17,6 @@ Thread::mangle_kernel_lib_page_fault(Mword pc, Mword error_code)
   return error_code;
 }
 
-IMPLEMENT inline
-bool
-Thread::pagein_tcb_request(Return_frame *regs)
-{
-  //if ((*(Mword*)regs->pc & 0xfff00fff ) == 0xe5900000)
-  if (*(Mword*)regs->pc == 0xe59ee000)
-    {
-      // printf("TCBR: %08lx\n", *(Mword*)regs->pc);
-      // skip faulting instruction
-      regs->pc += 4;
-      // tell program that a pagefault occurred we cannot handle
-      regs->psr |= 0x40000000;	// set zero flag in psr
-      regs->km_lr = 0;
-
-      return true;
-    }
-  return false;
-}
-
 PUBLIC static inline void FIASCO_NORETURN
 Thread::arm_fast_exit(void *sp, void *pc, void *arg)
 {

@@ -252,7 +252,7 @@ Mword kern_pagefault_entry(Mword pfa, Mword error_code,
   if (Mem_layout::is_caps_area(pfa))
     {
       // Test for special case -- see function documentation
-      if (t->pagein_tcb_request(ret_frame))
+      if (pagein_tcb_request(ret_frame))
         return 2;
 
       printf("Fiasco BUG: Invalid CAP access (pc=%lx, pfa=%lx)\n", pc, pfa);
