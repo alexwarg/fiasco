@@ -146,7 +146,7 @@ tb_entry_IMPL		:= tb_entry tb_entry-ia32-64
 timer_IMPL		:= timer timer-ia32-amd64
 thread_IMPL		:= thread thread-ia32 thread-ia32-64 \
 			   thread-ipc thread-log \
-			   thread-debug thread-io
+			   thread-io
 tss_IMPL		:= tss-amd64
 utcb_init_IMPL		:= utcb_init utcb_init-ia32
 vmem_alloc_IMPL		:= vmem_alloc vmem_alloc-ia32

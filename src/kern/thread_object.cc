@@ -11,6 +11,11 @@
 #include "kobject_rpc.h"
 
 #include <thread_vcpu.h>
+#include <globalconfig.h>
+
+#ifdef CONFIG_JDB
+#include <exregs_log.h>
+#endif
 
 inline
 L4_msg_tag
