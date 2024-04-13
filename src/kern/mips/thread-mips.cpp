@@ -212,7 +212,7 @@ Thread::vcpu_return_to_kernel(Mword ip, Mword sp, void *arg)
       );
   }
 
-  panic("__builtin_trap()");
+  __builtin_unreachable();
 }
 
 PROTECTED static inline
