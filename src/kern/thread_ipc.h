@@ -166,6 +166,45 @@ private:
       Sched_context::rq.current().ready_enqueue(partner->sched());
   }
 
+  static bool vcpu_exception_upcall(Thread *t, Trap_state *ts)
+  {
+    Vcpu_state *vcpu = t->vcpu_state().access();
+
+    if (!t->vcpu_exceptions_enabled(vcpu))
+      return true;
+
+    if (t->_exc_cont.valid(ts))
+      return false;
+
+    // before entering kernel mode to have original fpu state before
+    // enabling fpu
+    t->save_fpu_state_to_utcb(ts, t->utcb().access());
+
+    t->spill_user_state();
+
+    if (t->vcpu_enter_kernel_mode(vcpu))
+      {
+        // enter_kernel_mode has switched the address space from user to
+        // kernel space, so reevaluate the address of the VCPU state area
+        vcpu = t->vcpu_state().access();
+      }
+
+    LOG_TRACE("VCPU events", "vcpu", t, Vcpu_log,
+        l->type = 2;
+        l->state = vcpu->saved_state();
+        l->ip = ts->ip();
+        l->sp = ts->sp();
+        l->trap = ts->trapno();
+        l->err = ts->error();
+        l->space = t->vcpu_user_space() ? static_cast<Task*>(t->vcpu_user_space())->dbg_id() : ~0;
+        );
+    vcpu->_regs.s = *ts;
+    t->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_sp, t->vcpu_state().usr().get());
+    // does not return
+
+    return false; // this is a dummy
+ }
+
 
 private:
   Syscall_frame *_snd_regs;
@@ -197,38 +236,8 @@ public:
   {
     assert(cpu_lock.test());
 
-    Vcpu_state *vcpu = _this()->vcpu_state().access();
-
-    if (_this()->vcpu_exceptions_enabled(vcpu))
-      {
-        if (_this()->_exc_cont.valid(ts))
-          return 1;
-
-        // before entering kernel mode to have original fpu state before
-        // enabling fpu
-        _this()->save_fpu_state_to_utcb(ts, _this()->utcb().access());
-
-        _this()->spill_user_state();
-
-        if (_this()->vcpu_enter_kernel_mode(vcpu))
-          {
-            // enter_kernel_mode has switched the address space from user to
-            // kernel space, so reevaluate the address of the VCPU state area
-            vcpu = _this()->vcpu_state().access();
-          }
-
-        LOG_TRACE("VCPU events", "vcpu", _this(), Vcpu_log,
-            l->type = 2;
-            l->state = vcpu->saved_state();
-            l->ip = ts->ip();
-            l->sp = ts->sp();
-            l->trap = ts->trapno();
-            l->err = ts->error();
-            l->space = _this()->vcpu_user_space() ? static_cast<Task*>(_this()->vcpu_user_space())->dbg_id() : ~0;
-            );
-        vcpu->_regs.s = *ts;
-        _this()->vcpu_return_to_kernel(vcpu->_entry_ip, vcpu->_sp, _this()->vcpu_state().usr().get());
-      }
+    if (!vcpu_exception_upcall(_this(), ts))
+      return 1;
 
     L4_fpage::Rights rights = L4_fpage::Rights(0);
     Kobject_iface *handler = _exc_handler.ptr(_this()->space(), &rights);
@@ -252,6 +261,7 @@ public:
 
     return exception(handler, ts, rights);
   }
+
 protected:
   void snd_regs(Syscall_frame *r)
   {
