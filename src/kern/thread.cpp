@@ -354,7 +354,7 @@ protected:
    * skip all fancy stuff, no locking is necessary.
    */
   explicit Thread(Ram_quota *q, Context_mode_kernel)
-  : Receiver(), _quota(q), _del_observer(0), _magic(magic)
+  : _quota(q)
   {
     inc_ref();
     _cpu_state.space.space(Kernel_task::kernel_task());
@@ -368,12 +368,11 @@ protected:
 
 protected:
   Ram_quota *_quota;
-  cxx::atomic<Irq_base *> _del_observer;
+  cxx::atomic<Irq_base *> _del_observer{nullptr};
 
-
+  constexpr static unsigned magic = 0xf001c001;
   // Debugging facilities
-  unsigned _magic;
-  static const unsigned magic = 0xf001c001;
+  unsigned _magic = magic;
 
 public:
 #ifdef CONFIG_JDB
@@ -414,6 +413,29 @@ inline
 Thread*
 current_thread()
 { return nonull_static_cast<Thread*>(current()); }
+
+IMPLEMENT
+Thread::Thread(Ram_quota *q)
+: _quota(q)
+{
+  assert (state() == 0);
+
+  inc_ref();
+  _cpu_state.space.space(Kernel_task::kernel_task());
+
+  if (Config::Stack_depth)
+    std::memset((char*)this + sizeof(Thread), '5',
+		Thread::Size-sizeof(Thread)-64);
+
+  prepare_switch_to(&user_invoke);
+
+  init_regs();
+
+  alloc_eager_fpu_state();
+
+  state.add_dirty(Thread_dead);
+  // ok, we're ready to go!
+}
 
 IMPLEMENT
 bool

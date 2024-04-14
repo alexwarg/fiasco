@@ -84,41 +84,15 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *)
     }
 }
 
-/** Constructor.
-    @post state() != 0
- */
-IMPLEMENT
-Thread::Thread(Ram_quota *q)
-:  _quota(q),
-  _del_observer(0)
+PRIVATE inline
+void
+Thread::init_regs()
 {
-
-  assert(state() == 0);
-
-  inc_ref();
-  _cpu_state.space.space(Kernel_task::kernel_task());
-
-  if (Config::Stack_depth)
-    std::memset((char*)this + sizeof(Thread), '5',
-                Thread::Size - sizeof(Thread) - 64);
-
-  // set a magic value -- we use it later to verify the stack hasn't
-  // been overrun
-  _magic = magic;
-  _recover_jmpbuf = 0;
-
-  prepare_switch_to(&user_invoke);
-
   // clear out user regs that can be returned from the thread_ex_regs
   // system call to prevent covert channel
   Entry_frame *r = regs();
   memset(r, 0, sizeof(*r));
   r->status = Cp0_status::status_eret_to_user_ei(Cp0_status::read());
-
-  alloc_eager_fpu_state();
-
-  state.add_dirty(Thread_dead);
-  // ok, we're ready to go!
 }
 
 // ERET to user mode

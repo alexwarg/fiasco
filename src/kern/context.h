@@ -620,7 +620,7 @@ private:
 protected:
   // for trigger_exception
   Continuation _exc_cont;
-  jmp_buf *_recover_jmpbuf;     // setjmp buffer for page-fault recovery
+  jmp_buf *_recover_jmpbuf = nullptr;     // setjmp buffer for page-fault recovery
 
 private:
   static Per_cpu<Clock> _clock;

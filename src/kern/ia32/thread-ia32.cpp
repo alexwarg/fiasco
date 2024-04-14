@@ -38,39 +38,10 @@ IMPLEMENTATION [ia32,amd64]:
 
 Trap_state::Handler Thread::nested_trap_handler FIASCO_FASTCALL;
 
-IMPLEMENT
-Thread::Thread(Ram_quota *q)
-: _quota(q),
-  _del_observer(0)
-{
-  assert (state() == 0);
-
-  inc_ref();
-  _cpu_state.space.space(Kernel_task::kernel_task());
-
-  if (Config::Stack_depth)
-    std::memset((char*)this + sizeof(Thread), '5',
-		Thread::Size-sizeof(Thread)-64);
-
-  _magic          = magic;
-  _recover_jmpbuf = 0;
-
-  prepare_switch_to(&user_invoke);
-
-  arch_init();
-
-  alloc_eager_fpu_state();
-
-  state.add_dirty(Thread_dead);
-
-  // ok, we're ready to go!
-}
-
 PRIVATE static inline
 Mword
 Thread::sanitize_user_flags(Mword flags)
 { return (flags & ~(EFLAGS_IOPL | EFLAGS_NT)) | EFLAGS_IF; }
-
 
 extern "C" FIASCO_FASTCALL
 void
@@ -224,7 +195,7 @@ Thread::exception_cs()
  */
 PRIVATE inline NEEDS ["gdt.h"]
 void
-Thread::arch_init()
+Thread::init_regs()
 {
   // clear out user regs that can be returned from the thread_ex_regs
   // system call to prevent covert channel
