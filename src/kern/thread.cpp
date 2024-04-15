@@ -34,6 +34,7 @@ INTERFACE:
 #include <sched.h>
 #include <timer.h>
 #include <thread_ipc.h>
+#include <thread_arch.h>
 
 class Return_frame;
 class Syscall_frame;
@@ -48,7 +49,8 @@ class Thread :
   public Receiver,
   public Thread_ipc<Thread>,
   public cxx::Dyn_castable<Thread, Kobject>,
-  public Thread_fpu_x<Thread>
+  public Thread_fpu_x<Thread>,
+  public Thread_arch_x<Thread>
 {
   MEMBER_OFFSET();
 
@@ -342,6 +344,8 @@ private:
     do_trigger_exception(regs(), (void*)&leave_and_kill_myself);
   }
 
+  static void print_page_fault_error(Mword e);
+
 public:
   /** nesting level in debugger (always critical) if >1 */
   static Per_cpu<unsigned long> nested_trap_recover;
@@ -429,7 +433,7 @@ Thread::Thread(Ram_quota *q)
 
   prepare_switch_to(&user_invoke);
 
-  init_regs();
+  init_regs(regs());
 
   alloc_eager_fpu_state();
 

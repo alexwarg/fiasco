@@ -50,13 +50,6 @@ thread_restore_exc_state()
   current_thread()->restore_exc_state();
 }
 
-PRIVATE static
-void
-Thread::print_page_fault_error(Mword e)
-{
-  printf("%lx", e);
-}
-
 //----------------------------------------------------------------------------
 IMPLEMENTATION [(ia32 || amd64) && cpu_local_map]:
 
@@ -189,26 +182,6 @@ Thread::exception_cs()
 {
   return Gdt::gdt_code_user | Gdt::Selector_user;
 }
-
-/**
- * The ia32 specific part of the thread constructor.
- */
-PRIVATE inline NEEDS ["gdt.h"]
-void
-Thread::init_regs()
-{
-  // clear out user regs that can be returned from the thread_ex_regs
-  // system call to prevent covert channel
-  Entry_frame *r = regs();
-  r->flags(EFLAGS_IOPL_K | EFLAGS_IF | 2);	// ei
-  r->cs(Gdt::gdt_code_user | Gdt::Selector_user);
-  r->ss(Gdt::gdt_data_user | Gdt::Selector_user);
-
-  r->sp(0);
-  // after cs initialisation as ip() requires proper cs
-  r->ip(0);
-}
-
 
 /** A C interface for Context::handle_fpu_trap, callable from assembly code.
     @relates Context

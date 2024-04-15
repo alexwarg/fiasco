@@ -107,6 +107,8 @@ CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
 	traps.cc \
 	doublefault.cc \
 	task_vcpu_resume.cc \
+	thread_ia32_32.cc \
+	thread_ia32.cc \
 	io_space.cc \
 	acpi.cc \
 	checksum.cc \

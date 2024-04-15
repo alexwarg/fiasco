@@ -84,57 +84,6 @@ Thread::invoke_arch(L4_msg_tag tag, Utcb const *utcb, Utcb *)
     }
 }
 
-PRIVATE inline
-void
-Thread::init_regs()
-{
-  // clear out user regs that can be returned from the thread_ex_regs
-  // system call to prevent covert channel
-  Entry_frame *r = regs();
-  memset(r, 0, sizeof(*r));
-  r->status = Cp0_status::status_eret_to_user_ei(Cp0_status::read());
-}
-
-// ERET to user mode
-IMPLEMENT
-void FIASCO_NORETURN
-Thread::user_invoke()
-{
-  user_invoke_generic();
-  assert(current()->state() & Thread_ready);
-  auto ts = current()->regs();
-
-  Proc::cli();
-
-  ts->r[4] = 0;
-
-  if (EXPECT_FALSE(current_thread()->mem_space()->is_sigma0()))
-    ts->r[4] = Mem_layout::pmem_to_phys(Kip::k());
-
-  // FIXME: do we really need this or should the user be
-  // responsible for that
-  //Mem_op::cache()->icache_invalidate_all();
-
-  do
-    {
-      extern char ret_from_user_invoke[];
-      Mword register a0 __asm__("a0") = (Mword)ts;
-      Mword register ra __asm__("ra") = (Mword)ret_from_user_invoke;
-      __asm__ __volatile__ (
-          ASM_ADDIU "  $sp, %[ts], -%[cfs]   \n"
-          "jr          %[ra]                 \n"
-          "nop                               \n"
-          :
-          : [ra] "r" (ra),
-            [ts] "r" (a0),
-            [cfs] "i" (ASM_WORD_BYTES * ASM_NARGSAVE));
-    }
-  while (0);
-
-  __builtin_unreachable();
-  // never returns
-}
-
 PROTECTED inline
 int
 Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)
@@ -145,16 +94,6 @@ Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)
       return 1;
     }
   return 0;
-}
-
-PRIVATE static
-void
-Thread::print_page_fault_error(Mword e)
-{
-  printf("%s (%ld), %s(%c) (%lx)",
-         Trap_state::exc_code_to_str(e), (e >> 2) & 0x1f,
-         PF::is_usermode_error(e) ? "user" : "kernel",
-         PF::is_read_error(e) ? 'r' : 'w', e);
 }
 
 PROTECTED static inline

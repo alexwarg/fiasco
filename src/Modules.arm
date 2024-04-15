@@ -142,6 +142,7 @@ INTERFACES_KERNEL += 	mem_op \
 
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc \
+	thread_arm.cc \
 	irq_chip_generic.cc \
 	kmem_space_arm_$(BITS).cc \
 	entry_frame.cc \
