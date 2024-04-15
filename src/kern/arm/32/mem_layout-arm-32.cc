@@ -1,4 +1,5 @@
 #include "mem_layout.h"
+#include <arm/32/inline_asm.h>
 
 #ifdef CONFIG_VIRT_OBJ_SPACE
 Mword
@@ -6,7 +7,8 @@ Mem_layout_arch::_read_special_safe(Mword const *a)
 {
   // Counterpart: Thread::pagein_tcb_request()
   register Mword const *res __asm__ ("r14") = a;
-  __asm__ __volatile__ ("ldr %0, [%0]\n" : "=r" (res) : "r" (res) : "cc");
+  __asm__ __volatile__ (INST32("ldr") " %0, [%0]\n"
+                        : "=r" (res) : "r" (res) : "cc" );
   return Mword(res);
 }
 
@@ -18,7 +20,7 @@ Mem_layout_arch::_read_special_safe(Mword const *address, Mword &v)
   Mword ret;
 #ifdef __thumb__
   asm volatile ("msr cpsr_f, %[zero]  \n" // clear flags
-                "ldr %[a], [%[a]]  \n"
+                "ldr.w %[a], [%[a]]  \n"
                 "movne %[ret], #1      \n"
                 "moveq %[ret], #0      \n"
                  : [a] "=r" (a), [ret] "=r" (ret)

@@ -14,8 +14,14 @@ pagein_tcb_request(Return_frame *regs)
   if (!IS_ENABLED(CONFIG_VIRT_OBJ_SPACE))
     return false;
 
+#ifdef __thumb__
+  enum : Mword { Ldr_lr_lr_inst = 0xe000f8de }; // ldr.w lr,[lr]
+#else
+  enum : Mword { Ldr_lr_lr_inst = 0xe59ee000 }; // ldr lr,[lr]
+#endif
+
   //if ((*(Mword*)regs->pc & 0xfff00fff ) == 0xe5900000)
-  if (*reinterpret_cast<Mword*>(regs->pc) == 0xe59ee000)
+  if (*reinterpret_cast<Mword*>(regs->pc) == Ldr_lr_lr_inst)
     {
       // printf("TCBR: %08lx\n", *(Mword*)regs->pc);
       // skip faulting instruction
