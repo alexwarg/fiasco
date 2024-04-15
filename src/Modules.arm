@@ -267,7 +267,16 @@ VPATH          	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib
 PRIVATE_INCDIR 	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib/libk
 
 CXXSRC_LIBK     += construction.cc
-ASSRC_LIBK-$(CONFIG_BIT32)  += aeabi_uldivmod.S udivmoddi4.S
+ASSRC_LIBK-$(CONFIG_BIT32)  += \
+	aeabi_uldivmod.S \
+	aeabi_uidivmod.S \
+	aeabi_idivmod.S \
+	udivmoddi4.S \
+	udivsi3.S \
+	udivmodsi4.S \
+	divmodsi4.S \
+	divsi3.S
+
 CSRC_LIBK-$(CONFIG_BIT32)   += ashldi3.c
 ASSRC_LIBK += $(ASSRC_LIBK-y)
 CSRC_LIBK  += $(CSRC_LIBK-y)
