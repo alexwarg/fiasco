@@ -33,6 +33,15 @@ PREPROCESS_PARTS-$(CONFIG_CPU_VIRT)                 += vgic arm_esr_traps
 PREPROCESS_PARTS-y$(CONFIG_CPU_VIRT)$(CONFIG_BIT64) += noncont_mem
 PREPROCESS_PARTS-$(CONFIG_ARM_PT48)                 += arm_pt_48
 
+BSP_NAME         := $(patsubst "%",%,$(CONFIG_BSP_NAME))
+BSP_SRC_DIR      := kern/arm/bsp/$(BSP_NAME)
+MODULES_FILE_BSP := $(srcdir)/$(BSP_SRC_DIR)/Modules
+ifeq ($(wildcard $(MODULES_FILE_BSP)),)
+  $(error No BSP name defined or no BSP Modules file available)
+endif
+
+PRIVATE_INCDIR += $(BSP_SRC_DIR)
+VPATH += $(BSP_SRC_DIR)
 
 #
 # TYPES subsystem
@@ -357,17 +366,8 @@ VERSION		:= version.h
 TCBOFFSET	:= tcboffset.h
 CXXSRC_TCBOFFSET	:= tcboffset.cc dump_tcboffsets.cc
 
-BSP_NAME         := $(patsubst "%",%,$(CONFIG_BSP_NAME))
-BSP_SRC_DIR      := kern/arm/bsp/$(BSP_NAME)
-MODULES_FILE_BSP := $(srcdir)/$(BSP_SRC_DIR)/Modules
-ifeq ($(wildcard $(MODULES_FILE_BSP)),)
-  $(error No BSP name defined or no BSP Modules file available)
-endif
-
-PRIVATE_INCDIR += $(BSP_SRC_DIR)
 
 include $(MODULES_FILE_BSP)
-VPATH                   += $(BSP_SRC_DIR)
 PREPROCESS_PARTS	+= $(PREPROCESS_PARTS-y)
 INTERFACES_KERNEL       += $(INTERFACES_KERNEL-y) $(INTERFACES_KERNEL-y-y)
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
