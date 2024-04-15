@@ -6,6 +6,7 @@
 #include <fpu.h>
 #include <kdb_ke.h>
 #include <infinite_loop.h>
+#include <arm/32/inline_asm.h>
 
 inline bool
 pagein_tcb_request(Return_frame *regs)
@@ -334,12 +335,8 @@ inline T peek_user(T const *adr, Context *c)
   T v;
   c->kernel_mem_op.set_ignore(true);
   // Must always be a 4 byte instruction because check_and_handle_mem_op_fault()
-  // relies on this. Unfortunaltely the ".w" suffix is not valid in ARM mode.
-  asm volatile("ldr"
-#ifdef __thumb__
-                   ".w"
-#endif
-                      " %0, [%1]" : "=r"(v) : "r"(adr)); // v = *adr;
+  // relies on this.
+  asm volatile(INST32("ldr") " %0, [%1]" : "=r"(v) : "r"(adr)); // v = *adr;
   c->kernel_mem_op.set_ignore(false);
   return v;
 }
