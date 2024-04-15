@@ -55,6 +55,7 @@ class Thread :
   MEMBER_OFFSET();
 
   friend Thread_ipc<Thread>;
+  friend Thread_arch_x<Thread>;
 
   friend class Jdb;
   friend class Jdb_bt;
@@ -369,6 +370,17 @@ protected:
 
     alloc_eager_fpu_state();
   }
+
+  int
+  do_trigger_exception(Entry_frame *r, void *ret_handler)
+  {
+    if (_exc_cont.valid(r))
+      return 0;
+
+    _exc_cont.activate(r, ret_handler);
+    return 1;
+  }
+
 
 protected:
   Ram_quota *_quota;

@@ -15,13 +15,13 @@ protected:
   : Context_arch_bits(kernel_sp)
   {}
 
+public:
   void sanitize_user_state(Return_frame *dst) const
   {
     dst->psr &= ~(Proc::Status_mode_mask | Proc::Status_interrupts_mask);
     dst->psr |= Proc::Status_mode_user | Proc::Status_always_mask;
   }
 
-public:
   void arch_load_vcpu_kern_state(Vcpu_state *vcpu, bool do_load)
   {
     _cpu_state.tpidruro(vcpu->host.tpidruro);

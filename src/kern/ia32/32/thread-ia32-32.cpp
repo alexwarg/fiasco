@@ -1,19 +1,5 @@
 IMPLEMENTATION[ia32]:
 
-PROTECTED inline
-int
-Thread::do_trigger_exception(Entry_frame *r, void *ret_handler)
-{
-  if (!exception_triggered())
-    {
-      _exc_cont.activate(r, ret_handler);
-      return 1;
-    }
-  // else ignore change of IP because triggered exception already pending
-  return 0;
-}
-
-
 PUBLIC inline
 void
 Thread::restore_exc_state()

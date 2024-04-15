@@ -75,7 +75,7 @@ public:
 
   void vcpu_save_state_and_upcall()
   {
-    _this()->_exc_cont.activate(_this()->regs(), upcall);
+    _this()->cont()->activate(_this()->regs(), upcall);
   }
 
   bool vcpu_enter_kernel_mode(Vcpu_state *vcpu)

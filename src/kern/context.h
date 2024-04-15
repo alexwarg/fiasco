@@ -452,11 +452,6 @@ public:
   bool have_timeout() const
   { return _timeout != nullptr; }
 
-
-  // -- static fns --
-  static Context *kernel_context(Cpu_number cpu)
-  { return _kernel_ctxt.cpu(cpu); }
-
   /**
    * Update consumed CPU time during each context switch and when
    *        reading out the current thread's consumed CPU time.
@@ -466,6 +461,13 @@ public:
     if (Config::Fine_grained_cputime)
       consume_time(_clock.current().delta());
   }
+
+  Continuation *cont() { return &_exc_cont; }
+  Continuation const *cont() const { return &_exc_cont; }
+
+  // -- static fns --
+  static Context *kernel_context(Cpu_number cpu)
+  { return _kernel_ctxt.cpu(cpu); }
 
 protected:
   void finish_migration()

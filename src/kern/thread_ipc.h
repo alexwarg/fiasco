@@ -21,6 +21,10 @@ typedef Context_ptr_base<Thread> Thread_ptr;
 
 class Thread_ipc_base
 {
+public:
+  Trap_state *utcb_handler_ts() const
+  { return reinterpret_cast<Trap_state *>(_utcb_handler); }
+
 protected:
   using Rcv_state = Receiver::Rcv_state;
 
@@ -132,7 +136,9 @@ protected:
 };
 
 template<typename THREAD>
-class Thread_ipc : public Sender, public Thread_ipc_base
+class Thread_ipc :
+  public Sender,
+  public Thread_ipc_base
 {
 private:
   using Thread = THREAD;
@@ -174,7 +180,7 @@ private:
     if (!t->vcpu_exceptions_enabled(vcpu))
       return true;
 
-    if (t->_exc_cont.valid(ts))
+    if (t->exception_triggered())
       return false;
 
     // before entering kernel mode to have original fpu state before

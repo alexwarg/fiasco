@@ -116,6 +116,11 @@ public:
     _hyp.sanitize_psr(&dst->psr);
   }
 
+  void sanitize_user_state(Return_frame *dst) const
+  {
+    _hyp.sanitize_psr(&dst->psr);
+  }
+
 protected:
   explicit Context_arch_base(Mword *kernel_sp) noexcept
   : Context_arch_bits(kernel_sp)
@@ -170,11 +175,6 @@ protected:
       vcpu->host.tpidruro = _cpu_state.tpidruro();
 
     _cpu_state.tpidruro(vcpu->_regs.tpidruro);
-  }
-
-  void sanitize_user_state(Return_frame *dst) const
-  {
-    _hyp.sanitize_psr(&dst->psr);
   }
 
 private:

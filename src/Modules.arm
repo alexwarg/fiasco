@@ -205,8 +205,7 @@ scu_IMPL                := scu
 startup_IMPL		:= startup startup-arm
 sys_call_page_IMPL	:= sys_call_page $(if $(CONFIG_BIT32), sys_call_page-arm)
 task_IMPL		:= task task-arm
-thread_IMPL	  	:= thread thread-arm \
-			   thread-arm-$(BITS)
+thread_IMPL	  	:= thread thread-arm
 timer_IMPL		:= timer timer-arm
 timer_tick_IMPL		:= timer_tick timer_tick-arm
 utcb_init_IMPL		:= utcb_init utcb_init-arm
