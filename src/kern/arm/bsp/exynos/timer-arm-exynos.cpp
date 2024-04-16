@@ -54,6 +54,7 @@ IMPLEMENTATION [arm && exynos_mct]: // ------------------------------------
 
 #include "cpu.h"
 #include "io.h"
+#include <kmem.h>
 #include <cstdio>
 
 Static_object<Mct_timer> Timer::mct;
