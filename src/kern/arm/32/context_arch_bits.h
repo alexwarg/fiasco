@@ -90,14 +90,20 @@ protected:
     register void *_old_sp asm("r2") = &_cpu_state.kernel_sp;
     register void *_new_sp asm("r3") = to_a->_cpu_state.kernel_sp;
 
+#ifdef __thumb__
+#  define ARM_FP_REG "r7"
+#  define ARM_CLOBBER_FP "r11"
+#  define ARM_LABEL(x) FIASO_STRINGIFY((x + 1))
+#else
+#  define ARM_FP_REG "fp"
+#  define ARM_CLOBBER_FP "r7"
+#  define ARM_LABEL(x) FIASCO_STRINGIFY(x)
+#endif
+
     asm volatile
       (// save context of old thread
-       "   stmdb sp!, {fp}          \n"
-#ifdef __thumb__
-       "   adr   lr, (1f + 1)       \n" // make sure to return to thumb mode
-#else
-       "   adr   lr, 1f             \n"
-#endif
+       "   stmdb sp!, {" ARM_FP_REG "} \n" // r7 frame pointer in thumb mode
+       "   adr   lr, " ARM_LABEL(1f) " \n" // make sure to return to thumb mode
        "   str   lr, [sp, #-4]!     \n"
        "   str   sp, [%[old_sp]]    \n"
 
@@ -109,7 +115,8 @@ protected:
 
        // return to new context
        "   ldr   pc, [sp]           \n"
-       "1: ldr   fp, [sp, #4]       \n"
+       "1:                          \n"
+       "   ldr   " ARM_FP_REG ", [sp, #4]     \n"
        "   add   sp, sp, #8         \n"
 
        :
@@ -119,9 +126,13 @@ protected:
        [new_sp] "+r" (_new_sp)
        :
        : // r11/fp is saved / restored using stmdb/ldmia
-         "r4", "r5", "r6", "r7", "r8", "r9",
+         ARM_CLOBBER_FP, "r4", "r5", "r6", "r8", "r9",
          "r10", "r12", "r14", "memory");
   }
+
+#undef ARM_FP_REG
+#undef ARM_CLOBBER_FP
+#undef ARM_LABEL
 
 };
 
