@@ -1,5 +1,7 @@
 #pragma once
 
+#include "globalconfig.h"
+
 #define BUILTIN_EXPECT(exp, c) __builtin_expect((exp), (c))
 #define EXPECT_TRUE(exp)       __builtin_expect((exp), true)
 #define EXPECT_FALSE(exp)      __builtin_expect((exp), false)
