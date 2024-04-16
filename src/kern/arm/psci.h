@@ -4,6 +4,7 @@
 #include <globalconfig.h>
 #include <smc_call.h>
 #include <alternatives.h>
+#include <std_macros.h>
 
 #ifdef CONFIG_ARM_PSCI_SMC
 #define FIASCO_ARM_PSCI_CALL_ASM_FUNC "smc #0"
@@ -75,6 +76,7 @@ private:
     Psci_stat_count          = 17,
   };
 
+  FIASCO_ARM_THUMB2_NO_FRAME_PTR
   static unsigned long psci_fn(unsigned fn)
   {
     switch (fn)
