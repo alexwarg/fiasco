@@ -14,6 +14,7 @@
 #include "spin_lock.h"
 #include "timer.h"
 #include "utcb_init.h"
+#include <arm_ipis.h>
 
 int boot_ap_cpu()
 {
@@ -46,7 +47,7 @@ int boot_ap_cpu()
 
   Cpu::cpus.cpu(_cpu).init(!cpu_is_new, false);
   Pic::init_ap(_cpu, !cpu_is_new);
-  Thread::init_per_cpu(_cpu, !cpu_is_new);
+  Arm_ipis::init_per_cpu(_cpu, !cpu_is_new);
   Platform_control::init(_cpu);
   Ipi::init(_cpu);
   Timer::init(_cpu);

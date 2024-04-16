@@ -162,7 +162,9 @@ CXXSRC_KERNEL += main_arm.cc \
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc vgic_global.cc hyp_ppi.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT)-$(CONFIG_HAVE_ARM_GICV2) += vgic_v2.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT)-$(CONFIG_HAVE_ARM_GICV3) += vgic_v3.cc
-CXXSRC_KERNEL-$(CONFIG_MP) += main_arm_mp.cc
+CXXSRC_KERNEL-$(CONFIG_MP) += \
+	main_arm_mp.cc \
+	arm_ipis.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc gic_$(BITS).cc
@@ -214,7 +216,7 @@ scu_IMPL                := scu
 startup_IMPL		:= startup startup-arm
 sys_call_page_IMPL	:= sys_call_page $(if $(CONFIG_BIT32), sys_call_page-arm)
 task_IMPL		:= task task-arm
-thread_IMPL	  	:= thread thread-arm
+thread_IMPL	  	:= thread
 timer_IMPL		:= timer timer-arm
 timer_tick_IMPL		:= timer_tick timer_tick-arm
 utcb_init_IMPL		:= utcb_init utcb_init-arm

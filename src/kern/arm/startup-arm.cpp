@@ -19,6 +19,7 @@ IMPLEMENTATION [arm]:
 #include "thread.h"
 #include "timer.h"
 #include "utcb_init.h"
+#include <arm_ipis.h>
 
 #include <cstdlib>
 #include <cstdio>
@@ -71,7 +72,7 @@ Startup::stage2()
   Mem_space::kernel_space(Kernel_task::kernel_task());
   Cpu::cpus.cpu(boot_cpu).init(false, true);
   Pic::init();
-  Thread::init_per_cpu(boot_cpu, false);
+  Arm_ipis::init_per_cpu(boot_cpu, false);
 
   Platform_control::init(boot_cpu);
   Psci::init(boot_cpu);
