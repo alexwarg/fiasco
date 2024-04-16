@@ -6,13 +6,6 @@ Thread::restore_exc_state()
 {
   assert (cpu_lock.test());
   _exc_cont.restore(regs());
-#if 0
-
-  r->cs (exception_cs());
-  r->ip (_exc_ip);
-  r->flags (_exc_flags);
-  _exc_ip = ~0UL;
-#endif
 }
 
 PRIVATE static inline

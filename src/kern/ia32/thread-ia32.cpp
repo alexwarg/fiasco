@@ -7,15 +7,6 @@ INTERFACE [ia32,amd64]:
 
 class Idt_entry;
 
-EXTENSION class Thread
-{
-private:
-  /**
-   * Return code segment used for exception reflection to user mode
-   */
-  static Mword exception_cs();
-};
-
 //----------------------------------------------------------------------------
 IMPLEMENTATION [ia32,amd64]:
 
@@ -175,13 +166,6 @@ IMPLEMENTATION[ia32 || amd64]:
 #include "simpleio.h"
 #include "static_init.h"
 #include "terminate.h"
-
-IMPLEMENT static inline NEEDS ["gdt.h"]
-Mword
-Thread::exception_cs()
-{
-  return Gdt::gdt_code_user | Gdt::Selector_user;
-}
 
 /** A C interface for Context::handle_fpu_trap, callable from assembly code.
     @relates Context
