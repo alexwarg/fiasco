@@ -290,6 +290,7 @@ static void relocate(unsigned long load_addr)
 asm
 (
 ".section .text.init,\"ax\"            \n"
+".p2align 2                            \n"
 ".type _start,#function                \n"
 ".global _start                        \n"
 "_start:                               \n"
