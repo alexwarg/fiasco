@@ -15,6 +15,7 @@
 #include <warn.h>
 #include <globalconfig.h>
 #include <log_pagefault.h>
+#include <traps_local_map.h>
 
 #ifndef CONFIG_JDB
 /** There is no nested trap handler if both jdb and kdb are disabled.
@@ -395,7 +396,7 @@ thread_page_fault(Address pfa, Mword error_code, Address ip, Mword /*flags*/,
 
   Thread *t = current_thread();
 
-  if (t->update_local_map(pfa, error_code))
+  if (update_local_map(t, pfa, error_code))
     return 1;
 
   Log::page_fault(pfa, error_code, ip);
@@ -444,4 +445,13 @@ thread_page_fault(Address pfa, Mword error_code, Address ip, Mword /*flags*/,
   return 0;
 }
 
+extern "C" int thread_handle_fputrap();
+
+int
+thread_handle_fputrap()
+{
+  LOG_TRAP_N(7);
+
+  return current_thread()->switchin_fpu();
+}
 

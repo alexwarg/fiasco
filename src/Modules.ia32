@@ -105,6 +105,7 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc
 CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
 	traps.cc \
+	entry_cc.cc \
 	doublefault.cc \
 	task_vcpu_resume.cc \
 	thread_ia32_32.cc \
@@ -150,7 +151,6 @@ startup_IMPL		:= startup startup-ia32
 sys_call_page_IMPL	:= sys_call_page sys_call_page-abs-ia32
 tb_entry_IMPL		:= tb_entry tb_entry-ia32-32
 timer_IMPL		:= timer timer-ia32-amd64
-thread_IMPL		:= thread thread-ia32 thread-ia32-32
 utcb_init_IMPL		:= utcb_init utcb_init-ia32
 vmem_alloc_IMPL		:= vmem_alloc vmem_alloc-ia32
 
