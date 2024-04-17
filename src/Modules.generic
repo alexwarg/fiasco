@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
 			   kip_init   \
 			   timer   \
 			   mem_unit \
-			   thread syscalls     \
+			   syscalls     \
 			   kernel_thread map_util        \
 			   vmem_alloc paging      \
 			   cpu               \
@@ -76,6 +76,7 @@ CXXSRC_KERNEL += \
 	slab_cache.cc \
 	task.cc \
 	terminate.cc \
+	thread.cc \
 	thread_object.cc \
 	timeout.cc \
 	timeslice_timeout.cc \
