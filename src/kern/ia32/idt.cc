@@ -1,41 +1,17 @@
-/*
- * Fiasco Interrupt Descriptor Table (IDT) Code
- */
 
-INTERFACE:
+#include <idt.h>
 
-#include "initcalls.h"
-#include "idt_init.h"
-#include "kmem.h"
-#include "mem_layout.h"
-#include "types.h"
-#include "x86desc.h"
+#include <initcalls.h>
+#include <kmem.h>
+#include <x86desc.h>
+#include <config.h>
+#include <kmem_alloc.h>
+#include <vmem_alloc.h>
+#include <mem_unit.h>
+#include <gdt.h>
 
-class Idt_init_entry;
-
-class Idt
-{
-  friend class Jdb_kern_info_bench;
-
-public:
-  static const unsigned _idt_max = FIASCO_IDT_MAX;
-
-private:
-  static const Address _idt = Mem_layout::Idt;
-  static Address _idt_pa;
-};
-
-IMPLEMENTATION:
-
-#include <cassert>
-#include "gdt.h"
-#include "irq_chip.h"
-#include "mem_unit.h"
-#include "paging.h"
-#include "panic.h"
-#include "kmem_alloc.h"
-#include "vmem_alloc.h"
 #include <cstring>
+#include <panic.h>
 
 Address Idt::_idt_pa;
 
@@ -43,7 +19,6 @@ Address Idt::_idt_pa;
  * IDT write-protect/write-unprotect function.
  * @param writable true if IDT should be made writable, false otherwise
  */
-PRIVATE static
 void
 Idt::set_writable(bool writable)
 {
@@ -60,7 +35,7 @@ Idt::set_writable(bool writable)
   Mem_unit::tlb_flush_kernel(_idt);
 }
 
-PUBLIC static FIASCO_INIT
+FIASCO_INIT
 void
 Idt::init_table(Idt_init_entry *src, Idt_entry *idt)
 {
@@ -91,7 +66,7 @@ Idt::init_table(Idt_init_entry *src, Idt_entry *idt)
  * IDT initialization function. Sets up initial interrupt vectors.
  * It also write-protects the IDT because of the infamous Pentium F00F bug.
  */
-PUBLIC static FIASCO_INIT
+FIASCO_INIT
 void
 Idt::init()
 {
@@ -111,7 +86,6 @@ Idt::init()
   init_current_cpu();
 }
 
-PUBLIC static
 void
 Idt::init_current_cpu()
 {
@@ -130,16 +104,6 @@ Idt::init_current_cpu()
   load();
 }
 
-
-PUBLIC static
-void
-Idt::load()
-{
-  Pseudo_descriptor desc(_idt, _idt_max*sizeof(Idt_entry)-1);
-  set(&desc);
-}
-
-PUBLIC static
 void
 Idt::set_entry(unsigned vector, Idt_entry entry)
 {
@@ -152,15 +116,6 @@ Idt::set_entry(unsigned vector, Idt_entry entry)
   set_writable(false);
 }
 
-PUBLIC static
-Idt_entry const &
-Idt::get(unsigned vector)
-{
-  assert (vector < _idt_max);
-
-  return ((Idt_entry*)_idt)[vector];
-}
-
 /**
  * IDT patching function.
  *
@@ -171,7 +126,6 @@ Idt::get(unsigned vector)
  * \param addr    Address of the new interrupt handler for the vector.
  * \param user    True if user mode can use this vector, false otherwise.
  */
-PUBLIC static
 void
 Idt::set_entry(unsigned vector, Address addr, bool user)
 {
@@ -191,47 +145,6 @@ Idt::set_entry(unsigned vector, Address addr, bool user)
   set_writable(false);
 }
 
-PUBLIC static
-Address
-Idt::get_entry(unsigned vector)
-{
-  assert (vector < _idt_max);
-  Idt_entry *entries = (Idt_entry*)_idt;
-  return entries[vector].offset();
-}
-
-PUBLIC static inline
-Address
-Idt::idt()
-{
-  return _idt;
-}
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION[ia32 | amd64]:
-
-#include "config.h"
-
-/**
- * IDT loading function.
- * Loads IDT base and limit into the CPU.
-  * @param desc IDT descriptor (base address, limit)
-  */  
-PUBLIC static inline
-void
-Idt::set(Pseudo_descriptor *desc)
-{
-  asm volatile ("lidt %0" : : "m" (*desc));
-}
-
-PUBLIC static inline
-void
-Idt::get(Pseudo_descriptor *desc)
-{
-  asm volatile ("sidt %0" : "=m" (*desc) : : "memory");
-}
-
 extern "C" void entry_int_timer();
 extern "C" void entry_int_timer_slow();
 extern "C" void entry_int7();
@@ -241,7 +154,6 @@ extern "C" void entry_int_pic_ignore();
 /**
  * Set IDT vector to the normal timer interrupt handler.
  */
-PUBLIC static
 void
 Idt::set_vectors_run()
 {
