@@ -1538,7 +1538,7 @@ IMPLEMENTATION[ia32, amd64]:
 #include "globals.h"
 #include "initcalls.h"
 #include "io.h"
-#include "pit.h"
+#include "pit_i8254.h"
 #include "processor.h"
 #include "regdefs.h"
 #include "tss.h"

@@ -95,7 +95,7 @@ INTERFACES_KERNEL	+= \
 			   irq_chip_ia32 irq_chip_pic \
 			   io_apic intel_iommu io_apic_remapped \
 			   boot_console \
-			   irq_msi apic pit \
+			   irq_msi apic \
 			   x86desc gdt tss timer_irq dirq
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
@@ -139,7 +139,6 @@ mem_unit_IMPL		:= mem_unit-ia32
 paging_IMPL		:= paging paging-ia32-32 paging-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
 pic_IMPL		:= pic pic-i8259
-pit_IMPL		:= pit-i8254
 platform_control_IMPL	+= platform_control-acpi_sleep platform_control-ia32
 pmem_alloc_IMPL		:= pmem_alloc pmem_alloc-ia32
 rtc_IMPL		:= rtc-ia32

@@ -4,7 +4,7 @@ INTERFACE [{ia32,amd64}-pit_timer]:
 
 IMPLEMENTATION[{ia32,amd64}-pit_timer]:
 
-#include "pit.h"
+#include "pit_i8254.h"
 
 #include <cstdio>
 

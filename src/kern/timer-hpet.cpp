@@ -13,7 +13,7 @@ IMPLEMENTATION [hpet_timer]:
 #include "cpu.h"
 #include "hpet.h"
 #include "logdefs.h"
-#include "pit.h"
+#include "pit_i8254.h"
 #include "std_macros.h"
 
 #include <cstdio>

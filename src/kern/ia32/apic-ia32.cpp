@@ -209,7 +209,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include "processor.h"
 #include "regdefs.h"
 #include "pic.h"
-#include "pit.h"
+#include "pit_i8254.h"
 #include "warn.h"
 
 unsigned apic_spurious_interrupt_bug_cnt;

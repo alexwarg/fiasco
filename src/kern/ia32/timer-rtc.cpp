@@ -5,7 +5,7 @@ INTERFACE [{ia32,amd64}-rtc_timer]:
 IMPLEMENTATION[{ia32,amd64}-rtc_timer]:
 
 #include "rtc.h"
-#include "pit.h"
+#include "pit_i8254.h"
 
 #include <cstdio>
 

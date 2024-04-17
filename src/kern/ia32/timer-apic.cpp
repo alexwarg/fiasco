@@ -6,7 +6,7 @@ IMPLEMENTATION [apic_timer]:
 #include "config.h"
 #include "cpu.h"
 #include "logdefs.h"
-#include "pit.h"
+#include "pit_i8254.h"
 #include "std_macros.h"
 #include "warn.h"
 
