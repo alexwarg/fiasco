@@ -34,6 +34,7 @@ IMPLEMENTATION [arm && pic_gic
 #include "gic_v2.h"
 #include "irq_mgr_multi_chip.h"
 #include "cascade_irq.h"
+#include <kmem.h>
 
 PUBLIC static
 void Pic::init_ap(Cpu_number cpu, bool resume)
@@ -80,6 +81,7 @@ IMPLEMENTATION [arm && pic_gic
 
 #include "gic_v2.h"
 #include "irq_mgr_multi_chip.h"
+#include <kmem.h>
 
 PUBLIC static FIASCO_INIT
 void Pic::init()
