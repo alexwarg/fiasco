@@ -132,7 +132,6 @@ INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 
 bitmap_linux_IMPL	:= bitmap_linux
 clock_IMPL		:= clock
-continuation_IMPL	:= continuation-mips
 cp0_status_IMPL         := cp0_status
 cpu_IMPL		:= cpu cpu-mips
 cpu_lock_IMPL		:= cpu_lock cpu_lock-generic

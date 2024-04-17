@@ -1,9 +1,9 @@
-INTERFACE[arm]:
+#pragma once
 
-#include "types.h"
-#include "entry_frame.h"
-#include "member_offs.h"
-#include "processor.h"
+#include <types.h>
+#include <entry_frame.h>
+#include <member_offs.h>
+#include <processor.h>
 
 class Continuation
 {

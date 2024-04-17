@@ -32,7 +32,7 @@ INTERFACES_KERNEL	:= \
 			   vmem_alloc paging      \
 			   cpu               \
                            platform_control_object          \
-			   continuation timer_tick platform_control          \
+			   timer_tick platform_control          \
 			   utcb_init perf_cnt   \
 			   clock sys_call_page                    \
 

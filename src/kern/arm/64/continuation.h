@@ -1,7 +1,7 @@
-INTERFACE[arm && 64bit]:
+#pragma once
 
-#include "entry_frame.h"
-#include "types.h"
+#include <entry_frame.h>
+#include <types.h>
 
 class Continuation
 {

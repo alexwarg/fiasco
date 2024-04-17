@@ -1,10 +1,10 @@
-INTERFACE[amd64]:
+#pragma once
 
-#include "entry_frame.h"
-#include "gdt.h"
-#include "member_offs.h"
-#include "regdefs.h"
-#include "types.h"
+#include <entry_frame.h>
+#include <gdt.h>
+#include <member_offs.h>
+#include <regdefs.h>
+#include <types.h>
 
 class Continuation
 {
