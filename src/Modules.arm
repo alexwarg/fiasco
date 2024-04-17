@@ -177,8 +177,6 @@ INTERFACES_KERNEL-$(CONFIG_ARM_MPCORE) += scu
 INTERFACES_KERNEL-$(CONFIG_ARM_CORTEX_A9) += scu
 INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
 
-INTERFACES_KERNEL += boot_infos
-
 
 bootstrap_IMPL		:= bootstrap bootstrap-arm-$(BITS)
 CXXFLAGS_bootstrap      := -O3 $(if $(CONFIG_BIT64),-mcmodel=large)
