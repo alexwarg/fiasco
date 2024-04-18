@@ -4,13 +4,13 @@
 #include <climits>
 #include <cassert>
 
-#include "l4_types.h"
-#include "cpu_lock.h"
-#include "lock_guard.h"
-#include "per_cpu_data.h"
-#include "timer.h"
-#include "config.h"
-#include "kip.h"
+#include <l4_types.h>
+#include <cpu_lock.h>
+#include <lock_guard.h>
+#include <per_cpu_data.h>
+#include <timer.h>
+#include <config.h>
+#include <kip.h>
 
 /** A timeout basic object. It contains the necessary queues and handles
     enqueuing, dequeuing and handling of timeouts. Real timeout classes

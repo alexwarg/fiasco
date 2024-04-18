@@ -9,6 +9,7 @@
 #include <kernel_task.h>
 #include <mem_layout.h>
 #include <mmu.h>
+#include <cpu_call.h>
 
 #include <dbg_stack.h>
 #include <std_macros.h>

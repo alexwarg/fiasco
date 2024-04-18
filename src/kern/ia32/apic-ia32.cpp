@@ -1,9 +1,9 @@
 INTERFACE:
 
-#include "per_cpu_data.h"
-#include "types.h"
-#include "initcalls.h"
-#include "pm.h"
+#include <per_cpu_data.h>
+#include <types.h>
+#include <initcalls.h>
+#include <pm.h>
 
 class Return_frame;
 class Cpu;
@@ -107,7 +107,8 @@ extern unsigned apic_error_cnt;
 
 //----------------------------------------------------------------------------
 IMPLEMENTATION:
-#include "cpu.h"
+
+#include <cpu.h>
 
 DEFINE_PER_CPU Per_cpu<Static_object<Apic> >  Apic::apic;
 
@@ -196,21 +197,21 @@ IMPLEMENTATION[ia32,amd64]:
 #include <cstdlib>
 #include <cstring>
 
-#include "config.h"
-#include "cpu.h"
-#include "cpu_lock.h"
-#include "entry_frame.h"
-#include "globals.h"
-#include "io.h"
-#include "kmem.h"
-#include "kip.h"
-#include "lock_guard.h"
-#include "panic.h"
-#include "processor.h"
-#include "regdefs.h"
-#include "pic.h"
-#include "pit_i8254.h"
-#include "warn.h"
+#include <config.h>
+#include <cpu.h>
+#include <cpu_lock.h>
+#include <entry_frame.h>
+#include <globals.h>
+#include <io.h>
+#include <kmem.h>
+#include <kip.h>
+#include <lock_guard.h>
+#include <panic.h>
+#include <processor.h>
+#include <regdefs.h>
+#include <pic.h>
+#include <pit_i8254.h>
+#include <warn.h>
 
 unsigned apic_spurious_interrupt_bug_cnt;
 unsigned apic_spurious_interrupt_cnt;
@@ -328,7 +329,7 @@ Apic::timer_reg_write(Unsigned32 val)
   reg_write(APIC_tmict, val);
 }
 
-PUBLIC static inline NEEDS["cpu.h"]
+PUBLIC static inline NEEDS[<cpu.h>]
 Address
 Apic::apic_page_phys()
 { return Cpu::rdmsr(APIC_base_msr) & 0xfffff000; }

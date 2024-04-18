@@ -11,16 +11,16 @@ INTERFACE:
 #include <cstdlib>
 #include <cstring>
 
-#include "kdb_ke.h"
-#include "kip.h"
-#include "kmem_slab.h"
-#include "l4_error.h"
-#include "per_cpu_data.h"
-#include "processor.h"
-#include "reset.h"
-#include "timer.h"
-#include "thread_object.h"
-#include "unique_ptr.h"
+#include <kdb_ke.h>
+#include <kip.h>
+#include <kmem_slab.h>
+#include <l4_error.h>
+#include <per_cpu_data.h>
+#include <processor.h>
+#include <reset.h>
+#include <timer.h>
+#include <thread_object.h>
+#include <unique_ptr.h>
 
 
 extern "C" void gcov_print() __attribute__((weak));

@@ -1,6 +1,7 @@
 INTERFACE:
 
-#include "io_apic.h"
+#include <io_apic.h>
+
 namespace Intel { class Io_mmu; }
 
 class Io_apic_remapped : public Io_apic
@@ -19,22 +20,22 @@ private:
 // -----------------------------------------------------------------
 IMPLEMENTATION:
 
-#include "acpi_dmar.h"
-#include "intel_iommu.h"
+#include <acpi_dmar.h>
+#include <intel_iommu.h>
 
-#include "types.h"
-#include "idt.h"
-#include "irq_chip.h"
-#include "irq_mgr.h"
-#include "irq_chip_ia32.h"
+#include <types.h>
+#include <idt.h>
+#include <irq_chip.h>
+#include <irq_mgr.h>
+#include <irq_chip_ia32.h>
 
-#include "apic.h"
-#include "boot_alloc.h"
-#include "io_apic.h"
-#include "cxx/static_vector"
-#include "intel_iommu.h"
+#include <apic.h>
+#include <boot_alloc.h>
+#include <io_apic.h>
+#include <cxx/static_vector>
+#include <intel_iommu.h>
 
-#include "warn.h"
+#include <warn.h>
 
 class Irq_chip_rmsi : public Irq_chip_icu, private Irq_chip_ia32
 {

@@ -32,8 +32,8 @@ private:
 IMPLEMENTATION[mp]:
 
 #include <cassert>
-#include "cpu.h"
-#include "processor.h"
+#include <cpu.h>
+#include <processor.h>
 
 PUBLIC static inline
 void

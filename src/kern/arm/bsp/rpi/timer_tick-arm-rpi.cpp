@@ -1,7 +1,7 @@
 IMPLEMENTATION [arm && (pf_rpi_rpi2 || pf_rpi_rpi3)]:
 
-#include "timer.h"
-#include "arm_control.h"
+#include <timer.h>
+#include <arm_control.h>
 
 IMPLEMENT
 void

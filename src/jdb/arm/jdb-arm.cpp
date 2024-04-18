@@ -9,17 +9,17 @@ public:
 
 IMPLEMENTATION [arm]:
 
-#include "globals.h"
-#include "kernel_task.h"
-#include "kmem_alloc.h"
-#include "kmem.h"
-#include "space.h"
-#include "mem_layout.h"
-#include "mem_unit.h"
-#include "static_init.h"
-#include "timer_tick.h"
-#include "watchdog.h"
-#include "cxx/cxx_int"
+#include <globals.h>
+#include <kernel_task.h>
+#include <kmem_alloc.h>
+#include <kmem.h>
+#include <space.h>
+#include <mem_layout.h>
+#include <mem_unit.h>
+#include <static_init.h>
+#include <timer_tick.h>
+#include <watchdog.h>
+#include <cxx/cxx_int>
 
 STATIC_INITIALIZE_P(Jdb, JDB_INIT_PRIO);
 
@@ -60,7 +60,7 @@ Jdb::kernel_uart_irq_ack()
 // ------------------------------------------------------------------------
 IMPLEMENTATION [arm && pic_gic]:
 
-#include "gic.h"
+#include <gic.h>
 
 struct Jdb_wfi_gic
 {

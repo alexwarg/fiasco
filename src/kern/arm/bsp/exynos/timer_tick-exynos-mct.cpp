@@ -1,7 +1,7 @@
 INTERFACE [arm && exynos_mct]: // -----------------------------------------
 
-#include "types.h"
-#include "timer.h"
+#include <types.h>
+#include <timer.h>
 
 EXTENSION class Timer_tick
 {
@@ -14,8 +14,8 @@ public:
 
 IMPLEMENTATION [arm && exynos_mct]: // ------------------------------------
 
-#include "pic.h"
-#include "platform.h"
+#include <pic.h>
+#include <platform.h>
 
 DEFINE_PER_CPU Per_cpu<Static_object<Timer_tick> > Timer_tick::_timer_ticks;
 

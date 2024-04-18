@@ -1,8 +1,8 @@
-#include "delayloop.h"
+#include <delayloop.h>
 
-#include "kip.h"
-#include "processor.h"
-#include "timer.h"
+#include <kip.h>
+#include <processor.h>
+#include <timer.h>
 
 static unsigned cyc_count;
 

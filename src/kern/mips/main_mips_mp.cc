@@ -1,20 +1,20 @@
 
-#include "main.h"
+#include <main.h>
 
 #include <cstdio>
-#include "config.h"
-#include "cpu.h"
-#include "globals.h"
-#include "app_cpu_thread.h"
-#include "ipi.h"
-#include "mips_bsp_irqs.h"
-#include "per_cpu_data_alloc.h"
-#include "perf_cnt.h"
-#include "pic.h"
-#include "platform_control.h"
-#include "spin_lock.h"
-#include "timer.h"
-#include "utcb_init.h"
+#include <config.h>
+#include <cpu.h>
+#include <globals.h>
+#include <app_cpu_thread.h>
+#include <ipi.h>
+#include <mips_bsp_irqs.h>
+#include <per_cpu_data_alloc.h>
+#include <perf_cnt.h>
+#include <pic.h>
+#include <platform_control.h>
+#include <spin_lock.h>
+#include <timer.h>
+#include <utcb_init.h>
 
 int boot_ap_cpu()
 {

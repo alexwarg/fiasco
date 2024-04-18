@@ -1,13 +1,13 @@
 //---------------------------------------------------------------------------
 IMPLEMENTATION[ia32 || amd64]:
 
-#include "config.h"
-#include "globals.h"
-#include "kernel_console.h"
-#include "kdb_ke.h"
-#include "timer.h"
-#include "vkey.h"
-#include "watchdog.h"
+#include <config.h>
+#include <globals.h>
+#include <kernel_console.h>
+#include <kdb_ke.h>
+#include <timer.h>
+#include <vkey.h>
+#include <watchdog.h>
 
 
 /** Slow version of timer interrupt.  Activated on every clock tick.

@@ -4,8 +4,8 @@
 
 INTERFACE:
 
-#include "l4_types.h"
-#include "pic.h"
+#include <l4_types.h>
+#include <pic.h>
 
 class Trap_state;
 class Thread;
@@ -71,7 +71,7 @@ void Jdb::init_serial_console()
 IMPLEMENTATION [{amd64,ia32}-serial]:
 
 #include <cstdio>
-#include "kernel_uart.h"
+#include <kernel_uart.h>
 
 static
 void Jdb::init_serial_console()
@@ -102,39 +102,39 @@ IMPLEMENTATION[ia32,amd64]:
 #include <climits>
 #include <cstdlib>
 #include <cstdio>
-#include "simpleio.h"
+#include <simpleio.h>
 
-#include "apic.h"
-#include "boot_info.h"
-#include "checksum.h"
-#include "config.h"
-#include "cpu.h"
-#include "initcalls.h"
-#include "idt.h"
-#include "io_apic.h"
-#include "jdb_core.h"
-#include "jdb_screen.h"
-#include "kernel_console.h"
-#include "keycodes.h"
-#include "kernel_uart.h"
-#include "kernel_task.h"
-#include "kmem.h"
-#include "koptions.h"
-#include "logdefs.h"
-#include "mem_layout.h"
-#include "pic.h"
-#include "push_console.h"
-#include "processor.h"
-#include "regdefs.h"
-#include "static_init.h"
-#include "terminate.h"
-#include "thread.h"
-#include "thread_state.h"
-#include "timer.h"
-#include "timer_tick.h"
-#include "trap_state.h"
-#include "vkey.h"
-#include "watchdog.h"
+#include <apic.h>
+#include <boot_info.h>
+#include <checksum.h>
+#include <config.h>
+#include <cpu.h>
+#include <initcalls.h>
+#include <idt.h>
+#include <io_apic.h>
+#include <jdb_core.h>
+#include <jdb_screen.h>
+#include <kernel_console.h>
+#include <keycodes.h>
+#include <kernel_uart.h>
+#include <kernel_task.h>
+#include <kmem.h>
+#include <koptions.h>
+#include <logdefs.h>
+#include <mem_layout.h>
+#include <pic.h>
+#include <push_console.h>
+#include <processor.h>
+#include <regdefs.h>
+#include <static_init.h>
+#include <terminate.h>
+#include <thread.h>
+#include <thread_state.h>
+#include <timer.h>
+#include <timer_tick.h>
+#include <trap_state.h>
+#include <vkey.h>
+#include <watchdog.h>
 
 #include <doublefault.h>
 #include <dbg_stack.h>

@@ -1,24 +1,24 @@
 IMPLEMENTATION [arm]:
 
-#include "config.h"
-#include "cpu.h"
-#include "fpu.h"
-#include "ipi.h"
-#include "kernel_task.h"
-#include "kernel_uart.h"
-#include "kip_init.h"
-#include "kmem_alloc.h"
-#include "kmem_space.h"
-#include "per_cpu_data.h"
-#include "per_cpu_data_alloc.h"
-#include "pic.h"
-#include "platform_control.h"
-#include "psci.h"
-#include "processor.h"
-#include "static_init.h"
-#include "thread.h"
-#include "timer.h"
-#include "utcb_init.h"
+#include <config.h>
+#include <cpu.h>
+#include <fpu.h>
+#include <ipi.h>
+#include <kernel_task.h>
+#include <kernel_uart.h>
+#include <kip_init.h>
+#include <kmem_alloc.h>
+#include <kmem_space.h>
+#include <per_cpu_data.h>
+#include <per_cpu_data_alloc.h>
+#include <pic.h>
+#include <platform_control.h>
+#include <psci.h>
+#include <processor.h>
+#include <static_init.h>
+#include <thread.h>
+#include <timer.h>
+#include <utcb_init.h>
 #include <arm_ipis.h>
 
 #include <cstdlib>
@@ -27,7 +27,7 @@ IMPLEMENTATION [arm]:
 //------------------------------------------------------------------
 IMPLEMENTATION [arm && 32bit && !cpu_virt]:
 
-#include "static_init.h"
+#include <static_init.h>
 
 static void add_initial_pmem()
 {

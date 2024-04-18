@@ -1,6 +1,6 @@
 IMPLEMENTATION [arm && pf_rpi && (pf_rpi_rpi1 || pf_rpi_rpizw)]:
 
-#include "pic.h"
+#include <pic.h>
 
 extern "C"
 void irq_handler()
@@ -9,12 +9,12 @@ void irq_handler()
 // ------------------------------------------------------------------------
 IMPLEMENTATION [arm && mp && (pf_rpi_rpi2 || pf_rpi_rpi3)]:
 
-#include "ipi.h"
-#include "thread.h"
+#include <ipi.h>
+#include <thread.h>
 #include <sched.h>
 #include <arm_ipis.h>
 
-inline NEEDS["ipi.h", "thread.h", <arm_ipis.h>]
+inline NEEDS[<ipi.h>, <thread.h>, <arm_ipis.h>]
 void handle_ipis()
 {
   Ipi::Message m = Ipi::pending();
@@ -35,10 +35,10 @@ inline void handle_ipis() {}
 // ------------------------------------------------------------------------
 IMPLEMENTATION [arm && (pf_rpi_rpi2 || pf_rpi_rpi3)]:
 
-#include "pic.h"
-#include "timer.h"
-#include "timer_tick.h"
-#include "arm_control.h"
+#include <pic.h>
+#include <timer.h>
+#include <timer_tick.h>
+#include <arm_control.h>
 
 extern "C"
 void irq_handler()

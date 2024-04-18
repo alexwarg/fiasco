@@ -1,6 +1,6 @@
 INTERFACE:
 
-#include "types.h"
+#include <types.h>
 
 EXTENSION class Timer_tick
 {
@@ -10,8 +10,8 @@ public:
 
 IMPLEMENTATION:
 
-#include "ipi.h"
-#include "timer.h"
+#include <ipi.h>
+#include <timer.h>
 
 Static_object<Timer_tick> Timer_tick::_glbl_timer;
 
@@ -50,7 +50,7 @@ Timer_tick::disable(Cpu_number cpu)
 
 }
 
-PUBLIC inline NEEDS["timer.h", "ipi.h"]
+PUBLIC inline NEEDS[<timer.h>, <ipi.h>]
 void
 Timer_tick::ack()
 {

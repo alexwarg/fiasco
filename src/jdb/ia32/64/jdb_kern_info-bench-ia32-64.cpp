@@ -1,13 +1,13 @@
 IMPLEMENTATION:
 
 #include <cstdio>
-#include "cpu.h"
-#include "config_gdt.h"
-#include "div32.h"
-#include "gdt.h"
-#include "simpleio.h"
-#include "static_init.h"
-#include "timer.h"
+#include <cpu.h>
+#include <config_gdt.h>
+#include <div32.h>
+#include <gdt.h>
+#include <simpleio.h>
+#include <static_init.h>
+#include <timer.h>
 
 static void
 Jdb_kern_info_bench::show_time(Unsigned64 time, Unsigned32 rounds,

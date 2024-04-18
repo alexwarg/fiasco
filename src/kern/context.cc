@@ -4,21 +4,21 @@
 #include <cassert>
 #include <cxx/atomic>
 
-#include "cpu.h"
-#include "cpu_lock.h"
-#include "entry_frame.h"
-#include "globals.h"		// current()
-#include "lock_guard.h"
-#include "logdefs.h"
-#include "mem.h"
-#include "mem_layout.h"
-#include "processor.h"
-#include "space.h"
-#include "std_macros.h"
-#include "thread_state.h"
-#include "timer.h"
-#include "timeout.h"
-#include "assert.h"
+#include <cpu.h>
+#include <cpu_lock.h>
+#include <entry_frame.h>
+#include <globals.h>		// current()
+#include <lock_guard.h>
+#include <logdefs.h>
+#include <mem.h>
+#include <mem_layout.h>
+#include <processor.h>
+#include <space.h>
+#include <std_macros.h>
+#include <thread_state.h>
+#include <timer.h>
+#include <timeout.h>
+#include <cassert>
 
 DEFINE_PER_CPU Per_cpu<Clock> Context::_clock(Per_cpu_data::Cpu_num);
 DEFINE_PER_CPU Per_cpu<Context *> Context::_kernel_ctxt;

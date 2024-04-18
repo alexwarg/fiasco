@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cxx/static_vector>
-#include "types.h"
-#include "panic.h"
-#include "config.h"
-#include "mem.h"
+#include <types.h>
+#include <panic.h>
+#include <config.h>
+#include <mem.h>
 
 #include "kip_arch.h"
 

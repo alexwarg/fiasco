@@ -2,15 +2,15 @@ IMPLEMENTATION:
 
 #include <cstdio>
 
-#include "acpi.h"
-#include "acpi_fadt.h"
-#include "context.h"
-#include "kernel_thread.h"
-#include "kmem.h"
-#include "pm.h"
-#include "timer.h"
-#include "timer_tick.h"
-#include "reset.h"
+#include <acpi.h>
+#include <acpi_fadt.h>
+#include <context.h>
+#include <kernel_thread.h>
+#include <kmem.h>
+#include <pm.h>
+#include <timer.h>
+#include <timer_tick.h>
+#include <reset.h>
 #include <sched.h>
 
 static bool _system_suspend_enabled;
@@ -144,9 +144,9 @@ static void take_boot_cpu_online() {}
 
 IMPLEMENTATION:
 
-#include "cpu_call.h"
-#include "io.h"
-#include "fpu.h"
+#include <cpu_call.h>
+#include <io.h>
+#include <fpu.h>
 
 /**
  * \brief Initiate a full system suspend to RAM.

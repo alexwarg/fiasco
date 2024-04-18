@@ -10,26 +10,26 @@
 
 IMPLEMENTATION [mips]:
 
-#include "banner.h"
-#include "cm.h"
-#include "config.h"
-#include "cpu.h"
-#include "fpu.h"
-#include "ipi.h"
-#include "kernel_task.h"
-#include "kernel_uart.h"
-#include "kip_init.h"
-#include "kmem_alloc.h"
-#include "mem_unit.h"
-#include "per_cpu_data.h"
-#include "per_cpu_data_alloc.h"
-#include "perf_cnt.h"
-#include "platform_control.h"
-#include "mips_cpu_irqs.h"
-#include "mips_bsp_irqs.h"
-#include "static_init.h"
-#include "thread.h"
-#include "timer.h"
+#include <banner.h>
+#include <cm.h>
+#include <config.h>
+#include <cpu.h>
+#include <fpu.h>
+#include <ipi.h>
+#include <kernel_task.h>
+#include <kernel_uart.h>
+#include <kip_init.h>
+#include <kmem_alloc.h>
+#include <mem_unit.h>
+#include <per_cpu_data.h>
+#include <per_cpu_data_alloc.h>
+#include <perf_cnt.h>
+#include <platform_control.h>
+#include <mips_cpu_irqs.h>
+#include <mips_bsp_irqs.h>
+#include <static_init.h>
+#include <thread.h>
+#include <timer.h>
 
 #include <cstdio>
 

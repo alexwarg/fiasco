@@ -1,19 +1,18 @@
 INTERFACE[ia32,amd64]:
-#include "std_macros.h"
-#include "types.h"
+#include <std_macros.h>
+#include <types.h>
 
 IMPLEMENTATION[ia32,amd64]:
 
 #include <cassert>
 
-#include "cpu_lock.h"
-#include "globalconfig.h"
-#include "globals.h"
-#include "irq.h"
-#include "logdefs.h"
-#include "std_macros.h"
-#include "thread.h"
-#include "timer.h"
+#include <cpu_lock.h>
+#include <globalconfig.h>
+#include <globals.h>
+#include <irq.h>
+#include <logdefs.h>
+#include <std_macros.h>
+#include <thread.h>
 
 // screen spinner for debugging purposes
 static inline void irq_spinners(int irqnum)
