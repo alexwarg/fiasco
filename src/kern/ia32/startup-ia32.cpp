@@ -71,13 +71,21 @@ Startup::stage2()
 
   Intel::Io_mmu::init(Cpu_number::boot_cpu());
   // also has a fallback to IO-APIC without remapping
-  Apic::map_registers();
-  Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
+  if (Config::apic)
+    {
+      Apic::map_registers();
+      Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
+    }
   bool use_io_apic = Io_apic_remapped::init_apics();
   if (use_io_apic)
     {
+    if (!Config::apic)
+      {
+        Config::apic = true;
+        Apic::map_registers();
+        Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
+      }
       Io_apic::init(Cpu_number::boot_cpu());
-      Config::apic = true;
       Pic::disable_all_save();
     }
   else
