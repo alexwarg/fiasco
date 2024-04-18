@@ -15,9 +15,9 @@ struct Tb_entry_arch
   static Unsigned64 read_cycle_counter();
 };
 
-#if defined (PRE_arm_generic_timer)
+#if defined (CONFIG_ARM_GENERIC_TIMER)
 
-#include "generic_timer.h"
+#include <generic_timer.h>
 
 inline Unsigned64
 Tb_entry_arch::read_cycle_counter()

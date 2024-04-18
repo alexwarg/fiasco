@@ -5,7 +5,7 @@
 #include "kmem_slab.h"
 #include "kobject_rpc.h"
 #include "static_init.h"
-#include "timer.h"
+#include <system_clock.h>
 
 JDB_DEFINE_TYPENAME(Ipc_gate_obj, "\033[35mGate\033[m");
 static Kmem_slab_t<Ipc_gate_obj> _ipc_gate_allocator("Ipc_gate");
@@ -197,7 +197,7 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
   Unsigned64 t = 0;
   if (!to.is_never())
     {
-      t = to.microsecs(Timer::system_clock(), u);
+      t = to.microsecs(System_clock::clock(), u);
       if (!t)
         return L4_error::Timeout;
     }

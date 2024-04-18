@@ -159,6 +159,10 @@ CXXSRC_KERNEL += main_arm.cc \
 	nested_trap_handler.cc \
 	__main.cc
 
+CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
+	arch_time_source-generic_timer.cc \
+	timer_arm_generic.cc
+
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc vgic_global.cc hyp_ppi.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT)-$(CONFIG_HAVE_ARM_GICV2) += vgic_v2.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT)-$(CONFIG_HAVE_ARM_GICV3) += vgic_v3.cc
@@ -249,7 +253,6 @@ endif
 
 ASSRC_KERNEL	  	:= $(if $(CONFIG_MP),tramp-mp.S)
 ASSRC_KERNEL            += $(if $(CONFIG_BIT32),$(if $(CONFIG_CPU_VIRT),hvt.S,ivt.S),ivt.S)
-ASSRC_KERNEL            += kip-time.S
 CPPFLAGS                += $(if $(CONFIG_MP),-DMPCORE_PHYS_BASE=$(MPCORE_PHYS_BASE))
 CPPFLAGS                += -DRAM_PHYS_BASE=$(RAM_PHYS_BASE)
 

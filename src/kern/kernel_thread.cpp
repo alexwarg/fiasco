@@ -41,9 +41,9 @@ IMPLEMENTATION:
 #include "task.h"
 #include "thread.h"
 #include "thread_state.h"
-#include "timer.h"
 #include "timer_tick.h"
 #include "watchdog.h"
+#include <system_clock.h>
 
 
 /**
@@ -80,7 +80,7 @@ Kernel_thread::bootstrap()
 
   state.change_dirty(0, Thread_ready);		// Set myself ready
 
-  Timer::init_system_clock();
+  System_clock::init();
   Sched_context::rq.current().set_idle(this->sched());
 
   Kernel_task::kernel_task()->make_current();

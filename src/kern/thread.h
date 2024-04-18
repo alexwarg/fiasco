@@ -20,7 +20,7 @@
 #include <kernel_task.h>
 #include <irq_chip.h>
 #include <sched.h>
-#include <timer.h>
+#include <system_clock.h>
 #include <thread_ipc.h>
 #include <thread_arch.h>
 
@@ -277,7 +277,7 @@ public:
 
     assert (!have_timeout());
 
-    Unsigned64 sysclock = Timer::system_clock();
+    Unsigned64 sysclock = System_clock::clock();
     Unsigned64 tval = timeout.microsecs(sysclock, utcb);
 
     if (EXPECT_TRUE((tval > sysclock)))

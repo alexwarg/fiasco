@@ -58,7 +58,7 @@ private:
 class Ipi
 {
 public:
-  enum Message { Request, Global_request, Debug };
+  enum Message { Request, Global_request, Debug, Timer };
 
   static void init(Cpu_number cpu)
   { (void)cpu; }

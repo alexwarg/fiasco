@@ -25,7 +25,6 @@ INTERFACES_KERNEL	:= \
 			   mem_space space \
 			   kmem kmem_alloc mem_layout        \
 			   kip_init   \
-			   timer   \
 			   mem_unit \
 			   syscalls     \
 			   kernel_thread        \

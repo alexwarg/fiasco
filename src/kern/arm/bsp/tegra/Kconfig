@@ -23,6 +23,7 @@ choice
 
 config PF_TEGRA_TIMER_MP
 	bool "MP timer"
+	select ARM_MPTIMER
 	help
 	  ARM local-core multi-processor timer.
 

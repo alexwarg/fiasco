@@ -25,6 +25,7 @@ config PF_RPI_RPI2
         select RPI
         select PF_RPI_UART_PL011
         select CAN_ARM_CPU_CORTEX_A7
+        select ARM_GENERIC_TIMER
 
 config PF_RPI_RPI3
         bool "rpi3"
@@ -32,6 +33,7 @@ config PF_RPI_RPI3
         select RPI
         select PF_RPI_UART_16550
         select CAN_ARM_CPU_CORTEX_A53
+        select ARM_GENERIC_TIMER
 
 config PF_RPI_RPIZW
         bool "rpizw"
@@ -47,5 +49,6 @@ config PF_RPI_RPI4
         select CAN_ARM_CPU_CORTEX_A72
         select ARM_GIC
         select HAVE_ARM_GICV2
+        select ARM_GENERIC_TIMER
 
 endchoice

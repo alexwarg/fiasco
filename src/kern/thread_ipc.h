@@ -11,6 +11,7 @@
 #include <tb_entry.h>
 #include <l4_buf_iter.h>
 #include <entry.h>
+#include <system_clock.h>
 
 #include <cassert>
 
@@ -608,7 +609,7 @@ private:
 
     if (EXPECT_FALSE(snd_t.is_finite()))
       {
-        Unsigned64 tval = snd_t.microsecs(Timer::system_clock(), _this()->utcb().access(true));
+        Unsigned64 tval = snd_t.microsecs(System_clock::clock(), _this()->utcb().access(true));
         // Zero timeout or timeout expired already -- give up
         if (tval == 0)
           return !abort_send(L4_error::Timeout, partner);

@@ -84,6 +84,15 @@ config DEFAULT_ARM_EM_TZ
 config DEFAULT_ARM_EM_NS
         bool
 
+config ARM_GENERIC_TIMER
+	bool
+
+config ARM_MPTIMER
+	bool
+
+config HAS_ARM_GENERIC_TIMER
+	bool
+
 config ARM_V6
 	def_bool y if ARM_1136 || ARM_1176 || ARM_MPCORE
 
@@ -96,6 +105,8 @@ config ARM_V6PLUS
 
 config ARM_V7PLUS
 	def_bool y if ARM_V7 || ARM_V8
+	select HAS_SYNC_CLOCK if ARM_GENERIC_TIMER
+	select HAS_ARM_GENERIC_TIMER
 
 config ARM_V8PLUS
 	def_bool y if ARM_V8
@@ -245,13 +256,6 @@ config ARM_ALIGNMENT_CHECK
 	depends on ARM
 	help
 	  Enable if you want to have alignment check enabled.
-
-config ARM_SYNC_CLOCK
-	bool "Sync KIP clock"
-	depends on ARM
-	depends on ARM_V7PLUS
-	help
-	  Synchronize the internal kernel clock with the timer.
 
 choice
 	prompt "Execution Model"

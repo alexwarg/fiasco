@@ -120,6 +120,7 @@ CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm.cc
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
+CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 
 apic_IMPL		:= apic-ia32 apic-ia32-mp
 boot_console_IMPL	:= boot_console-ia32-amd64
@@ -157,23 +158,22 @@ vmem_alloc_IMPL		:= vmem_alloc vmem_alloc-ia32
 
 cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
 
+CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc
 ifeq ("$(CONFIG_SCHED_PIT)","y")
-  timer_IMPL		+= timer-pit
   timer_tick_IMPL	+= timer_tick-single-vector timer_tick-ia32
 endif
+CXXSRC_KERNEL-$(CONFIG_SCHED_RTC) += timer_rtc.cc
 ifeq ("$(CONFIG_SCHED_RTC)","y")
-  timer_IMPL		+= timer-rtc
   timer_tick_IMPL	+= timer_tick-single-vector timer_tick-ia32
   INTERFACES_KERNEL	+= rtc
 endif
+CXXSRC_KERNEL-$(CONFIG_SCHED_APIC) += timer_apic.cc
 ifeq ("$(CONFIG_SCHED_APIC)","y")
-  timer_IMPL		+= timer-apic
   timer_tick_IMPL	+= timer_tick-apic
 endif
+CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc
 ifeq ("$(CONFIG_SCHED_HPET)","y")
-  timer_IMPL		+= timer-hpet
   timer_tick_IMPL       += timer_tick-single-vector timer_tick-ia32
-  CXXSRC_KERNEL         += hpet.cc
 endif
 
 ifeq ("$(CONFIG_JDB)","y")
@@ -210,8 +210,7 @@ INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
 
 
-ASSRC_KERNEL		:= entry.S entry-native.S sys_call_page-asm.S \
-			   kip-time.S
+ASSRC_KERNEL		:= entry.S entry-native.S sys_call_page-asm.S
 
 ASSRC_KERNEL-$(CONFIG_MP)               += tramp-mp.S entry-mp.S
 ASSRC_KERNEL-y                          += tramp-realmode.S tramp-acpi.S

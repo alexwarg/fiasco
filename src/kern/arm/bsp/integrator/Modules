@@ -6,10 +6,10 @@ LIBUART_UART_FLAGS      += $(call LIBUART_UART, pl011)
 PREPROCESS_PARTS        += generic_tickless_idle
 RAM_PHYS_BASE           := 0x00000000
 
+CXXSRC_KERNEL += timer_integrator.cc
 
 mem_layout_IMPL       += mem_layout-arm-integrator
 pic_IMPL              += pic-arm-integrator
-timer_IMPL            += timer-arm-integrator
 timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-integrator
 clock_IMPL            += clock-generic

@@ -179,6 +179,17 @@ public:
    * the configuration, this clock might or might not be synchronized with the
    * KIP clock. */
 
+  char *clock_blob() noexcept
+  {
+    union U
+    {
+      Kip k;
+      char b[4096];
+    };
+
+    return &reinterpret_cast<U *>(this)->b[0x900];
+  }
+
   Mem_desc *mem_descs() noexcept
   { return (Mem_desc*)(((Address)this) + (_mem_info >> (MWORD_BITS/2))); }
 

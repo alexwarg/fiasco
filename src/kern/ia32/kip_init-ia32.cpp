@@ -28,6 +28,9 @@ IMPLEMENTATION [ia32,amd64]:
 #include "kmem.h"
 #include "panic.h"
 
+#include <kip_asm.h>
+#include <kip_clock_init.h>
+
 
 /** KIP initialization. */
 PUBLIC static FIASCO_INIT
@@ -113,30 +116,76 @@ void Kip_init::init()
     }
 }
 
+#define _STR(v)     __STR(v)
+#define __STR(v)    #v
+
+#ifdef CONFIG_BIT32
+#define KIP_CLOCK_BXREL(f, o) _STR((o + OFS_KIP_CLOCK - OFS_KIP_CODE_ ##f - (2b - 1b))(%ebx))
+
+asm (
+R"( .pushsection ".initcall.text.kcts", "ax"
+    _kip_time_code: )"
+    KIP_CODE_HDR(1f, 5f, 0, 8f) R"(
+    1: push    %ebx
+       call    2f
+    2: pop     %ebx
+    3: movl    )" KIP_CLOCK_BXREL(READ_US, 4) R"(, %edx
+       movl    )" KIP_CLOCK_BXREL(READ_US, 0) R"(, %eax
+       cmpl    %edx, )" KIP_CLOCK_BXREL(READ_US, 4) R"(
+       jne     3b
+       pop     %ebx
+       ret
+    5:
+    8: )"
+    KIP_CODE_HDR(1f, 5f, 0x80, 8b) R"(
+    1: push    %ebx
+       call    2f
+    2: pop     %ebx
+    3: movl    )"  KIP_CLOCK_BXREL(READ_NS, 4) R"(, %edx
+       movl    )"  KIP_CLOCK_BXREL(READ_NS, 0) R"(, %eax
+       cmpl    %edx, )" KIP_CLOCK_BXREL(READ_NS, 4) R"(
+       jne     3b
+       movl    $1000, %ebx
+       movl    %eax, %ecx # ecx = clock.lo
+       movl    %edx, %eax # eax = clock.hi
+       mull    %ebx       # eax = clock.hi * 1000, ignore bits in edx
+       xchg    %ecx, %eax # eax = clock.lo, ecx = (clock.hi * 1000).lo
+       mull    %ebx       # edx:eax = clock.lo * 1000
+       addl    %ecx, %edx # (clock.lo * 1000).hi += (clock.hi * 1000).lo
+       pop     %ebx
+       ret
+    5:
+    .popsection
+)");
+#endif
+
+#ifdef CONFIG_BIT64
+#define KIP_CLOCK_RIPREL(f, o) _STR((1b - o + OFS_KIP_CLOCK - OFS_KIP_CODE_ ##f)(%rip))
+
+asm (
+R"( .pushsection ".initcall.text", "ax"
+    _kip_time_code: )"
+    KIP_CODE_HDR(1f, 5f, 0, 8f) R"(
+    1: movq  )" KIP_CLOCK_RIPREL(READ_US, 0) R"(, %rax
+       ret
+    5:
+    8: )"
+    KIP_CODE_HDR(1f, 5f, 0x80, 8b) R"(
+    1: movq  )" KIP_CLOCK_RIPREL(READ_NS, 0) R"(, %rax
+       movl    $1000, %edx
+       mulq    %rdx
+       ret
+    5:
+    .popsection
+)");
+#endif
+
 PUBLIC static FIASCO_INIT
 void
 Kip_init::init_kip_clock()
 {
-  union K
-  {
-    Kip       k;
-    Unsigned8 b[Config::PAGE_SIZE];
-  };
-  extern char kip_time_fn_read_us[];
-  extern char kip_time_fn_read_us_end[];
-  extern char kip_time_fn_read_ns[];
-  extern char kip_time_fn_read_ns_end[];
-
-  K *k = reinterpret_cast<K *>(Kip::k());
-
-  Cpu cpu = Cpu::cpus.cpu(Cpu_number::boot_cpu());
-  *(Mword*)(k->b + 0x9f0) = cpu.get_scaler_tsc_to_us();
-  *(Mword*)(k->b + 0x9f8) = cpu.get_scaler_tsc_to_ns();
-
-  memcpy(k->b + 0x900, kip_time_fn_read_us,
-         kip_time_fn_read_us_end - kip_time_fn_read_us);
-  memcpy(k->b + 0x980, kip_time_fn_read_ns,
-         kip_time_fn_read_ns_end - kip_time_fn_read_ns);
+  extern unsigned char const _kip_time_code[];
+  kip_clock_deploy_code_blob(Kip::k(), _kip_time_code);
 }
 
 //----------------------------------------------------------------------------

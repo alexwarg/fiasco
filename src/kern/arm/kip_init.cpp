@@ -17,7 +17,10 @@ IMPLEMENTATION [arm]:
 #include "config.h"
 #include "mem_layout.h"
 #include "mem_unit.h"
-#include "timer.h"
+
+#include <kip_asm.h>
+#include <kip_clock_init.h>
+#include <globalconfig.h>
 
 
 // Make the stuff below appearing only in this compilation unit.
@@ -78,33 +81,121 @@ void Kip_init::init()
   init_syscalls(kinfo);
 }
 
+#ifdef CONFIG_BIG_ENDIAN
+#error "Adapt read_64bit to big endian!"
+#endif
+
+#ifdef CONFIG_BIT32
+#if defined (__clang__)
+asm (R"(
+.macro adrl reg:req, label:req
+        sub \reg, pc, #((-(\label - 4711\@f) - 0x800))
+        sub \reg, \reg, #0x800
+        4711\@:
+.endm
+)");
+#endif
+asm (
+    ".macro read_barrier\n\t"
+#if defined(CONFIG_ARM_V6)
+    "mcr     p15, 0, r3, c7, c10, 5\n\t"
+#elif defined(CONFIG_ARM_V7)
+    "dmb     ish\n\t"
+#elif defined(CONFIG_ARM_V8PLUS)
+    "dmb     ishld\n\t"
+#endif
+    ".endm\n\t"
+    );
+
+/* Reads 64-bit value into r1:r0. Scrambles r2. */
+#if (defined(CONFIG_ARM_V7) && defined(CONFIG_ARM_LPAE)) || defined(CONFIG_ARM_V8PLUS)
+asm (R"(
+.macro read_64bit mem
+        adrl    r2, \mem
+        ldrd    r0, [r2]
+.endm )");
+#else
+asm (R"(
+.macro read_64bit mem
+1:      ldr     r1, \mem + 4
+        read_barrier
+        ldr     r0, \mem
+        read_barrier
+        ldr     r2, \mem + 4
+        cmp     r1, r2
+        bne     1b
+.endm )");
+#endif
+
+/**
+ * Provide the KIP clock value with a fine-grained resolution + accuracy.
+ *
+ * In case of CONFIG_ARM_SYNC_CLOCK is disabled, just provide the normal KIP
+ * clock. Otherwise, read the ARM generic timer counter and transform it into
+ * microseconds like done for the KIP clock value.
+ * This code will be copied to the KIP at OFFS__KIP_FN_READ_US.
+ *
+ * The following formula is used to translate an ARM generic timer value into
+ * a time value with microseconds resolution:
+ *
+ *                       timer value * scaler
+ *   time(us, 64-bit) = ---------------------- * 2^shift
+ *                               2^32
+ */
+asm (R"(
+        .pushsection ".initcall.text", "ax"
+
+_kip_time_code: )" KIP_CODE_HDR(1f, 2f, 0, 2f) R"(
+1:      read_64bit 1b + 0xA0 - 0x900 /* 1b + KIP_CLOCK - clock_get_us_offset */
+        bx      lr
+2: )" KIP_CODE_HDR(1f, 2f, 0x80, 2b) R"(
+1:      read_64bit 1b + 0xA0 - 0x980 /* 1b + KIP_CLOCK - clock_get_ns_offset */
+        mov     r3, #1000
+        umull   r0, r2, r3, r0  /* {r2,r0} = r3 * r0 */
+        umull   r1, r12, r3, r1 /* {r12,r1} = r3 * r1 */
+        adds    r1, r1, r2
+        /* Just ignore the upper few bits in r12 and return {r1,r0}. */
+        bx      lr
+2:      .popsection )");
+#endif // CONFIG_BIT32
+
+#ifdef CONFIG_BIT64
+/**
+ * Provide the KIP clock value with a fine-grained resolution + accuracy.
+ *
+ * In case of CONFIG_ARM_SYNC_CLOCK is disabled, just provide the normal KIP
+ * clock. Otherwise, read the ARM generic timer counter and transform it into
+ * microseconds like done for the KIP clock value.
+ * This code will be copied to the KIP at OFFS__KIP_FN_READ_US.
+ *
+ * The following formula is used to translate an ARM generic timer value into
+ * a time value with microseconds resolution:
+ *
+ *                       timer value * scaler
+ *   time(us, 64-bit) = ---------------------- * 2^shift
+ *                               2^32
+ */
+asm (R"(
+        .pushsection ".initcall.text", "ax"
+
+_kip_time_code: )" KIP_CODE_HDR(1f, 2f, 0, 2f) R"(
+1:      ldr     x0, 1b + 0x140 - 0x900 /* 1b + KIP_CLOCK - clock_get_us_offset */
+        ret
+2: )" KIP_CODE_HDR(1f, 2f, 0x80, 2b) R"(
+1:      ldr     x0, 1b + 0x140 - 0x980 /* 1b + KIP_CLOCK - clock_get_us_offset */
+        mov     x1, #1000
+        mul     x0, x0, x1
+        ret
+2:      .popsection )");
+
+#endif // CONFIG_BIT64
+
 PUBLIC static
 void
 Kip_init::init_kip_clock()
 {
-  union K
-  {
-    Kip       k;
-    Unsigned8 b[Config::PAGE_SIZE];
-  };
-  extern char kip_time_fn_read_us[];
-  extern char kip_time_fn_read_us_end[];
-  extern char kip_time_fn_read_ns[];
-  extern char kip_time_fn_read_ns_end[];
-
-  K *k = reinterpret_cast<K *>(Kip::k());
-
-  *(Mword*)(k->b + 0x970) = Timer::get_scaler_ts_to_us();
-  *(Mword*)(k->b + 0x978) = Timer::get_shift_ts_to_us();
-  *(Mword*)(k->b + 0x9f0) = Timer::get_scaler_ts_to_ns();
-  *(Mword*)(k->b + 0x9f8) = Timer::get_shift_ts_to_ns();
-
-  memcpy(k->b + 0x900, kip_time_fn_read_us,
-         kip_time_fn_read_us_end - kip_time_fn_read_us);
-  memcpy(k->b + 0x980, kip_time_fn_read_ns,
-         kip_time_fn_read_ns_end - kip_time_fn_read_ns);
-
-  Mem_unit::make_coherent_to_pou(k->b + 0x900, 0x100);
+  extern unsigned char const _kip_time_code[];
+  kip_clock_deploy_code_blob(Kip::k(), _kip_time_code);
 }
 
 //--------------------------------------------------------------

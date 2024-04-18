@@ -55,13 +55,14 @@ public:
 // ------------------------------------------------------------------------
 IMPLEMENTATION:
 
-#include "timer.h"
+#include <timer.h>
+#include <system_clock.h>
 
 #include "kdb_ke.h"
 #include "kernel_console.h"
 #include "vkey.h"
 
-PRIVATE static inline NEEDS["thread.h", "timer.h", "kdb_ke.h",
+PRIVATE static inline NEEDS["thread.h", <system_clock.h>, "kdb_ke.h",
                             "kernel_console.h", "vkey.h"]
 void
 Timer_tick::handle_timer(Irq_base *_s, Upstream_irq const *ui,
@@ -70,7 +71,7 @@ Timer_tick::handle_timer(Irq_base *_s, Upstream_irq const *ui,
   Timer_tick *self = nonull_static_cast<Timer_tick *>(_s);
   self->ack();
   Upstream_irq::ack(ui);
-  Timer::update_system_clock(cpu);
+  System_clock::update(cpu);
   if (   (cpu == Cpu_number::boot_cpu())
       && (Config::esc_hack || (Config::serial_esc == Config::SERIAL_ESC_NOIRQ)))
     {
@@ -97,7 +98,7 @@ Timer_tick::handler_sys_time(Irq_base *_s, Upstream_irq const *ui)
   handle_timer(_s, ui, current_thread(), Cpu_number::boot_cpu());
 }
 
-PUBLIC static inline NEEDS["thread.h", "timer.h"]
+PUBLIC static inline NEEDS["thread.h"]
 void
 Timer_tick::handler_app(Irq_base *_s, Upstream_irq const *ui)
 {

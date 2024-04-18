@@ -12,7 +12,7 @@
 #include "pic.h"
 #include "platform_control.h"
 #include "spin_lock.h"
-#include "timer.h"
+#include <timer.h>
 #include "utcb_init.h"
 #include <arm_ipis.h>
 
@@ -51,7 +51,7 @@ int boot_ap_cpu()
   Platform_control::init(_cpu);
   Ipi::init(_cpu);
   Timer::init(_cpu);
-  Timer::init_system_clock_ap(_cpu);
+  System_clock::check_ap_cpu(_cpu);
   Perf_cnt::init_ap();
 
   // create kernel thread

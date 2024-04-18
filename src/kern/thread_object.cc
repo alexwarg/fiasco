@@ -7,8 +7,8 @@
 #include "processor.h"
 #include "task.h"
 #include "thread_state.h"
-#include "timer.h"
 #include "kobject_rpc.h"
+#include <system_clock.h>
 
 #include <thread_vcpu.h>
 #include <entry.h>
@@ -489,13 +489,13 @@ Thread_object::sys_thread_switch(L4_msg_tag const & /*tag*/, Utcb const * /*utcb
 
 #if 0 // FIXME: provide API for multiple sched contexts
       // Compute remaining quantum length of timeslice
-      regs->left(timeslice_timeout.cpu(cpu())->get_timeout(Timer::system_clock()));
+      regs->left(timeslice_timeout.cpu(cpu())->get_timeout(System_clock::clock()));
 
       // Yield current global timeslice
       cs->owner()->switch_sched(cs->id() ? cs->next() : cs);
 #endif
   reinterpret_cast<Utcb::Time_val*>(out->values)->t
-    = timeslice_timeout.current()->get_timeout(Timer::system_clock());
+    = timeslice_timeout.current()->get_timeout(System_clock::clock());
   curr->schedule();
 
   return commit_result(0, Utcb::Time_val::Words);

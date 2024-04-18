@@ -31,6 +31,9 @@ config HAS_MP_OPTION
 config HAS_CPU_VIRT
 	bool
 
+config HAS_SYNC_CLOCK
+	bool
+
 menu "Target configuration"
 
 choice
@@ -77,6 +80,7 @@ config PF_PC
 	select HAS_IOMMU_OPTION
 	select HAS_MP_OPTION
 	select HAS_CPU_VIRT
+	select HAS_SYNC_CLOCK
 
 # PF_CHOICE
 
@@ -228,16 +232,16 @@ config SLOW_RTC
 
 config ONE_SHOT
 	bool "Use scheduling timer in one-shot mode"
-	depends on SCHED_APIC && SYNC_TSC
+	depends on SCHED_APIC && SYNC_CLOCK
 	help
 	  More costly than periodic but more fine-granular scheduling
 	  possible.  EXPERIMENTAL!
 
-config SYNC_TSC
-	bool "Use time-stamp counter for KIP and scheduling accounting"
-	depends on PF_PC && (IA32 || AMD64)
+config SYNC_CLOCK
+	bool "Use hardware counter for KIP and scheduling accounting"
+	depends on HAS_SYNC_CLOCK
 	help
-	  Synchronize the internal kernel clock with the CPU time stamp
+	  Synchronize the internal kernel clock with the CPU hardware
 	  counter.
 
 config FINE_GRAINED_CPUTIME

@@ -37,6 +37,17 @@ PREPROCESS_PARTS-$(CONFIG_LIGHTWEIGHT_BARRIERS) += mips_lw_barriers
 PREPROCESS_PARTS	+= $(PREPROCESS_PARTS-y)
 
 #
+# BSP subsystem
+#
+BSP_NAME         := $(patsubst "%",%,$(CONFIG_BSP_NAME))
+MODULES_FILE_BSP := $(srcdir)/kern/mips/bsp/$(BSP_NAME)/Modules
+PRIVATE_INCDIR 	 += kern/mips/bsp/$(BSP_NAME)
+VPATH += kern/mips/bsp/$(BSP_NAME) kern/mips/bsp
+ifeq ($(wildcard $(MODULES_FILE_BSP)),)
+  $(error No BSP name defined or no BSP Modules file available)
+endif
+
+#
 # TYPES subsystem
 #
 PRIVATE_INCDIR += types/mips/$(BITS) types/mips types
@@ -123,6 +134,7 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += traps.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += ipi_handler.cc
+CXXSRC_KERNEL += timer.cc
 
 #missing: jdb_extensions
 
@@ -156,7 +168,6 @@ sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 space_IMPL		:= space
 startup_IMPL		:= startup startup-mips
 sys_call_page_IMPL	:= sys_call_page
-timer_IMPL		?= timer timer-mips
 timer_tick_IMPL         := timer_tick
 thread_IMPL		:= thread
 vmem_alloc_IMPL		:= vmem_alloc
@@ -260,18 +271,8 @@ VERSION		:= version.h
 TCBOFFSET	:= tcboffset.h
 CXXSRC_TCBOFFSET	:= tcboffset.cc dump_tcboffsets.cc
 
-#
-# BSP subsystem
-#
-BSP_NAME         := $(patsubst "%",%,$(CONFIG_BSP_NAME))
-MODULES_FILE_BSP := $(srcdir)/kern/mips/bsp/$(BSP_NAME)/Modules
-PRIVATE_INCDIR 	 += kern/mips/bsp/$(BSP_NAME)
-ifeq ($(wildcard $(MODULES_FILE_BSP)),)
-  $(error No BSP name defined or no BSP Modules file available)
-endif
 
 include $(MODULES_FILE_BSP)
-VPATH += kern/mips/bsp/$(BSP_NAME) kern/mips/bsp
 
 ifeq ("$(filter LIBUART, $(SUBSYSTEMS))","LIBUART")
   LIBUART			:= uart/libuart.a

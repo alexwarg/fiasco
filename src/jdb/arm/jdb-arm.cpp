@@ -124,6 +124,8 @@ Jdb::_wait_for_input()
 // ------------------------------------------------------------------------
 IMPLEMENTATION [arm]:
 
+#include <arch_time_source.h>
+
 // disable interrupts before entering the kernel debugger
 IMPLEMENT
 void
@@ -350,7 +352,7 @@ IMPLEMENT_OVERRIDE
 void
 Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
 {
-  Unsigned64 uns = Timer::ts_to_ns(tsc < 0 ? -tsc : tsc);
+  Unsigned64 uns = Arch_time_source::ts_to_ns(tsc < 0 ? -tsc : tsc);
 
   if (tsc < 0)
     uns = -uns;
@@ -367,7 +369,7 @@ IMPLEMENT_OVERRIDE
 void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
-  Unsigned64 ns = Timer::ts_to_ns(tsc < 0 ? -tsc : tsc);
+  Unsigned64 ns = Arch_time_source::ts_to_ns(tsc < 0 ? -tsc : tsc);
   if (tsc < 0)
     ns = -ns;
   write_ll_ns(buf, ns, sign);

@@ -1,0 +1,82 @@
+#pragma once
+
+#include <generic_timer.h>
+#include <globalconfig.h>
+
+struct Arch_time_source_generic_timer
+{
+  using Gtimer = Generic_timer::Gtimer;
+
+  static Cpu_time time_us()
+  { return ts_to_us(time_stamp()); }
+
+  static void init_system_clock();
+
+  static Unsigned64 time_stamp()
+  { return Gtimer::counter(); }
+
+  static Unsigned64 ts_to_ns(Unsigned64 ts)
+  { return timer_value_to_time(ts, _scaler_ts_to_ns, _shift_ts_to_ns); }
+
+  static Unsigned64 ts_to_us(Unsigned64 ts)
+  { return timer_value_to_time(ts, _scaler_ts_to_us, _shift_ts_to_us); }
+
+  static void setup_scalers(Unsigned32 freq);
+
+
+private:
+  static Unsigned32 _scaler_ts_to_ns;
+  static Unsigned32 _scaler_ts_to_us;
+  static Unsigned32 _shift_ts_to_ns;
+  static Unsigned32 _shift_ts_to_us;
+
+#ifdef CONFIG_BIT32
+  static Unsigned64
+  timer_value_to_time(Unsigned64 v, Mword scaler, Mword shift)
+  {
+    Mword lo = v & 0xffffffff;
+    Mword hi = v >> 32;
+    Mword dummy1, dummy2, dummy3, dummy4;
+    // This code is written in Assembler so that it doesn't require libgcc. It
+    // should be also very similar to kip_time_fn_read_us()/kip_time_fn_read_us()
+    // used by userland to get the same results as the kernel code.
+    asm ("umull   %0, %3, %[scaler], %0   \n\t"
+         "umull   %4, %5, %[scaler], %1   \n\t"
+         "adds    %1, %4, %3              \n\t"
+         "adc     %2, %5, #0              \n\t"
+         "mov     %3, #32                 \n\t"
+         "sub     %3, %3, %[shift]        \n\t"
+         "lsr     %0, %0, %3              \n\t"
+         "orr     %0, %0, %1, LSL %[shift]\n\t"
+         "lsr     %1, %1, %3              \n\t"
+         "orr     %1, %1, %2, LSL %[shift]\n\t"
+         : "+r"(lo), "+r"(hi),
+           "=&r"(dummy1), "=&r"(dummy2), "=&r"(dummy3), "=&r"(dummy4)
+         : [scaler]"r"(scaler), [shift]"r"(shift)
+         : "cc");
+    return ((Unsigned64)hi << 32) | lo;
+  }
+#endif // CONFIG_BIT32
+#ifdef CONFIG_BIT64
+  static Unsigned64
+  timer_value_to_time(Unsigned64 v, Mword scaler, Mword shift)
+  {
+    Mword dummy1, dummy2, dummy3;
+    // This code is written in Assembler so that it doesn't require libgcc. It
+    // should be also very similar to kip_time_fn_read_us()/kip_time_fn_read_us()
+    // used by userland to get the same results as the kernel code.
+    asm ("umulh   %1, %0, %[scaler]       \n\t"
+         "mul     %0, %0, %[scaler]       \n\t"
+         "mov     %2, #32                 \n\t"
+         "sub     %3, %2, %[shift]        \n\t"
+         "add     %2, %2, %[shift]        \n\t"
+         "lsr     %0, %0, %3              \n\t"
+         "lsl     %1, %1, %2              \n\t"
+         "orr     %0, %0, %1              \n\t"
+         : "+r"(v), "=&r"(dummy1), "=&r"(dummy2), "=&r"(dummy3)
+         : [scaler]"r"(scaler), [shift]"r"(shift)
+         : "cc");
+    return v;
+  }
+#endif // CONFIG_BIT64
+};

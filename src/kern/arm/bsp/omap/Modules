@@ -15,12 +15,13 @@ TRAMP_MP_ASM_INCLUDE    := $(BSP_SRC_DIR)/tramp-mp-asm.h
 INTERFACES_KERNEL-pf_omap3 += timer_omap_1mstimer
 INTERFACES_KERNEL     += $(foreach i,$(PREPROCESS_PARTS),$(INTERFACES_KERNEL-$(i)))
 INTERFACES_KERNEL-$(CONFIG_PF_OMAP3_AM33XX)  += timer_omap_gentimer
-INTERFACES_KERNEL-$(CONFIG_PF_OMAP5_5432EVM) += generic_timer
+
+CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_OMAP35XEVM) += timer_omap3.cc
+CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_BEAGLEBOARD) += timer_omap3.cc
+CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_AM33XX) += timer_omap3.cc
 
 mem_layout_IMPL       += mem_layout-arm-omap
 pic_IMPL              += $(if $(CONFIG_PF_OMAP4_PANDABOARD)$(CONFIG_PF_OMAP5_5432EVM),pic-gic pic-arm-gic-omap4,pic-arm-omap3)
-timer_IMPL            += $(if $(CONFIG_PF_OMAP4_PANDABOARD),timer-arm-mptimer timer-arm-mptimer-omap4,timer-arm-omap3)
-timer_IMPL            += $(if $(CONFIG_PF_OMAP5_5432EVM),timer-arm-generic timer-arm-generic-omap5)
 timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-omap
 clock_IMPL            += clock-generic

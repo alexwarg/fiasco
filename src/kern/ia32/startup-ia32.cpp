@@ -3,38 +3,38 @@ IMPLEMENTATION[ia32,amd64]:
 #include <cstdlib>
 #include <cstdio>
 
-#include "apic.h"
-#include "banner.h"
-#include "boot_console.h"
-#include "boot_info.h"
-#include "config.h"
-#include "cpu.h"
-#include "fpu.h"
-#include "idt.h"
-#include "initcalls.h"
-#include "io_apic.h"
-#include "ipi.h"
-#include "irq_chip_pic.h"
-#include "irq_mgr.h"
-#include "kernel_console.h"
-#include "kernel_task.h"
-#include "kip_init.h"
-#include "kernel_uart.h"
-#include "kmem.h"
-#include "kmem_alloc.h"
-#include "per_cpu_data.h"
-#include "per_cpu_data_alloc.h"
-#include "pic.h"
-#include "platform_control.h"
-#include "static_init.h"
-#include "std_macros.h"
-#include "thread.h"
-#include "timer.h"
-#include "utcb_init.h"
+#include <apic.h>
+#include <banner.h>
+#include <boot_console.h>
+#include <boot_info.h>
+#include <config.h>
+#include <cpu.h>
+#include <fpu.h>
+#include <idt.h>
+#include <initcalls.h>
+#include <io_apic.h>
+#include <ipi.h>
+#include <irq_chip_pic.h>
+#include <irq_mgr.h>
+#include <kernel_console.h>
+#include <kernel_task.h>
+#include <kip_init.h>
+#include <kernel_uart.h>
+#include <kmem.h>
+#include <kmem_alloc.h>
+#include <per_cpu_data.h>
+#include <per_cpu_data_alloc.h>
+#include <pic.h>
+#include <platform_control.h>
+#include <static_init.h>
+#include <std_macros.h>
+#include <thread.h>
+#include <timer.h>
+#include <utcb_init.h>
 
-#include "io_apic.h"
-#include "io_apic_remapped.h"
-#include "intel_iommu.h"
+#include <io_apic.h>
+#include <io_apic_remapped.h>
+#include <intel_iommu.h>
 
 IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
 void
@@ -132,7 +132,6 @@ Startup::stage2()
     }
 
   Idt::set_vectors_run();
-  Timer::master_cpu(Cpu_number::boot_cpu());
   Apic::check_still_getting_interrupts();
   Platform_control::init(Cpu_number::boot_cpu());
 //  Cpu::init_global_features();

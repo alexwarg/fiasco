@@ -69,7 +69,7 @@ namespace Config
 
   enum
   {
-#ifdef CONFIG_ARM_SYNC_CLOCK
+#ifdef CONFIG_SYNC_CLOCK
     Kip_clock_uses_timer = 1,
 #else
     Kip_clock_uses_timer = 0,

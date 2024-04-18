@@ -14,7 +14,6 @@
 #include "platform_control.h"
 #include "processor.h"
 #include "reset.h"
-#include "timer.h"
 #include "timer_tick.h"
 #include "terminate.h"
 

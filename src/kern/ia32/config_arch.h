@@ -116,7 +116,7 @@ namespace Config
   enum
   {
     Pic_prio_modify = true,
-#ifdef CONFIG_SYNC_TSC
+#ifdef CONFIG_SYNC_CLOCK
     Kip_clock_uses_rdtsc = true,
 #else
     Kip_clock_uses_rdtsc = false,

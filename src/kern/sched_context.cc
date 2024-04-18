@@ -1,10 +1,11 @@
 
 #include "sched_context.h"
 
-#include "timer.h"
 #include "timeout.h"
 #include "globals.h"
 #include "logdefs.h"
+
+#include <system_clock.h>
 
 DEFINE_PER_CPU Per_cpu<Sched_context::Ready_queue> Sched_context::rq;
 
@@ -18,7 +19,7 @@ Sched_context::Ready_queue::set_current_sched(Sched_context *sched)
   // Save remainder of previous timeslice or refresh it, unless it had
   // been invalidated
   Timeout * const tt = timeslice_timeout.current();
-  Unsigned64 clock = Timer::system_clock();
+  Unsigned64 clock = System_clock::clock();
   if (Sched_context *s = current_sched())
     {
       Signed64 left = tt->get_timeout(clock);
