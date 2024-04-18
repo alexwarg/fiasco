@@ -33,7 +33,6 @@ INTERFACES_KERNEL	:= \
                            platform_control_object          \
 			   timer_tick platform_control          \
 			   utcb_init perf_cnt   \
-			   sys_call_page                    \
 
 CXXSRC_KERNEL += \
 	banner.cc \

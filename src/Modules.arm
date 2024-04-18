@@ -172,7 +172,7 @@ CXXSRC_KERNEL-$(CONFIG_MP) += \
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc gic_$(BITS).cc
-CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc
+CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc sys_call_page.cc
 CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_PSCI) += psci.cc
@@ -212,7 +212,6 @@ platform_control_IMPL   += platform_control-arm-psci
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 startup_IMPL		:= startup startup-arm
-sys_call_page_IMPL	:= sys_call_page $(if $(CONFIG_BIT32), sys_call_page-arm)
 task_IMPL		:= task task-arm
 thread_IMPL	  	:= thread
 timer_IMPL		:= timer timer-arm

@@ -1,30 +1,26 @@
-INTERFACE:
 
-#include "types.h"
+#include <initcalls.h>
+#include <types.h>
+#include <static_init.h>
+#include <feature.h>
+#include <mem_space.h>
+#include <mem_layout.h>
+#include <kmem_alloc.h>
+#include <panic.h>
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION[arm && !arm_v6plus]:
+#include <cstring>
 
-PRIVATE static inline NOEXPORT NEEDS["types.h"]
-void
-Sys_call_page::set_utcb_get_code(Unsigned32 *sys_calls)
+#include <globalconfig.h>
+
+KIP_KERNEL_FEATURE("kip_syscalls");
+
+namespace
 {
-  unsigned offset = 0;
-  sys_calls[offset++] = 0xe3e00a02; // mvn r0, #8192
-  sys_calls[offset++] = 0xe5100fff; // ldr r0, [r0, -#4095]
-  sys_calls[offset++] = 0xe1a0f00e; // mov pc, lr
 
-  // set TLS REG
-  offset = 0x20;
-  sys_calls[offset++] = 0xe1a0f00e; // mov pc, lr
-}
+#ifdef CONFIG_ARM_V6PLUS
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION[arm && arm_v6plus]:
-
-PRIVATE static inline NOEXPORT NEEDS["types.h"]
-void
-Sys_call_page::set_utcb_get_code(Unsigned32 *sys_calls)
+inline void
+set_utcb_get_code(Unsigned32 *sys_calls)
 {
   unsigned offset = 0;
 
@@ -49,52 +45,53 @@ Sys_call_page::set_utcb_get_code(Unsigned32 *sys_calls)
   sys_calls[offset++] = 0xfff40002; // .word   0xfff40002
 }
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION[arm && arm_v5]:
+#else // CONFIG_ARM_V6PLUS
 
-PRIVATE static inline NOEXPORT NEEDS["types.h"]
-void
-Sys_call_page::set_dmb(Unsigned32 *m)
+inline void
+set_utcb_get_code(Unsigned32 *sys_calls)
+{
+  unsigned offset = 0;
+  sys_calls[offset++] = 0xe3e00a02; // mvn r0, #8192
+  sys_calls[offset++] = 0xe5100fff; // ldr r0, [r0, -#4095]
+  sys_calls[offset++] = 0xe1a0f00e; // mov pc, lr
+
+  // set TLS REG
+  offset = 0x20;
+  sys_calls[offset++] = 0xe1a0f00e; // mov pc, lr
+}
+
+#endif // CONFIG_ARM_V6PLUS
+
+#ifdef CONFIG_ARM_V5
+inline void
+set_dmb(Unsigned32 *m)
 {
   // There is no DMB on ARMv5 and DSB (back then called "Drain Write Buffer")
   // is not available from user mode (MCR is a privileged instruction on ARMv5)
   m[0] = 0xe1a0f00e; // mov pc, lr
 }
+#endif // CONFIG_ARM_V5
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION[arm && arm_v6]:
-
-PRIVATE static inline NOEXPORT NEEDS["types.h"]
-void
-Sys_call_page::set_dmb(Unsigned32 *m)
+#ifdef CONFIG_ARM_V6
+inline void
+set_dmb(Unsigned32 *m)
 {
   m[0] = 0xee070fba; // mcr 15, 0, r0, cr7, cr10, {5}
   m[1] = 0xe1a0f00e; // mov pc, lr
 }
+#endif // CONFIG_ARM_V6
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION[arm && arm_v7plus]:
-
-PRIVATE static inline NOEXPORT NEEDS["types.h"]
-void
-Sys_call_page::set_dmb(Unsigned32 *m)
+#ifdef CONFIG_ARM_V7PLUS
+inline void
+set_dmb(Unsigned32 *m)
 {
   m[0] = 0xf57ff05f; // dmb sy
   m[1] = 0xe12fff1e; // bx lr
 }
+#endif // CONFIG_ARM_V7PLUS
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include <cstring>
-#include "mem_space.h"
-#include "mem_layout.h"
-#include "vmem_alloc.h"
-#include "panic.h"
-
-IMPLEMENT static
-void
-Sys_call_page::init()
+FIASCO_INIT static void
+setup_sys_call_page()
 {
   Unsigned32 *sys_calls = (Unsigned32*)Kmem_alloc::allocator()->alloc(Config::page_size());
   if (!sys_calls)
@@ -113,3 +110,8 @@ Sys_call_page::init()
 
   Mem_space::set_syscall_page(sys_calls);
 }
+
+STATIC_INITIALIZER(setup_sys_call_page);
+
+} // namespace
+
