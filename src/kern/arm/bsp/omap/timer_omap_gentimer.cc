@@ -1,30 +1,9 @@
-INTERFACE [arm]: //----------------------------------------
 
-#include "mmio_register_block.h"
+#include <timer_omap_gentimer.h>
 
-class Timer_omap_gentimer : private Mmio_register_block
-{
-public:
-  enum
-  {
-    TIDR          = 0x00, // ID
-    TIOCP_CFG     = 0x10, // config
-    EOI           = 0x20,
-    IRQSTATUS     = 0x28,
-    IRQENABLE_SET = 0x2c,
-    IRQWAKEEN     = 0x34,
-    TCLR          = 0x38,
-    TCRR          = 0x3c,
-    TLDR          = 0x40,
-  };
-};
+#include <kmem.h>
+#include <mem_layout.h>
 
-IMPLEMENTATION [arm]: // ----------------------------------
-
-#include "kmem.h"
-#include "mem_layout.h"
-
-PUBLIC
 Timer_omap_gentimer::Timer_omap_gentimer()
 : Mmio_register_block(Kmem::mmio_remap(Mem_layout::Timergen_phys_base, 0x100))
 {
@@ -52,10 +31,3 @@ Timer_omap_gentimer::Timer_omap_gentimer()
   write<Mword>(1 | 2, TCLR);
 }
 
-PUBLIC inline
-void
-Timer_omap_gentimer::acknowledge()
-{
-  write<Mword>(2, IRQSTATUS);
-  write<Mword>(0, EOI);
-}
