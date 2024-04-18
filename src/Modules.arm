@@ -177,8 +177,6 @@ CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_PSCI) += psci.cc
 
-INTERFACES_KERNEL-$(CONFIG_ARM_MPCORE) += scu
-INTERFACES_KERNEL-$(CONFIG_ARM_CORTEX_A9) += scu
 INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
 
 
@@ -213,7 +211,6 @@ pic_IMPL		:= pic
 platform_control_IMPL   += platform_control-arm-psci
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
-scu_IMPL                := scu
 startup_IMPL		:= startup startup-arm
 sys_call_page_IMPL	:= sys_call_page $(if $(CONFIG_BIT32), sys_call_page-arm)
 task_IMPL		:= task task-arm
