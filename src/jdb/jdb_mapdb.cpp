@@ -16,6 +16,10 @@ IMPLEMENTATION:
 #include "jdb_kobject.h"
 #include "jdb_kobject_names.h"
 
+// access to private mapdb instances from map_util...
+extern Static_object<Mapdb> mapdb_mem;
+extern Static_object<Mapdb> mapdb_io;
+
 class Jdb_mapdb : public Jdb_module
 {
   friend class Jdb_kobject_mapdb_hdl;

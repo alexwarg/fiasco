@@ -1,19 +1,43 @@
-INTERFACE:
+#include <map_util_objs.h>
+#include <assert.h>
+#include <assert_opt.h>
 
-#include "kobject_mapdb.h"
+#include <obj_space.h>
+#include <l4_types.h>
+#include <map_util_helper.h>
 
+template<>
+struct Map_traits<Obj_space, true>
+{
+  static bool free_object(Obj_space::Phys_addr o,
+                          Obj_space::Reap_list **reap_list)
+  {
+    if (o->map_root()->no_mappings())
+      {
+        o->initiate_deletion(reap_list);
+        return true;
+      }
 
-IMPLEMENTATION:
+    return false;
+  }
 
-#include "assert.h"
-#include "assert_opt.h"
+  static
+  Obj_space::Attr
+  apply_attribs(Obj_space::Attr attribs,
+                Obj_space::Phys_addr &a,
+                Obj_space::Attr set_attr)
+  {
+    if (attribs.extra() & ~set_attr.extra())
+      a = a->downgrade(~set_attr.extra());
 
-#include "obj_space.h"
-#include "l4_types.h"
+    attribs &= set_attr;
+    return attribs;
+  }
+};
 
 L4_error
-obj_map(Space *from, L4_fpage const &fp_from,
-        Space *to, L4_fpage const &fp_to, L4_msg_item control,
+obj_map(Space *from, L4_fpage fp_from,
+        Space *to, L4_fpage fp_to, L4_msg_item control,
         Kobject ***reap_list)
 {
   assert_opt (from);
@@ -66,8 +90,8 @@ obj_fpage_unmap(Space * space, L4_fpage fp, L4_map_mask mask,
 L4_error
 obj_map(Space *from, Cap_index snd_addr, unsigned long snd_size,
         Space *to, Cap_index rcv_addr,
-        Kobject ***reap_list, bool grant = false,
-        Obj_space::Attr attribs = Obj_space::Attr::Full())
+        Kobject ***reap_list, bool grant,
+        Obj_space::Attr attribs)
 {
   assert_opt (from);
   assert_opt (to);

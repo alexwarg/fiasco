@@ -109,6 +109,7 @@ CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	entry_cc.cc \
 	doublefault.cc \
 	io_space.cc \
+	map_util_io.cc \
 	acpi.cc \
 	checksum.cc \
 	__main.cc \

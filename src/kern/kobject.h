@@ -106,7 +106,7 @@ class Kobject :
   private Kobject_mappable,
   private Kobject_dbg
 {
-  template<typename T>
+  template<typename T, bool>
   friend class Map_traits;
 
 private:

@@ -1,16 +1,9 @@
-INTERFACE [debug]:
-
-#include "mapdb.h"
-#include "types.h"
-
-extern Static_object<Mapdb> mapdb_mem;
-
-IMPLEMENTATION:
-
-#include "config.h"
-#include "mapdb.h"
-#include "mem_space.h"
+#include <config.h>
+#include <mapdb.h>
+#include <mem_space.h>
 #include <minmax.h>
+#include <map_util_mem.h>
+#include <map_util_helper.h>
 
 Static_object<Mapdb> mapdb_mem;
 
@@ -29,8 +22,8 @@ Static_object<Mapdb> mapdb_mem;
     @return IPC error code that describes the status of the operation
  */
 L4_error __attribute__((nonnull(1, 3)))
-mem_map(Space *from, L4_fpage const &fp_from,
-        Space *to, L4_fpage const &fp_to, L4_msg_item control)
+mem_map(Space *from, L4_fpage fp_from,
+        Space *to, L4_fpage fp_to, L4_msg_item control)
 {
   assert_opt (from);
   assert_opt (to);

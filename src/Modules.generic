@@ -28,7 +28,7 @@ INTERFACES_KERNEL	:= \
 			   timer   \
 			   mem_unit \
 			   syscalls     \
-			   kernel_thread map_util        \
+			   kernel_thread        \
 			   vmem_alloc paging      \
 			   cpu               \
                            platform_control_object          \
@@ -64,6 +64,9 @@ CXXSRC_KERNEL += \
 	libc_backend_lock.cc \
 	mapdb.cc \
 	mapping_tree.cc \
+	map_util_mem.cc \
+	map_util_objs.cc \
+	map_util.cc \
 	pm.cc \
 	ram_quota.cc \
 	rcupdate.cc \

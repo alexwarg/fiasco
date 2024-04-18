@@ -1,12 +1,15 @@
-INTERFACE:
+#pragma once
 
-#include "assert_opt.h"
-#include "l4_types.h"
-#include "space.h"
+#include <l4_types.h>
+#include <space.h>
+#include <cpu_call.h>
+#include <kobject_mapdb.h>
+#include <mapdb.h>
+
 #include <cxx/function>
-#include "cpu_call.h"
 
 class Mapdb;
+class Mem_space;
 
 namespace Mu {
 
@@ -157,179 +160,22 @@ void free_constraint(Addr &snd_addr, Size &snd_size,
 
 }
 
-template< typename SPACE >
+template< typename SPACE, bool = true >
 class Map_traits
 {
 public:
-  static bool match(L4_fpage const &from, L4_fpage const &to);
-  static bool free_object(typename SPACE::Phys_addr o,
-                          typename SPACE::Reap_list **reap_list);
+  static bool free_object(typename SPACE::Phys_addr,
+                          typename SPACE::Reap_list **)
+  { return false; }
+
+  static
+  typename SPACE::Attr
+  apply_attribs(typename SPACE::Attr attribs,
+                typename SPACE::Phys_addr &,
+                typename SPACE::Attr set_attr)
+  { return attribs.apply(set_attr); }
 };
 
-
-
-//------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include <cassert>
-
-#include "config.h"
-#include "context.h"
-#include "kobject.h"
-#include "paging.h"
-#include "warn.h"
-
-
-IMPLEMENT template<typename SPACE>
-inline
-bool
-Map_traits<SPACE>::match(L4_fpage const &, L4_fpage const &)
-{ return false; }
-
-IMPLEMENT template<typename SPACE>
-inline
-bool
-Map_traits<SPACE>::free_object(typename SPACE::Phys_addr,
-                               typename SPACE::Reap_list **)
-{ return false; }
-
-
-PUBLIC template< typename SPACE >
-static inline
-typename SPACE::Attr
-Map_traits<SPACE>::apply_attribs(typename SPACE::Attr attribs,
-                                 typename SPACE::Phys_addr &,
-                                 typename SPACE::Attr set_attr)
-{ return attribs.apply(set_attr); }
-
-
-//-------------------------------------------------------------------------
-IMPLEMENTATION [io]:
-
-IMPLEMENT template<>
-inline
-bool
-Map_traits<Io_space>::match(L4_fpage const &from, L4_fpage const &to)
-{ return from.is_iopage() && (to.is_iopage() || to.is_all_spaces()); }
-
-
-//-------------------------------------------------------------------------
-IMPLEMENTATION:
-
-IMPLEMENT template<>
-inline
-bool
-Map_traits<Mem_space>::match(L4_fpage const &from, L4_fpage const &to)
-{
-  return from.is_mempage() && (to.is_all_spaces() || to.is_mempage());
-}
-
-
-IMPLEMENT template<>
-inline
-bool
-Map_traits<Obj_space>::match(L4_fpage const &from, L4_fpage const &to)
-{ return from.is_objpage() && (to.is_objpage() || to.is_all_spaces()); }
-
-IMPLEMENT template<>
-inline
-bool
-Map_traits<Obj_space>::free_object(Obj_space::Phys_addr o,
-                                   Obj_space::Reap_list **reap_list)
-{
-  if (o->map_root()->no_mappings())
-    {
-      o->initiate_deletion(reap_list);
-      return true;
-    }
-
-  return false;
-}
-
-IMPLEMENT template<>
-static inline
-Obj_space::Attr
-Map_traits<Obj_space>::apply_attribs(Obj_space::Attr attribs,
-                                     Obj_space::Phys_addr &a,
-                                     Obj_space::Attr set_attr)
-{
-  if (attribs.extra() & ~set_attr.extra())
-    a = a->downgrade(~set_attr.extra());
-
-  attribs &= set_attr;
-  return attribs;
-}
-
-
-/**
- * Flexpage mapping.
- *
- * \param from     Source address space
- * \param fp_from  Flexpage descriptor for virtual-address space range in source
- *                 address space
- * \param to       Destination address space
- * \param fp_to    Flexpage descriptor for virtual-address space range in
- *                 destination address space
- * \param control  Message item describing the mapping operation.
- * \param r        List of Kobjects that may be deleted during that operation.
-
- * \return IPC error
- *
- * This function diverts to mem_map (for memory fpages), io_map (for IO fpages)
- * or obj_map (for capability fpages).
-*/
-// Don't inline -- it eats too much stack.
-// inline NEEDS ["config.h", io_map]
-L4_error
-fpage_map(Space *from, L4_fpage fp_from, Space *to,
-          L4_fpage fp_to, L4_msg_item control, Kobject::Reap_list *r)
-{
-  Space::Caps caps = from->caps() & to->caps();
-
-  if (Map_traits<Mem_space>::match(fp_from, fp_to) && (caps & Space::Caps::mem()))
-    return mem_map(from, fp_from, to, fp_to, control);
-
-#ifdef CONFIG_PF_PC
-  if (Map_traits<Io_space>::match(fp_from, fp_to) && (caps & Space::Caps::io()))
-    return io_map(from, fp_from, to, fp_to, control);
-#endif
-
-  if (Map_traits<Obj_space>::match(fp_from, fp_to) && (caps & Space::Caps::obj()))
-    return obj_map(from, fp_from, to, fp_to, control, r->list());
-
-  return L4_error::None;
-}
-
-/** Flexpage unmapping.
-    divert to mem_fpage_unmap (for memory fpages) or
-    io_fpage_unmap (for IO fpages)
-    @param space address space that should be flushed
-    @param fp    flexpage descriptor of address-space range that should
-                 be flushed
-    @param me_too If false, only flush recursive mappings.  If true,
-                 additionally flush the region in the given address space.
-    @param flush_mode determines which access privileges to remove.
-    @return combined (bit-ORed) access status of unmapped physical pages
-*/
-// Don't inline -- it eats too much stack.
-// inline NEEDS ["config.h", io_fpage_unmap]
-L4_fpage::Rights
-fpage_unmap(Space *space, L4_fpage fp, L4_map_mask mask, Kobject ***rl)
-{
-  L4_fpage::Rights ret(0);
-  Space::Caps caps = space->caps();
-
-  if ((caps & Space::Caps::io()) && (fp.is_iopage() || fp.is_all_spaces()))
-    ret |= io_fpage_unmap(space, fp, mask);
-
-  if ((caps & Space::Caps::obj()) && (fp.is_objpage() || fp.is_all_spaces()))
-    ret |= obj_fpage_unmap(space, fp, mask, rl);
-
-  if ((caps & Space::Caps::mem()) && (fp.is_mempage() || fp.is_all_spaces()))
-    ret |= mem_fpage_unmap(space, fp, mask);
-
-  return ret;
-}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -337,9 +183,8 @@ fpage_unmap(Space *space, L4_fpage fp, L4_map_mask mask, Kobject ***rl)
 // Utility functions for all address-space types
 //
 
-inline
 template <typename SPACE >
-bool
+inline bool
 map_lookup_src(SPACE* from,
                typename SPACE::V_pfn const &snd_addr,
                typename SPACE::Phys_addr *s_phys,
@@ -368,9 +213,8 @@ map_lookup_src(SPACE* from,
   return true;
 }
 
-inline
-template <typename SPACE, typename MAPDB> inline
-L4_error
+template <typename SPACE, typename MAPDB>
+inline L4_error
 map(MAPDB* mapdb,
     SPACE* from, Space *from_id,
     typename SPACE::V_pfn snd_addr,
@@ -662,8 +506,8 @@ map(MAPDB* mapdb,
 }
 
 // save access rights for Mem_space
-inline template<typename MAPDB>
-void
+template<typename MAPDB>
+inline void
 save_access_flags(Mem_space *space, typename Mem_space::V_pfn page_address, bool me_too,
                   typename MAPDB::Frame const &mapdb_frame,
                   L4_fpage::Rights page_rights)
@@ -683,7 +527,7 @@ save_access_flags(Mem_space *space, typename Mem_space::V_pfn page_address, bool
 // do nothing for IO and OBJs
 template<typename MAPDB, typename SPACE,
          typename = typename cxx::enable_if<!cxx::is_same<SPACE, Mem_space>::value>::type>
-void
+inline void
 save_access_flags(SPACE *, typename SPACE::V_pfn, bool,
                   typename MAPDB::Frame const &,
                   L4_fpage::Rights)
@@ -796,27 +640,5 @@ unmap(MAPDB* mapdb, SPACE* space, Space *space_id,
     }
 
   return flushed_rights;
-}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION[!io]:
-
-// Empty dummy functions when I/O protection is disabled
-inline
-void init_mapdb_io(Space *)
-{}
-
-inline
-L4_error
-io_map(Space *, L4_fpage const &, Space *, L4_fpage const &, L4_msg_item)
-{
-  return L4_error::None;
-}
-
-inline
-L4_fpage::Rights
-io_fpage_unmap(Space * /*space*/, L4_fpage const &/*fp*/, L4_map_mask)
-{
-  return L4_fpage::Rights(0);
 }
 

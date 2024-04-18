@@ -8,7 +8,9 @@ IMPLEMENTATION:
 #include "irq.h"
 #include "kip.h"
 #include "koptions.h"
-#include "map_util.h"
+#include <map_util_objs.h>
+#include <map_util_mem.h>
+#include <map_util_io.h>
 #include "mem_layout.h"
 #include "sigma0_task.h"
 #include "task.h"

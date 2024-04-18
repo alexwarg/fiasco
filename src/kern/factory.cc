@@ -5,7 +5,7 @@
 #include "logdefs.h"
 #include "l4_buf_iter.h"
 #include "kobject_rpc.h"
-#include "map_util.h"
+#include "map_util_objs.h"
 
 
 JDB_DEFINE_TYPENAME(Factory, "\033[33;1mFactory\033[m");

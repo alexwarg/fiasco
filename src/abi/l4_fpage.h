@@ -304,6 +304,9 @@ public:
    */
   Raw raw() const { return _raw; }
 
+  bool same_type(L4_fpage o) const
+  { return ((_raw ^ o._raw) & type_bfm_t::Mask) == 0; }
+
 private:
   Raw _raw;
 

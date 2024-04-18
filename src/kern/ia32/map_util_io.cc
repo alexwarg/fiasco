@@ -1,20 +1,10 @@
-/*
- * Fiasco-ia32
- * Specific code for I/O port protection
- */
-INTERFACE[(ia32|amd64) & io & debug]:
+#include <map_util_helper.h>
+#include <map_util_io.h>
 
-#include "mapdb.h"
-#include "types.h"
-
-extern Static_object<Mapdb> mapdb_io;
-
-IMPLEMENTATION[(ia32|amd64) & io]:
-
-#include "l4_types.h"
-#include "assert.h"
-#include "space.h"
-#include "io_space.h"
+#include <l4_types.h>
+#include <cassert>
+#include <space.h>
+#include <io_space.h>
 
 Static_object<Mapdb> mapdb_io;
 
@@ -39,8 +29,8 @@ void init_mapdb_io(Space *sigma0)
     @return IPC error code that describes the status of the operation
  */
 L4_error __attribute__((nonnull(1, 3)))
-io_map(Space *from, L4_fpage const &fp_from,
-       Space *to, L4_fpage const &fp_to, L4_msg_item control)
+io_map(Space *from, L4_fpage fp_from,
+       Space *to, L4_fpage fp_to, L4_msg_item control)
 {
 /*   printf("io_map %u -> %u "
  *	    "snd %08x base %x size %x rcv %08x base %x size %x\n",
