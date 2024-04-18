@@ -17,8 +17,9 @@ PREPROCESS_PARTS += $(if $(filter-out "",$(CONFIG_PF_EXYNOS_PKG_IDS)),pkg_id_fil
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_MP) += timer_exynos_mptimer.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_MCT) += timer_exynos_mct.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_PWM) += timer_arm_s3c2410.cc
+CXXSRC_KERNEL += timer_mct.cc
 
-INTERFACES_KERNEL       += platform timer_mct
+INTERFACES_KERNEL       += platform
 VPATH                   += kern/arm/bsp/s3c
 RAM_PHYS_BASE           := $(if $(CONFIG_ARM_EM_TZ),0xb0000000,0x40000000)
 MPCORE_PHYS_BASE        := 0x10500000
