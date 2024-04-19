@@ -1,6 +1,6 @@
-INTERFACE:
+#pragma once
 
-#include "paging.h"
+#include <paging.h>
 
 class Mem_space;
 
@@ -18,10 +18,6 @@ public:
     Kernel = 0,
     User = 1
   };
-
-  static void init();
-
-  static void *page_unmap(void *page);
 
   /**
    * Allocate a page of kernel memory and insert it into the master

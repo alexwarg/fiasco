@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
 			   kip_init   \
 			   mem_unit \
 			   kernel_thread        \
-			   vmem_alloc paging      \
+			   paging      \
 			   cpu               \
                            platform_control_object          \
 			   timer_tick platform_control          \

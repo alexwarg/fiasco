@@ -1,20 +1,18 @@
-IMPLEMENTATION[ia32,amd64]:
+#include <vmem_alloc.h>
 
 #include <cassert>
 #include <cstdio>
 #include <cstring>
-#include "config.h"
-#include "kdb_ke.h"
-#include "kmem.h"
-#include "kmem_alloc.h"
-#include "mem_layout.h"
-#include "mem_unit.h"
-#include "paging.h"
-#include "static_init.h"
-#include "initcalls.h"
-#include "space.h"
 
-IMPLEMENT
+#include <config.h>
+#include <kdb_ke.h>
+#include <kmem.h>
+#include <kmem_alloc.h>
+#include <mem_layout.h>
+#include <mem_unit.h>
+#include <paging.h>
+#include <space.h>
+
 void*
 Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
 {
@@ -46,7 +44,6 @@ Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
   e.set_page(page, Pt_entry::Writable | Pt_entry::Dirty
                    | Pt_entry::Referenced
                    | Pt_entry::global() | (mode & User ? (unsigned)Pt_entry::User : 0));
-  page_map (address, 0, zf, page);
   return address;
 
 error:
@@ -54,12 +51,3 @@ error:
   return 0;
 }
 
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION[ia32,amd64]:
-
-PUBLIC static inline
-void
-Vmem_alloc::page_map(void * /*address*/, int /*order*/, Zero_fill /*zf*/,
-		     Address /*phys*/)
-{}

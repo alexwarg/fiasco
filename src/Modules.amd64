@@ -115,6 +115,7 @@ CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	checksum.cc \
 	__main.cc \
 	boot_info.cc \
+	vmem_alloc-ia32.cc 
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm.cc
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
@@ -151,7 +152,6 @@ tb_entry_IMPL		:= tb_entry tb_entry-ia32-64
 timer_IMPL		:= timer timer-ia32-amd64
 tss_IMPL		:= tss-amd64
 utcb_init_IMPL		:= utcb_init utcb_init-ia32
-vmem_alloc_IMPL		:= vmem_alloc vmem_alloc-ia32
 
 
 cpu_lock_IMPL		:= cpu_lock cpu_lock-generic

@@ -1,22 +1,19 @@
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
+#include <vmem_alloc.h>
 
-#include "mem.h"
-#include "paging.h"
-#include "mem_space.h"
-#include "kmem_alloc.h"
-#include "config.h"
-#include "panic.h"
-#include "mem_unit.h"
-#include "ram_quota.h"
-#include "static_init.h"
+#include <mem.h>
+#include <paging.h>
+#include <mem_space.h>
+#include <kmem_alloc.h>
+#include <config.h>
+#include <panic.h>
+#include <mem_unit.h>
+#include <ram_quota.h>
 
 #include <cstdio>
 #include <cassert>
 #include <cstring>
 
 
-IMPLEMENT
 void *Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
 {
   void *vpage = Kmem_alloc::allocator()->alloc(Config::page_order());
