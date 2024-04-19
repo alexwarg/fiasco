@@ -1,11 +1,12 @@
-IMPLEMENTATION [log]:
 
 #include <cstring>
-#include "config.h"
-#include "jdb_trace.h"
-#include "jdb_tbuf.h"
-#include "types.h"
-#include "cpu_lock.h"
+#include <config.h>
+#include <jdb_trace.h>
+#include <jdb_tbuf.h>
+#include <types.h>
+#include <cpu_lock.h>
+#include <thread.h>
+#include <obj_cap.h>
 
 extern "C" void sys_ipc_wrapper(void);
 extern "C" void sys_ipc_log_wrapper(void);
@@ -14,7 +15,8 @@ extern "C" void sys_ipc_log_wrapper(void);
 /** IPC logging.
     called from interrupt gate.
  */
-IMPLEMENT void FIASCO_FLATTEN sys_ipc_log_wrapper()
+[[gnu::flatten]]
+void sys_ipc_log_wrapper()
 {
   Thread *curr = current_thread();
   Entry_frame   *regs      = curr->regs();

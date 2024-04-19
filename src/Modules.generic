@@ -26,7 +26,6 @@ INTERFACES_KERNEL	:= \
 			   kmem kmem_alloc mem_layout        \
 			   kip_init   \
 			   mem_unit \
-			   syscalls     \
 			   kernel_thread        \
 			   vmem_alloc paging      \
 			   cpu               \
@@ -75,6 +74,7 @@ CXXSRC_KERNEL += \
 	scheduler_iface.cc \
 	semaphore.cc \
 	slab_cache.cc \
+	syscalls.cc \
 	task.cc \
 	terminate.cc \
 	thread.cc \
@@ -95,6 +95,7 @@ CXXSRC_KERNEL-a$(CONFIG_SERIAL) += vkey_noserial.cc
 CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)
 
 CXXSRC_KERNEL-$(CONFIG_JDB) += \
+	syscalls-log.cc \
 	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc \
 	tb_entry_generic.cc \
 	drq_log.cc vcpu_log.cc context_dbg.cc exregs_log.cc \
@@ -116,8 +117,6 @@ PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
 PREPROCESS_PARTS += obj_space_$(OBJ_SPACE_TYPE)
 
 platform_control_IMPL   := platform_control
-
-syscalls_IMPL		:= syscalls syscalls-log
 
 timer_tick_IMPL         := timer_tick
 

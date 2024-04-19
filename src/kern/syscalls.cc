@@ -1,12 +1,11 @@
-IMPLEMENTATION:
-
-#include "obj_cap.h"
-#include "thread_state.h"
-#include "std_macros.h"
+#include <obj_cap.h>
+#include <thread_state.h>
+#include <std_macros.h>
 
 extern "C" void sys_ipc_wrapper();
 
-IMPLEMENT void FIASCO_FLATTEN sys_ipc_wrapper()
+[[gnu::flatten]]
+void sys_ipc_wrapper()
 {
   assert (!(current()->state() & Thread_drq_ready));
 
@@ -30,26 +29,12 @@ IMPLEMENT void FIASCO_FLATTEN sys_ipc_wrapper()
     f->tag(curr->commit_error(utcb, L4_error::Not_existent));
 }
 
+#ifdef CONFIG_JDB
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [debug]:
-
-#include "space.h"
-#include "task.h"
+#include <space.h>
+#include <task.h>
 
 extern "C" void sys_invoke_debug(Kobject_iface *o, Syscall_frame *f) __attribute__((weak));
 
-//---------------------------------------------------------------------------
-INTERFACE [ia32 || amd64]:
-
-extern void (*syscall_table[])();
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [ia32 || amd64]:
-
-void (*syscall_table[])() =
-{
-  sys_ipc_wrapper,
-};
+#endif
 

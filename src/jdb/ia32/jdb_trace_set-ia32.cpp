@@ -47,7 +47,6 @@ set_fast_entry(Cpu_number cpu, void (*func)())
 //---------------------------------------------------------------------
 IMPLEMENTATION:
 
-#include "syscalls.h"
 #include "jdb.h"
 #include "pm.h"
 
@@ -56,6 +55,7 @@ extern "C" void sys_ipc_log_wrapper (void);
 
 extern "C" void entry_sys_fast_ipc_log (void);
 extern "C" void entry_sys_fast_ipc_c (void);
+extern void (*syscall_table[])();
 
 static
 void
