@@ -329,6 +329,9 @@ private:
       load(0x2012, src);
 #endif
 
+    if (procbased_ctls_2.test(Vmx_info::PRB2_tsc_scaling))
+      load(Vmx::F_tsc_multiplier, src);
+
     if (procbased_ctls_2.test(Vmx_info::PRB2_virtualize_apic))
       load(Vmx::F_apic_access_addr, src);
 

@@ -127,6 +127,7 @@ public:
     PRB2_unrestricted    = 7,
     PRB2_enable_pml      = 17,
     PRB2_enable_xsaves   = 20,
+    PRB2_tsc_scaling     = 25,
   };
 
   enum Entry_ctls
@@ -293,6 +294,7 @@ public:
     F_tsc_offset         = 0x2010,
     F_apic_access_addr   = 0x2014,
     F_ept_ptr            = 0x201a,
+    F_tsc_multiplier     = 0x2032,
 
     // .. skip ...
 
