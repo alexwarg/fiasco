@@ -83,7 +83,7 @@ bootstrap()
   printf("Boot: KIP @ %p\n", Kip::k());
 
   printf("Boot: Kmem_alloc::base_init();\n");
-  if (!Kmem_alloc::base_init())
+  if (!Kmem_alloc_arch::base_init())
     {
       panic("FATAL: Could not reserve kernel memory, halted\n");
     }

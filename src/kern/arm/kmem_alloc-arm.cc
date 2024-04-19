@@ -1,22 +1,29 @@
-IMPLEMENTATION [arm]:
+
+#include <kmem_alloc.h>
 // Kmem_alloc::Kmem_alloc() puts those Mem_region_map's on the stack which
 // is slightly larger than our warning limit but it's on the boot stack only
 // so this it is ok.
 #pragma GCC diagnostic ignored "-Wframe-larger-than="
 
-#include "mem_unit.h"
-#include "ram_quota.h"
+#include <mem_unit.h>
+#include <mem_region.h>
+#include <ram_quota.h>
+#include <kip.h>
+#include <buddy_alloc.h>
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [arm && !cpu_virt && noncont_mem]:
+#include <cstdio>
+#include <panic.h>
 
-#include "mem_layout.h"
-#include "kmem_space.h"
+#include <globalconfig.h>
+
+#ifdef CONFIG_NONCONT_MEM
+
+#include <mem_layout.h>
+#include <kmem_space.h>
 #include <paging.h>
 
-PRIVATE //inline
-bool
-Kmem_alloc::map_pmem(unsigned long phy, unsigned long size)
+static bool
+map_pmem(unsigned long phy, unsigned long size)
 {
   static unsigned long next_map = Mem_layout::Pmem_start;
   size = Mem_layout::round_superpage(size + (phy & ~Config::SUPERPAGE_MASK));
@@ -37,18 +44,10 @@ Kmem_alloc::map_pmem(unsigned long phy, unsigned long size)
   return true;
 }
 
-PUBLIC inline NEEDS["kmem_space.h", "mem_layout.h", <paging.h>]
-Address
-Kmem_alloc::to_phys(void *v) const
-{
-  return Mem_layout::kdir->virt_to_phys((Address)v);
-}
-
 static unsigned long _freemap[
   Kmem_alloc::Alloc::free_map_bytes(Mem_layout::Map_base, Mem_layout::Pmem_end - 1)
   / sizeof(unsigned long)];
 
-IMPLEMENT
 Kmem_alloc::Kmem_alloc()
 {
   // The -Wframe-larger-than= warning for this function is known and
@@ -92,15 +91,8 @@ Kmem_alloc::Kmem_alloc()
     WARNX(Warning, "Kmem_alloc: cannot allocate sufficient kernel memory\n");
 }
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [arm && !noncont_mem]:
+#else // CONFIG_NONCONT_MEM
 
-PUBLIC inline NEEDS["mem_layout.h"]
-Address
-Kmem_alloc::to_phys(void *v) const
-{ return (Address)v - Mem_layout::Map_base + Mem_layout::Sdram_phys_base; }
-
-IMPLEMENT
 Kmem_alloc::Kmem_alloc()
 {
   // The -Wframe-larger-than= warning for this function is known and
@@ -161,15 +153,10 @@ Kmem_alloc::Kmem_alloc()
     }
 }
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [arm && debug]:
+#endif
 
-#include <cstdio>
 
-#include "panic.h"
-
-PUBLIC
-void Kmem_alloc::debug_dump()
+void Kmem_alloc::debug_dump() const
 {
   a->dump();
 

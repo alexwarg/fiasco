@@ -88,6 +88,9 @@ Mem_space::pmem_to_phys(Address virt) const
 
 //----------------------------------------------------------------------------
 IMPLEMENTATION [arm && 32bit && !cpu_virt]:
+
+#include <kmem_space.h>
+
 PUBLIC static
 void
 Mem_space::set_syscall_page(void *p)

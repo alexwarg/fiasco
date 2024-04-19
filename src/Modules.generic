@@ -23,7 +23,7 @@ INTERFACES_KERNEL	:= \
 			   startup                   \
 			   pic   \
 			   mem_space space \
-			   kmem kmem_alloc mem_layout        \
+			   kmem mem_layout        \
 			   kip_init   \
 			   mem_unit \
 			   kernel_thread        \
@@ -53,6 +53,7 @@ CXXSRC_KERNEL += \
 	kernel_console.cc \
 	kernel_panic.cc \
 	kernel_task.cc \
+	kmem_alloc.cc \
 	kmem_slab.cc \
 	kobject.cc \
 	kobject_helper.cc \

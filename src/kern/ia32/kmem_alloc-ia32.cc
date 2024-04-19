@@ -1,4 +1,4 @@
-IMPLEMENTATION [ia32,amd64]:
+#include <kmem_alloc.h>
 
 // base_init() puts those Mem_region_map's on the stack which is slightly
 // larger than our warning limit, it's init code only, so it's ok
@@ -6,22 +6,17 @@ IMPLEMENTATION [ia32,amd64]:
 
 #include <cstdio>
 
-#include "kip.h"
-#include "koptions.h"
-#include "mem_region.h"
-#include "panic.h"
-#include "types.h"
+#include <kip.h>
+#include <koptions.h>
+#include <mem_region.h>
+#include <panic.h>
+#include <types.h>
+#include <initcalls.h>
+#include <buddy_alloc.h>
 
-PUBLIC static inline
-Phys_mem_addr::Value
-Kmem_alloc::to_phys(void *v)
-{
-  return Mem_layout::pmem_to_phys(v);
-}
-
-PUBLIC static FIASCO_INIT
+FIASCO_INIT
 bool
-Kmem_alloc::base_init()
+Kmem_alloc_arch::base_init()
 {
   if (0)
     printf("Kmem_alloc::base_init(): kip=%p\n", Kip::k());
@@ -30,7 +25,7 @@ Kmem_alloc::base_init()
 
   Mem_region_map<64> map;
 
-  available_size = create_free_map(Kip::k(), &map);
+  available_size = Kmem_alloc::create_free_map(Kip::k(), &map);
 
   requested_size = Koptions::o()->kmemsize << 10;
   if (!requested_size)
@@ -122,7 +117,6 @@ Kmem_alloc::base_init()
   return true;
 }
 
-IMPLEMENT
 Kmem_alloc::Kmem_alloc()
 {
   if (0)
@@ -224,14 +218,10 @@ Kmem_alloc::Kmem_alloc()
     printf("Kmem_alloc: construction done\n");
 }
 
-//-----------------------------------------------------------------------------
-IMPLEMENTATION [{ia32,amd64}-debug]:
-
 #include "div32.h"
 
-PUBLIC
 void
-Kmem_alloc::debug_dump()
+Kmem_alloc::debug_dump() const
 {
   a->dump();
 
@@ -242,9 +232,3 @@ Kmem_alloc::debug_dump()
 	 (orig_free()        + 1023) / 1024);
 }
 
-PRIVATE inline
-unsigned long
-Kmem_alloc::orig_free()
-{
-  return _orig_free;
-}

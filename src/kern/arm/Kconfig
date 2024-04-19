@@ -127,6 +127,10 @@ config ARM_ASID16
         depends on ARM_V8 && BIT64
         bool
 
+config NONCONT_MEM
+        depends on ARM && !CPU_VIRT && !BIT64
+        def_bool y
+
 # SECTION: CPU
 
 choice
