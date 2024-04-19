@@ -106,6 +106,7 @@ public:
   {
     PIB_ext_int_exit = 0,
     PIB_nmi_exit     = 3,
+    PIB_preemption_timer = 6,
   };
 
   enum Primary_proc_based_ctls

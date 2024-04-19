@@ -281,13 +281,13 @@ private:
     load(0x2802, src);
 
     // check if the following bits are allowed to be set in entry_ctls
-    if (entry_ctls.test(14)) // PAT load requested
+    if (entry_ctls.test(Vmx_info::En_load_ia32_pat))
       load(Vmx::F_guest_pat, src);
 
-    if (entry_ctls.test(15)) // EFER load requested
+    if (entry_ctls.test(Vmx_info::En_load_ia32_efer))
       load(Vmx::F_guest_efer, src);
 
-    if (entry_ctls.test(13)) // IA32_PERF_GLOBAL_CTRL load requested
+    if (entry_ctls.test(Vmx_info::En_load_perf_global_ctl))
       load(Vmx::F_guest_perf_global_ctl, src);
 
     // this is Fiasco.OC internal state
@@ -300,7 +300,7 @@ private:
     load(0x4800, 0x4826, src);
     load(0x482a, src);
 
-    if (pinbased_ctls.test(6)) // activate vmx-preemption timer
+    if (pinbased_ctls.test(Vmx_info::PIB_preemption_timer))
       load(Vmx::F_preempt_timer, src);
 
     // write natural-width fields
@@ -380,9 +380,9 @@ protected:
     Vmx_info::Flags<Unsigned32> exit_ctls
       = Vmx_info::Flags<Unsigned32>(vmx_info.exit_ctls.apply(read<Unsigned32>(dest, Vmx::F_exit_ctls)));
 
-    if (exit_ctls.test(18)) store(Vmx::F_guest_pat, dest);
-    if (exit_ctls.test(20)) store(Vmx::F_guest_efer, dest);
-    if (exit_ctls.test(22)) store(Vmx::F_preempt_timer, dest);
+    if (exit_ctls.test(Vmx_info::Ex_save_ia32_pat)) store(Vmx::F_guest_pat, dest);
+    if (exit_ctls.test(Vmx_info::Ex_save_ia32_efer)) store(Vmx::F_guest_efer, dest);
+    if (exit_ctls.test(Vmx_info::Ex_save_preemption_timer)) store(Vmx::F_preempt_timer, dest);
 
     // EPT and PAE handling missing
 #if 0
