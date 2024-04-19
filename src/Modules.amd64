@@ -131,7 +131,6 @@ fpu_IMPL		:= fpu fpu-ia32
 ipi_IMPL		:= ipi ipi-ia32
 kdb_ke_IMPL		+= kdb_ke-ia32
 kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-ia32
-kip_init_IMPL		:= kip_init-ia32
 kmem_IMPL		:= kmem-ia32 kmem-ia32-64
 map_util_IMPL		:= map_util map_util-mem map_util-io map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-64

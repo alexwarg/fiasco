@@ -1,27 +1,17 @@
-INTERFACE [arm]:
 
-#include "kip.h"
-
-class Kip_init
-{
-public:
-  static void init();
-};
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
+#include <kip_init.h>
 
 #include <cstring>
 
-#include "config.h"
-#include "mem_layout.h"
-#include "mem_unit.h"
+#include <config.h>
+#include <mem_layout.h>
+#include <mem_unit.h>
 
 #include <kip_asm.h>
 #include <kip_clock_init.h>
 #include <globalconfig.h>
 
+extern char my_kernel_info_page[];
 
 // Make the stuff below appearing only in this compilation unit.
 // Trick Preprocess to let the struct reside in the cc file rather
@@ -66,14 +56,47 @@ namespace KIP_namespace
     };
 };
 
-IMPLEMENT
+#ifdef CONFIG_BIT64
+#ifndef CONFIG_CPU_VIRT
+
+inline void init_syscalls(Kip *kinfo)
+{
+  union K
+  {
+    Kip k;
+    Mword w[0x1000 / sizeof(Mword)];
+  };
+  K *k = reinterpret_cast<K *>(kinfo);
+  k->w[0x800 / sizeof(Mword)] = 0xd65f03c0d4000001; // svc #0; ret
+}
+
+#else // ! CONFIG_CPU_VIRT
+
+inline void init_syscalls(Kip *kinfo)
+{
+  union K
+  {
+    Kip k;
+    Mword w[0x1000 / sizeof(Mword)];
+  };
+  K *k = reinterpret_cast<K *>(kinfo);
+  k->w[0x800 / sizeof(Mword)] = 0xd65f03c0d4000002; // hvc #0; ret
+}
+
+#endif // CONFIG_CPU_VIRT
+#endif // CONFIG_BIT64
+
+#ifdef CONFIG_BIT32
+inline void init_syscalls(Kip *)
+{}
+#endif
+
 void Kip_init::init()
 {
   // Don't reference KIP::my_kernel_info_page directly because the actual
   // object contains more data: The linker script adds version information and
   // also extends the size to 4KiB. Using KIP::my_kernel_info_page directly
   // worries the compiler.
-  extern char my_kernel_info_page[];
   Kip *kinfo = reinterpret_cast<Kip*>(my_kernel_info_page);
   Kip::init_global_kip(kinfo);
   kinfo->add_mem_region(Mem_desc(0, Mem_layout::User_max,
@@ -190,50 +213,11 @@ _kip_time_code: )" KIP_CODE_HDR(1f, 2f, 0, 2f) R"(
 
 #endif // CONFIG_BIT64
 
-PUBLIC static
+extern unsigned char const _kip_time_code[];
+
 void
 Kip_init::init_kip_clock()
 {
-  extern unsigned char const _kip_time_code[];
   kip_clock_deploy_code_blob(Kip::k(), _kip_time_code);
 }
 
-//--------------------------------------------------------------
-IMPLEMENTATION[64bit && !cpu_virt]:
-
-PRIVATE static inline
-void
-Kip_init::init_syscalls(Kip *kinfo)
-{
-  union K
-  {
-    Kip k;
-    Mword w[0x1000 / sizeof(Mword)];
-  };
-  K *k = reinterpret_cast<K *>(kinfo);
-  k->w[0x800 / sizeof(Mword)] = 0xd65f03c0d4000001; // svc #0; ret
-}
-
-//--------------------------------------------------------------
-IMPLEMENTATION[64bit && cpu_virt]:
-
-PRIVATE static inline
-void
-Kip_init::init_syscalls(Kip *kinfo)
-{
-  union K
-  {
-    Kip k;
-    Mword w[0x1000 / sizeof(Mword)];
-  };
-  K *k = reinterpret_cast<K *>(kinfo);
-  k->w[0x800 / sizeof(Mword)] = 0xd65f03c0d4000002; // hvc #0; ret
-}
-
-//--------------------------------------------------------------
-IMPLEMENTATION[32bit]:
-
-PRIVATE static inline
-void
-Kip_init::init_syscalls(Kip *)
-{}

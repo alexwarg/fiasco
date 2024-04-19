@@ -1,39 +1,18 @@
-INTERFACE [ia32,amd64]:
-
-#include "initcalls.h"
-#include "types.h"
-#include "kip.h"
-
-class Cpu;
-
-
-class Kip_init
-{
-public:
-  /**
-   * Insert memory descriptor for the Kmem region and finish the memory
-   * info field.
-   * @post no more memory descriptors may be added
-   */
-  static void setup_kmem_region (Address kmem_base, Address kmem_size);
-};
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [ia32,amd64]:
+#include <kip_init.h>
 
 #include <cstring>
-#include "config.h"
-#include "cpu.h"
-#include "div32.h"
-#include "kmem.h"
-#include "panic.h"
+#include <config.h>
+#include <cpu.h>
+#include <div32.h>
+#include <kmem.h>
+#include <panic.h>
 
 #include <kip_asm.h>
 #include <kip_clock_init.h>
 
 
 /** KIP initialization. */
-PUBLIC static FIASCO_INIT
+FIASCO_INIT
 void
 Kip_init::init_freq(Cpu const &cpu)
 {
@@ -80,8 +59,33 @@ namespace KIP_namespace
     };
 };
 
-PUBLIC static FIASCO_INIT
-//IMPLEMENT
+#ifdef CONFIG_AMD64
+
+inline void reserve_amd64_hole()
+{
+  enum { Trigger = 0x0000800000000000UL };
+  Kip::k()->add_mem_region(Mem_desc(Trigger, ~Trigger, 
+	                   Mem_desc::Reserved, true));
+}
+
+#endif
+
+#ifdef CONFIG_IA32
+inline void reserve_amd64_hole()
+{}
+#endif
+
+inline void setup_user_virtual(Kip *kinfo)
+{
+  kinfo->add_mem_region(Mem_desc(0, Mem_layout::User_max,
+                        Mem_desc::Conventional, true));
+}
+
+extern char _boot_sys_start[];
+extern char _boot_sys_end[];
+
+
+FIASCO_INIT
 void Kip_init::init()
 {
   Kip *kinfo = reinterpret_cast<Kip*>(&KIP_namespace::my_kernel_info_page);
@@ -94,9 +98,6 @@ void Kip_init::init()
 
   reserve_amd64_hole();
 
-
-  extern char _boot_sys_start[];
-  extern char _boot_sys_end[];
 
   for (auto &md: kinfo->mem_descs_a())
     {
@@ -180,41 +181,12 @@ R"( .pushsection ".initcall.text", "ax"
 )");
 #endif
 
-PUBLIC static FIASCO_INIT
+extern unsigned char const _kip_time_code[];
+
+FIASCO_INIT
 void
 Kip_init::init_kip_clock()
 {
-  extern unsigned char const _kip_time_code[];
   kip_clock_deploy_code_blob(Kip::k(), _kip_time_code);
 }
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [amd64]:
-
-PRIVATE static inline NOEXPORT NEEDS["kip.h"]
-void
-Kip_init::reserve_amd64_hole()
-{
-  enum { Trigger = 0x0000800000000000UL };
-  Kip::k()->add_mem_region(Mem_desc(Trigger, ~Trigger, 
-	                   Mem_desc::Reserved, true));
-}
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION [!amd64]:
-
-PRIVATE static inline NOEXPORT
-void
-Kip_init::reserve_amd64_hole()
-{}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-PUBLIC static FIASCO_INIT
-void
-Kip_init::setup_user_virtual(Kip *kinfo)
-{
-  kinfo->add_mem_region(Mem_desc(0, Mem_layout::User_max,
-                        Mem_desc::Conventional, true));
-}

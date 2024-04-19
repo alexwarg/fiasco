@@ -1,18 +1,11 @@
-INTERFACE [mips]:
-
-#include "kip.h"
-
-class Kip_init {};
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mips]:
+#include <kip_init.h>
 
 #include <cstring>
 
-#include "config.h"
-#include "mem_layout.h"
-#include "mem_unit.h"
+#include <config.h>
+#include <mem_layout.h>
+#include <mem_unit.h>
+#include <kip.h>
 
 
 // Make the stuff below appearing only in this compilation unit.
@@ -58,7 +51,6 @@ namespace KIP_namespace
     };
 };
 
-PUBLIC static
 void Kip_init::init()
 {
   Kip *kinfo = reinterpret_cast<Kip*>(&KIP_namespace::my_kernel_info_page);
@@ -68,7 +60,11 @@ void Kip_init::init()
                         Mem_desc::Conventional, true));
 }
 
-PUBLIC static
+extern char kip_time_fn_read_us[];
+extern char kip_time_fn_read_us_end[];
+extern char kip_time_fn_read_ns[];
+extern char kip_time_fn_read_ns_end[];
+
 void
 Kip_init::init_kip_clock()
 {
@@ -77,10 +73,6 @@ Kip_init::init_kip_clock()
     Kip       k;
     Unsigned8 b[Config::PAGE_SIZE];
   };
-  extern char kip_time_fn_read_us[];
-  extern char kip_time_fn_read_us_end[];
-  extern char kip_time_fn_read_ns[];
-  extern char kip_time_fn_read_ns_end[];
 
   K *k = reinterpret_cast<K *>(Kip::k());
 

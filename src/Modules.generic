@@ -24,7 +24,6 @@ INTERFACES_KERNEL	:= \
 			   pic   \
 			   mem_space space \
 			   kmem mem_layout        \
-			   kip_init   \
 			   mem_unit \
 			   kernel_thread        \
 			   paging      \
@@ -53,6 +52,7 @@ CXXSRC_KERNEL += \
 	kernel_console.cc \
 	kernel_panic.cc \
 	kernel_task.cc \
+	kip_init.cc \
 	kmem_alloc.cc \
 	kmem_slab.cc \
 	kobject.cc \
