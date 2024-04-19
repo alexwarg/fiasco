@@ -759,7 +759,7 @@ Kmem::prepare_kernel_entry_points(cxx::Simple_alloc *cpu_m, Kpdir *)
 }
 
 //--------------------------------------------------------------------------
-IMPLEMENTATION [(amd64 || ia32) && cpu_local_map]:
+INTERFACE [(amd64 || ia32) && cpu_local_map]:
 
 #include "bitmap.h"
 
@@ -767,6 +767,9 @@ EXTENSION class Kmem
 {
   static Bitmap<260> *_pte_map;
 };
+
+//--------------------------------------------------------------------------
+IMPLEMENTATION [(amd64 || ia32) && cpu_local_map]:
 
 Bitmap<260> *Kmem::_pte_map;
 
