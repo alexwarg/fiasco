@@ -218,78 +218,7 @@ public:
 //---------------------------------------------------------------------------
 IMPLEMENTATION [mips]:
 
-#include "trap_state.h"
-
 Mword Tlb_entry::cached;
-
-IMPLEMENT inline NEEDS["trap_state.h"]
-Mword
-PF::is_usermode_error(Mword error)
-{ return (error & Trap_state::C_src_context_mask) == Trap_state::C_src_user; }
-
-IMPLEMENT inline
-Mword
-PF::is_read_error(Mword cause)
-{
-  // bit 0 in the exception code denotes a write / store access
-  // in all TLB, Address, and bus errors
-  // 0x13 is triggered on a read access if the RI (read inhibit) bit is set.
-  return !(cause & 4) || ((cause & 0x7c) == (0x13 << 2));
-}
-
-PUBLIC static inline NEEDS["trap_state.h"]
-Mword
-PF::is_read_error(Trap_state::Cause const cause)
-{ return is_read_error(cause.raw); }
-
-PUBLIC static inline
-Mword
-PF::is_xi_error(Mword cause)
-{
-  // TLBXI
-  auto code = cause & 0x7c;
-  return code == (0x14 << 2);
-}
-
-PUBLIC static inline
-Mword
-PF::is_tlb_rights_error(Mword cause)
-{
-  auto code = cause & 0x7c;
-  return code == (0x14 << 2) || code == (0x13 << 2);
-}
-
-PUBLIC static inline NEEDS["trap_state.h"]
-Mword
-PF::is_translation_error(Trap_state::Cause const cause)
-{
-  return    cause.exc_code() == 2  // TLBL
-         || cause.exc_code() == 3; // TLBS
-}
-
-IMPLEMENT inline NEEDS["trap_state.h"]
-Mword
-PF::is_translation_error(Mword cause)
-{ return is_translation_error(Trap_state::Cause(cause)); }
-
-IMPLEMENT inline NEEDS[PF::is_read_error, PF::is_xi_error]
-Mword PF::addr_to_msgword0(Address pfa, Mword cause)
-{
-  Mword a = pfa & ~7;
-  if (is_translation_error(cause))
-    a |= 1; // NOT present
-
-  if(!is_read_error(cause))
-    a |= 2;
-
-  if (is_xi_error(cause))
-    {
-      // Executing non-executable page.
-      a |= 4;
-    }
-
-  return a;
-}
 
 PUBLIC
 void

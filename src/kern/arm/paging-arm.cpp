@@ -718,13 +718,6 @@ INTERFACE [arm && ((arm_v7 && mp) || arm_v8)]:
 EXTENSION class K_pte_ptr : public Pte_no_cache_asid<K_pte_ptr> {};
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_v5]:
-
-PUBLIC static inline
-Mword PF::is_alignment_error(Mword error)
-{ return ((error >> 26) & 0x04) && ((error & 0x0d) == 0x001); }
-
-//---------------------------------------------------------------------------
 INTERFACE [arm && !arm_lpae && arm_v6plus]:
 
 EXTENSION class K_pte_ptr :
@@ -746,62 +739,4 @@ public:
   Pte_ptr_t(void *p, unsigned char level) : Pte_long_desc<CLASS>(p, level) {}
 };
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && (arm_v6 || arm_v7 || arm_v8) && !arm_lpae]:
 
-PUBLIC static inline
-Mword PF::is_alignment_error(Mword error)
-{ return ((error >> 26) == 0x24) && ((error & 0x40f) == 0x001); }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_lpae]:
-
-PUBLIC static inline
-Mword PF::is_alignment_error(Mword error)
-{ return ((error >> 26) == 0x24) && ((error & 0x3f) == 0x21); }
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && !arm_lpae]:
-
-IMPLEMENT inline
-Mword PF::is_translation_error(Mword error)
-{
-  return (error & 0x0d/*FSR_STATUS_MASK*/) == 0x05/*FSR_TRANSL*/;
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_lpae]:
-
-IMPLEMENT inline
-Mword PF::is_translation_error(Mword error)
-{
-  return (error & 0x3c) == 0x04;
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
-
-IMPLEMENT inline
-Mword PF::is_usermode_error(Mword error)
-{
-  return !((error >> 26) & 1);
-}
-
-IMPLEMENT inline
-Mword PF::is_read_error(Mword error)
-{
-  return !(error & (1 << 6));
-}
-
-IMPLEMENT inline NEEDS[PF::is_read_error]
-Mword PF::addr_to_msgword0(Address pfa, Mword error)
-{
-  Mword a = pfa & ~7;
-  if (is_translation_error(error))
-    a |= 1;
-  if (!is_read_error(error))
-    a |= 2;
-  if (!((error >> 26) & 0x04))
-    a |= 4;
-  return a;
-}

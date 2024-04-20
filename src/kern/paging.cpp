@@ -6,18 +6,7 @@ INTERFACE:
 #include "mem_layout.h"
 
 #include <paging-page.h>
-
-
-class PF
-{
-public:
-  static Mword is_translation_error( Mword error );
-  static Mword is_usermode_error( Mword error );
-  static Mword is_read_error( Mword error );
-  static Mword addr_to_msgword0( Address pfa, Mword error );
-  static Mword pc_to_msgword1( Address pc, Mword error );
-};
-
+#include <paging-pf.h>
 
 template<typename ALLOC>
 class Pdir_alloc_simple
@@ -54,15 +43,6 @@ template<typename ALLOC>
 inline Pdir_alloc_simple<ALLOC> pdir_alloc(ALLOC *a)
 { return Pdir_alloc_simple<ALLOC>(a); }
 
-IMPLEMENT inline NEEDS[PF::is_usermode_error]
-Mword PF::pc_to_msgword1(Address pc, Mword error)
-{
-  return is_usermode_error(error) ? pc : (Mword)-1;
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION[!ppc32]:
-
 PUBLIC template<typename PTE_PTR, typename TRAITS, typename VA>
 Address
 Pdir_t<PTE_PTR, TRAITS, VA>::virt_to_phys(Address virt) const
@@ -75,21 +55,3 @@ Pdir_t<PTE_PTR, TRAITS, VA>::virt_to_phys(Address virt) const
   return i.page_addr() | cxx::get_lsb(virt, i.page_order());
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION[ppc32]:
-
-PUBLIC template<typename PTE_PTR, typename TRAITS, typename VA>
-Address
-Pdir_t<PTE_PTR, TRAITS, VA>::virt_to_phys(Address virt) const
-{
-  auto i = this->walk(Virt_addr(virt));
-
-  //if (!i.is_valid())
-    return ~0UL;
-
-#ifdef FIX_THIS
-  Address phys;
-  Pte_htab::pte_lookup(i.e, &phys);
-  return phys | (virt & ~(~0UL << i.page_order()));
-#endif
-}
