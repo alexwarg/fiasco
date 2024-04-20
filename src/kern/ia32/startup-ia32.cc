@@ -1,4 +1,3 @@
-IMPLEMENTATION[ia32,amd64]:
 
 #include <cstdlib>
 #include <cstdio>
@@ -36,18 +35,18 @@ IMPLEMENTATION[ia32,amd64]:
 #include <io_apic_remapped.h>
 #include <intel_iommu.h>
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
-void
-Startup::stage1()
+FIASCO_INIT
+static void stage1()
 {
   Config::init();
   if (Kernel_uart::init(Kernel_uart::Init_before_mmu))
     Banner::init();
 }
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
-void
-Startup::stage2()
+STATIC_INITIALIZER_P(stage1, STARTUP1_INIT_PRIO);
+
+FIASCO_INIT
+static void stage2()
 {
   // the logical ID of the boot CPU is always 0
   Kip_init::init();
@@ -136,3 +135,6 @@ Startup::stage2()
   Platform_control::init(Cpu_number::boot_cpu());
 //  Cpu::init_global_features();
 }
+
+STATIC_INITIALIZER_P(stage2, STARTUP_INIT_PRIO);
+

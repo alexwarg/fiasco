@@ -130,7 +130,8 @@ CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
 		 mips_cpu_irqs.cc \
 		 entry_cc.cc \
 		 paging-ptab.cc \
-		 thread_mips.cc
+		 thread_mips.cc \
+		 startup-mips.cc
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
@@ -166,7 +167,6 @@ pic_IMPL		:= pic
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 space_IMPL		:= space
-startup_IMPL		:= startup startup-mips
 sys_call_page_IMPL	:= sys_call_page
 timer_tick_IMPL         := timer_tick
 thread_IMPL		:= thread

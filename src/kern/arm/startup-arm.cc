@@ -1,4 +1,3 @@
-IMPLEMENTATION [arm]:
 
 #include <config.h>
 #include <cpu.h>
@@ -24,11 +23,11 @@ IMPLEMENTATION [arm]:
 #include <cstdlib>
 #include <cstdio>
 
-//------------------------------------------------------------------
-IMPLEMENTATION [arm && 32bit && !cpu_virt]:
+#include <globalconfig.h>
 
-#include <static_init.h>
+#if defined (CONFIG_BIT32) && ! defined (CONFIG_CPU_VIRT)
 
+FIASCO_INIT
 static void add_initial_pmem()
 {
     // The first 4MB of phys memory are always mapped to Map_base
@@ -38,12 +37,10 @@ static void add_initial_pmem()
 
 STATIC_INITIALIZER_P(add_initial_pmem, 101);
 
-//------------------------------------------------------------------
-IMPLEMENTATION [arm]:
+#endif // CONFIG_BIT32 && !CONFIG_CPU_VIRT
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
-void
-Startup::stage1()
+FIASCO_INIT
+static void stage1()
 {
   Kernel_uart::init(Kernel_uart::Init_after_mmu);
   Proc::cli();
@@ -51,9 +48,10 @@ Startup::stage1()
   Config::init();
 }
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
-void
-Startup::stage2()
+STATIC_INITIALIZER_P(stage1, STARTUP1_INIT_PRIO);
+
+FIASCO_INIT
+static void stage2()
 {
   Cpu_number const boot_cpu = Cpu_number::boot_cpu();
   puts("Hello from Startup::stage2");
@@ -82,3 +80,6 @@ Startup::stage2()
   Kip_init::init_kip_clock();
   Utcb_init::init();
 }
+
+STATIC_INITIALIZER_P(stage2, STARTUP_INIT_PRIO);
+

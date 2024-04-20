@@ -1,14 +1,3 @@
-/*
- * Copyright (C) 2014 Imagination Technologies Ltd.
- * Author: Prajna Dasgupta <prajna@kymasys.com>
- * Author: Sanjay Lal <sanjayl@kymasys.com>
- * Author: Yann Le Du <ledu@kymasys.com>
- *
- * (2015)
- * Author: Alexander Warg <alexander.warg@kernkonzept.com>
- */
-
-IMPLEMENTATION [mips]:
 
 #include <banner.h>
 #include <cm.h>
@@ -33,18 +22,19 @@ IMPLEMENTATION [mips]:
 
 #include <cstdio>
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
-void
-Startup::stage1()
+FIASCO_INIT
+static void stage1()
 {
   Proc::cli();
   Banner::init();
   Config::init();
 }
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
-void
-Startup::stage2()
+STATIC_INITIALIZER_P(stage1, STARTUP1_INIT_PRIO);
+
+
+FIASCO_INIT
+static void stage2()
 {
   printf("Hello from Startup::stage2\n");
 
@@ -88,4 +78,6 @@ Startup::stage2()
   Kip_init::init_kip_clock();
   Perf_cnt::init_ap();
 }
+
+STATIC_INITIALIZER_P(stage2, STARTUP_INIT_PRIO);
 

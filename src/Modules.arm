@@ -159,7 +159,8 @@ CXXSRC_KERNEL += main_arm.cc \
 	traps.cc \
 	nested_trap_handler.cc \
 	__main.cc \
-	vmem_alloc-arm.cc
+	vmem_alloc-arm.cc \
+	startup-arm.cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
@@ -212,7 +213,6 @@ pic_IMPL		:= pic
 platform_control_IMPL   += platform_control-arm-psci
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
-startup_IMPL		:= startup startup-arm
 task_IMPL		:= task task-arm
 thread_IMPL	  	:= thread
 timer_IMPL		:= timer timer-arm

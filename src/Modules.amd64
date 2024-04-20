@@ -117,7 +117,8 @@ CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	checksum.cc \
 	__main.cc \
 	boot_info.cc \
-	vmem_alloc-ia32.cc 
+	vmem_alloc-ia32.cc \
+	startup-ia32.cc
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm.cc
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
@@ -146,7 +147,6 @@ sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 sigma0_task_IMPL	:= sigma0_task sigma0_task-io
 space_IMPL		:= space space-ia32 space-io
-startup_IMPL		:= startup startup-ia32
 tb_entry_IMPL		:= tb_entry tb_entry-ia32-64
 timer_IMPL		:= timer timer-ia32-amd64
 tss_IMPL		:= tss-amd64
