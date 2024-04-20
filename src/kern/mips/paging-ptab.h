@@ -1,33 +1,14 @@
-INTERFACE [mips]:
+#pragma once
 
-#include "config.h"
-#include "l4_msg_item.h"
-#include "trap_state.h"
+#include <paging-tlb-entry.h>
+#include <paging-page.h>
+#include <ptab_base.h>
 
 #include <cxx/cxx_int>
+#include <config.h>
+#include <globalconfig.h>
 
-class Tlb_entry
-{
-public:
-  enum : Mword
-  {
-    Global     = 0x001,
-    Valid      = 0x002,
-    Dirty      = 0x004,
-    Write      = Dirty,
-    Cache_mask = 0x038,
-    Uncached   = 0x010,
-    // uf UCA supported: C_UCA      = 0x038,
-    C_UCA      = 0x010, // fallback to uncached
-  };
-
-  static Mword cached;
-};
-
-// ------------------------------------------------------------
-INTERFACE [mips && 32bit]:
-
-class Pdir_defs
+class Pdir_defs_32
 {
 public:
   enum : Mword
@@ -43,10 +24,7 @@ public:
   };
 };
 
-// ------------------------------------------------------------
-INTERFACE [mips && 64bit]:
-
-class Pdir_defs
+class Pdir_defs_64
 {
 public:
   enum : Mword
@@ -60,11 +38,14 @@ public:
 
     PWCtl_psn = 0
   };
-
 };
 
-// ------------------------------------------------------------
-INTERFACE [mips]:
+#ifdef CONFIG_BIT32
+using Pdir_defs = Pdir_defs_32;
+#endif
+#ifdef CONFIG_BIT64
+using Pdir_defs = Pdir_defs_64;
+#endif
 
 class Pdir : public Pdir_defs
 {
@@ -72,6 +53,15 @@ public:
   typedef Page_number Va;
   typedef Page_count  Vs;
   typedef Addr::Addr<Config::PAGE_SHIFT> Phys_addr;
+
+  void clear()
+  {
+    for (auto &e: _entries)
+      e = Leaf;
+  }
+
+  Address virt_to_phys(Address virt) const;
+
 
   struct Walk_res
   {
@@ -184,6 +174,59 @@ public:
   static constexpr unsigned l_field(unsigned lvl)
   { return (PWField >> ((4 - lvl) * 6)) & 0x3f; }
 
+  template<typename ALLOC = Ptab::Null_alloc>
+  Walk_res walk(Va _virt, unsigned isize = 0,
+                ALLOC const &alloc = ALLOC())
+  {
+    Mword virt = cxx::int_value<Virt_addr>(_virt);
+    Mword *p = _entries;
+    Walk_res r;
+    r.size = 32; // full space at base ptr level
+
+    bool do_alloc = false;
+
+    for (unsigned lvl = 0; lvl < 4; ++lvl)
+      {
+        auto const size = l_size(lvl);
+        if (!size)
+          continue;
+
+        if (do_alloc)
+          {
+            p = (Mword*)alloc.alloc(Bytes(sizeof(Mword) << size));
+            if (!p)
+              return r; // OOM
+
+            for (unsigned i = 0; i < (1UL << size); ++i)
+              p[i] = Leaf;
+
+            *r.e = (Mword)p;
+          }
+
+        r.size = l_field(lvl);
+        Mword const mask = (1UL << size) - 1;
+        auto idx = (virt >> r.size) & mask;
+        r.e = &p[idx];
+        if (*r.e & Leaf)
+          {
+            if (r.size == isize || r.is_pte())
+              return r;
+
+            if (!alloc.valid())
+              return r;
+
+            do_alloc = true;
+            continue;
+          }
+        p = (Mword*)*r.e;
+      }
+
+    return r;
+  }
+
+  template<typename ALLOC>
+  void destroy(Va _start, Va _end, ALLOC const &alloc);
+
   Mword _entries[Entries];
 
   // for JDB
@@ -215,103 +258,8 @@ public:
   // end JDB
 };
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mips]:
 
-Mword Tlb_entry::cached;
-
-PUBLIC
-void
-Pdir::clear()
-{
-  for (auto &e: _entries)
-    e = Leaf;
-}
-
-PUBLIC
-Address
-Pdir::virt_to_phys(Address virt) const
-{
-  Mword const *p = _entries;
-  Mword v = 0;
-  Mword field;
-
-  for (unsigned lvl = 0; lvl < 4; ++lvl)
-    {
-      auto const size = l_size(lvl);
-      if (!size)
-        continue;
-
-      field = l_field(lvl);
-      Mword const mask = (1UL << size) - 1;
-      auto idx = (virt >> field) & mask;
-      v = p[idx];
-      if (v & Leaf)
-        break; // this was the last level
-
-      p = reinterpret_cast<Mword const *>(v);
-    }
-
-  if (!(v & Valid))
-    return ~0UL;
-
-  v = (v << (6 - PWField_ptei)) & (~0UL << 12);
-  v |= virt & ((1UL << field) - 1);
-  return v;
-}
-
-PUBLIC template<typename ALLOC = Ptab::Null_alloc> inline
-Pdir::Walk_res
-Pdir::walk(Va _virt, unsigned isize = 0,
-           ALLOC const &alloc = ALLOC())
-{
-  Mword virt = cxx::int_value<Virt_addr>(_virt);
-  Mword *p = _entries;
-  Walk_res r;
-  r.size = 32; // full space at base ptr level
-
-  bool do_alloc = false;
-
-  for (unsigned lvl = 0; lvl < 4; ++lvl)
-    {
-      auto const size = l_size(lvl);
-      if (!size)
-        continue;
-
-      if (do_alloc)
-        {
-          p = (Mword*)alloc.alloc(Bytes(sizeof(Mword) << size));
-          if (!p)
-            return r; // OOM
-
-          for (unsigned i = 0; i < (1UL << size); ++i)
-            p[i] = Leaf;
-
-          *r.e = (Mword)p;
-        }
-
-      r.size = l_field(lvl);
-      Mword const mask = (1UL << size) - 1;
-      auto idx = (virt >> r.size) & mask;
-      r.e = &p[idx];
-      if (*r.e & Leaf)
-        {
-          if (r.size == isize || r.is_pte())
-            return r;
-
-          if (!alloc.valid())
-            return r;
-
-          do_alloc = true;
-          continue;
-        }
-      p = (Mword*)*r.e;
-    }
-
-  return r;
-}
-
-PUBLIC template<typename ALLOC>
+template<typename ALLOC>
 void
 Pdir::destroy(Va _start, Va _end, ALLOC const &alloc)
 {

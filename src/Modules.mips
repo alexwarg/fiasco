@@ -129,6 +129,7 @@ CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
 		 kmem_alloc-mips.cc \
 		 mips_cpu_irqs.cc \
 		 entry_cc.cc \
+		 paging-ptab.cc \
 		 thread_mips.cc
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
@@ -157,7 +158,6 @@ mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
 mem_unit_IMPL		:= mem_unit-mips
 mem_space_IMPL		:= mem_space mem_space-user mem_space-mips
 obj_space_IMPL		:= obj_space obj_space-phys
-paging_IMPL		:= paging paging-mips
 perf_cnt_IMPL		:= perf_cnt perf_cnt-mips
 platform_control_IMPL	+= platform_control-mips
 cm_IMPL			:= cm

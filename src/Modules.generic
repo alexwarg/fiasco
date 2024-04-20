@@ -26,7 +26,6 @@ INTERFACES_KERNEL	:= \
 			   kmem mem_layout        \
 			   mem_unit \
 			   kernel_thread        \
-			   paging      \
 			   cpu               \
                            platform_control_object          \
 			   timer_tick platform_control          \

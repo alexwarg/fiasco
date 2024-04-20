@@ -1,10 +1,8 @@
-INTERFACE:
+#pragma once
 
-#include <types.h>
-
+#include <paging-ptab.h>
 #include <paging-page.h>
 #include <paging-pf.h>
-#include <paging-pdir.h>
 
 template<typename ALLOC>
 class Pdir_alloc_simple
@@ -26,9 +24,6 @@ public:
 private:
   ALLOC *_a;
 };
-
-IMPLEMENTATION:
-//---------------------------------------------------------------------------
 
 template<typename ALLOC>
 inline Pdir_alloc_simple<ALLOC> pdir_alloc(ALLOC *a)

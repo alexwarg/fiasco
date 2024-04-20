@@ -113,6 +113,7 @@ CXXSRC_KERNEL              += main_ia32_64.cc main_ia32.cc \
 	kmem_alloc-ia32.cc \
 	map_util_io.cc \
 	acpi.cc \
+	paging-ptab.cc \
 	checksum.cc \
 	__main.cc \
 	boot_info.cc \
@@ -136,7 +137,6 @@ map_util_IMPL		:= map_util map_util-mem map_util-io map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-64
 mem_space_IMPL		:= mem_space mem_space-user mem_space-ia32
 mem_unit_IMPL		:= mem_unit-ia32
-paging_IMPL		:= paging paging-ia32-64 paging-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
 pic_IMPL		:= pic pic-i8259
 platform_control_IMPL	+= platform_control-acpi_sleep platform_control-ia32
