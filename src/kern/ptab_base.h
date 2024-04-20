@@ -804,4 +804,11 @@ namespace Ptab
   private:
     Walk _base;
   };
+
+  template<typename TRAITS>
+  constexpr unsigned char page_order_for_level(unsigned char level)
+  {
+    using Levels = Level<TRAITS>;
+    return Levels::shift(level) + TRAITS::Head::Base_shift;
+  }
 };

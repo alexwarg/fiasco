@@ -1,12 +1,10 @@
 INTERFACE:
 
-#include "types.h"
-#include "l4_msg_item.h"
-#include "ptab_base.h"
-#include "mem_layout.h"
+#include <types.h>
 
 #include <paging-page.h>
 #include <paging-pf.h>
+#include <paging-pdir.h>
 
 template<typename ALLOC>
 class Pdir_alloc_simple
@@ -29,29 +27,10 @@ private:
   ALLOC *_a;
 };
 
-template<typename PTE_PTR, typename TRAITS, typename VA>
-class Pdir_t : public Ptab::Base<PTE_PTR, TRAITS, VA, Mem_layout>
-{
-public:
-  enum { Super_level = PTE_PTR::Super_level };
-};
-
 IMPLEMENTATION:
 //---------------------------------------------------------------------------
 
 template<typename ALLOC>
 inline Pdir_alloc_simple<ALLOC> pdir_alloc(ALLOC *a)
 { return Pdir_alloc_simple<ALLOC>(a); }
-
-PUBLIC template<typename PTE_PTR, typename TRAITS, typename VA>
-Address
-Pdir_t<PTE_PTR, TRAITS, VA>::virt_to_phys(Address virt) const
-{
-  Virt_addr va(virt);
-  auto i = this->walk(va);
-  if (!i.is_valid())
-    return ~0;
-
-  return i.page_addr() | cxx::get_lsb(virt, i.page_order());
-}
 
