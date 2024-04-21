@@ -96,7 +96,7 @@ INTERFACES_KERNEL	+= \
 			   io_apic intel_iommu io_apic_remapped \
 			   boot_console \
 			   irq_msi apic \
-			   gdt tss dirq
+			   tss dirq
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
 
