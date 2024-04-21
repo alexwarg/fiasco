@@ -21,7 +21,7 @@ PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
 INTERFACES_KERNEL	:= \
 			   pic   \
-			   mem_space space \
+			   mem_space \
 			   kmem mem_layout        \
 			   mem_unit \
 			   kernel_thread        \
@@ -73,6 +73,7 @@ CXXSRC_KERNEL += \
 	scheduler_iface.cc \
 	semaphore.cc \
 	slab_cache.cc \
+	space.cc \
 	syscalls.cc \
 	task.cc \
 	terminate.cc \

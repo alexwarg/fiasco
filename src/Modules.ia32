@@ -103,6 +103,7 @@ INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc apic_mp.cc
+CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
 CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
 	syscalls-ia32.cc \
 	traps.cc \
@@ -151,7 +152,6 @@ rtc_IMPL		:= rtc-ia32
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 sigma0_task_IMPL	:= sigma0_task sigma0_task-io
-space_IMPL		:= space space-ia32 space-io
 tb_entry_IMPL		:= tb_entry tb_entry-ia32-32
 timer_IMPL		:= timer timer-ia32-amd64
 utcb_init_IMPL		:= utcb_init utcb_init-ia32
