@@ -241,6 +241,8 @@ Jdb_misc_debug::show_ldt()
 // --------------------------------------------------------
 IMPLEMENTATION[(ia32 || amd64) && !no_ldt]:
 
+#include <x86desc_dbg.h>
+
 static void
 Jdb_misc_debug::show_ldt()
 {
@@ -271,7 +273,7 @@ Jdb_misc_debug::show_ldt()
       if (desc->present())
         {
           printf(" %5lx: ", reinterpret_cast<Mword>(desc) - addr);
-          desc->show();
+          Dbg::desc_show(*desc);
         }
     }
 }

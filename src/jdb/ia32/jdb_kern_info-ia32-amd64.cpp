@@ -12,6 +12,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include "pic.h"
 #include "space.h"
 #include "tss.h"
+#include <x86desc_dbg.h>
 
 
 class Jdb_kern_info_idt : public Jdb_kern_info_module
@@ -47,7 +48,7 @@ Jdb_kern_info_idt::show() override
   for (unsigned i=0; i<(idt_pseudo.limit()+1)/sizeof(Idt_entry); i++)
     {
       printf("%3x: ",i);
-      ie[i].show();
+      Dbg::desc_show(ie[i]);
       if (!Jdb_core::new_line(line))
 	return;
     }
@@ -287,6 +288,7 @@ Jdb_kern_info_gdt::Jdb_kern_info_gdt()
   Jdb_kern_info::register_subcmd(this);
 }
 
+
 PRIVATE static
 void
 Jdb_kern_info_gdt::show_gdt(Cpu_number cpu)
@@ -311,7 +313,7 @@ Jdb_kern_info_gdt::show_gdt(Cpu_number cpu)
       if (i == 0)
         printf("(ignored)\n");
       else
-        (*gdt)[i].show();
+        Dbg::desc_show((*gdt)[i]);
       if (!Jdb_core::new_line(line))
 	return;
       if (i != 0 && (*gdt)[i].desc_size() == 16)
