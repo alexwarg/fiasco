@@ -228,8 +228,6 @@ static void leave_el3()
       L4::infinite_loop();
     }
 
-  asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
-
   Bootstrap::config_feature_traps(pfr0, true, false);
 
   // flush all E2 TLBs
@@ -269,6 +267,9 @@ static void leave_el3()
 
 static Phys_addr init_paging()
 {
+  // HCR_EL2.{E2H,TGE} change behavior of paging so make sure they are disabled
+  asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
+
   leave_el3();
 
   Kpdir *d = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_dir));
