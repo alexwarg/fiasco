@@ -37,7 +37,12 @@ public:
   { Mword v; asm volatile ("mrc p15, 0, %0, c0, c3, 5": "=r" (v)); return v; }
 
   static bool has_hpmn0()
-  { return ((dfr1() >> 4) & 0xf) == 1; }
+  {
+    if constexpr (IS_ENABLED(CONFIG_ARM_V8PLUS))
+      return ((dfr1() >> 4) & 0xf) == 1;
+    else
+      return false;
+  }
 
   static Mword midr() noexcept
   {
