@@ -25,7 +25,6 @@ BITS := 32
 endif
 
 PREPROCESS_PARTS-$(CONFIG_JDB)                += debug log
-PREPROCESS_PARTS-$(CONFIG_ARM_CACHE_L2CXX0)   += outer_cache outer_cache_l2cxx0
 
 PREPROCESS_PARTS-$(CONFIG_ARM_920T)                 += arm_v5 vcache
 PREPROCESS_PARTS-$(CONFIG_ARM_926)                  += arm_v5 vcache
@@ -147,7 +146,6 @@ PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
 INTERFACES_KERNEL += 	mem_op \
 			bootstrap                  \
-			outer_cache  
 
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc \
@@ -179,6 +177,7 @@ CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc sys_call_page.cc
 CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_PSCI) += psci.cc
+CXXSRC_KERNEL-$(CONFIG_ARM_CACHE_L2CXX0) += outer_cache-l2cxx0.cc
 
 INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
 
@@ -207,7 +206,6 @@ mem_space_IMPL		:= mem_space mem_space-arm mem_space-arm-$(BITS) \
 mem_unit_IMPL		:= mem_unit mem_unit-arm-$(BITS)
 kmem_IMPL		:= kmem kmem-arm-$(BITS)
 kmem_alloc_IMPL		:= kmem_alloc kmem_alloc-arm
-outer_cache_IMPL	:= outer_cache outer_cache-l2cxx0
 perf_cnt_IMPL		:= perf_cnt perf_cnt-arm perf_cnt-arm-$(BITS)
 pic_IMPL		:= pic
 platform_control_IMPL   += platform_control-arm-psci
