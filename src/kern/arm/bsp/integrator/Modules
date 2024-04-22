@@ -10,6 +10,5 @@ CXXSRC_KERNEL += timer_integrator.cc
 
 mem_layout_IMPL       += mem_layout-arm-integrator
 pic_IMPL              += pic-arm-integrator
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-integrator
 clock_IMPL            += clock-generic

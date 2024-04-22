@@ -60,8 +60,6 @@ pic_IMPL              += $(if $(CONFIG_PF_IMX_6),pic-gic pic-arm-imx-gic)
 pic_IMPL              += $(if $(CONFIG_PF_IMX_6UL),pic-gic pic-arm-imx-gic)
 pic_IMPL              += $(if $(CONFIG_PF_IMX_7),pic-gic pic-arm-imx-gic)
 pic_IMPL              += $(if $(CONFIG_ARM_V8),pic-gic pic-arm-imx-gic)
-timer_tick_IMPL       += $(if $(and $(CONFIG_PF_IMX_6_TIMER_EPIT),$(CONFIG_MP)),\
-			   timer_tick-broadcast,timer_tick-single-vector)
 reset_IMPL            += reset-arm-imx
 outer_cache_IMPL      += outer_cache-arm-imx6
 clock_IMPL            += clock-generic

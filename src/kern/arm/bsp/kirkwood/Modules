@@ -9,6 +9,5 @@ CXXSRC_KERNEL += timer_arm_kirkwood.cc
 
 mem_layout_IMPL       += mem_layout-arm-kirkwood
 pic_IMPL              += pic-arm-kirkwood
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-kirkwood
 clock_IMPL            += clock-generic

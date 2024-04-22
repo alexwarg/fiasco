@@ -1,12 +1,11 @@
-IMPLEMENTATION [ia32 || amd64]:
-
-#include "config.h"
-#include "irq_mgr.h"
-#include "idt.h"
+#include <timer_tick-ia32.h>
+#include <idt.h>
+#include <irq_mgr.h>
+#include <config.h>
 
 // On IA32 we do not use a real IRQ object but a special vector
-IMPLEMENT bool
-Timer_tick::allocate_irq(Irq_base *irq, unsigned irqnum)
+bool
+Timer_tick_ia32::allocate_irq(Irq_base *irq, unsigned irqnum)
 {
   // we do not use the alloc function of the chip, because this would
   // actually route the IRQ vector through the IRQ object.
@@ -26,14 +25,13 @@ Timer_tick::allocate_irq(Irq_base *irq, unsigned irqnum)
   return res;
 }
 
-PUBLIC static
 void
-Timer_tick::set_vectors_stop()
+Timer_tick_ia32::set_vectors_stop()
 {
   extern char entry_int_timer_stop[];
   // acknowledge timer interrupt once to keep timer interrupt alive because
   // we could be called from thread_timer_interrupt_slow() before ack
-  Timer_tick::_glbl_timer->ack();
+  Timer_tick_ia32::glbl_timer->ack();
 
   // set timer interrupt to dummy doing nothing
   Idt::set_entry(Config::scheduler_irq_vector, (Address)entry_int_timer_stop, false);
@@ -48,23 +46,24 @@ Timer_tick::set_vectors_stop()
 #endif
 }
 
+extern "C" FIASCO_FASTCALL void thread_timer_interrupt(Address ip);
+
 // We are entering with disabled interrupts!
-extern "C" FIASCO_FASTCALL
-void
-thread_timer_interrupt(Address ip)
+FIASCO_FASTCALL
+void thread_timer_interrupt(Address ip)
 {
   //putchar('T');
   (void)ip;
-  Timer_tick::handler_all(Timer_tick::_glbl_timer, 0);
+  Timer_tick_ia32::handler_all(Timer_tick_ia32::glbl_timer, 0);
 }
+
+extern "C" void thread_timer_interrupt_stop(void);
 
 /** Extra version of timer interrupt handler which is used when the jdb is
     active to prevent busy waiting. */
-extern "C"
-void
-thread_timer_interrupt_stop(void)
+void thread_timer_interrupt_stop(void)
 {
-  Timer_tick::_glbl_timer->ack();
+  Timer_tick_ia32::glbl_timer->ack();
 }
 
 

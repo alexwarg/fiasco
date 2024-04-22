@@ -14,8 +14,6 @@ CXXSRC_KERNEL-$(CONFIG_PF_TEGRA_TIMER_TMR) += timer_tegra_tmr.cc
 
 mem_layout_IMPL       += mem_layout-arm-tegra
 pic_IMPL              += pic-gic pic-arm-tegra
-timer_tick_IMPL       += $(if $(CONFIG_PF_TEGRA_TIMER_MP),timer_tick-single-vector)
-timer_tick_IMPL       += $(if $(CONFIG_PF_TEGRA_TIMER_TMR),$(if $(CONFIG_MP),timer_tick-broadcast,timer_tick-single-vector))
 reset_IMPL            += reset-arm-tegra
 clock_IMPL            += clock-generic
 platform_control_IMPL += platform_control-arm-tegra

@@ -11,7 +11,6 @@ CXXSRC_KERNEL += timer_arm_sunxi.cc
 
 mem_layout_IMPL       += mem_layout-arm-sunxi
 pic_IMPL              += pic-gic pic-arm-sunxi
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-sunxi
 clock_IMPL            += clock-generic
 platform_control_IMPL += platform_control-arm-sunxi

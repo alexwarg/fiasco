@@ -27,7 +27,7 @@ INTERFACES_KERNEL	:= \
 			   kernel_thread        \
 			   cpu               \
                            platform_control_object          \
-			   timer_tick platform_control          \
+			   platform_control          \
 			   perf_cnt   \
 
 CXXSRC_KERNEL += \
@@ -117,8 +117,6 @@ PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
 PREPROCESS_PARTS += obj_space_$(OBJ_SPACE_TYPE)
 
 platform_control_IMPL   := platform_control
-
-timer_tick_IMPL         := timer_tick
 
 vcpu_host_regs_IMPL	:= vcpu_host_regs-$(CONFIG_XARCH)
 

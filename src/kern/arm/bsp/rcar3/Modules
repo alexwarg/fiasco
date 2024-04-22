@@ -8,7 +8,6 @@ RAM_PHYS_BASE         := 0x48000000
 
 mem_layout_IMPL       += mem_layout-arm-rcar3
 pic_IMPL              += pic-gic pic-arm-rcar3
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-rcar3
 clock_IMPL            += clock-generic
 platform_control_IMPL += platform_control-arm-rcar3

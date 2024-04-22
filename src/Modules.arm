@@ -214,7 +214,6 @@ sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 task_IMPL		:= task task-arm
 thread_IMPL	  	:= thread
 timer_IMPL		:= timer timer-arm
-timer_tick_IMPL		:= timer_tick timer_tick-arm
 utcb_init_IMPL		:= utcb_init utcb_init-arm
 utcb_support_IMPL       := utcb_support utcb_support-arm
 vgic_IMPL		:= vgic

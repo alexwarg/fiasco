@@ -8,7 +8,6 @@ RAM_PHYS_BASE         := 0x80000000
 
 mem_layout_IMPL       += mem_layout-arm-lx2160
 pic_IMPL              += pic-gic pic-arm-lx2160
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-lx2160
 clock_IMPL            += clock-generic
 platform_control_IMPL += platform_control-arm-lx2160

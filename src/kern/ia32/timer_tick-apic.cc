@@ -1,38 +1,10 @@
-IMPLEMENTATION [ia32 || amd64]:
+#include <timer_tick-apic.h>
+#include <idt.h>
+#include <initcalls.h>
+#include <apic.h>
 
-#include "apic.h"
-#include "idt.h"
-
-IMPLEMENT
 void
-Timer_tick::setup(Cpu_number)
-{}
-
-IMPLEMENT
-void
-Timer_tick::enable(Cpu_number)
-{
-  Apic::timer_enable_irq();
-  Apic::irq_ack();
-}
-
-IMPLEMENT
-void
-Timer_tick::disable(Cpu_number)
-{
-  Apic::timer_disable_irq();
-}
-
-PUBLIC static inline NEEDS["apic.h"]
-void
-Timer_tick::ack()
-{
-  Apic::irq_ack();
-}
-
-PUBLIC static
-void
-Timer_tick::set_vectors_stop()
+Timer_tick_apic::set_vectors_stop()
 {
   extern char entry_int_timer_stop[];
   // acknowledge timer interrupt once to keep timer interrupt alive because
@@ -52,20 +24,22 @@ Timer_tick::set_vectors_stop()
 #endif
 }
 
-// We are entering with disabled interrupts!
 extern "C" FIASCO_FASTCALL
-void
-thread_timer_interrupt(Address ip)
+void thread_timer_interrupt(Address ip);
+
+// We are entering with disabled interrupts!
+FIASCO_FASTCALL
+void thread_timer_interrupt(Address ip)
 {
   (void)ip;
-  Timer_tick::handler_all(0, 0); //Timer_tick::_glbl_timer);
+  Timer_tick_apic::handler_all(0, 0); //Timer_tick::_glbl_timer);
 }
+
+extern "C" void thread_timer_interrupt_stop(void);
 
 /** Extra version of timer interrupt handler which is used when the jdb is
     active to prevent busy waiting. */
-extern "C"
-void
-thread_timer_interrupt_stop(void)
+void thread_timer_interrupt_stop(void)
 {
   Apic::irq_ack();
 }

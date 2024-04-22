@@ -158,23 +158,13 @@ utcb_init_IMPL		:= utcb_init utcb_init-ia32
 
 cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
 
-CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc
-ifeq ("$(CONFIG_SCHED_PIT)","y")
-  timer_tick_IMPL	+= timer_tick-single-vector timer_tick-ia32
-endif
-CXXSRC_KERNEL-$(CONFIG_SCHED_RTC) += timer_rtc.cc
+CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc timer_tick-ia32.cc
+CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc timer_tick-ia32.cc
+CXXSRC_KERNEL-$(CONFIG_SCHED_RTC) += timer_rtc.cc timer_tick-ia32.cc
 ifeq ("$(CONFIG_SCHED_RTC)","y")
-  timer_tick_IMPL	+= timer_tick-single-vector timer_tick-ia32
   INTERFACES_KERNEL	+= rtc
 endif
-CXXSRC_KERNEL-$(CONFIG_SCHED_APIC) += timer_apic.cc
-ifeq ("$(CONFIG_SCHED_APIC)","y")
-  timer_tick_IMPL	+= timer_tick-apic
-endif
-CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc
-ifeq ("$(CONFIG_SCHED_HPET)","y")
-  timer_tick_IMPL       += timer_tick-single-vector timer_tick-ia32
-endif
+CXXSRC_KERNEL-$(CONFIG_SCHED_APIC) += timer_apic.cc timer_tick-apic.cc
 
 ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o

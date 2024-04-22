@@ -18,7 +18,6 @@ CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_AM33XX) += timer_omap3.cc timer_omap_gentimer.cc
 
 mem_layout_IMPL       += mem_layout-arm-omap
 pic_IMPL              += $(if $(CONFIG_PF_OMAP4_PANDABOARD)$(CONFIG_PF_OMAP5_5432EVM),pic-gic pic-arm-gic-omap4,pic-arm-omap3)
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-omap
 clock_IMPL            += clock-generic
 platform_control_IMPL += platform_control-arm-omap4

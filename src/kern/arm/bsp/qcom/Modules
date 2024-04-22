@@ -10,7 +10,6 @@ RAM_PHYS_BASE         := $(CONFIG_PF_QCOM_RAM_PHYS_BASE)
 
 mem_layout_IMPL       += mem_layout-arm-qcom
 pic_IMPL              += pic-gic pic-arm-qcom
-timer_tick_IMPL       += timer_tick-single-vector
 reset_IMPL            += reset-arm-qcom
 clock_IMPL            += clock-generic
 platform_control_IMPL += platform_control-arm-qcom

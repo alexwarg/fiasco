@@ -18,7 +18,6 @@ CXXSRC_KERNEL-$(CONFIG_ARM_SP804_TIMER) += timer_realview_sp804.cc
 
 INTERFACES_KERNEL     += platform board_check-arm-realview
 
-timer_tick_IMPL       += timer_tick-single-vector
 mem_layout_IMPL       += mem_layout-arm-realview
 pic_IMPL              += pic-gic pic-arm-realview
 reset_IMPL            += reset-arm-realview
