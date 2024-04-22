@@ -90,7 +90,7 @@ PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 
 INTERFACES_KERNEL	+= \
 			   irq_chip_ia32 irq_chip_pic \
-			   io_apic intel_iommu io_apic_remapped \
+			   io_apic intel_iommu \
 			   boot_console syscall_entry \
 			   tss dirq \
 
@@ -114,6 +114,7 @@ CXXSRC_KERNEL              += \
 	entry_cc.cc \
 	doublefault.cc \
 	io_space.cc \
+	io_apic_remapped.cc \
 	kmem_alloc-ia32.cc \
 	map_util_io.cc \
 	acpi.cc \
