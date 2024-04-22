@@ -21,7 +21,7 @@ PREPROCESS_PARTS-$(CONFIG_SCHED_PIT)         += pit_timer
 PREPROCESS_PARTS-$(CONFIG_SCHED_RTC)         += rtc_timer
 PREPROCESS_PARTS-$(CONFIG_SCHED_APIC)        += apic_timer
 PREPROCESS_PARTS-$(CONFIG_SCHED_HPET)        += hpet_timer
-PREPROCESS_PARTS-$(CONFIG_SERIAL)            += serial 16550
+PREPROCESS_PARTS-$(CONFIG_SERIAL)            += serial
 PREPROCESS_PARTS-$(CONFIG_PERF_CNT)          += perf_cnt
 PREPROCESS_PARTS-$(CONFIG_CPU_VIRT)          += svm vmx virtual_space_iface
 PREPROCESS_PARTS-$(CONFIG_SCHED_FIXED_PRIO)  += sched_fixed_prio
@@ -69,7 +69,7 @@ PRIVATE_INCDIR		+= drivers/$(CONFIG_XARCH) drivers
 INTERFACES_DRIVERS	:= reset \
 			   processor mem
 reset_IMPL		:= reset-ia32
-LIBUART_UART_FLAGS      := $(call LIBUART_UART, 16550)
+LIBUART_UART_FLAGS       = $(call LIBUART_UART, 16550) -DUART_16550_INIT_MCR=0x08
 CXXSRC_DRIVERS		:= glue_libc.cc console.cc mux_console.cc \
 	vga_console.cc \
 	delayloop.cc \
@@ -80,7 +80,6 @@ CXXSRC_DRIVERS		+= $(CXXSRC_DRIVERS-y)
 
 NOOPT			+= $(patsubst %.o, %, $(OBJ_DRIVERS))
 
-io_IMPL			:= io io-ia32
 mem_IMPL		:= mem mem-ia32
 processor_IMPL		:= processor processor-ia32
 
@@ -103,18 +102,19 @@ CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc apic_mp.cc
 CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
-CXXSRC_KERNEL              += main_ia32_32.cc main_ia32.cc \
+CXXSRC_KERNEL              += \
+	main_ia32_32.cc main_ia32.cc \
 	syscalls-ia32.cc \
-	traps.cc \
-	idt.cc \
-	irq_msi.cc \
-	entry_cc.cc \
-	doublefault.cc \
 	task_vcpu_resume.cc \
 	thread_ia32_32.cc \
 	thread_ia32.cc \
 	apic.cc \
 	timer_irq.cc \
+	traps.cc \
+	idt.cc \
+	irq_msi.cc \
+	entry_cc.cc \
+	doublefault.cc \
 	io_space.cc \
 	io_apic_remapped.cc \
 	kmem_alloc-ia32.cc \
@@ -199,7 +199,6 @@ INTERFACES_JDB-$(CONFIG_JDB_MISC)	+= jdb_tetris
 
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
-
 
 ASSRC_KERNEL		:= entry.S entry-native.S sys_call_page-asm.S
 
@@ -387,8 +386,8 @@ CSRC_MINILIBC	:= atexit.c memccpy.c memcmp.c memmove.c memset.c memcpy.c \
 		   isalpha.c isascii.c isblank.c iscntrl.c isdigit.c \
 		   isgraph.c islower.c isprint.c ispunct.c isspace.c \
 		   isupper.c isxdigit.c tolower.c strcspn.c strspn.c panic.c
-ASSRC_MINILIBC	:= setjmp.S
 NOBUILTIN	+= $(patsubst %.o, %, $(OBJ_MINILIBC))
+ASSRC_MINILIBC	:= setjmp.S
 
 
 ifeq ("$(CONFIG_JDB)","y")

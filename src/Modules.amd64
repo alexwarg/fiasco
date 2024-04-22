@@ -76,6 +76,7 @@ CXXSRC_DRIVERS		:= glue_libc.cc console.cc mux_console.cc \
 
 CXXSRC_DRIVERS-$(CONFIG_SERIAL) += filter_console.cc
 CXXSRC_DRIVERS		+= $(CXXSRC_DRIVERS-y)
+
 NOOPT			+= $(patsubst %.o, %, $(OBJ_DRIVERS))
 
 mem_IMPL		:= mem mem-amd64
@@ -209,7 +210,7 @@ NOOPT			+= $(filter jdb%,\
 			     $(foreach in,$(INTERFACES_KERNEL), \
 			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in))))
 NOOPT			+= tb_entry_output $(tb_entry_IMPL) $(perf_cnt_IMPL)  \
-			   kern_cnt loadcnt $(apic_IMPL) $(watchdog_IMPL) kdb \
+			   kern_cnt loadcnt $(watchdog_IMPL) kdb \
 			   $(kernel_uart_IMPL) push_console thread-dbf   \
 			   trap_state
 NOOPT			+= $(foreach in,$(INTERFACES_JDB), \
