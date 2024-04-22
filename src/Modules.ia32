@@ -96,11 +96,12 @@ INTERFACES_KERNEL	+= \
 			   boot_console \
 			   tss dirq
 
-INTERFACES_KERNEL-$(CONFIG_IOMMU)    += intel_dmar dmar_space
+INTERFACES_KERNEL-$(CONFIG_IOMMU)    += dmar_space
 
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc apic_mp.cc
+CXXSRC_KERNEL-$(CONFIG_IOMMU) += intel_dmar.cc
 CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
 CXXSRC_KERNEL              += \
 	main_ia32_32.cc main_ia32.cc \
