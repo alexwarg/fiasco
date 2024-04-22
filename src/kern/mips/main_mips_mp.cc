@@ -14,7 +14,6 @@
 #include <platform_control.h>
 #include <spin_lock.h>
 #include <timer.h>
-#include <utcb_init.h>
 
 int boot_ap_cpu()
 {

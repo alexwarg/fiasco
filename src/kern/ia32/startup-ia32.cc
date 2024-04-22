@@ -29,7 +29,6 @@
 #include <std_macros.h>
 #include <thread.h>
 #include <timer.h>
-#include <utcb_init.h>
 
 #include <io_apic.h>
 #include <io_apic_remapped.h>
@@ -97,7 +96,6 @@ static void stage2()
 
   // initialize initial TSS, GDT, IDT
   Kmem::init_cpu(Cpu::cpus.cpu(Cpu_number::boot_cpu()));
-  Utcb_init::init();
   Idt::init();
   Fpu::init(Cpu_number::boot_cpu(), false);
   Apic::init();

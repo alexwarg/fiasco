@@ -28,7 +28,7 @@ INTERFACES_KERNEL	:= \
 			   cpu               \
                            platform_control_object          \
 			   timer_tick platform_control          \
-			   utcb_init perf_cnt   \
+			   perf_cnt   \
 
 CXXSRC_KERNEL += \
 	banner.cc \
