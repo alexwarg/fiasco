@@ -24,14 +24,16 @@ namespace cxx {
 class D_list_item
 {
 public:
-  D_list_item() : _dli_next(0) {}
+  D_list_item() = default;
+
 private:
   friend struct D_list_item_policy;
 
-  D_list_item(D_list_item const &);
-  void operator = (D_list_item const &);
+  D_list_item(D_list_item const &) = delete;
+  void operator = (D_list_item const &) = delete;
 
-  D_list_item *_dli_next, *_dli_prev;
+  D_list_item *_dli_next = nullptr;
+  D_list_item *_dli_prev;
 };
 
 struct D_list_item_policy
