@@ -94,7 +94,7 @@ INTERFACES_KERNEL	+= \
 			   irq_chip_ia32 irq_chip_pic \
 			   io_apic \
 			   boot_console \
-			   tss dirq
+			   dirq
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += dmar_space
 

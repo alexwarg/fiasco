@@ -1,11 +1,13 @@
+#pragma once
 
-INTERFACE[amd64]:
-
-#include "l4_types.h"
+#include <types.h>
 
 class Tss
 {
 public:
+  void set_ss0(unsigned)
+  {}
+
   Unsigned32  _ign0; // ignored
   Address     _rsp0;
   Address     _rsp1;
@@ -25,11 +27,3 @@ public:
   Unsigned16  _io_bit_map_offset;
 } __attribute__((packed));
 
-IMPLEMENTATION:
-
-PUBLIC inline
-void
-Tss::set_ss0(unsigned)
-{}
-
-//-

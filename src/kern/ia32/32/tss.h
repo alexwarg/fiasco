@@ -1,11 +1,13 @@
+#pragma once
 
-INTERFACE:
-
-#include "l4_types.h"
+#include <types.h>
 
 class Tss
 {
 public:
+  void set_ss0(unsigned ss)
+  { _ss0 = ss; }
+
   Unsigned32  _back_link;
   Address     _esp0;
   Unsigned32  _ss0;
@@ -34,11 +36,4 @@ public:
   Unsigned16  _trace_trap;
   Unsigned16  _io_bit_map_offset;
 } __attribute__((packed));
-
-IMPLEMENTATION:
-
-PUBLIC inline
-void
-Tss::set_ss0(unsigned ss)
-{ _ss0 = ss; }
 
