@@ -23,7 +23,6 @@ INTERFACES_KERNEL	:= \
 			   pic   \
 			   kmem mem_layout        \
 			   mem_unit \
-			   kernel_thread        \
 			   cpu               \
                            platform_control_object          \
 			   platform_control          \
@@ -49,6 +48,8 @@ CXXSRC_KERNEL += \
 	kernel_console.cc \
 	kernel_panic.cc \
 	kernel_task.cc \
+	kernel_thread-std.cc \
+	kernel_thread.cc \
 	kip_init.cc \
 	kmem_alloc.cc \
 	kmem_slab.cc \

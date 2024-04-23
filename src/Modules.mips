@@ -132,7 +132,8 @@ CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
 		 paging-ptab.cc \
 		 mem_space_mips.cc \
 		 thread_mips.cc \
-		 startup-mips.cc
+		 startup-mips.cc \
+		 kernel_thread-mips.cc
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc

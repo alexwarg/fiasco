@@ -1,44 +1,43 @@
-IMPLEMENTATION [arm && mp && pic_gic && have_arm_gicv2]:
 
-PRIVATE static inline NOEXPORT
-void
-Kernel_thread::boot_app_cpu_gic(Mp_boot_info volatile *inf)
+#include <kernel_thread.h>
+#include <globalconfig.h>
+#include <pre_parts.h>
+
+#ifdef CONFIG_MP
+
+#include <io.h>
+#include <platform_control.h>
+#include <paging.h>
+
+struct Mp_boot_info
+{
+  Mword sctlr;
+  Mword tcr;
+  Mword mair;
+  Mword ttbr_kern;
+  Mword ttbr_usr;
+  Mword gic_dist_base; // only needed for IGROUPR0
+  Mword gic_cpu_base;
+};
+
+#if defined (CONFIG_HAVE_ARM_GICV2) && defined (PRE_pic_gic)
+
+inline void boot_app_cpu_gic(Mp_boot_info volatile *inf)
 {
   inf->gic_dist_base = Mem_layout::Gic_dist_phys_base;
   inf->gic_cpu_base = Mem_layout::Gic_cpu_phys_base;
 }
 
-IMPLEMENTATION [arm && mp && (!pic_gic || !have_arm_gicv2)]:
+#else // GIC
 
-PRIVATE static inline NOEXPORT
-void
-Kernel_thread::boot_app_cpu_gic(Mp_boot_info volatile *inf)
+inline void boot_app_cpu_gic(Mp_boot_info volatile *inf)
 {
   inf->gic_dist_base = 0;
 }
 
-IMPLEMENTATION [arm && mp]:
+#endif // GIC
 
-#include "io.h"
-#include "platform_control.h"
-#include "paging.h"
-
-EXTENSION class Kernel_thread
-{
-  struct Mp_boot_info
-  {
-    Mword sctlr;
-    Mword tcr;
-    Mword mair;
-    Mword ttbr_kern;
-    Mword ttbr_usr;
-    Mword gic_dist_base; // only needed for IGROUPR0
-    Mword gic_cpu_base;
-  };
-};
-
-PUBLIC
-static void
+void
 Kernel_thread::boot_app_cpus()
 {
   if (Config::Max_num_cpus <= 1)
@@ -63,3 +62,5 @@ Kernel_thread::boot_app_cpus()
 
   Platform_control::boot_ap_cpus(Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry));
 }
+
+#endif // CONFIG_MP

@@ -1,25 +1,24 @@
-IMPLEMENTATION:
+#include <kernel_thread.h>
 
-#include "assert_opt.h"
-#include "config.h"
-#include "factory.h"
-#include "initcalls.h"
-#include "ipc_gate.h"
-#include "irq.h"
-#include "kip.h"
-#include "koptions.h"
+#include <assert_opt.h>
+#include <config.h>
+#include <factory.h>
+#include <initcalls.h>
+#include <ipc_gate.h>
+#include <irq.h>
+#include <kip.h>
+#include <koptions.h>
 #include <map_util_objs.h>
 #include <map_util_mem.h>
 #include <map_util_io.h>
-#include "mem_layout.h"
-#include "sigma0_task.h"
-#include "task.h"
-#include "thread_object.h"
-#include "types.h"
-#include "ram_quota.h"
-#include "task_factory_impl.h"
+#include <mem_layout.h>
+#include <sigma0_task.h>
+#include <task.h>
+#include <thread_object.h>
+#include <types.h>
+#include <ram_quota.h>
+#include <task_factory_impl.h>
 
-IMPLEMENT
 void
 Kernel_thread::init_workload()
 {

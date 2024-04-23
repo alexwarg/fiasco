@@ -158,6 +158,8 @@ CXXSRC_KERNEL += main_arm.cc \
 	traps.cc \
 	nested_trap_handler.cc \
 	__main.cc \
+	kernel_thread-arm.cc \
+	kernel_thread-arm-$(BITS).cc \
 	vmem_alloc-arm.cc \
 	startup-arm.cc
 

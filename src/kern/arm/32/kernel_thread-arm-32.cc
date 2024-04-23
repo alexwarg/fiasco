@@ -1,12 +1,14 @@
-IMPLEMENTATION [arm && mp]:
+#include <kernel_thread.h>
+#include <globalconfig.h>
 
-#include "io.h"
-#include "platform_control.h"
-#include "outer_cache.h"
-#include "paging.h"
+#ifdef CONFIG_MP
 
-PUBLIC
-static void
+#include <io.h>
+#include <platform_control.h>
+#include <outer_cache.h>
+#include <paging.h>
+
+void
 Kernel_thread::boot_app_cpus()
 {
   if (Config::Max_num_cpus <= 1)
@@ -40,4 +42,4 @@ Kernel_thread::boot_app_cpus()
 
   Platform_control::boot_ap_cpus(Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry));
 }
-
+#endif

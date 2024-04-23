@@ -20,6 +20,8 @@
 #include "idt.h"
 #include "koptions.h"
 
+#include <cpu_id_map.h>
+
 [[noreturn]] static void
 stop_booting_ap_cpu(char const *msg, Unsigned32 apic_id)
 {
@@ -31,29 +33,37 @@ stop_booting_ap_cpu(char const *msg, Unsigned32 apic_id)
     Proc::halt();
 }
 
+inline Cpu_number
+get_ap_cpu_num(bool *is_new, Unsigned32 apic_id)
+{
+  Cpu_number cpu = Apic::find_cpu(apic_id);
+  if (cpu !=  Cpu_number::nil())
+    {
+      *is_new = false;
+      return cpu;
+    }
+
+  // keep track of the last cpu ever appeared
+  static Cpu_number last_cpu = Cpu_number::first();
+
+  *is_new = true;
+  if (!kernel_cpu_id_map.valid())
+    return ++last_cpu;
+
+  cpu = kernel_cpu_id_map.find(apic_id);
+  if (Cpu_number::nil() == cpu)
+    stop_booting_ap_cpu("Previously unknown CPU", apic_id);
+
+  return cpu;
+}
+
 int FIASCO_FASTCALL boot_ap_cpu()
 {
   Apic::activate_by_msr();
 
   Unsigned32 apic_id = Apic::get_id();
-  Cpu_number _cpu = Apic::find_cpu(apic_id);
   bool cpu_is_new = false;
-
-  // keep track of the last cpu ever appeared
-  static Cpu_number last_cpu = Cpu_number::first();
-  if (_cpu == Cpu_number::nil())
-    {
-      if (Kernel_thread::boot_deterministic)
-        {
-          _cpu = Kernel_thread::find_cpu_num_by_apic_id(apic_id);
-          if (Cpu_number::nil() == _cpu)
-            stop_booting_ap_cpu("Previously unknown CPU", apic_id);
-        }
-      else
-        _cpu = ++last_cpu;
-
-      cpu_is_new = true;
-    }
+  Cpu_number _cpu = get_ap_cpu_num(&cpu_is_new, apic_id);
 
   if (cpu_is_new && !Per_cpu_data_alloc::alloc(_cpu))
     stop_booting_ap_cpu("CPU allocation failed", apic_id);

@@ -103,6 +103,6 @@ App_cpu_thread::bootstrap(Mword resume)
     init_unittest_app_core();
 
   for (;;)
-    idle_op();
+    idle->idle();
 }
 

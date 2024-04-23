@@ -6,7 +6,7 @@ LIBUART_UART_FLAGS-$(CONFIG_PF_EXYNOS_UART_NATIVE) += $(call LIBUART_UART, s3c24
 LIBUART_UART_FLAGS   += $(LIBUART_UART_FLAGS-y)
 
 PREPROCESS_PARTS        += pic_gic watchdog bsp_cpu
-PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TICKLESS_IDLE) += tickless_idle
+#PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TICKLESS_IDLE) += tickless_idle
 PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TIMER_MCT) += exynos_mct
 PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TIMER_MP)  += mptimer
 PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TIMER_GEN) += arm_generic_timer
@@ -18,6 +18,7 @@ CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_MP) += timer_exynos_mptimer.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_MCT) += timer_exynos_mct.cc timer_tick-exynos-mct.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_PWM) += timer_arm_s3c2410.cc
 CXXSRC_KERNEL += timer_mct.cc
+CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TICKLESS_IDLE) += exynos_tickless_idle.cc cpu_tickless_idle.cc
 
 INTERFACES_KERNEL       += platform
 VPATH                   += kern/arm/bsp/s3c

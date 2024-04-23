@@ -106,6 +106,7 @@ CXXSRC_KERNEL-$(CONFIG_IA32_PCID) += mem_space-pcid.cc
 CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
 CXXSRC_KERNEL              += \
 	main_ia32_32.cc main_ia32.cc \
+	kernel_thread-ia32.cc \
 	syscalls-ia32.cc \
 	intel_iommu.cc \
 	task_vcpu_resume.cc \
