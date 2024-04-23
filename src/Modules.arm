@@ -153,6 +153,7 @@ CXXSRC_KERNEL += main_arm.cc \
 	irq_chip_generic.cc \
 	kmem_alloc-arm.cc \
 	kmem_space_arm_$(BITS).cc \
+	mem_space_arm.cc \
 	entry_frame.cc \
 	traps.cc \
 	nested_trap_handler.cc \
@@ -163,6 +164,8 @@ CXXSRC_KERNEL += main_arm.cc \
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
 	timer_arm_generic.cc
+
+CXXSRC_KERNEL-$(CONFIG_ARM_V6PLUS) += mem_space-arm-asid.cc
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc vgic_global.cc hyp_ppi.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT)-$(CONFIG_HAVE_ARM_GICV2) += vgic_v2.cc
@@ -201,8 +204,7 @@ map_util_IMPL		:= map_util map_util-mem map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-arm-$(BITS) \
 			   mem_layout-arm mem_layout-noncont
 mem_op_IMPL		:= mem_op mem_op-arm-$(BITS)
-mem_space_IMPL		:= mem_space mem_space-arm mem_space-arm-$(BITS) \
-			   mem_space-user
+mem_space_IMPL		:= mem_space mem_space-arm mem_space-arm-$(BITS)
 mem_unit_IMPL		:= mem_unit mem_unit-arm-$(BITS)
 kmem_IMPL		:= kmem kmem-arm-$(BITS)
 kmem_alloc_IMPL		:= kmem_alloc kmem_alloc-arm

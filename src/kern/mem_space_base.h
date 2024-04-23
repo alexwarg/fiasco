@@ -1,24 +1,21 @@
-INTERFACE:
+#pragma once
 
-#include "auto_quota.h"
-#include "cpu_mask.h"
-#include "paging.h"		// for page attributes
-#include "mem_layout.h"
-#include "member_offs.h"
-#include "per_cpu_data.h"
-#include "ram_quota.h"
-#include "types.h"
-#include "mapdb_types.h"
+#include <member_offs.h>
+#include <types.h>
+#include <paging.h>		// for page attributes
+#include <mem_layout.h>
+#include <cxx/cxx_int>
+#include <mapdb_types.h>
+#include <config.h>
+#include <per_cpu_data.h>
+#include <logdefs.h>
 
-/**
- * An address space.
- *
- * Insertion and lookup functions.
- */
-class Mem_space
+class Ram_quota;
+class Mem_space;
+
+class Mem_space_base
 {
   MEMBER_OFFSET();
-
 public:
   typedef int Status;
   static char const *const name;
@@ -38,14 +35,51 @@ public:
   typedef Page_count V_pfc;
   typedef Addr::Order<0> V_order;
 
+  typedef Pdir Dir_type;
+
+  static constexpr unsigned Page_shift = Config::PAGE_SHIFT;
+  static constexpr unsigned Max_num_global_page_sizes = 5;
+
   enum Switchin_flags
   {
     None = 0,
     Vcpu_user_to_kern = 1,
   };
 
-  // Each architecture must provide these members:
-  void switchin_context(Mem_space *from, Switchin_flags flags);
+  /** Return status of v_insert. */
+  enum // Status
+  {
+    Insert_ok = 0,		///< Mapping was added successfully.
+    Insert_warn_exists,		///< Mapping already existed
+    Insert_warn_attrib_upgrade,	///< Mapping already existed, attribs upgrade
+    Insert_err_nomem,		///< Couldn't alloc new page table
+    Insert_err_exists		///< A mapping already exists at the target addr
+  };
+
+  struct Fit_size
+  {
+    typedef cxx::array<Page_order, Page_order, 65> Size_array;
+    Size_array o;
+    Page_order operator () (Page_order i) const { return o[i]; }
+
+    void add_page_size(Page_order order)
+    {
+      for (Page_order c = order; c < o.size() && o[c] < order; ++c)
+        o[c] = order;
+    }
+  };
+
+  Mem_space_base() = default;
+
+  explicit Mem_space_base(Ram_quota *q, Dir_type *dir = 0)
+  : _quota(q), _dir(dir)
+  {}
+
+  Mem_space_base(Mem_space_base const &) = delete;
+  Mem_space_base(Mem_space_base &&) = delete;
+  void operator = (Mem_space_base const &) = delete;
+  void operator = (Mem_space_base &&) = delete;
+
 
   FIASCO_SPACE_VIRTUAL
   void tlb_flush(bool);
@@ -133,40 +167,53 @@ public:
   FIASCO_SPACE_VIRTUAL
   void v_set_access_flags(Vaddr virt, L4_fpage::Rights access_flags);
 
-  /** Set this memory space as the current on this CPU. */
-  void make_current(Switchin_flags flags = None);
-
-  static Mem_space *kernel_space()
-  { return _kernel_space; }
-
-  /** Return the current memory space of this CPU. */
-  static inline Mem_space *current_mem_space(Cpu_number cpu)
-  { return _current.cpu(cpu); }
-
-/**
- * Simple page-table lookup.
- *
- * This method is similar to virt_to_phys(), with the difference that this
- * version handles Sigma0's address space as a special case (by having the
- * Sigma0 task class provide a specialized override of this method): For Sigma0,
- * we do not actually consult the page table, as it is meaningless because we
- * create new mappings for Sigma0 transparently; instead, we return the
- * logically-correct result of physical address == virtual address.
- *
- * @param virt Virtual address. This address does not need to be page-aligned.
- * @return Physical address corresponding to virt.
- */
+  /**
+   * Simple page-table lookup.
+   *
+   * This method is similar to virt_to_phys(), with the difference that this
+   * version handles Sigma0's address space as a special case (by having the
+   * Sigma0 task class provide a specialized override of this method): For Sigma0,
+   * we do not actually consult the page table, as it is meaningless because we
+   * create new mappings for Sigma0 transparently; instead, we return the
+   * logically-correct result of physical address == virtual address.
+   *
+   * @param virt Virtual address. This address does not need to be page-aligned.
+   * @return Physical address corresponding to virt.
+   */
   virtual
-  Address virt_to_phys_s0(void *virt) const
-  { return virt_to_phys(reinterpret_cast<Address>(virt)); }
-
+  Address virt_to_phys_s0(void *virt) const = 0;
 
   virtual
   Page_number mem_space_map_max_address() const
   { return Page_number(Virt_addr(Mem_layout::User_max)) + Page_count(1); }
 
+  virtual
+  bool is_sigma0() const
+  { return false; }
+
   Page_number map_max_address() const
   { return mem_space_map_max_address(); }
+
+  [[gnu::pure]] FIASCO_SPACE_VIRTUAL
+  Fit_size const &mem_space_fitting_sizes() const;
+
+  Fit_size const &fitting_sizes() const
+  { return mem_space_fitting_sizes(); }
+
+  Page_order largest_page_size() const
+  { return mem_space_fitting_sizes()(Page_order(64)); }
+
+  Dir_type *dir()
+  { return _dir; }
+
+  const Dir_type *dir() const
+  { return _dir; }
+
+  Ram_quota *ram_quota() const
+  { return _quota; }
+
+
+  static void add_page_size(Page_order o);
 
   static Phys_addr page_address(Phys_addr o, Page_order s)
   { return cxx::mask_lsb(o, s); }
@@ -176,25 +223,6 @@ public:
 
   static Phys_addr subpage_address(Phys_addr addr, V_pfc offset)
   { return addr | Phys_diff(offset); }
-
-  struct Fit_size
-  {
-    typedef cxx::array<Page_order, Page_order, 65> Size_array;
-    Size_array o;
-    Page_order operator () (Page_order i) const { return o[i]; }
-
-    void add_page_size(Page_order order)
-    {
-      for (Page_order c = order; c < o.size() && o[c] < order; ++c)
-        o[c] = order;
-    }
-  };
-
-  FIASCO_SPACE_VIRTUAL
-  Fit_size const &mem_space_fitting_sizes() const __attribute__((pure));
-
-  Fit_size const &fitting_sizes() const
-  { return mem_space_fitting_sizes(); }
 
   static Mdb_types::Pfn to_pfn(Phys_addr p)
   { return Mdb_types::Pfn(cxx::int_value<Page_number>(p)); }
@@ -217,14 +245,6 @@ public:
   static V_pfc subpage_offset(V_pfn a, Page_order o)
   { return cxx::get_lsb(a, o); }
 
-  Page_order largest_page_size() const
-  { return mem_space_fitting_sizes()(Page_order(64)); }
-
-  enum
-  {
-    Max_num_global_page_sizes = 5
-  };
-
   static Page_order const *get_global_page_sizes(bool finalize = true)
   {
     if (finalize)
@@ -232,199 +252,74 @@ public:
     return _glbl_page_sizes;
   }
 
-private:
-  Mem_space(const Mem_space &) = delete;
+  static Mem_space *kernel_space()
+  { return _kernel_space; }
 
+  /** Return the current memory space of this CPU. */
+  static Mem_space *current_mem_space(Cpu_number cpu)
+  { return _current.cpu(cpu); }
+
+protected:
   Ram_quota *_quota;
+  Dir_type *_dir = nullptr;
+
+protected:
+  static void add_global_page_size(Page_order o);
 
   static Per_cpu<Mem_space *> _current;
   static Mem_space *_kernel_space;
+
   static Page_order _glbl_page_sizes[Max_num_global_page_sizes];
   static unsigned _num_glbl_page_sizes;
   static bool _glbl_page_sizes_finished;
 };
 
 
-//---------------------------------------------------------------------------
-INTERFACE [mp]:
-
-EXTENSION class Mem_space
+template<typename M>
+class Mem_space_x : public Mem_space_base
 {
 public:
-  enum { Need_xcpu_tlb_flush = true };
+  Mem_space_x() = default;
 
-private:
-  static Cpu_mask _tlb_active;
+  explicit Mem_space_x(Ram_quota *q, Dir_type *dir = 0)
+  : Mem_space_base(q, dir)
+  {}
+
+  Address virt_to_phys_s0(void *virt) const override
+  {
+    return static_cast<M const *>(this)
+      ->virt_to_phys(reinterpret_cast<Address>(virt));
+  }
+
+  virtual
+  bool v_fabricate(Vaddr address, Phys_addr *phys, Page_order *order,
+                   Attr *attribs = 0)
+  {
+    return static_cast<M *>(this)->v_lookup(
+        cxx::mask_lsb(address, Page_order(Config::PAGE_SHIFT)),
+        phys, order, attribs);
+  }
 };
 
-
-
-//---------------------------------------------------------------------------
-INTERFACE [!mp]:
-
-EXTENSION class Mem_space
+template<typename M>
+struct Mem_space_default_switchin
 {
-public:
-  enum { Need_xcpu_tlb_flush = false };
-};
-
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-//
-// class Mem_space
-//
-
-#include "config.h"
-#include "globals.h"
-#include "l4_types.h"
-#include "kmem_alloc.h"
-#include "mem_unit.h"
-#include "paging.h"
-#include "panic.h"
-
-DEFINE_PER_CPU Per_cpu<Mem_space *> Mem_space::_current;
-
-
-char const * const Mem_space::name = "Mem_space";
-Mem_space *Mem_space::_kernel_space;
-
-static Mem_space::Fit_size __mfs;
-Mem_space::Page_order Mem_space::_glbl_page_sizes[Max_num_global_page_sizes];
-unsigned Mem_space::_num_glbl_page_sizes;
-bool Mem_space::_glbl_page_sizes_finished;
-
-PROTECTED static
-void
-Mem_space::add_global_page_size(Page_order o)
-{
-  assert (!_glbl_page_sizes_finished);
-  unsigned i;
-  for (i = 0; i < _num_glbl_page_sizes; ++i)
-    {
-      if (_glbl_page_sizes[i] == o)
-        return;
-
-      if (_glbl_page_sizes[i] < o)
-        break;
-    }
-
-  assert (_num_glbl_page_sizes + 1 < Max_num_global_page_sizes);
-
-  for (unsigned x = _num_glbl_page_sizes; x > i; --x)
-    _glbl_page_sizes[x] = _glbl_page_sizes[x - 1];
-
-  _glbl_page_sizes[i] = o;
-  assert (_glbl_page_sizes[_num_glbl_page_sizes] <= Page_order(Config::PAGE_SHIFT));
-
-  ++_num_glbl_page_sizes;
-}
-
-PUBLIC static
-void
-Mem_space::add_page_size(Page_order o)
-{
-  add_global_page_size(o);
-  __mfs.add_page_size(o);
-}
-
-IMPLEMENT
-Mem_space::Fit_size const &
-Mem_space::mem_space_fitting_sizes() const
-{
-  return __mfs;
-}
-
-PUBLIC inline
-Ram_quota *
-Mem_space::ram_quota() const
-{ return _quota; }
-
-
-PUBLIC inline
-Mem_space::Dir_type*
-Mem_space::dir ()
-{ return _dir; }
-
-PUBLIC inline
-const Mem_space::Dir_type*
-Mem_space::dir() const
-{ return _dir; }
-
-PUBLIC
-virtual bool
-Mem_space::v_fabricate(Vaddr address, Phys_addr *phys, Page_order *order,
-                       Attr *attribs = 0)
-{
-  return v_lookup(cxx::mask_lsb(address, Page_order(Config::PAGE_SHIFT)),
-      phys, order, attribs);
-}
-
-PUBLIC virtual
-bool
-Mem_space::is_sigma0() const
-{ return false; }
-
-IMPLEMENT_DEFAULT inline NEEDS["kmem.h", "logdefs.h"]
-void
-Mem_space::switchin_context(Mem_space *from, Switchin_flags flags)
-{
-  // FIXME: this optimization breaks SMP task deletion, an idle thread
-  // may run on an already deleted page table
+  void switchin_context(M *from, Mem_space_base::Switchin_flags flags)
+  {
+    // FIXME: this optimization breaks SMP task deletion, an idle thread
+    // may run on an already deleted page table
 #if 0
-  // never switch to kernel space (context of the idle thread)
-  if (this == kernel_space())
-    return;
+    // never switch to kernel space (context of the idle thread)
+    if (this == kernel_space())
+      return;
 #endif
 
-  if (from != this)
-    {
-      CNT_ADDR_SPACE_SWITCH;
-      make_current(flags);
-    }
-}
+    M *self = static_cast<M *>(this);
+    if (from == self)
+      return;
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION [!mp]:
-
-PUBLIC static inline
-void
-Mem_space::enable_tlb(Cpu_number)
-{}
-
-PUBLIC static inline
-void
-Mem_space::disable_tlb(Cpu_number)
-{}
-
-PUBLIC static inline
-Cpu_mask
-Mem_space::active_tlb()
-{
-  Cpu_mask c;
-  c.set(Cpu_number::boot_cpu());
-  return c;
-}
-
-// ----------------------------------------------------------
-IMPLEMENTATION [mp]:
-
-Cpu_mask Mem_space::_tlb_active;
-
-PUBLIC static inline
-Cpu_mask const &
-Mem_space::active_tlb()
-{ return _tlb_active; }
-
-PUBLIC static inline
-void
-Mem_space::enable_tlb(Cpu_number cpu)
-{ _tlb_active.atomic_set(cpu); }
-
-PUBLIC static inline
-void
-Mem_space::disable_tlb(Cpu_number cpu)
-{ _tlb_active.atomic_clear(cpu); }
-
+    CNT_ADDR_SPACE_SWITCH;
+    self->make_current(flags);
+  }
+};
 

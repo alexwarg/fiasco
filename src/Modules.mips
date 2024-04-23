@@ -130,6 +130,7 @@ CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
 		 mips_cpu_irqs.cc \
 		 entry_cc.cc \
 		 paging-ptab.cc \
+		 mem_space_mips.cc \
 		 thread_mips.cc \
 		 startup-mips.cc
 
@@ -157,7 +158,7 @@ kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-mips
 map_util_IMPL		:= map_util map_util-mem map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
 mem_unit_IMPL		:= mem_unit-mips
-mem_space_IMPL		:= mem_space mem_space-user mem_space-mips
+mem_space_IMPL		:= mem_space mem_space-mips
 obj_space_IMPL		:= obj_space obj_space-phys
 perf_cnt_IMPL		:= perf_cnt perf_cnt-mips
 platform_control_IMPL	+= platform_control-mips

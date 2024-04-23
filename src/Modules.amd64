@@ -101,6 +101,7 @@ CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc apic_mp.cc
 CXXSRC_KERNEL-$(CONFIG_IOMMU) += intel_dmar.cc
+CXXSRC_KERNEL-$(CONFIG_IA32_PCID) += mem_space-pcid.cc
 CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
 CXXSRC_KERNEL              += \
 	main_ia32_64.cc main_ia32.cc \
@@ -119,6 +120,7 @@ CXXSRC_KERNEL              += \
 	io_space.cc \
 	io_apic_remapped.cc \
 	kmem_alloc-ia32.cc \
+	mem_space-ia32.cc \
 	map_util_io.cc \
 	acpi.cc \
 	paging-ptab.cc \
@@ -143,7 +145,7 @@ kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-ia32
 kmem_IMPL		:= kmem-ia32 kmem-ia32-64
 map_util_IMPL		:= map_util map_util-mem map_util-io map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-64
-mem_space_IMPL		:= mem_space mem_space-user mem_space-ia32
+mem_space_IMPL		:= mem_space mem_space-ia32
 mem_unit_IMPL		:= mem_unit-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
 pic_IMPL		:= pic pic-i8259

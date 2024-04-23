@@ -21,7 +21,6 @@ PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
 INTERFACES_KERNEL	:= \
 			   pic   \
-			   mem_space \
 			   kmem mem_layout        \
 			   mem_unit \
 			   kernel_thread        \
@@ -63,6 +62,7 @@ CXXSRC_KERNEL += \
 	map_util_mem.cc \
 	map_util_objs.cc \
 	map_util.cc \
+	mem_space_base.cc \
 	pm.cc \
 	ram_quota.cc \
 	rcupdate.cc \
