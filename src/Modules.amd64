@@ -91,7 +91,7 @@ PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 
 INTERFACES_KERNEL	+= \
 			   irq_chip_ia32 irq_chip_pic \
-			   io_apic intel_iommu \
+			   io_apic \
 			   boot_console syscall_entry \
 			   tss dirq \
 
@@ -105,6 +105,7 @@ CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
 CXXSRC_KERNEL              += \
 	main_ia32_64.cc main_ia32.cc \
 	syscalls-ia32.cc \
+	intel_iommu.cc \
 	task_vcpu_resume.cc \
 	thread_ia32_64.cc \
 	thread_ia32.cc \
