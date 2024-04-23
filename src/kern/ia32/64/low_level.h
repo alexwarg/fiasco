@@ -265,18 +265,18 @@
 	pop	%rax
 .endm
 
-	.macro	RESET_THREAD_CANCEL_AT reg
+.macro	RESET_THREAD_CANCEL_AT reg
 	andl	$~(VAL__Thread_cancel), OFS__THREAD__STATE (\reg)
-	.endm
+.endm
 
-	.macro	ESP_TO_TCB_AT reg
+.macro	ESP_TO_TCB_AT reg
 	mov	%rsp, \reg
 	andq	$~(THREAD_BLOCK_SIZE - 1), \reg
-	.endm
+.endm
 
 
 #define SCRATCH_REGISTER_SIZE 72
-	.macro	SAVE_SCRATCH
+.macro	SAVE_SCRATCH
 	push	%rdi
 	push	%rsi
 	push	%rax /* must be ax cx dx for pagein_tcb_request */
@@ -286,9 +286,9 @@
 	push	%r9
 	push	%r10
 	push	%r11
-	.endm
+.endm
 
-	.macro	RESTORE_SCRATCH
+.macro	RESTORE_SCRATCH
 	pop	%r11
 	pop	%r10
 	pop	%r9
@@ -298,11 +298,11 @@
 	pop	%rax
 	pop	%rsi
 	pop	%rdi
-	.endm
+.endm
 
-	.macro	IRET_INSN
+.macro	IRET_INSN
 	iretq
-	.endm
+.endm
 
 #define PAGE_FAULT_ADDR	%cr2
 #define PAGE_DIR_ADDR	%cr3
