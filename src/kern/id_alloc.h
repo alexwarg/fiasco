@@ -14,18 +14,18 @@ public:
   typedef OWNER_TYPE Owner_type;
   typedef ID_OPS Id_ops;
 
-  Id_alloc(unsigned nr_ids) : _nr_ids(nr_ids)
+  explicit Id_alloc(unsigned nr_ids) : _nr_ids(nr_ids)
   {
     _active = (Owner_type **)Boot_alloced::alloc(sizeof(Owner_type *) * _nr_ids);
     for (unsigned i = 0; i < _nr_ids; ++i)
       _active[i] = 0;
   }
 
-  template<typename ARG>
+  template<typename OPS = ID_OPS, typename ARG>
   Id_type alloc(Owner_type *owner, ARG &&arg)
   {
-    if (EXPECT_TRUE(Id_ops::valid(owner, arg)))
-      return Id_ops::get_id(owner, arg);
+    if (EXPECT_TRUE(OPS::valid(owner, arg)))
+      return OPS::get_id(owner, arg);
 
     Id_type new_id = next_id();
     Owner_type **bad_guy = &_active[new_id];
@@ -35,7 +35,7 @@ public:
         if (victim == reinterpret_cast<Owner_type *>(~0UL))
           break;
 
-        if (!Id_ops::can_replace(victim, arg))
+        if (!OPS::can_replace(victim, arg))
           {
             new_id = next_id();
             bad_guy = &_active[new_id];
@@ -48,22 +48,22 @@ public:
         // reset function is currently resetting the IDs of the
         // victim from a different CPU.
         if (cxx::atomic_compare_exchange_strong(bad_guy, victim, reinterpret_cast<Owner_type *>(1)))
-          Id_ops::reset_id(victim, arg);
+          OPS::reset_id(victim, arg);
         break;
       }
 
-    Id_ops::set_id(owner, arg, new_id + Id_ops::Id_offset);
+    OPS::set_id(owner, arg, new_id + OPS::Id_offset);
     write_now(bad_guy, owner);
-    return new_id + Id_ops::Id_offset;
+    return new_id + OPS::Id_offset;
   }
 
-  template<typename ARG>
+  template<typename OPS = ID_OPS, typename ARG>
   void free(Owner_type *owner, ARG &&arg)
   {
-    if (!Id_ops::valid(owner, arg))
+    if (!OPS::valid(owner, arg))
       return;
 
-    Id_type id = Id_ops::get_id(owner, arg) - Id_ops::Id_offset;
+    Id_type id = OPS::get_id(owner, arg) - OPS::Id_offset;
     Owner_type **o = &_active[id];
     if (!cxx::atomic_compare_exchange_strong(o, owner, reinterpret_cast<Owner_type *>(~0UL)))
       while (access_once(o) == reinterpret_cast<Owner_type *>(1))
