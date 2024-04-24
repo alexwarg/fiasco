@@ -121,9 +121,8 @@ VPATH 		+= kern/mips/$(BITS) kern/mips kern
 VPATH		+= jdb/mips/$(BITS) jdb/mips jdb
 PRIVATE_INCDIR 	+= kern/mips/$(BITS) kern/mips kern
 
-INTERFACES_KERNEL +=	boot_uart_init
-
 CXXSRC_KERNEL += \
+		 boot_uart_init.cc \
 		 cpu_p5600.cc \
 		 irq_chip_generic.cc \
 		 entry_frame.cc \

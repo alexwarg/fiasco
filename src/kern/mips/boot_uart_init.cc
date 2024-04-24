@@ -1,8 +1,7 @@
-IMPLEMENTATION [serial]:
 
-#include "kernel_console.h"
-#include "kernel_uart.h"
-#include "static_init.h"
+#include <kernel_console.h>
+#include <kernel_uart.h>
+#include <static_init.h>
 
 STATIC_INITIALIZE_P(Kconsole, EARLY_INIT_PRIO);
 
