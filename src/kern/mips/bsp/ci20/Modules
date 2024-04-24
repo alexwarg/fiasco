@@ -7,7 +7,7 @@ PREPROCESS_PARTS		+= $(PREPROCESS_PARTS-y)
 OBJECTS_LIBUART			+= uart_16550.o uart_16550_dw.o
 LIBUART_UART_FLAGS		+= $(call LIBUART_UART, 16550_dw)
 
-INTERFACES_KERNEL		+= irq_ingenic \
+INTERFACES_KERNEL		+= \
 				   mips_bsp_irqs \
 				   tcu_jz4780
 
