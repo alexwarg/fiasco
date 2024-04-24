@@ -1,6 +1,6 @@
-IMPLEMENTATION:
 
 #include <cpu.h>
+
 namespace {
 
 struct P5600 : Cpu::Hooks

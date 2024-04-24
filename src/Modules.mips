@@ -121,10 +121,13 @@ VPATH 		+= kern/mips/$(BITS) kern/mips kern
 VPATH		+= jdb/mips/$(BITS) jdb/mips jdb
 PRIVATE_INCDIR 	+= kern/mips/$(BITS) kern/mips kern
 
-INTERFACES_KERNEL +=	boot_uart_init \
-			cpu_p5600
+INTERFACES_KERNEL +=	boot_uart_init
 
-CXXSRC_KERNEL += irq_chip_generic.cc entry_frame.cc cm.cc \
+CXXSRC_KERNEL += \
+		 cpu_p5600.cc \
+		 irq_chip_generic.cc \
+		 entry_frame.cc \
+		 cm.cc \
 		 alternatives.cc \
 		 kmem_alloc-mips.cc \
 		 mips_cpu_irqs.cc \
