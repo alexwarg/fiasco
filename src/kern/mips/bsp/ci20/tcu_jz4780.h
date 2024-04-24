@@ -1,6 +1,6 @@
-INTERFACE:
+#pragma once
 
-#include "mmio_register_block.h"
+#include <mmio_register_block.h>
 
 class Tcu_jz4780
 {
@@ -52,6 +52,7 @@ public:
 
   Register_block<32, void> r;
 
+  Tcu_jz4780(Address mmio);
 };
 
 template<>
@@ -60,9 +61,7 @@ struct Register_block_access_size<Tcu_jz4780::R32> { enum { value = 32 }; };
 template<>
 struct Register_block_access_size<Tcu_jz4780::R16> { enum { value = 16 }; };
 
-IMPLEMENTATION:
-
-PUBLIC inline
+inline
 Tcu_jz4780::Tcu_jz4780(Address mmio) : r(mmio)
 {
   r[TECR] = 0x80ff;
@@ -70,3 +69,4 @@ Tcu_jz4780::Tcu_jz4780(Address mmio) : r(mmio)
   r[TMSR] = 0xff80ff;
   r[TFCR] = 0xff80ff;
 }
+
