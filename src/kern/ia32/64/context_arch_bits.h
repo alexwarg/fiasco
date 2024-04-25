@@ -77,6 +77,6 @@ public:
 protected:
   void arch_bits_setup_utcb_ptr(void *utcb_ptr)
   {
-    _cpu_state.gs_base = (Address)utcb_ptr - 56;
+    _cpu_state.gs_base = (Address)utcb_ptr;
   }
 };
