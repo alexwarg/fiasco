@@ -64,11 +64,6 @@ class Per_cpu : private Per_cpu_data
 {
   friend class Per_cpu_ptr<T>;
 public:
-  static Per_cpu_data_all_cpus all() noexcept
-  {
-    return Per_cpu_data_all_cpus();
-  }
-
   typedef T Type;
 
   Per_cpu() noexcept
@@ -101,6 +96,23 @@ public:
 
   T const &current() const noexcept { return cpu(current_cpu()); }
   T &current() noexcept { return cpu(current_cpu()); }
+
+  static Per_cpu_data_all_cpus all() noexcept
+  {
+    return Per_cpu_data_all_cpus();
+  }
+
+  struct Iter : public Per_cpu_data_all_cpus::Iter
+  {
+    Per_cpu &v;
+
+    Iter(Per_cpu &v, Cpu_number n) : Per_cpu_data_all_cpus::Iter(n), v(v) {}
+
+    T &operator * () const noexcept { return v.cpu(n); }
+  };
+
+  Iter begin() const noexcept { return Iter(Cpu_number::first()); }
+  Iter end() const noexcept { return Iter(Config::max_num_cpus()); }
 
 private:
   T _d;
