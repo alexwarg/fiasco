@@ -15,7 +15,10 @@ public:
   typedef cxx::remove_pointer_t<cxx::remove_all_extents_t<STORAGE_TYPE>>
     Bitmap_elem_type;
 
-  enum { Bpl = sizeof(Bitmap_elem_type) * 8 };
+  /**
+   * Number of bits per bitmap element.
+   */
+  static constexpr unsigned long Bpl = sizeof(Bitmap_elem_type) * 8;
 
   static constexpr unsigned long
   nr_elems(unsigned long nr_bits)
@@ -70,10 +73,14 @@ template<unsigned BITS>
 class Bitmap_base< true, BITS > : public Bitmap_base_base_x<BITS>
 {
 public:
-  enum {
-    Bpl      = Bitmap_base_base_x<BITS>::Bpl,
-    Nr_elems = (BITS + Bpl - 1) / Bpl,
-  };
+  /**
+   * Number of bits per bitmap element.
+   */
+  static constexpr unsigned long Bpl = Bitmap_base_base_x<BITS>::Bpl;
+  /**
+   * Number of bitmap elements.
+   */
+  static constexpr unsigned long Nr_elems = Bitmap_base_base_x<BITS>::nr_elems(BITS);
 
   bool atomic_get_and_clear(unsigned long bit)
   {
@@ -201,6 +208,16 @@ template<unsigned BITS>
 class Bitmap_base<false, BITS>
 {
 public:
+  /**
+   * Number of bits per bitmap element.
+   */
+  static constexpr unsigned long Bpl = sizeof(unsigned long) * 8;
+
+  /**
+   * Number bitmap elements (1).
+   */
+  static constexpr unsigned long Nr_elems = 1;
+
   void bit(unsigned long bit, bool on)
   {
     _bits = (_bits & ~(1UL << bit)) | ((unsigned long)on << bit);
@@ -296,11 +313,7 @@ public:
 
 protected:
   template< bool BIG, unsigned BTS > friend class Bitmap_base;
-  enum
-  {
-    Bpl      = sizeof(unsigned long) * 8,
-    Nr_elems = 1,
-  };
+
   unsigned long _bits;
 
   Bitmap_base() = default;
