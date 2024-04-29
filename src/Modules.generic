@@ -102,7 +102,7 @@ CXXSRC_KERNEL-$(CONFIG_JDB) += \
 	drq_log.cc vcpu_log.cc context_dbg.cc exregs_log.cc \
 	dbg_stack.cc
 
-CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
+#CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y-y)
 
