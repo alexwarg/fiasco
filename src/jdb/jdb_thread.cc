@@ -14,7 +14,7 @@ Jdb_thread::print_state_bits(Mword bits, unsigned max_size)
   static char const * const state_names[] =
     {
       "ready",         "drq_rdy",       "send",        "rcv_wait",
-      "rcv_in_progr",  "transfer",      "<0x40>",      "cancel",
+      "rcv_in_progr",  "transfer",      "trans_failed", "cancel",
       "timeout",       "dead",          "suspended",   "<0x800>",
       "migrate",       "resched",       "<0x4000>",    "fpu",
       "<0x10000>",     "<0x20000>",     "exc_progr",   "<0x80000>",
