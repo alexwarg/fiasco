@@ -26,7 +26,7 @@ public:
   using Asids = Asid_alloc::Asids_per_cpu;
   static constexpr bool Have_asids = true;
 
-  unsigned long c_asid() const
+  unsigned long FIASCO_PURE c_asid() const
   {
     auto asid = _asid.load();
 

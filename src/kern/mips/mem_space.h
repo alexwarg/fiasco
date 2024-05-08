@@ -131,7 +131,7 @@ public:
     return ~0UL;
   }
 
-  short c_asid() const
+  short FIASCO_PURE c_asid() const
   {
     return _asid[current_cpu()];
   }

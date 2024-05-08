@@ -32,7 +32,7 @@ protected:
       *i = a;
   }
 
-  unsigned long c_asid() const
+  unsigned long FIASCO_PURE c_asid() const
   { return _asid[current_cpu()]; }
 
   void tlb_flush_this_()
