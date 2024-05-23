@@ -184,6 +184,18 @@ SHARED_FLAGS-$(CONFIG_NO_FRAME_PTR)     += -fomit-frame-pointer
 SHARED_FLAGS-$(CONFIG_GSTABS)           += -gstabs+
 SHARED_FLAGS-$(CONFIG_UNREACHABLE_CODE) += $(call CHECKCC,-Wunreachable-code,)
 
+# To enable all warnings, including those with false positives.
+ENABLE_ALL_WARNINGS ?= n
+ifeq ($(ENABLE_ALL_WARNINGS),y)
+  SHARED_FLAGS += $(call CHECKCC,-Wframe-larger-than=512)
+  SHARED_FLAGS += -Wconversion -Wsign-conversion
+else
+  # WARNING EXCEPTION: the variables are initialized when the warned about code
+  # is reached. The false positives are only produced by GCC on -Os
+  # optimization level.
+  SHARED_FLAGS-gcc	+= $(call CHECKCC,-Wno-maybe-uninitialized)
+endif
+
 # Eagerly compute SHARED_FLAGS to avoid calling CHECKCC over and over again.
 SHARED_FLAGS       := $(SHARED_FLAGS) $(SHARED_FLAGS-y)
 SHARED_FLAGS       += $(SHARED_FLAGS-$(CC_TYPE))
