@@ -139,6 +139,8 @@ private:
 
     Pm_object::run_on_suspend_hooks(current_cpu());
 
+    current()->spill_user_state();
+
     Cpu::cpus.current().pm_suspend();
 
 
@@ -148,6 +150,10 @@ private:
       d->res = -L4_err::EInval;
 
     Cpu::cpus.current().pm_resume();
+
+    // mainly for setting FS base and GS base on AMD64
+    // must be done after calling Cpu::pm_resume()
+    current()->fill_user_state();
 
     take_boot_cpu_online();
 
