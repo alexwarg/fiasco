@@ -8,10 +8,26 @@ class Ref_cnt_obj
 public:
   Ref_cnt_obj() : _ref_cnt(0) {}
 
+  /**
+   * Return the current value of the reference counter.
+   *
+   * \return The current value of the reference counter.
+   */
   Smword ref_cnt() const
   { return _ref_cnt.load(cxx::memory_order_relaxed); }
 
-  bool inc_ref(bool from_zero = true)
+  /**
+   * Atomically increments the reference counter by one.
+   *
+   * \param from_zero  On `false`, do not increment the counter if the counter is
+   *                   currently zero. On `true`, always increment.
+   * \retval false  The incrementation was not performed because `from_zero=false`
+   *                was passed and the counter value was 0.
+   * \retval true   The incrementation was performed.
+   *
+   * \note There is no protection against overflow of the counter.
+   *
+   */  bool inc_ref(bool from_zero = true)
   {
     if (from_zero)
       {
@@ -29,7 +45,20 @@ public:
     return true;
   }
 
-  Smword dec_ref()
+  /**
+   * Atomically decrement the reference counter by one and return the resulting
+   * counter value.
+   *
+   * A result of 0 usually leads to some actions on the caller's side, usually
+   * removing the corresponding object. Therefore warn if the caller doesn't
+   * evaluate the result.
+   *
+   * \note There is no protection against reaching negative reference counter
+   *       values.
+   *
+   * \return The reference counter value after decrementing.
+   */
+  Smword FIASCO_WARN_RESULT dec_ref()
   {
     return _ref_cnt.fetch_sub(1) - 1;
   }
