@@ -7,6 +7,7 @@
 
 #ifdef __cplusplus
 
+#include <cstdint>
 #include <cxx/cxx_int>
 #include <cxx/type_traits>
 #include <new>
