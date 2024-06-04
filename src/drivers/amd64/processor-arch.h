@@ -98,9 +98,9 @@ public:
 
   static inline Unsigned64 rdmsr(Unsigned32 msr)
   {
-    Unsigned32 h, l;
+    Unsigned64 h, l;
     asm volatile ("rdmsr" : "=a" (l), "=d" (h) : "c" (msr));
-    return (Unsigned64{h} << 32) | l;
+    return (h << 32) | l;
   }
 
   static inline void wrmsr(Unsigned64 value, Unsigned32 msr)
