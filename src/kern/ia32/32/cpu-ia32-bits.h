@@ -100,6 +100,16 @@ public:
     return tsc;
   }
 
+  /**
+   * Support for RDTSCP is indicated by CPUID.80000001H:EDX[27].
+   */
+  static Unsigned64 rdtscp()
+  {
+    Unsigned64 tsc;
+    asm volatile ("rdtscp" : "=A" (tsc) :: "ecx");
+    return tsc;
+  }
+
   static Unsigned32 get_flags()
   { Unsigned32 efl; asm volatile ("pushfl ; popl %0" : "=r"(efl)); return efl; }
 
