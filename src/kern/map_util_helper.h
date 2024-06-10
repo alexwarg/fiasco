@@ -468,7 +468,8 @@ map(MAPDB* mapdb,
                   }
               }
 
-            if (SPACE::Need_insert_tlb_flush)
+            if (status != SPACE::Insert_warn_exists
+                && SPACE::Need_insert_tlb_flush)
               tlb.add_page(to, rcv_addr, i_order);
 
             V_pfc super_offset = SPACE::subpage_offset(snd_addr, i_order);
