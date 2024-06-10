@@ -32,7 +32,11 @@ class Mem_space :
   friend class Mem_space_arm_bits<Mem_space>;
 
 public:
+  // TLB never holds any translation table entry that generates a Translation
+  // fault or an Access Flag fault.
   static constexpr bool Need_insert_tlb_flush = false;
+
+  // TLB entry needs to be explicitly invalidated before it can be used.
   static constexpr bool Need_upgrade_tlb_flush = true;
 
   explicit Mem_space(Ram_quota *q) : Mem_space_x<Mem_space>(q) {}
