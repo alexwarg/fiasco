@@ -9,16 +9,11 @@
 template<>
 struct Map_traits<Obj_space, true>
 {
-  static bool free_object(Obj_space::Phys_addr o,
+  static void free_object(Obj_space::Phys_addr o,
                           Obj_space::Reap_list **reap_list)
   {
     if (o->map_root()->no_mappings())
-      {
-        o->initiate_deletion(reap_list);
-        return true;
-      }
-
-    return false;
+      o->initiate_deletion(reap_list);
   }
 
   static

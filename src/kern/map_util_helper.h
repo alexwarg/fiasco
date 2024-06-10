@@ -174,9 +174,9 @@ template< typename SPACE, bool = true >
 class Map_traits
 {
 public:
-  static bool free_object(typename SPACE::Phys_addr,
+  static void free_object(typename SPACE::Phys_addr,
                           typename SPACE::Reap_list **)
-  { return false; }
+  {}
 
   static
   typename SPACE::Attr
