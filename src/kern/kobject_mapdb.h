@@ -134,7 +134,7 @@ public:
     rn->_root.add(m);
 
     Obj::Entry *e = static_cast<Obj::Entry*>(m);
-    if (e->ref_cnt()) // counted
+    if (e->is_ref_counted())
       {
         // No overflow check required. The counter has type Smword and can count
         // half of the addresses in the virtual address space. A capability has a
@@ -158,7 +158,7 @@ public:
     // replace the source cap with the destination cap in the list
     Mapping::List::replace(se, re);
 
-    if (se->ref_cnt() && !re->ref_cnt())
+    if (se->is_ref_counted() && !re->is_ref_counted())
       if (--f.frame->_cnt <= 0)
         f.frame->invalidate_mappings();
 
@@ -179,7 +179,7 @@ public:
         return;
       }
 
-    if (!static_cast<Obj::Entry*>(f.m)->ref_cnt())  // not counted
+    if (!static_cast<Obj::Entry*>(f.m)->is_ref_counted())
       {
         Mapping::List::remove(f.m);
         return;
