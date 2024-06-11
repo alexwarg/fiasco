@@ -41,6 +41,7 @@ class Mem_space :
 
 public:
   static constexpr bool Need_insert_tlb_flush = false;
+  static constexpr bool Need_upgrade_tlb_flush = false;
 
   static Address user_max()
   { return Mem_layout::User_max; }
