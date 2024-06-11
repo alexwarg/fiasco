@@ -24,8 +24,9 @@ struct Smc_user : Kobject_h<Smc_user, Kobject>
     if (!(r0 & 0x80000000))
       return commit_result(-L4_err::ENosys);
 
-    // only allow calls to trusted applications or a trusted OS
-    if ((r0 & 0x3F000000) < 0x30000000)
+    // only allow calls in configured service call range
+    if (   (r0 & 0x3F000000) < CONFIG_ARM_SMC_USER_MIN
+        || (r0 & 0x3F000000) > CONFIG_ARM_SMC_USER_MAX)
       return commit_result(-L4_err::ENosys);
 
     register Mword r1 FIASCO_ARM_ASM_REG(1) = in->values[1];
