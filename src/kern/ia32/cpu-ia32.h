@@ -74,6 +74,8 @@ public:
   {
     Lf_rdpmc            = 1U << 0,  // supports RDPMC instruction
     Lf_rdpmc32          = 1U << 1,  // supports RDPMC32 instruction
+    Lf_tsc_invariant    = 1U << 2,  // TSC runs at constant rate and does not
+                                    // stop in any ACPI state
   };
 
   enum Lbr

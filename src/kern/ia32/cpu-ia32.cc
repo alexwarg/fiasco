@@ -924,6 +924,10 @@ Cpu::identify()
 	      addr_size_info();
 	    // FALLTHRU
 	  case 0x80000007:
+            if (_vendor == Vendor_amd || _vendor == Vendor_intel)
+              if (cpuid_edx(0x80000007) & (1U << 8))
+                _local_features |= Lf_tsc_invariant;
+            // FALLTHRU
 	  case 0x80000006:
 	    if (_vendor == Vendor_amd || _vendor == Vendor_via)
 	      cache_tlb_l2_l3();
