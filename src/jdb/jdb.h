@@ -29,6 +29,7 @@ class Context;
 class Space;
 class Thread;
 class Push_console;
+class Trap_state;
 
 class Jdb_entry_frame;
 
@@ -90,7 +91,7 @@ public:
   static void write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign);
   static void write_tsc(String_buffer *buf, Signed64 tsc, bool sign);
 
-  static int FIASCO_FASTCALL enter_jdb(Jdb_entry_frame *e, Cpu_number cpu);
+  static int FIASCO_FASTCALL enter_jdb(Trap_state *e, Cpu_number cpu);
   static void cursor_end_of_screen();
   static void cursor_home();
   static void printf_statline(const char *prompt, const char *help,

@@ -4,6 +4,7 @@
 #include <globalconfig.h>
 #include <config.h>
 #include <keycodes.h>
+#include <trap_state.h>
 
 #include <libc_backend.h>
 #include <feature.h>
@@ -826,8 +827,11 @@ Jdb_base_cmds::Jdb_base_cmds()
 
 
 int
-Jdb::enter_jdb(Jdb_entry_frame *e, Cpu_number cpu)
+Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
 {
+  static_assert(sizeof(Jdb_entry_frame) == sizeof(Trap_state));
+  auto *e = static_cast<Jdb_entry_frame *>(ts);
+
   if (e->debug_ipi())
     {
       if (!remote_work_ipi_process(cpu))

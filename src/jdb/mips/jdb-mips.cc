@@ -86,7 +86,7 @@ Jdb::handle_user_request(Cpu_number cpu)
 FIASCO_INIT void
 Jdb::init()
 {
-  Thread::nested_trap_handler = (Trap_state::Handler)enter_jdb;
+  Thread::nested_trap_handler = &enter_jdb;
   Kconsole::console()->register_console(push_cons());
 }
 
