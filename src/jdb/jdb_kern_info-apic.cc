@@ -20,14 +20,16 @@ public:
 
 static Jdb_kern_info_apic k_a INIT_PRIORITY(JDB_MODULE_INIT_PRIO+1);
 
-static void apic_id_show(void)
+static void apic_id_show(int indent = 0)
 {
-  printf("APIC id: %02x version: %02x\n", Apic::get_id() >> 24, Apic::get_version());
+  printf("%*sAPIC id: %02x version: %02x\n",
+         indent, "", get_id() >> 24, get_version());
 }
 
-static void apic_timer_show(void)
+static void apic_timer_show(int indet = 0)
 {
-  printf("Timer mode: %s  counter: %08x/%08x\n",
+  printf("%*sTimer mode: %s  counter: %08x/%08x\n",
+         indent, "",
 	 Apic::reg_read(Apic::APIC_lvtt) & Apic::APIC_lvt_timer_periodic
 	   ? "periodic" : "one-shot",
 	 Apic::timer_reg_read_initial(), Apic::timer_reg_read());
@@ -97,36 +99,36 @@ static void apic_reg_show(unsigned reg)
 }
 
 
-static void apic_regs_show(void)
+static void apic_regs_show(int indent = 0)
 {
-  putstr("\nVectors:   LINT0: "); apic_reg_show(Apic::APIC_lvt0);
-  putstr("\n           LINT1: "); apic_reg_show(Apic::APIC_lvt1);
-  putstr("\n           Timer: "); apic_reg_show(Apic::APIC_lvtt);
-  putstr("\n           Error: "); apic_reg_show(Apic::APIC_lvterr);
+  printf("%*sVectors:   LINT0: ", indent, ""); reg_show(APIC_lvt0);
+  printf("\n%*sLINT1: ", indent + 11, ""); reg_show(APIC_lvt1);
+  printf("\n%*sTimer: ", indent + 11, ""); reg_show(APIC_lvtt);
+  printf("\n%*sError: ", indent + 11, ""); reg_show(APIC_lvterr);
   if (Apic::have_pcint())
     {
-      putstr("\n         PerfCnt: ");
+      printf("\n%*sPerfCnt: ", indent + 9, "");
       apic_reg_show(Apic::APIC_lvtpc);
     }
   if (Apic::have_tsint())
     {
-      putstr("\n         Thermal: ");
+      printf("\n%*sThermal: ", indent + 9, "");
       apic_reg_show(Apic::APIC_lvtthmr);
     }
   putchar('\n');
 }
 
-static void apic_bitfield_show(unsigned reg, const char *name, char flag)
+static void apic_bitfield_show(unsigned reg, const char *name, char flag, int indent)
 {
   unsigned i, j;
   Unsigned32 tmp_val;
 
-  printf("%-11s    0123456789abcdef0123456789abcdef"
-                  "0123456789abcdef0123456789abcdef\n", name);
+  printf("%*s%-11s    0123456789abcdef0123456789abcdef"
+                     "0123456789abcdef0123456789abcdef\n", indent, "", name);
   for (i=0; i<8; i++)
     {
       if (!(i & 1))
-	printf("            %02x ", i*0x20);
+	printf("%*s%02x ", indent + 12, "", i*0x20);
       tmp_val = Apic::reg_read(reg + i*0x10);
       for (j=0; j<32; j++)
 	putchar(tmp_val & (1<<j) ? flag : '.');
@@ -135,14 +137,14 @@ static void apic_bitfield_show(unsigned reg, const char *name, char flag)
     }
 }
 
-static void apic_irr_show()
+static void apic_irr_show(int indent = 0)
 {
-  apic_bitfield_show(Apic::APIC_irr, "Ints Reqst:", 'R');
+  apic_bitfield_show(Apic::APIC_irr, "Ints Reqst:", 'R', indent);
 }
 
-static void apic_isr_show()
+static void apic_isr_show(int indent = 0)
 {
-  apic_bitfield_show(Apic::APIC_isr, "Ints InSrv:", 'S');
+  apic_bitfield_show(Apic::APIC_isr, "Ints InSrv:", 'S', indent);
 }
 
 
@@ -155,11 +157,24 @@ Jdb_kern_info_apic::show()
       return;
     }
 
-  apic_id_show();
-  apic_timer_show();
-  apic_regs_show();
-  putchar('\n');
-  apic_irr_show();
-  apic_isr_show();
+  for (Cpu_number u = Cpu_number::first(); u < Config::max_num_cpus(); ++u)
+    if (Cpu::online(u))
+      {
+        printf("CPU%u: ", cxx::int_value<Cpu_number>(u));
+        auto show_info = [](Cpu_number)
+          {
+            Apic::id_show(0);
+            Apic::timer_show(4);
+            Apic::regs_show(4);
+            Apic::irr_show(4);
+            Apic::isr_show(4);
+            putchar('\n');
+          };
+
+        if (u == Cpu_number::boot_cpu())
+          show_info(u);
+        else
+          Jdb::remote_work(u, show_info, true);
+      }
 }
 
