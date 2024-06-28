@@ -168,61 +168,6 @@ Jdb_tcb::info_thread_state(Thread *t)
     }
 }
 
-#if 0
-PUBLIC
-bool
-Jdb_tcb_ptr::in_backtrace(Address bt_start, Address tcb)
-{
-  if (bt_start)
-    {
-      if (!Config::Have_frame_ptr)
-	return Mem_layout::in_kernel_code(value());
-
-      Jdb_tcb_ptr ebp(bt_start);
-
-      for (;;)
-	{
-	  Jdb_tcb_ptr eip(ebp.addr()+4);
-
-	  if (!Mem_layout::in_kernel_code(eip.value()))
-	    return false;
-	  if (ebp.addr()+4 == addr())
-	    return true;
-	  if (ebp.addr() == 0 || !Jdb_tcb_ptr(ebp.value()).valid())
-	    return false;
-
-	  ebp = ebp.value();
-	}
-    }
-  return false;
-}
-
-
-static
-Address
-Jdb_tcb::search_bt_start(Address tcb, Mword *ksp, bool is_current_thread)
-{
-  if (!Config::Have_frame_ptr)
-    return 1;
-
-  if (is_current_thread)
-    return (Address)__builtin_frame_address(6);
-
-  Address tcb_next = tcb + Context::size;
-
-  for (int i=0; (Address)(ksp+i+1)<tcb_next-20; i++)
-    {
-      if (Mem_layout::in_kernel_code(ksp[i+1]) &&
-	  ksp[i] >= tcb + 0x180 &&
-	  ksp[i] <  tcb_next-20 &&
-	  ksp[i] >  (Address)(ksp+i))
-	return (Address)(ksp+i);
-    }
-
-  return 0;
-}
-#endif
-
 bool
 Jdb_stack_view::edit_registers()
 {
