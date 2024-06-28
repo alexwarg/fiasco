@@ -83,7 +83,7 @@ public:
   };
 
   static Per_cpu<Jdb_entry_frame*> entry_frame;
-  static Cpu_number current_cpu;
+  static Cpu_number triggered_on_cpu;
   static Per_cpu<Remote_func> remote_func;
 
   static void init();

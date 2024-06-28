@@ -301,7 +301,7 @@ Jdb_ptab_m::action(int cmd, void *&args, char const *&fmt, int &next_char)
             return Jdb_module::NOTHING;
         }
       else
-        s = Jdb::get_space(Jdb::current_cpu);
+        s = Jdb::get_space(Jdb::triggered_on_cpu);
 
       void *ptab_base;
       if (!(ptab_base = (static_cast<void*>(static_cast<Mem_space*>(s)->dir()))))
