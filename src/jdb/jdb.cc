@@ -52,7 +52,7 @@ const char *Jdb::toplevel_cmds = "j_";
 // interactive execution
 const char *Jdb::non_interactive_cmds = "bEIJLMNOPSU^Z*";
 
-DEFINE_PER_CPU Per_cpu<bool> Jdb::running;	// JDB is already running
+DEFINE_PER_CPU Per_cpu<bool> Jdb::in_jdb;
 bool Jdb::never_break;		// never enter JDB
 bool Jdb::jdb_active;
 bool Jdb::in_service;
@@ -466,7 +466,7 @@ Jdb::close_debug_console(Cpu_number cpu)
   Mem::barrier();
   if (cpu == Cpu_number::boot_cpu())
     {
-      running.cpu(cpu) = 0;
+      in_jdb.cpu(cpu) = false;
       // eat up input from console
       while (Kconsole::console()->getchar(false)!=-1)
 	;
@@ -507,7 +507,7 @@ int
 Jdb::getchar()
 {
   int c = Jdb_core::getchar();
-  check_for_cpus(false);
+  force_app_cpus_into_jdb(false);
   return c;
 }
 
@@ -896,7 +896,7 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
       return 0;
     }
 
-  if (!running.cpu(cpu))
+  if (!in_jdb.cpu(cpu))
     entry_frame.cpu(cpu) = e;
 
   volatile bool really_break = true;
@@ -904,7 +904,7 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
   static jmp_buf recover_buf;
   static Jdb_entry_frame nested_trap_frame;
 
-  if (running.cpu(cpu))
+  if (in_jdb.cpu(cpu))
     {
       nested_trap_frame = *e;
 
@@ -918,7 +918,7 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
     }
 
   // all following exceptions are handled by jdb itself
-  running.cpu(cpu) = true;
+  in_jdb.cpu(cpu) = true;
 
   // If entered by Ipi::Debug, a thread on another CPU requested this CPU to
   // enter. Otherwise, we entered by exception. Remember the first one.
@@ -984,7 +984,7 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
 	      for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
 		if (Cpu::online(i))
 		  {
-		    if (running.cpu(i))
+		    if (in_jdb.cpu(i))
                       {
                         ++cpu_cnt;
                         cpus_in_jdb.set(i);
@@ -1056,72 +1056,110 @@ void *Jdb::_remote_work_ipi_func_data;
 unsigned long Jdb::_remote_work_ipi_done;
 Spin_lock<> Jdb::_remote_call_lock;
 
-bool
-Jdb::check_for_cpus(bool try_nmi)
+/**
+ * Waits for all the given application CPUs to enter the debugger with a timeout
+ * of 1s. Also sets `cpus_in_debugger` which is used while leaving the debugger.
+ *
+ * \param online_cpus_to_stop  The CPUs to wait for to enter the debugger.
+ *
+ * \retval 0  All CPUs entered the debugger.
+ * \retval 1  Another CPU just finished booting, wait aborted.
+ * \retval 2  Timeout hit, some CPU(s) did not respond.
+ */
+int
+Jdb::wait_for_app_cpus(Cpu_mask const &online_cpus_to_stop)
 {
   enum { Max_wait_cnt = 1000 };
-  for (Cpu_number c = Cpu_number::second(); c < Config::max_num_cpus(); ++c)
-    {
-      if (Cpu::online(c) && !running.cpu(c))
-	Ipi::send(Ipi::Debug, Cpu_number::first(), c);
-    }
-  Mem::barrier();
-retry:
+
   unsigned long wait_cnt = 0;
   for (;;)
     {
       bool all_there = true;
       cpus_in_debugger.store(0);
-      // skip boot cpu 0
+
+      Mem::barrier(); // other CPUs might have changed state
+
       for (Cpu_number c = Cpu_number::second(); c < Config::max_num_cpus(); ++c)
-	{
-	  if (Cpu::online(c))
-	    {
-	      if (!running.cpu(c))
-		all_there = false;
-	      else
-		cpus_in_debugger.fetch_add(1);
-	    }
-	}
+        if (Cpu::online(c))
+          {
+            if (!online_cpus_to_stop.get(c))
+              return 1; // another CPU just finished booting
+            if (!in_jdb.cpu(c))
+              all_there = false;
+            else
+              cpus_in_debugger.fetch_add(1);
+          }
 
-      if (!all_there)
-	{
-	  Proc::pause();
-	  Mem::barrier();
-	  if (++wait_cnt == Max_wait_cnt)
-	    break;
-	  Delay::delay(1);
-	  continue;
-	}
+      if (all_there)
+        return 0;
 
-      break;
+      Proc::pause();
+      if (++wait_cnt == Max_wait_cnt)
+        return 2;
+
+      Delay::delay(1);
     }
+}
 
-  bool do_retry = false;
-  for (Cpu_number c = Cpu_number::second(); c < Config::max_num_cpus(); ++c)
+/**
+ * Force all applications CPUs into the debugger by sending a debug IPI and, if
+ * that doesn't help, by sending an NMI.
+ *
+ * \param try_nmi  Try harder by sending an NMI.
+ */
+void
+Jdb::force_app_cpus_into_jdb(bool try_nmi)
+{
+  Cpu_mask online_cpus_to_stop;
+  Cpu_mask cpus_nmi_notified;
+
+  bool timed_out = false;
+  for (;;)
     {
-      if (Cpu::online(c))
-	{
-	  if (!running.cpu(c))
-	    {
-	      printf("JDB: CPU%u: is not responding ... %s\n",
-                     cxx::int_value<Cpu_number>(c),
-		     try_nmi ? "trying NMI" : "");
-	      if (try_nmi)
-		{
-		  do_retry = true;
-		  send_nmi(c);
-		}
-	    }
-	}
+      bool did_notify = false;
+      for (Cpu_number c = Cpu_number::second(); c < Config::max_num_cpus(); ++c)
+        {
+          if (!Cpu::online(c) || in_jdb.cpu(c))
+            continue;
+
+          if (!online_cpus_to_stop.get(c))
+            {
+              // Initially try to notify CPU via debug IPI.
+              Ipi::send(Ipi::Debug, Cpu_number::first(), c);
+              online_cpus_to_stop.set(c);
+              did_notify = true;
+            }
+          else if (timed_out && !cpus_nmi_notified.get(c))
+            {
+              // Timeout: Report that and try to notify CPU via NMI.
+              printf("JDB: CPU%u: is not responding ... %s\n",
+                     cxx::int_value<Cpu_number>(c), try_nmi ? "trying NMI" : "");
+              if (try_nmi)
+                {
+                  send_nmi(c);
+                  did_notify = true;
+                }
+              cpus_nmi_notified.set(c);
+            }
+        }
+
+      if (!did_notify)
+        return; // either timed out or there are no other online CPUs
+
+      switch (wait_for_app_cpus(online_cpus_to_stop))
+        {
+        case 0: // all CPUs in debugger
+          return; // done
+
+        case 1: // another CPU just finished booting
+          timed_out = false;
+          break; // retry
+
+        case 2: // some CPUs did not respond in time
+          timed_out = true;
+          break; // retry with NMI if requested via try_nmi
+        }
     }
-  if (do_retry)
-    {
-      try_nmi = false;
-      goto retry;
-    }
-  // All CPUs entered JDB, so go on and become interactive
-  return true;
 }
 
 bool
@@ -1135,7 +1173,7 @@ Jdb::stop_all_cpus(Cpu_number current_cpu)
       // I'm CPU 0 stop all other CPUs and wait for them to enter the JDB
       jdb_active = 1;
       Mem::barrier();
-      check_for_cpus(true);
+      force_app_cpus_into_jdb(true);
       // All CPUs entered JDB, so go on and become interactive
       return true;
     }
@@ -1147,27 +1185,27 @@ Jdb::stop_all_cpus(Cpu_number current_cpu)
       Ipi::send(Ipi::Debug, current_cpu, Cpu_number::boot_cpu());
 
       unsigned long wait_count = Max_wait_cnt;
-      while (!running.cpu(Cpu_number::boot_cpu()) && wait_count)
-	{
-	  Proc::pause();
+      while (!in_jdb.cpu(Cpu_number::boot_cpu()) && wait_count)
+        {
+          Proc::pause();
           Delay::delay(1);
-	  Mem::barrier();
-	  --wait_count;
-	}
+          Mem::barrier();
+          --wait_count;
+        }
 
       if (wait_count == 0)
-	send_nmi(Cpu_number::boot_cpu());
+        send_nmi(Cpu_number::boot_cpu());
 
       // Wait for messages from CPU 0
       while (access_once(&jdb_active))
-	{
-	  Mem::mp_mb();
+        {
+          Mem::mp_mb();
           remote_func.cpu(current_cpu).monitor_exec(current_cpu);
           Jdb_power_safe::other_cpu_halt_in_jdb();
-	}
+        }
 
       // This CPU defacto left JDB
-      running.cpu(current_cpu) = 0;
+      in_jdb.cpu(current_cpu) = false;
 
       // Signal CPU 0, that we are ready to leve the debugger
       // This is the second door of the airlock
@@ -1175,10 +1213,10 @@ Jdb::stop_all_cpus(Cpu_number current_cpu)
 
       // Wait for CPU 0 to leave us out
       while (access_once(&leave_barrier))
-	{
-	  Mem::barrier();
-	  Proc::pause();
-	}
+        {
+          Mem::barrier();
+          Proc::pause();
+        }
 
       // CPU 0 signaled us to leave JDB
       return false;

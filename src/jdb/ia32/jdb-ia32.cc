@@ -655,7 +655,7 @@ Jdb::handle_debug_traps(Cpu_number cpu)
     {
       for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
 	{
-	  if (!Cpu::online(i) || !running.cpu(i))
+	  if (!Cpu::online(i) || !in_jdb.cpu(i))
 	    continue;
 	  // else S+ mode
 	  if (!permanent_single_step.cpu(i))

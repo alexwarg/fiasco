@@ -140,7 +140,7 @@ private:
   static const char *non_interactive_cmds;
 
   // state for traps in JDB itself
-  static Per_cpu<bool> running;
+  static Per_cpu<bool> in_jdb;
   static bool in_service;
   static bool leave_barrier;
   static cxx::atomic<unsigned long> cpus_in_debugger;
@@ -175,7 +175,7 @@ public:
   static Per_cpu<String_buf<81> > error_buffer;
 
   static bool cpu_in_jdb(Cpu_number cpu)
-  { return Cpu::online(cpu) && running.cpu(cpu); }
+  { return Cpu::online(cpu) && in_jdb.cpu(cpu); }
 
 
   template< typename Func >
@@ -319,8 +319,9 @@ private:
   static void *_remote_work_ipi_func_data;
   static unsigned long _remote_work_ipi_done;
 
-  static bool check_for_cpus(bool try_nmi);
+  static int wait_for_app_cpus(Cpu_mask const &online_cpus_to_stop);
   static bool stop_all_cpus(Cpu_number current_cpu);
+  static void force_app_cpus_into_jdb(bool try_nmi);
   static void leave_wait_for_others();
   static int remote_work_ipi_process(Cpu_number cpu);
 
@@ -339,8 +340,8 @@ private:
   static void leave_wait_for_others()
   {}
 
-  static bool check_for_cpus(bool)
-  { return true; }
+  static void force_app_cpus_into_jdb(bool)
+  {}
 
   static int remote_work_ipi_process(Cpu_number)
   { return 1; }
