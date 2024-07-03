@@ -41,12 +41,16 @@ public:
       case 4: LOCK_ARCH(); break;
       }
 
+  Mem::mp_acquire();
+
 #undef LOCK_ARCH
   }
 
   void unlock_arch() noexcept
   {
     typename SL::Lock_type tmp;
+
+    Mem::mp_release();
 
 #define UNLOCK_ARCH(z) \
     __asm__ __volatile__( \

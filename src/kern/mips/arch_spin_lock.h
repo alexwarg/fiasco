@@ -32,11 +32,14 @@ public:
         "   .set    pop             \n"
         : [lock] "+m" (static_cast<SL *>(this)->_lock), [tmp] "=&r" (tmp), [d] "=&r" (dummy)
         : : "memory");
+
+    Mem::mp_acquire();
   }
 
   void unlock_arch() noexcept
   {
-    Mem::mp_mb();
+    Mem::mp_release();
+
     static_cast<SL *>(this)->_lock &= ~Arch_lock;
   }
 

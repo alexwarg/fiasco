@@ -54,12 +54,10 @@ public:
     //assert(!cpu_lock.test());
     cpu_lock.lock();
     this->lock_arch();
-    Mem::mp_acquire();
   }
 
   void clear() noexcept
   {
-    Mem::mp_release();
     this->unlock_arch();
     Cpu_lock::clear();
   }
@@ -69,13 +67,11 @@ public:
     Status s = !!cpu_lock.test();
     cpu_lock.lock();
     this->lock_arch();
-    Mem::mp_acquire();
     return s;
   }
 
   void set(Status s) noexcept
   {
-    Mem::mp_release();
     if (!(s & Arch_lock))
       this->unlock_arch();
 
