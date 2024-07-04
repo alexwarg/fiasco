@@ -11,6 +11,25 @@ public:
   enum Lock_init { Unlocked = 0 };
 };
 
+/**
+ * Optimized lock-guard policy for Spin_lock that does not disable IRQs to avoid
+ * the overhead for cases where it is certain that IRQs are already disabled.
+ */
+template< typename LOCK >
+struct No_cpu_lock_policy
+{
+  using Status = unsigned; // unused
+
+  static Status test_and_set(LOCK *l)
+  {
+    l->lock_arch();
+    return 0;
+  }
+
+  static void set(LOCK *l, Status)
+  { l->unlock_arch(); }
+};
+
 /*
  * The memory order guarantees provided by the spin lock are not limited to the
  * memory accesses within the critical section protected by the lock, but also
@@ -33,6 +52,8 @@ public:
   using Arch_lock_type::Arch_lock;
   friend class Arch_spin_lock<Spin_lock<Lock_t>>;
 
+  template< typename LOCK >
+  friend struct No_cpu_lock_policy;
 
   typedef Mword Status;
   Spin_lock() = default;
