@@ -53,7 +53,7 @@ public:
         "ldr"#z " %[tmp], %[lock]             \n" \
         "bic %[tmp], %[tmp], #2          \n" /* Arch_lock == #2 */ \
         "str"#z " %[tmp], %[lock]             \n" \
-        : [lock] "=m" (static_cast<SL *>(this)->_lock), [tmp] "=&r" (tmp)); \
+        : [lock] "+m" (static_cast<SL *>(this)->_lock), [tmp] "=&r" (tmp)); \
     Mem::dsb(); \
     __asm__ __volatile__("sev")
 
