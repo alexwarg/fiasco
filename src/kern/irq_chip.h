@@ -206,7 +206,7 @@ public:
     F_enabled = 1, // This flags needs to be set atomically.
   };
 
-  Irq_base() : _flags(0), _irq_lock(Spin_lock<>::Unlocked), _next(0)
+  Irq_base() : _flags(0), _irq_lock(Spin_lock<>::Unlocked)
   {
     Irq_chip_soft::sw_chip.bind(this, 0, true);
     mask();
@@ -348,7 +348,6 @@ protected:
   { nonull_static_cast<T*>(irq)->handle(ui); }
 
 public:
-  Irq_base *_next;
 
   static Irq_base *(*dcast)(Kobject_iface *);
 };
