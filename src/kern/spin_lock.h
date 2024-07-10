@@ -100,6 +100,18 @@ public:
       cpu_lock.clear();
   }
 
+  /**
+   * Returns whether the lock is set.
+   *
+   * This function is intended for use in asserts. It is necessary because the
+   * Status returned by `test()` encodes not only the status of the Spin_lock, but
+   * also the status of the cpu lock.
+   */
+  bool is_locked() const
+  {
+    return _lock & Arch_lock;
+  }
+
 protected:
   Lock_t _lock;
 };
