@@ -418,7 +418,8 @@ public:
 #ifdef CONFIG_CPU_VIRT
   enum : Mword
   {
-    Hdcr_bits = D::Mdcr_tpmcr | D::Mdcr_tpm   | D::Mdcr_tde
+    Hdcr_bits = (IS_ENABLED(CONFIG_PERF_CNT_USER) ? (D::Mdcr_tpmcr | D::Mdcr_tpm) : 0)
+                | D::Mdcr_tde
                 | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_ttrf,
   };
 

@@ -74,7 +74,7 @@ namespace Perf_cnt_arm_v7plus
     _nr_counters = (pmcr() >> 11) & 0x1f;
     pmcr(PMNC_ENABLE | PMNC_PERF_RESET | PMNC_CNT_RESET);
     cntens((1ul << 31) | ((1ul << _nr_counters) - 1));
-    useren(1);
+    useren(IS_ENABLED(CONFIG_PERF_CNT_USER) ? 1 : 0);
   }
 
 inline char const *perf_type() { return "ACor"; }

@@ -136,29 +136,39 @@ public:
                               | Cp15_c1_tre
                               | Cp15_c1_rao_sbop,
   };
+
+  enum Hstr_values
+  {
+    Hstr_non_vm = (1 << 0)
+                | (1 << 1)
+                | (1 << 2)
+                | (1 << 3)
+                | (0 << 4) // res0
+                | (1 << 5)
+                | (1 << 6)
+                | (0 << 7) // enable data and instruction barrier operations
+                | (1 << 8)
+                | ((IS_ENABLED(CONFIG_PERF_CNT_USER) ? 0 : 1) << 9) // PMCCNTR
+                | (1 << 10)
+                | (1 << 11)
+                | (1 << 12)
+                | (0 << 13) // enable access to TPIDRxxR
+                | (0 << 14) // res0
+                | (1 << 15)
+                | ((IS_ENABLED(CONFIG_ARM_V7) ? 1 : 0) << 16) // TTEE, only ARMv7
+                | ((IS_ENABLED(CONFIG_ARM_V7) ? 1 : 0) << 17) // TJDBX, only ARMv7
+                ,
+    Hstr_vm = 0x0, // none
+  };
 };
 
 template<typename C, typename B>
 class Cpu_arm_v7 : public Cpu_arm_v7plus<C, B>
-{
-public:
-  enum Hstr_values
-  {
-    Hstr_non_vm = 0x39f6f, // ALL but crn=13,7 (TPIDxxR, DSB) CP15 trapped
-    Hstr_vm = 0x0, // none
-  };
-};
+{};
 
 template<typename C, typename B>
 class Cpu_arm_v8 : public Cpu_arm_v7plus<C, B>
-{
-public:
-  enum Hstr_values
-  {
-    Hstr_non_vm = 0x9f6f, // ALL but crn=13,7 (TPIDxxR, DSB) CP15 trapped
-    Hstr_vm = 0x0, // none
-  };
-};
+{};
 
 class Cpu;
 

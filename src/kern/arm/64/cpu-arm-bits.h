@@ -38,7 +38,7 @@ public:
     Scr_eel2 = 1UL << 18, ///< Secure EL2 enable
   };
 
-enum : Mword {
+  enum : Mword {
     Sctlr_m       = 1UL << 0,
     Sctlr_a       = 1UL << 1,
     Sctlr_c       = 1UL << 2,
@@ -295,7 +295,7 @@ enum : Mword {
 
   enum : Mword
   {
-    Mdcr_bits      = D::Mdcr_tpmcr | D::Mdcr_tpm
+    Mdcr_bits      = (IS_ENABLED(CONFIG_PERF_CNT_USER) ? (D::Mdcr_tpmcr | D::Mdcr_tpm) : 0)
                      | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_tpms | D::Mdcr_ttrf,
     Mdcr_vm_mask   = 0xf00,
   };
