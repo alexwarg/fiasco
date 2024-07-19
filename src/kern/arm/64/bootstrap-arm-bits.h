@@ -378,7 +378,7 @@ switch_from_el3_to_el1()
 static inline void
 switch_from_el2_to_el1()
 {
-  Mword tmp;
+  Mword tmp, tmp2;
 
   // flush all E1 TLBs
   asm volatile ("tlbi alle1");
@@ -391,13 +391,13 @@ switch_from_el2_to_el1()
                 "   msr VMPIDR_EL2, %[tmp]  \n"
                 "   mov %[tmp], sp          \n"
                 "   msr spsr_el2, %[psr]    \n"
-                "   adr x4, 1f              \n"
-                "   msr elr_el2, x4         \n"
+                "   adr %[tmp2], 1f         \n"
+                "   msr elr_el2, %[tmp2]    \n"
                 "   eret                    \n"
                 "1: mov sp, %[tmp]          \n"
-                : [tmp]"=&r"(tmp)
+                : [tmp]"=&r"(tmp), [tmp2] "=&r"(tmp2)
                 : [psr]"r"((0xfUL << 6) | 5UL)
-                : "cc", "x4");
+                : "cc", "memory");
 }
 
 static void leave_hyp_mode()
