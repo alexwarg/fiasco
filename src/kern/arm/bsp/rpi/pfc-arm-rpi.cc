@@ -1,5 +1,6 @@
 
 #include <pfc-arm.h>
+#include <pfc-psci.h>
 #include <types.h>
 #include <processor.h>
 #include <mem.h>
@@ -14,6 +15,8 @@
 #endif
 
 namespace {
+
+#ifndef CONFIG_PF_RPI_RPI5
 
 struct Pfc_z : Pfc_arm
 {
@@ -78,7 +81,34 @@ struct Pfc_z : Pfc_arm
 #endif
 };
 
-
 static Pfc_singleton<Pfc_z> __pfc;
+
+#else // CONFIG_PF_RPI_RPI5
+
+struct Pfc_rpi5 : Pfc_psci
+{
+#ifdef CONFIG_MP
+  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  {
+    static constexpr unsigned mpidrs[] = { 0x000, 0x100, 0x200, 0x300 };
+    int seq = 1;
+    for (unsigned mpidr : mpidrs)
+      {
+        if (cpu_on(mpidr, phys_tramp_mp_addr))
+          continue;
+        while (!Cpu::online(Cpu_number(seq)))
+          {
+            Mem::barrier();
+            Proc::pause();
+          }
+        ++seq;
+      }
+  }
+#endif
+};
+
+static Pfc_singleton<Pfc_rpi5> __pfc;
+
+#endif // CONFIG_PF_RPI_RPI5
 
 }

@@ -13,7 +13,7 @@ LIBUART_UART_FLAGS      += $(LIBUART_UART_FLAGS-y)
 CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI2)  += arm_control.cc
 CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI3)  += arm_control.cc
 CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI4)  += $(if $(CONFIG_BIT64),,arm_control.cc)
+CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI5)  += $(if $(CONFIG_BIT64),,arm_control.cc)
 
 CXXSRC_KERNEL += $(if $(CONFIG_PF_RPI_RPI1)$(CONFIG_PF_RPI_RPIZW), timer_arm_rpi.cc)
 CXXSRC_KERNEL += pfc-arm-rpi.cc pic-arm-rpi.cc rpi_pf.cc
-
