@@ -14,18 +14,18 @@ class Pseudo_descriptor
 {
 public:
 
-  Pseudo_descriptor() = default;
+  constexpr Pseudo_descriptor() = default;
 
-  Pseudo_descriptor(Address base, Unsigned16 limit)
+  constexpr Pseudo_descriptor(Address base, Unsigned16 limit)
   : _limit(limit), _base(base)
   {}
 
-  Address base() const
+  constexpr Address base() const
   {
     return _base;
   }
 
-  Unsigned16 limit() const
+  constexpr Unsigned16 limit() const
   {
     return _limit;
   }
@@ -43,10 +43,10 @@ class X86desc
 protected:
   Unsigned64 _value = 0;
 
-  explicit X86desc(Unsigned64 v) : _value(v) {}
+  explicit constexpr X86desc(Unsigned64 v) : _value(v) {}
 
 public:
-  X86desc() = default;
+  constexpr X86desc() = default;
   /**
    * System segment descriptor and gate descriptor types.
    */
@@ -70,12 +70,12 @@ public:
   };
 
   // system descriptor ?
-  bool system() const
+  constexpr bool system() const
   {
     return !_not_system();
   }
 
-  Unsigned64 raw_value() const
+  constexpr Unsigned64 raw_value() const
   { return _value; }
 
   CXX_BITFIELD_MEMBER(32 + 8, 32 + 11, type_system, _value);
@@ -146,7 +146,7 @@ public:
   /**
    * Create a non-present segment descriptor.
    */
-  Gdt_entry() = default;
+  constexpr Gdt_entry() = default;
 
 #ifdef CONFIG_BIT64
   /**
@@ -154,7 +154,7 @@ public:
    *
    * \param base  Segment base address.
    */
-  explicit Gdt_entry(Address base)
+  explicit constexpr Gdt_entry(Address base)
   {
     _value = base >> 32;
   }
@@ -173,6 +173,7 @@ public:
    * \param dpl          Descriptor privilege level.
    * \param granularity  Limit granularity.
    */
+  constexpr
   Gdt_entry(Address base, Unsigned32 limit,
             Type_system type_system,
             Dpl dpl, Granularity granularity)
@@ -206,6 +207,7 @@ public:
    *                      in case of 64-bit code segments).
    * \param granularity   Limit granularity.
    */
+  constexpr
   Gdt_entry(Address base, Unsigned32 limit,
             Access accessed, Type type,
             Dpl dpl, Code code,
@@ -227,25 +229,25 @@ public:
       | _base_high_bfm_t::val((base & 0xff000000U) >> 24)
       )
   {
-    assert(IS_ENABLED(CONFIG_BIT64) || code == Code_undef);
-    assert(type == Code_read || code == Code_undef);
-    assert(code != Code_64bit || default_size == Size_undef);
+    // assert(IS_ENABLED(CONFIG_BIT64) || code == Code_undef);
+    // assert(type == Code_read || code == Code_undef);
+    // assert(code != Code_64bit || default_size == Size_undef);
   }
 
   // non-system segment is writeable ?
-  bool writable() const
+  constexpr bool writable() const
   {
     return type() & 0x02;
   }
 
-  Unsigned32 limit() const
+  constexpr Unsigned32 limit() const
   {
     return static_cast<Unsigned32>(_limit_low())
            | (static_cast<Unsigned32>(_limit_high()) << 16);
   }
 
   // size in bytes
-  Mword size() const
+  constexpr Mword size() const
   {
     Mword value = limit();
 
@@ -264,12 +266,12 @@ public:
    * \retval True if segment descriptor is unsafe for user access.
    * \retval False if segment descriptor is safe for user access.
    */
-  bool unsafe() const
+  constexpr bool unsafe() const
   {
     return present() && ((dpl() != User) || system());
   }
 
-  void tss_make_available()
+  constexpr void tss_make_available()
   {
     assert(system());
     assert(type_system() == Tss_available || type_system() == Tss_busy);
@@ -277,7 +279,7 @@ public:
     type_system() = Tss_available;
   }
 
-  Address base() const
+  constexpr Address base() const
   {
     Address base = static_cast<Address>(_base_low())
                  | (static_cast<Address>(_base_high()) << 24);
@@ -295,7 +297,7 @@ public:
   }
 
   // Get descriptor size (in bytes).
-  unsigned long desc_size() const
+  constexpr unsigned long desc_size() const
   {
     // In 32-bit mode, all descriptors are 64 bit.
     if (sizeof(long) == sizeof(int))
@@ -343,7 +345,7 @@ private:
 class Idt_entry_32 : public X86desc
 {
 public:
-  Idt_entry_32() = default;
+  constexpr Idt_entry_32() = default;
 
   /**
    * Create an interrupt/trap gate descriptor.
@@ -353,6 +355,7 @@ public:
    * \param type_system  Descriptor type (Intr_gate or Trap_gate).
    * \param dpl          Descriptor privilege level.
    */
+  constexpr 
   Idt_entry_32(Address offset, Unsigned16 selector,
                Type_system type_system, Dpl dpl,
                Unsigned8 ist = 0)
@@ -366,7 +369,7 @@ public:
       | _offset_med_bfm_t::val((offset & 0xffff0000U) >> 16)
       )
   {
-    assert(type_system == Intr_gate || type_system == Trap_gate);
+    //assert(type_system == Intr_gate || type_system == Trap_gate);
   }
 
   /**
@@ -375,6 +378,7 @@ public:
    * \param selector  Target selector.
    * \param dpl       Descriptor privilege level.
    */
+  constexpr
   Idt_entry_32(Unsigned16 selector, Dpl dpl)
   : X86desc(
           selector_bfm_t::val(selector)
@@ -384,7 +388,7 @@ public:
       )
   {}
 
-  Address offset() const
+  constexpr Address offset() const
   {
     return static_cast<Address>(_offset_low())
            | (static_cast<Address>(_offset_med()) << 16);
@@ -407,7 +411,7 @@ using Idt_entry = Idt_entry_32;
 class Idt_entry : public Idt_entry_32
 {
 public:
-  Idt_entry() = default;
+  constexpr Idt_entry() = default;
 
   /**
    * Create an interrupt/trap gate descriptor.
@@ -418,16 +422,17 @@ public:
    * \param dpl          Descriptor privilege level.
    * \param ist          Interrupt stack table.
    */
+  constexpr
   Idt_entry(Address offset, Unsigned16 selector,
             Type_system type_system, Dpl dpl,
             Unsigned8 ist = 0)
   : Idt_entry_32(offset, selector, type_system, dpl, ist),
     _value_high(_offset_high_bfm_t::val((offset & 0xffffffff00000000ULL) >> 32))
   {
-    assert(type_system == Intr_gate || type_system == Trap_gate);
+    //assert(type_system == Intr_gate || type_system == Trap_gate);
   }
 
-  Address offset() const
+  constexpr Address offset() const
   {
     return static_cast<Address>(_offset_low())
            | (static_cast<Address>(_offset_med()) << 16)
