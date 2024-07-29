@@ -13,11 +13,11 @@ inline Unsigned64 get_time_now()
 
 #else
 
-#include "kip.h"
+#include <system_clock.h>
 
 namespace Jdb_kern_info_arch {
 inline Unsigned64 get_time_now()
-{ return Kip::k()->clock(); }
+{ return System_clock::clock(); }
 }
 
 #endif

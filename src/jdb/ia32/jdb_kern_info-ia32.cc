@@ -151,7 +151,7 @@ public:
 
   void show() override
   {
-    Cpu_time clock = Kip::k()->clock();
+    Cpu_time clock = Jdb::system_clock_on_enter();
     printf ("clck: %08x.%08x\n", static_cast<unsigned>(clock >> 32), static_cast<unsigned>(clock));
 
     show_pdir();

@@ -99,6 +99,22 @@ public:
   __attribute__((format(printf, 3, 4)));
   static void save_disable_irqs(Cpu_number cpu);
   static void restore_irqs(Cpu_number cpu);
+  static void store_system_clock_on_enter()
+  {
+    if (!_system_clock_on_enter)
+      _system_clock_on_enter = System_clock::clock();
+  }
+
+  static void clear_system_clock_on_enter()
+  {
+    _system_clock_on_enter = 0;
+  }
+
+  static Unsigned64 system_clock_on_enter()
+  {
+    return _system_clock_on_enter;
+  }
+
   static Thread *get_thread(Cpu_number cpu);
 
   static Space *get_space(Cpu_number cpu)
@@ -130,6 +146,7 @@ private:
   static cxx::atomic<unsigned long> cpus_in_debugger;
   static bool never_break;
   static bool jdb_active;
+  static Unsigned64 _system_clock_on_enter;
 
   static void enter_trap_handler(Cpu_number cpu);
   static void leave_trap_handler(Cpu_number cpu);

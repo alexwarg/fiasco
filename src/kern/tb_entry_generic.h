@@ -106,7 +106,15 @@ public:
     _type   = type;
     _ctx    = ctx;
     _ip     = ip;
+#ifdef CONFIG_SYNC_CLOCK
+    // Find something more suitable. Timer::system_clock() might be already too
+    // heavy-weight for this.
+    // Keep in mind that we already record the TSC respective ARM generic timer
+    // in the '_tsc' field.
+    _kclock = 0;
+#else
     _kclock = static_cast<Unsigned32>(Kip::k()->clock());
+#endif
     _cpu    = cxx::int_value<Cpu_number>(current_cpu());
   }
 

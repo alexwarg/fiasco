@@ -55,7 +55,7 @@ bool Jdb::jdb_active;
 bool Jdb::in_service;
 bool Jdb::leave_barrier;
 cxx::atomic<unsigned long> Jdb::cpus_in_debugger;
-
+Unsigned64 Jdb::_system_clock_on_enter;
 
 void
 Jdb::rcv_uart_enable()
@@ -846,8 +846,6 @@ Jdb_base_cmds::Jdb_base_cmds()
   : Jdb_module("GENERAL")
 {}
 
-
-
 int
 Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
 {
@@ -908,6 +906,9 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
     }
 
   // As of here, we are certain that this is the boot CPU!
+
+  store_system_clock_on_enter();
+
   if (triggered_on_cpu == Cpu_number::nil())
     triggered_on_cpu = Cpu_number::boot_cpu(); // should not happen
 
@@ -917,6 +918,7 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
       close_debug_console(cpu);
       leave_trap_handler(cpu);
       triggered_on_cpu = Cpu_number::nil();
+      clear_system_clock_on_enter();
       return 0;
     }
 
@@ -992,12 +994,13 @@ Jdb::enter_jdb(Trap_state *ts, Cpu_number cpu)
       Jdb::cursor(127, 1);
     }
 
-  // reenable interrupts
+  // re-enable interrupts
   triggered_on_cpu = Cpu_number::nil();
   close_debug_console(cpu);
 
   rcv_uart_enable();
 
+  clear_system_clock_on_enter();
   leave_trap_handler(cpu);
   return 0;
 }
