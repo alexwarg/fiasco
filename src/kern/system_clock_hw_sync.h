@@ -32,17 +32,11 @@ public:
 
   static Unsigned64 clock()
   {
-     if (current_cpu() == Cpu_number::boot_cpu())
-      {
-        Cpu_time time = TIME_SRC::time_us();
-        Kip::k()->set_clock(time);
-        return time;
-      }
+    Cpu_time time = TIME_SRC::time_us();
+    if (current_cpu() == Cpu_number::boot_cpu())
+      Kip::k()->set_clock(time);
 
-    if (Config::Scheduler_one_shot)
-      return TIME_SRC::time_us();
-
-     return Kip::k()->clock();
+     return time;
   }
 
   static void update(Cpu_number cpu)
