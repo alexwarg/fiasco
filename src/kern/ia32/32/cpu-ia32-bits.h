@@ -12,11 +12,12 @@ public:
   static Mword stack_align(Mword stack)
   { return stack & ~0x3; }
 
+  FIASCO_CONST
   Unsigned64 ns_to_tsc(Unsigned64 ns) const
   {
     Unsigned32 dummy;
     Unsigned64 tsc;
-    asm volatile
+    asm inline
           ("movl  %%edx, %%ecx		\n\t"
            "mull	%3			\n\t"
            "movl	%%ecx, %%eax		\n\t"
@@ -32,11 +33,12 @@ public:
     return tsc;
   }
 
+  FIASCO_CONST
   Unsigned64 tsc_to_ns(Unsigned64 tsc) const
   {
     Unsigned32 dummy1, dummy2;
     Unsigned64 ns;
-    asm volatile
+    asm inline
           ("movl  %%edx, %%ecx		\n\t"
            "mull	%4			\n\t"
            "movl  %%eax, %2		\n\t"
@@ -53,11 +55,12 @@ public:
     return ns;
   }
 
+  FIASCO_CONST
   Unsigned64 tsc_to_us(Unsigned64 tsc) const
   {
     Unsigned32 dummy;
     Unsigned64 us;
-    asm volatile
+    asm inline
           ("movl  %%edx, %%ecx		\n\t"
            "mull	%3			\n\t"
            "movl	%%ecx, %%eax		\n\t"
@@ -75,7 +78,7 @@ public:
   void tsc_to_s_and_ns(Unsigned64 tsc, Unsigned32 *s, Unsigned32 *ns) const
   {
       Unsigned32 dummy;
-      __asm__
+      asm inline
           ("				\n\t"
            "movl  %%edx, %%ecx		\n\t"
            "mull	%4			\n\t"
@@ -96,7 +99,7 @@ public:
   static Unsigned64 rdtsc()
   {
     Unsigned64 tsc;
-    asm volatile ("rdtsc" : "=A" (tsc));
+    asm inline volatile ("rdtsc" : "=A" (tsc));
     return tsc;
   }
 
@@ -106,15 +109,15 @@ public:
   static Unsigned64 rdtscp()
   {
     Unsigned64 tsc;
-    asm volatile ("rdtscp" : "=A" (tsc) :: "ecx");
+    asm inline volatile ("rdtscp" : "=A" (tsc) :: "ecx");
     return tsc;
   }
 
   static Unsigned32 get_flags()
-  { Unsigned32 efl; asm volatile ("pushfl ; popl %0" : "=r"(efl)); return efl; }
+  { Unsigned32 efl; asm inline volatile ("pushfl ; popl %0" : "=r"(efl)); return efl; }
 
   static void set_flags(Unsigned32 efl)
-  { asm volatile ("pushl %0 ; popfl" : : "rm" (efl) : "memory"); }
+  { asm inline volatile ("pushl %0 ; popfl" : : "rm" (efl) : "memory"); }
 
   Address volatile &kernel_sp() const
   { return *reinterpret_cast<Address volatile *>(&get_tss()->_esp0); }

@@ -58,10 +58,11 @@ public:
     wrmsr(rdmsr(MSR_EFER) | 1, MSR_EFER);
   }
 
+  FIASCO_CONST
   Unsigned64 ns_to_tsc(Unsigned64 ns) const
   {
     Unsigned64 tsc, dummy;
-    __asm__
+    asm inline
         ("                              \n\t"
          "mulq   %3                      \n\t"
          "shrd  $27, %%rdx, %%rax       \n\t"
@@ -71,10 +72,11 @@ public:
     return tsc;
   }
 
+  FIASCO_CONST
   Unsigned64 tsc_to_ns(Unsigned64 tsc) const
   {
     Unsigned64 ns, dummy;
-    __asm__
+    asm inline
         ("                               \n\t"
          "mulq   %3                      \n\t"
          "shrd  $27, %%rdx, %%rax       \n\t"
@@ -84,10 +86,11 @@ public:
     return ns;
   }
 
+  FIASCO_CONST
   Unsigned64 tsc_to_us(Unsigned64 tsc) const
   {
     Unsigned64 ns, dummy;
-    __asm__
+    asm inline
         ("                               \n\t"
          "mulq   %3                      \n\t"
          "shrd  $32, %%rdx, %%rax       \n\t"
@@ -99,7 +102,7 @@ public:
 
   void tsc_to_s_and_ns(Unsigned64 tsc, Unsigned32 *s, Unsigned32 *ns) const
   {
-    __asm__
+    asm inline
         ("                                \n\t"
          "mulq   %3                       \n\t"
          "shrd  $27, %%rdx, %%rax         \n\t"
@@ -114,7 +117,7 @@ public:
   static Unsigned64 rdtsc()
   {
     Unsigned64 h, l;
-    asm volatile ("rdtsc" : "=a" (l), "=d" (h));
+    asm inline volatile ("rdtsc" : "=a" (l), "=d" (h));
     return (h << 32) | l;
   }
 
@@ -124,20 +127,20 @@ public:
   static Unsigned64 rdtscp()
   {
     Unsigned64 h, l;
-    asm volatile ("rdtscp" : "=a" (l), "=d" (h) :: "rcx");
+    asm inline volatile ("rdtscp" : "=a" (l), "=d" (h) :: "rcx");
     return (h << 32) | l;
   }
 
   static Unsigned64 get_flags()
   {
     Unsigned64 efl;
-    asm volatile ("pushf ; popq %0" : "=r"(efl));
+    asm inline volatile ("pushf ; popq %0" : "=r"(efl));
     return efl;
   }
 
   static void set_flags(Unsigned64 efl)
   {
-    asm volatile ("pushq %0 ; popf" : : "rm" (efl) : "memory");
+    asm inline volatile ("pushq %0 ; popf" : : "rm" (efl) : "memory");
   }
 
 
