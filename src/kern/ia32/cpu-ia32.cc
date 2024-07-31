@@ -846,7 +846,8 @@ Cpu::identify()
       case 10:
         cpuid(10, &_arch_perfmon_info_eax,
                   &_arch_perfmon_info_ebx,
-                  &_arch_perfmon_info_ecx, &i);
+                  &_arch_perfmon_info_ecx,
+                  &_arch_perfmon_info_edx);
         // FALLTHRU
       case 2:
         if (_vendor == Vendor_intel)

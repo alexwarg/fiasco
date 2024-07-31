@@ -398,11 +398,13 @@ public:
   static char const *exception_string(Mword trapno);
 
   FIASCO_INIT_CPU
-  void arch_perfmon_info(Unsigned32 *eax, Unsigned32 *ebx, Unsigned32 *ecx) const
+  void arch_perfmon_info(Unsigned32 *eax, Unsigned32 *ebx, Unsigned32 *ecx,
+                         Unsigned32 *edx) const
   {
     *eax = _arch_perfmon_info_eax;
     *ebx = _arch_perfmon_info_ebx;
     *ecx = _arch_perfmon_info_ecx;
+    *edx = _arch_perfmon_info_edx;
   }
 
   static unsigned amd_cpuid_mnc();
@@ -537,6 +539,7 @@ protected:
   Unsigned32 _arch_perfmon_info_eax;    // CPUID(10).EAX
   Unsigned32 _arch_perfmon_info_ebx;    // CPUID(10).EBX
   Unsigned32 _arch_perfmon_info_ecx;    // CPUID(10).ECX
+  Unsigned32 _arch_perfmon_info_edx;    // CPUID(10).EDX
 
   Unsigned32 _monitor_mwait_eax;        // CPUID(5).EAX
   Unsigned32 _monitor_mwait_ebx;        // CPUID(5).EBX
