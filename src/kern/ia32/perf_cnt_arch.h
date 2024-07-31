@@ -147,7 +147,7 @@ namespace Perf_cnt
   /** Combine event from selector and unit mask. */
   void combine_event(Mword evntsel, Mword unit_mask, Mword *event);
 
-  void init_ap();
+  void init_ap(Cpu const &cpu);
 
 }
 

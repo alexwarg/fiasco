@@ -1001,13 +1001,19 @@ void init()
 }
 
 FIASCO_INIT_CPU_SFX(perf_cnt_init_ap)
-void init_ap()
+void init_ap(Cpu const &cpu)
 {
   if (Perf_cnt::pcnt)
     {
+      if (cpu.local_features() & Cpu::Lf_rdpmc)
+        cpu.enable_rdpmc();
+
       Perf_cnt::pcnt->init();
-      Perf_cnt::pcnt->init_loadcnt(true);
-      Perf_cnt::pcnt->start_pmc(0);
+      if (Perf_cnt::pcnt->loadcnt_allocated())
+        {
+          Perf_cnt::pcnt->init_loadcnt(true);
+          Perf_cnt::pcnt->start_pmc(0);
+        }
     }
 }
 

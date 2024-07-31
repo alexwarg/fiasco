@@ -123,7 +123,7 @@ Perf_read_fn read_pmc[Max_slot] = { dummy_read_pmc, dummy_read_pmc };
 static Mword read_counter_0() { return Perf_cnt_arch::read_counter(0); }
 static Mword read_counter_1() { return Perf_cnt_arch::read_counter(1); }
 
-void FIASCO_INIT_CPU init_ap()
+void FIASCO_INIT_CPU init_ap(Cpu const &)
 {
   if (current_cpu() != Cpu_number::boot_cpu())
     return;

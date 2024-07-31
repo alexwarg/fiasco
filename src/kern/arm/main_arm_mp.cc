@@ -44,14 +44,16 @@ int boot_ap_cpu()
   if (cpu_is_new)
     Per_cpu_data::run_ctors(_cpu);
 
-  Cpu::cpus.cpu(_cpu).init(!cpu_is_new, false);
+  Cpu &cpu = Cpu::cpus.cpu(_cpu);
+  cpu.init(!cpu_is_new, false);
+
   Platform_if::pf->init_irqs_ap(_cpu, !cpu_is_new);
   Arm_ipis::init_per_cpu(_cpu, !cpu_is_new);
   Pfc::get()->init(_cpu);
   Ipi::init(_cpu);
   Timer::init(_cpu);
   System_clock::check_ap_cpu(_cpu);
-  Perf_cnt::init_ap();
+  Perf_cnt::init_ap(cpu);
 
   // create kernel thread
   Kernel_thread *kernel = App_cpu_thread::may_be_create(_cpu, cpu_is_new);

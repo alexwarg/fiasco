@@ -4,6 +4,8 @@
 #include "initcalls.h"
 #include "types.h"
 
+class Cpu;
+
 #if defined(CONFIG_ARM_V7) || defined(CONFIG_ARM_V8)
 #include <perf_cnt_arm_v7plus.h>
 namespace Perf_cnt {
@@ -48,6 +50,6 @@ namespace Perf_cnt
            Mword *event, Mword *user, Mword *kern, Mword *edge);
   int setup_pmc(Mword slot, Mword event, Mword, Mword, Mword);
 
-  inline void init_ap()
+  inline void init_ap(Cpu const &)
   { init_cpu(); }
 }

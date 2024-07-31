@@ -98,8 +98,7 @@ int FIASCO_FASTCALL boot_ap_cpu()
   if (cpu_is_new)
     Pfc::get()->init(_cpu);
 
-  if (Koptions::o()->opt(Koptions::F_loadcnt))
-    Perf_cnt::init_ap();
+  Perf_cnt::init_ap(cpu);
 
 
   // create kernel thread

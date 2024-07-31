@@ -4,6 +4,8 @@
 #include <per_cpu_data.h>
 #include <cxx/bitfield>
 
+class Cpu;
+
 // MIPS CP0 performance counter register access helpers.
 struct Perf_cnt_arch
 {
@@ -41,7 +43,7 @@ struct Perf_cnt_arch
 
 namespace Perf_cnt
 {
-  void init_ap();
+  void init_ap(Cpu const &);
 
   char const *perf_type();
   Mword get_max_perf_event();
