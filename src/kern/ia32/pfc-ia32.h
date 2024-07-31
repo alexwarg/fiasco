@@ -7,6 +7,7 @@
 
 #ifdef CONFIG_MP
 #include <apic.h>
+#include <mem.h>
 #include <kmem.h>
 #endif
 
@@ -50,7 +51,7 @@ public:
     _tramp_mp_startup_cr0 = Cpu::get_cr0();
     _tramp_mp_startup_gdt_pdesc = Kmem::get_realmode_startup_gdt_pdesc();
 
-    __asm__ __volatile__ ("" : : : "memory");
+    Mem::barrier();
 
     // Say what we do
     printf("MP: detecting APs...\n");

@@ -1,4 +1,5 @@
 #include <kmem.h>
+#include <mem.h>
 #include <kmem_alloc.h>
 #include <mem_unit.h>
 #include <cpu.h>
@@ -196,7 +197,7 @@ Kmem::setup_cpu_structures(Cpu &cpu, cxx::Simple_alloc *cpu_alloc,
   cpu.init_tss(tss_mem, tss_size);
 
   // force GDT... to memory before loading the registers
-  asm volatile ( "" : : : "memory" );
+  Mem::barrier();
 
   // set up the x86 CPU's memory model
   cpu.set_gdt();

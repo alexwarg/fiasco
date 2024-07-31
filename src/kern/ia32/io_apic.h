@@ -6,6 +6,7 @@
 #include <irq_chip_ia32.h>
 #include <cxx/bitfield>
 #include <irq_mgr.h>
+#include <mem.h>
 #include <pm.h>
 #include <globalconfig.h>
 
@@ -203,7 +204,7 @@ private:
     Mword read(int reg)
     {
       adr = reg;
-      asm volatile ("": : :"memory");
+      Mem::barrier();
       return data;
     }
 
@@ -211,7 +212,7 @@ private:
     {
       Mword tmp;
       adr = reg;
-      asm volatile ("": : :"memory");
+      Mem::barrier();
       tmp = data;
       tmp &= ~del_bits;
       tmp |= set_bits;
@@ -221,7 +222,7 @@ private:
     void write(int reg, Mword value)
     {
       adr = reg;
-      asm volatile ("": : :"memory");
+      Mem::barrier();
       data = value;
     }
 

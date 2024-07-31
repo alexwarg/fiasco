@@ -65,7 +65,7 @@ protected:
         //printf("u: %u %lx\n", bit - 1, n);
         //LOG_MSG_3VAL(current(), "u", bit - 1, n, *reinterpret_cast<Mword *>(m));
       }
-    asm volatile ("" : : : "memory");
+    Mem::barrier();
   }
 
   template<typename Switchin_flags>
