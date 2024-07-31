@@ -175,7 +175,7 @@ void Perf_cnt_if::mode(Mword slot, const char **mode, Mword *event,
   *edge    = pmc_event[slot].edge;
 }
 
-void Perf_cnt_if::init_loadcnt()
+void Perf_cnt_if::init_loadcnt(bool)
 { panic("Cannot initialize load counter"); }
 
 void
@@ -569,7 +569,7 @@ public:
     Cpu::wrmsr(msr, _sel_reg0+pmc_watchdog);
   }
 
-  void init_loadcnt() override
+  void init_loadcnt(bool init_ap) override
   {
     Unsigned64 msr;
 
@@ -578,7 +578,8 @@ public:
         | 0x79;           // #clocks CPU is not halted
     Cpu::wrmsr(msr, _sel_reg0+pmc_loadcnt);
 
-    printf("Load counter initialized (read with rdpmc(0x%02X))\n", (unsigned)pmc_loadcnt);
+    if (!init_ap)
+      printf("Load counter initialized (read with rdpmc(0x%02X))\n", (unsigned)pmc_loadcnt);
   }
 
   void start_watchdog() override
@@ -638,7 +639,7 @@ public:
     Cpu::wrmsr(msr, _sel_reg0+pmc_watchdog);
   }
 
-  void init_loadcnt() override
+  void init_loadcnt(bool init_ap) override
   {
     Unsigned64 msr;
 
@@ -647,7 +648,8 @@ public:
         | 0x76;           // #clocks CPU is running
     Cpu::wrmsr(msr, _sel_reg0+pmc_loadcnt);
 
-    printf("Load counter initialized (read with rdpmc(0x%02X))\n", (unsigned)pmc_loadcnt);
+    if (!init_ap)
+      printf("Load counter initialized (read with rdpmc(0x%02X))\n", (unsigned)pmc_loadcnt);
   }
 };
 
@@ -734,7 +736,7 @@ public:
     Cpu::wrmsr(msr, Msr_p4_bpu_cccr0 + pmc_watchdog);
   }
 
-  void init_loadcnt() override
+  void init_loadcnt(bool init_ap) override
   {
     Unsigned64 msr;
 
@@ -749,8 +751,9 @@ public:
 
     Cpu::wrmsr(msr, Msr_p4_bpu_cccr0 + pmc_loadcnt);
 
-    printf("Load counter initialized (read with rdpmc(0x%02X))\n",
-            (unsigned)pmc_loadcnt + 0);
+    if (!init_ap)
+      printf("Load counter initialized (read with rdpmc(0x%02X))\n",
+             (unsigned)pmc_loadcnt + 0);
   }
 
   void start_watchdog() override
@@ -809,7 +812,7 @@ public:
     Cpu::wrmsr(msr, _sel_reg0 + pmc_watchdog);
   }
 
-  void init_loadcnt() override
+  void init_loadcnt(bool init_ap) override
   {
     Unsigned64 msr;
 
@@ -818,7 +821,8 @@ public:
           | 0x3C;           // #clocks CPU is running
     Cpu::wrmsr(msr, _sel_reg0 + pmc_loadcnt);
 
-    printf("Load counter initialized (read with rdpmc(0x%02X))\n", (unsigned)pmc_loadcnt);
+    if (!init_ap)
+      printf("Load counter initialized (read with rdpmc(0x%02X))\n", (unsigned)pmc_loadcnt);
   }
 };
 
@@ -985,7 +989,7 @@ void init_ap()
   if (Perf_cnt::pcnt)
     {
       Perf_cnt::pcnt->init();
-      Perf_cnt::pcnt->init_loadcnt();
+      Perf_cnt::pcnt->init_loadcnt(true);
       Perf_cnt::pcnt->start_pmc(0);
     }
 }

@@ -50,7 +50,7 @@ namespace Perf_cnt
     virtual void set_pmc_event(Mword slot) { (void)slot; }
 
     virtual void init_watchdog() {} // no watchdog per default
-    virtual void init_loadcnt();
+    virtual void init_loadcnt(bool init_ap);
 
     // start watchdog (enable generation of overflow interrupt)
     virtual void start_watchdog() {} // no watchdog per default
@@ -72,7 +72,7 @@ namespace Perf_cnt
       alloc_loadcnt();
       if (loadcnt_allocated())
         {
-          init_loadcnt();
+          init_loadcnt(false);
           start_pmc(pmc_loadcnt);
         }
     }
