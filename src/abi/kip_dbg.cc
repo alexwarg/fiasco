@@ -58,19 +58,27 @@ Kip::debug_print_features() const
   putchar('\n');
 }
 
-void
-Kip::print() const
+inline void print_clock(Kip const *kip)
 {
-  Cpu_time c = clock();
-  printf("KIP @ %p\n", static_cast<void const *>(this));
-  printf("magic: %.4s  version: 0x%lx\n",
-         reinterpret_cast<char const *>(&magic), version);
+  (void) kip;
+#ifndef CONFIG_SYNC_CLOCK
+  Cpu_time c = kip->clock();
   printf("clock: " L4_X64_FMT " (%llu)\n", c, c);
   printf("uptime: %llu day(s), %llu hour(s), %llu min(s), %llu sec(s)\n",
           c / (1000000ULL * 60 * 60 * 24),
          (c / (1000000ULL * 60 * 60))    % 24,
          (c / (1000000ULL * 60))         % 60,
          (c /  1000000ULL)               % 60);
+#endif
+}
+
+void
+Kip::print() const
+{
+  printf("KIP @ %p\n", static_cast<void const *>(this));
+  printf("magic: %.4s  version: 0x%lx\n",
+         reinterpret_cast<char const *>(&magic), version);
+  print_clock(this);
   printf("freq_cpu: %lukHz\n", frequency_cpu);
   printf("freq_bus: %lukHz\n", frequency_bus);
 

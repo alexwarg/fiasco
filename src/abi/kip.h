@@ -91,6 +91,7 @@ public:
 
   char const *version_string() const;
 
+#ifndef CONFIG_SYNC_CLOCK
   Cpu_time clock() const
   {
     return Mem::read64_consistent(const_cast<Cpu_time const *>(&_clock));
@@ -98,6 +99,8 @@ public:
 
   void set_clock(Cpu_time c)
   { _clock = c; }
+#else
+#endif
 
   void add_to_clock(Cpu_time plus)
   {
@@ -149,6 +152,7 @@ public:
 
   /* 0xA0   0x140 */
   volatile Cpu_time _clock; // don't access directly, use clock() instead!
+                            // not updated in certain configurations
   Unsigned64 _res6;  // might be later used for clock-related time stamp offset
 
   /* 0xB0   0x150 */
