@@ -250,6 +250,7 @@ public:
   }
 
   static void write_ll_ns(String_buffer *buf, Signed64 ns, bool sign);
+  static void write_us_shortfmt(String_buffer *buf, Unsigned32 us);
   static void write_ll_hex(String_buffer *buf, Signed64 x, bool sign);
   static void write_ll_dec(String_buffer *buf, Signed64 x, bool sign);
   static void cpu_mask_print(Cpu_mask &m);

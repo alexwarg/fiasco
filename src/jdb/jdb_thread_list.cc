@@ -540,11 +540,8 @@ Jdb_thread_list::action(int cmd, void *&argbuf, char const *&fmt, int &)
 void
 Jdb_thread_list::list_threads_show_thread(Thread *t)
 {
-  char to[24];
   int  waiting_for = 0;
   int  plen = 0;
-
-  *to = '\0';
 
   Kconsole::console()->getchar_chance();
 
@@ -583,31 +580,22 @@ Jdb_thread_list::list_threads_show_thread(Thread *t)
     putstr("      ");
   plen += 6;
 
+  String_buf<8> to;
   if (waiting_for)
     {
       if (t->_timeout && t->_timeout->is_set())
 	{
 	  Signed64 diff = (t->_timeout->get_timeout(Kip::k()->clock()));
 	  if (diff < 0)
-	    strcpy(to, " over");
-	  else if (diff >= 100000000LL)
-	    strcpy(to, " >99s");
-	  else
-	    {
-	      int us = diff;
-	      if (us < 0)
-		us = 0;
-	      if (us >= 1000000)
-		snprintf(to, sizeof(to), " %3ds", us / 1000000);
-	      else if (us >= 1000)
-		snprintf(to, sizeof(to), " %3dm", us / 1000);
-	      else
-		snprintf(to, sizeof(to), " %3du", us);
-	    }
+	    to.printf("over");
+          else if (diff > 100'000'000)
+            to.printf(">99s");
+          else
+            Jdb::write_us_shortfmt(&to, static_cast<Unsigned32>(diff));
 	}
     }
 
-  plen += printf("%-6s", to);
+  plen += printf(" %-5s", to.c_str());
 
   if (long_output)
     {
