@@ -84,7 +84,6 @@ public:
   static int test_cpu(Cpu *cpu);
   static int test_present_but_disabled();
   static void activate_by_msr();
-  static int check_still_getting_interrupts();
   static void done();
   static void dump_info();
 

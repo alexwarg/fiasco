@@ -129,7 +129,6 @@ static void stage2()
     }
   Kernel_uart::pm_register();
   Idt::set_vectors_run();
-  Apic::check_still_getting_interrupts();
 //  Cpu::init_global_features();
 }
 

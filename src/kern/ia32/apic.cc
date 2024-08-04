@@ -249,31 +249,6 @@ Apic::activate_by_msr()
   // later we have to call update_feature_info() as the flags may have changed
 }
 
-FIASCO_INIT_CPU
-int
-Apic::check_still_getting_interrupts()
-{
-  if (!Config::apic)
-    return 0;
-
-  Unsigned64 tsc_until;
-  Cpu_time clock_start = Kip::k()->clock();
-
-  tsc_until = Cpu::rdtsc();
-  tsc_until += 0x01000000; // > 10 Mio cycles should be sufficient until
-                           // we have processors with more than 10 GHz
-  do
-    {
-      // kernel clock by timer interrupt updated?
-      if (Kip::k()->clock() != clock_start)
-	// yes, successful
-	return 1;
-    } while (Cpu::rdtsc() < tsc_until);
-
-  // timeout
-  return 0;
-}
-
 FIASCO_INIT_CPU_AND_PM
 void
 Apic::calibrate_timer(Cpu *cpu)
