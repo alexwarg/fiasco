@@ -10,7 +10,7 @@ public:
 #if defined(CONFIG_BIT32) && ((defined(CONFIG_ARM_V7) && defined(CONFIG_MP)) || defined(CONFIG_ARM_V8))
   inline void  prefetch_w(void *addr)
   {
-    asm (".arch_extension mp\n"
+    asm volatile (".arch_extension mp\n"
          "pldw %0" : : "m"(*reinterpret_cast<char *>(addr)));
   }
 #else
