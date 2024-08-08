@@ -76,33 +76,6 @@ int  (*Jdb_ia32_base::bp_test_break)(Cpu_number cpu, Jdb_entry_frame *ef, String
 int  (*Jdb_ia32_base::bp_test_other)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
 
 
-#ifdef CONFIG_SERIAL
-
-#include <cstdio>
-#include <kernel_uart.h>
-
-void Jdb_ia32_base::init_serial_console()
-{
-  if (Config::serial_esc == Config::SERIAL_ESC_IRQ &&
-      !Kernel_uart::uart()->failed())
-    {
-      int irq;
-
-      if ((irq = Kernel_uart::uart()->irq()) == -1)
-	{
-	  Config::serial_esc = Config::SERIAL_ESC_NOIRQ;
-	  puts("SERIAL ESC: Using serial hack in slow timer handler.");
-	}
-      else
-	{
-	  Kernel_uart::enable_rcv_irq();
-	  printf("SERIAL ESC: allocated IRQ %d for serial uart\n", irq);
-	}
-    }
-}
-
-#endif
-
 // available from the jdb_dump module
 int jdb_dump_addr_task (Jdb_address addr, int level)
   __attribute__((weak));
@@ -119,8 +92,6 @@ void Jdb::init()
 
   if (Koptions::o()->opt(Koptions::F_jdb_never_stop))
     never_break = 1;
-
-  init_serial_console();
 
   Trap_state::base_handler = &enter_jdb;
 

@@ -72,7 +72,6 @@ public:
   static Per_cpu<int> jdb_irqs_disabled;
   static int get_register(char *reg);
 
-  static void init_serial_console()
 #ifdef CONFIG_SERIAL
     ;
 #else
