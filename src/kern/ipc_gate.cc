@@ -135,9 +135,8 @@ Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
 
 void Ipc_gate_obj::operator delete (void *_f) noexcept
 {
-  Ipc_gate_obj *f = reinterpret_cast<Ipc_gate_obj*>(_f);
+  Ipc_gate_obj *f = cxx::launder(static_cast<Ipc_gate_obj*>(_f));
   Ram_quota *p = f->_quota;
-  asm ("" : "=m"(*f));
 
   allocator()->free(f);
   if (p)
@@ -254,7 +253,7 @@ Ipc_gate_unbound::invoke(L4_obj_ref self, L4_fpage::Rights rights,
       return;
     }
 
-  __builtin_launder(Ipc_gate_obj::from_poly(this)->poly().get())->invoke(self, rights, f, utcb);
+  cxx::launder(Ipc_gate_obj::from_poly(this)->poly().get())->invoke(self, rights, f, utcb);
 }
 
 

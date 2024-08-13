@@ -209,7 +209,7 @@ Irq::allocator() noexcept
 void
 Irq::operator delete (void *_l) noexcept
 {
-  Irq *l = static_cast<Irq*>(_l);
+  Irq *l = cxx::launder(static_cast<Irq*>(_l));
   assert(l->_q);
   allocator()->q_free(l->_q, l);
 }

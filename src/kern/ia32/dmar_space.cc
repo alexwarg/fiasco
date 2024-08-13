@@ -208,7 +208,7 @@ Dmar_space::operator new (size_t size, void *p) noexcept
 void
 Dmar_space::operator delete (void *ptr) noexcept
 {
-  Dmar_space *t = static_cast<Dmar_space *>(ptr);
+  Dmar_space *t = cxx::launder(static_cast<Dmar_space *>(ptr));
   Kmem_slab_t<Dmar_space>::q_free(t->ram_quota(), ptr);
 }
 

@@ -56,7 +56,7 @@ Vm::operator new([[maybe_unused]] size_t size, void *p) noexcept
 void
 Vm::operator delete(void *ptr)
 {
-  Vm *t = static_cast<Vm *>(ptr);
+  Vm *t = cxx::launder(static_cast<Vm *>(ptr));
   Kmem_slab_t<Vm>::q_free(t->ram_quota(), ptr);
 }
 

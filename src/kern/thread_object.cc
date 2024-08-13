@@ -535,7 +535,7 @@ Thread_object::sys_thread_stats(L4_msg_tag const &/*tag*/, Utcb const * /*utcb*/
 void
 Thread_object::operator delete(void *_t) noexcept
 {
-  Thread_object * const t = nonull_static_cast<Thread_object*>(_t);
+  Thread_object * const t = cxx::launder(nonull_static_cast<Thread_object*>(_t));
   Ram_quota * const q = t->_quota;
   Kmem_alloc::allocator()->q_free(q, Bytes(Thread::Size), t);
 

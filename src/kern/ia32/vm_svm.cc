@@ -109,7 +109,7 @@ Vm_svm::get_vm_cr3(Vmcb *v)
 void
 Vm_svm::operator delete (void *ptr)
 {
-  Vm_svm *t = static_cast<Vm_svm*>(ptr);
+  Vm_svm *t = cxx::launder(static_cast<Vm_svm*>(ptr));
   Kmem_slab_t<Vm_svm>::q_free(t->ram_quota(), ptr);
 }
 

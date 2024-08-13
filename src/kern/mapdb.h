@@ -249,7 +249,7 @@ public:
 
   void operator delete (void *block)
   {
-    Treemap *t = static_cast<Treemap*>(block);
+    Treemap *t = cxx::launder(static_cast<Treemap*>(block));
     Space *id = t->_owner_id;
     auto end = t->_key_end;
     asm ("" : "=m"(t->_owner_id), "=m"(t->_key_end));

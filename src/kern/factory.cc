@@ -21,7 +21,7 @@ Factory::allocator()
 
 void Factory::operator delete (void *_f)
 {
-  Factory *f = static_cast<Factory*>(_f);
+  Factory *f = cxx::launder(static_cast<Factory*>(_f));
   LOG_TRACE("Factory delete", "fa del", ::current(), Tb_entry_empty, {});
 
   if (!f->parent())
@@ -29,7 +29,6 @@ void Factory::operator delete (void *_f)
 
   Ram_quota *p = f->parent();
   auto limit = f->limit();
-  asm ("" : "=m"(*f));
 
   allocator()->free(f);
   if (p)

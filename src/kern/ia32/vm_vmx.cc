@@ -7,7 +7,7 @@
 void
 Vm_vmx::operator delete (void *ptr)
 {
-  Vm_vmx *t = static_cast<Vm_vmx*>(ptr);
+  Vm_vmx *t = cxx::launder(static_cast<Vm_vmx*>(ptr));
   Kmem_slab_t<Vm_vmx>::q_free(t->ram_quota(), ptr);
 }
 
