@@ -19,7 +19,7 @@ public:
 
   void operator delete (void *ptr)
   {
-    Vm_vmx_ept *t = reinterpret_cast<Vm_vmx_ept*>(ptr);
+    Vm_vmx_ept *t = static_cast<Vm_vmx_ept*>(ptr);
     Kmem_slab_t<Vm_vmx_ept>::q_free(t->ram_quota(), ptr);
   }
 

@@ -205,7 +205,7 @@ Task::free_ku_mem(bool need_tlb_flush, bool need_remote_tlb_flush)
 void
 Task::operator delete (void *ptr) noexcept
 {
-  Task *t = reinterpret_cast<Task*>(ptr);
+  Task *t = static_cast<Task *>(ptr);
   LOG_TRACE("Kobject delete", "del", current(), Log_destroy,
             l->id = t->dbg_id();
             l->obj = t;
