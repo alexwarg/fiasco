@@ -11,12 +11,10 @@ class Gic_cpu_v3 : public Gic_cpu_v3_generic
   {
 #if defined (CONFIG_CPU_VIRT)
     asm volatile("mcr p15, 4, %0, c12, c9, 5" // ICC_HSRE
-                 : : "r" (  ICC_SRE_SRE | ICC_SRE_DFB | ICC_SRE_DIB
-                          | ICC_SRE_Enable_lower));
-#else // CONFIG_CPU_VIRT
-    asm volatile("mcr p15, 0, %0, c12, c12, 5" // ICC_SRE
                  : : "r" (ICC_SRE_SRE | ICC_SRE_DFB | ICC_SRE_DIB));
 #endif // CONFIG_CPU_VIRT
+    asm volatile("mcr p15, 0, %0, c12, c12, 5" // ICC_SRE
+                 : : "r" (ICC_SRE_SRE | ICC_SRE_DFB | ICC_SRE_DIB));
   }
 
 public:
