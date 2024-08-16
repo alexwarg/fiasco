@@ -23,8 +23,10 @@ public:
     // precision represents signaling NANS.
     Mem::memset_mwords(this, -1UL, sizeof (*this) / sizeof(Mword));
 
-    // We initialize fcr31 to rounding to nearest, no exceptions.
-    fcsr = 0;
+    // Initialize fcr31 to rounding to nearest, no exceptions.
+    // FS=1: Flush to Zero: Denormalized results are flushed to zero instead of
+    // causing an unimplemented operation exception.
+    fcsr = 1U << 24;
   }
 };
 
