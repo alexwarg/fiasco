@@ -211,7 +211,8 @@ public:
     bool resched = Rcu::do_pending_work(_cpu);
 
     // Check if we need to reschedule due to timeouts or wakeups
-    if ((Timeout_q::timeout_queue.cpu(_cpu).do_timeouts() || resched)
+    Unsigned64 now = System_clock::clock();
+    if ((Timeout_q::timeout_queue.cpu(_cpu).do_timeouts(now) || resched)
         && !Sched_context::rq.current().schedule_in_progress)
       {
         schedule();
