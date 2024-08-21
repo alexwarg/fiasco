@@ -286,7 +286,7 @@ public:
   enum : Mword
   {
     Mdcr_bits      = D::Mdcr_tpmcr | D::Mdcr_tpm
-                     | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra,
+                     | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_tpms | D::Mdcr_ttrf,
     Mdcr_vm_mask   = 0xf00,
   };
 
