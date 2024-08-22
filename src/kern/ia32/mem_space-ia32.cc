@@ -100,7 +100,8 @@ Mem_space::v_lookup(Vaddr virt, Phys_addr *phys,
 }
 
 L4_fpage::Rights
-Mem_space::v_delete(Vaddr virt, Page_order size, L4_fpage::Rights page_attribs)
+Mem_space::v_delete(Vaddr virt, [[maybe_unused]] Page_order size,
+                    L4_fpage::Rights page_attribs)
 {
   assert (cxx::is_zero(cxx::get_lsb(Virt_addr(virt), size)));
 
