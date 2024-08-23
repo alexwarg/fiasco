@@ -64,19 +64,7 @@ public:
   virtual Kobject *parent(Kobject_common *) { return 0; }
   char const *kobject_type(Kobject_common *o) const
   { return _kobject_type(o); }
-
-  static char const *_kobject_type(Kobject_common *o)
-  {
-    extern Kobject_typeinfo_name const _jdb_typeinfo_table[];
-    extern Kobject_typeinfo_name const _jdb_typeinfo_table_end[];
-
-    for (Kobject_typeinfo_name const *t = _jdb_typeinfo_table;
-        t != _jdb_typeinfo_table_end; ++t)
-      if (t->type == cxx::dyn_typeid(o))
-        return t->name;
-
-    return "no type name";
-  }
+  static char const *_kobject_type(Kobject_common *o);
 
   bool is_global() const { return !kobj_type; }
 
