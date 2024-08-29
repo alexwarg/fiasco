@@ -31,7 +31,7 @@ public:
     Cp15_c1_high_vector     = 1 << 13,
   };
 
-  enum : Mword
+  enum : Unsigned64
   {
     Hcr_vm     = 1UL << 0,  ///< Virtualization enable
     Hcr_swio   = 1UL << 1,  ///< Set/way invalidation override
@@ -52,6 +52,7 @@ public:
     Hcr_hcd    = 1UL << 29, ///< HVC instruction disable
     Hcr_trvm   = 1UL << 30, ///< Trap reads of virtual memory controls
     Hcr_rw     = 1UL << 31, ///< EL1 is AArch64
+    Hcr_tlor   = 1ULL << 35, ///< Trap FEAT_LOR registers, not defined for HCR2
   };
 
 enum : Mword
