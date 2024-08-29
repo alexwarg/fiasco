@@ -325,15 +325,19 @@ public:
   static Mword zcr()
   {
     Unsigned64 r;
-    asm volatile (".arch_extension sve\n"
-                  "mrs %0, ZCR_EL2" : "=r"(r));
+    asm volatile (".arch_extension sve    \n"
+                  "mrs %0, ZCR_EL2        \n"
+                  ".arch_extension nosve  \n"
+                 : "=r"(r));
     return r;
   }
 
   static void zcr(Unsigned64 zcr)
   {
-    asm volatile (".arch_extension sve\n"
-                  "msr ZCR_EL2, %0" : : "r"(zcr));
+    asm volatile (".arch_extension sve    \n"
+                  "msr ZCR_EL2, %0        \n"
+                  ".arch_extension nosve  \n"
+                  : : "r"(zcr));
   }
 
 #endif // CONFIG_CPU_VIRT
@@ -342,8 +346,10 @@ public:
   static unsigned sve_vl()
   {
     Mword vl;
-    asm volatile (".arch_extension sve\n"
-                  "rdvl %0, #1" : "=r"(vl));
+    asm volatile (".arch_extension sve    \n"
+                  "rdvl %0, #1            \n"
+                  ".arch_extension nosve  \n"
+                  : "=r"(vl));
     // rdvl returns the vector length in bytes, but we measure the vector length
     // in quad-words (128-bits).
     return vl / 16;
@@ -352,15 +358,19 @@ public:
   static Mword zcr_el1()
   {
     Unsigned64 r;
-    asm volatile (".arch_extension sve\n"
-                  "mrs %0, ZCR_EL1" : "=r"(r));
+    asm volatile (".arch_extension sve    \n"
+                  "mrs %0, ZCR_EL1        \n"
+                  ".arch_extension nosve  \n"
+                  : "=r"(r));
     return r;
   }
 
   static void zcr_el1(Unsigned64 zcr)
   {
-    asm volatile (".arch_extension sve\n"
-                  "msr ZCR_EL1, %0" : : "r"(zcr));
+    asm volatile (".arch_extension sve    \n"
+                  "msr ZCR_EL1, %0        \n"
+                  ".arch_extension nosve  \n"
+                  : : "r"(zcr));
   }
 
 

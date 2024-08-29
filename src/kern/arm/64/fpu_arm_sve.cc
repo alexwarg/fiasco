@@ -220,6 +220,7 @@ protected:
 
                  "mrs     %[fpcr], fpcr           \n"
                  "mrs     %[fpsr], fpsr           \n"
+                 ".arch_extension nosve           \n"
                  : [fpcr] "=r" (fpcr),
                    [fpsr] "=r" (fpsr)
                  : [z] "r" (access<Z>()),
@@ -291,6 +292,7 @@ protected:
 
                  "msr     fpcr, %[fpcr]           \n"
                  "msr     fpsr, %[fpsr]           \n"
+                 ".arch_extension nosve           \n"
                  : : [z] "r" (get<Z>()),
                      [p] "r" (get<P>()),
                      [ffr] "r" (get<Ffr>()),

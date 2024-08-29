@@ -139,8 +139,10 @@ static inline void config_feature_traps(Mword pfr0, bool leave_el3, bool leave_e
           asm volatile ("msr CPTR_EL3, %0" : : "r"(Cpu::Cptr_el3_ez));
 
           // Allow all available SVE vector lengths.
-          asm volatile (".arch_extension sve\n"
-                        "msr ZCR_EL3, %0" : : "r" (0xfUL));
+          asm volatile (".arch_extension sve    \n"
+                        "msr ZCR_EL3, %0        \n"
+                        ".arch_extension nosve  \n"
+                        : : "r" (0xfUL));
         }
 
       if (leave_el2)
@@ -149,8 +151,10 @@ static inline void config_feature_traps(Mword pfr0, bool leave_el3, bool leave_e
           asm volatile ("msr CPTR_EL2, %0" : : "r"(Cpu::Cptr_el2_generic & ~Cpu::Cptr_el2_tz));
 
           // Allow all available SVE vector lengths.
-          asm volatile (".arch_extension sve\n"
-                        "msr ZCR_EL2, %0" : : "r" (0xfUL));
+          asm volatile (".arch_extension sve    \n"
+                        "msr ZCR_EL2, %0        \n"
+                        ".arch_extension nosve  \n"
+                        : : "r" (0xfUL));
         }
     }
   else

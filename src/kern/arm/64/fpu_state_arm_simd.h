@@ -45,6 +45,7 @@ Fpu_state_simd::save()
                "stp     q30, q31, [%[s], #16 * 30]        \n"
                "mrs     %[fpcr], fpcr                     \n"
                "mrs     %[fpsr], fpsr                     \n"
+               ".arch_extension nofp                      \n"
                : [fpcr] "=r" (fpcr),
                  [fpsr] "=r" (fpsr),
                  "=m" (state)
@@ -73,6 +74,7 @@ Fpu_state_simd::restore() const
                "ldp     q30, q31, [%[s], #16 * 30]        \n"
                "msr     fpcr, %[fpcr]                     \n"
                "msr     fpsr, %[fpsr]                     \n"
+               ".arch_extension nofp                      \n"
                : : [fpcr] "r" (Mword{fpcr}),
                    [fpsr] "r" (Mword{fpsr}),
                    [s] "r" (state),

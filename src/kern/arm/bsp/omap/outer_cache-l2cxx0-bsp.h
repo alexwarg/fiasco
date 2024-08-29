@@ -25,6 +25,7 @@ namespace Outer_cache
                    "push {r11}         \n"
                    "smc #0             \n"
                    "pop {r11}          \n"
+                   ".arch_extension nosec\n"
                    :
                    : "r" (_func), "r" (_val)
                    : "memory", "cc", "r1", "r2", "r3", "r4", "r5",
