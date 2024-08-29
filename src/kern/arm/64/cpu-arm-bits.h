@@ -110,6 +110,16 @@ public:
     }
   };
 
+  struct has_sme : public Alternative_static_functor<has_sme>
+  {
+    static bool probe()
+    {
+      Mword pfr1;
+      asm ("mrs %0, ID_AA64PFR1_EL1": "=r" (pfr1));
+      return ((pfr1 >> 24) & 0xf) > 0;
+    }
+  };
+
   static bool is_canonical_address(Address addr) noexcept
   {
     // cf. ARMv8-A Address Translation

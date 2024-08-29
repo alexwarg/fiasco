@@ -2,10 +2,12 @@
 
 #include <types.h>
 #include <context_cpu_state_arm.h>
+#include <alternatives.h>
 
 template<typename BASE>
 class Context_cpu_state_arch : public BASE, public Context_cpu_state_arm
 {
+  Mword _tpidr2rw;
 public:
   explicit Context_cpu_state_arch(Mword *kernel_sp)
   : BASE(kernel_sp)
@@ -20,11 +22,19 @@ public:
   void store_tpidrurw()
   {
     asm volatile ("mrs %0, TPIDR_EL0" : "=r" (_tpidrurw));
+    asm volatile (".arch_extension sme  \n\t"
+                  ALTERNATIVE_INSN("nop", "mrs %0, TPIDR2_EL0")
+                  ".arch_extension nosme\n\t"
+                  : "=r" (_tpidr2rw) : [alt_probe] "i"(Cpu::has_sme::probe));
   }
 
   void load_tpidrurw() const
   {
     asm volatile ("msr TPIDR_EL0, %0" : : "r" (_tpidrurw));
+    asm volatile (".arch_extension sme  \n\t"
+                  ALTERNATIVE_INSN("nop", "msr TPIDR2_EL0, %0")
+                  ".arch_extension nosme\n\t"
+                  : : "r" (_tpidr2rw), [alt_probe] "i"(Cpu::has_sme::probe));
   }
 
   void store_tpidruro()
