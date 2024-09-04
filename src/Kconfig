@@ -43,35 +43,15 @@ config VIRTUAL_SPACE_IFACE
 config FPU_ALLOC_TYPED
 	bool
 
+
+################################################################################
 menu "Target configuration"
+# Platform-dependent options.
+################################################################################
 
 choice
 	prompt "Architecture"
 	default IA32
-
-config IA32
-	bool "Intel IA-32 processor family"
-	select BIT32
-	select HAS_VIRT_OBJ_SPACE_OPTION
-	select HAS_JDB_DISASM_OPTION
-	select HAS_JDB_GZIP_OPTION
-	select FPU
-	select HAS_FPU_OPTION
-	select HAS_LAZY_FPU
-	select JDB_REGEX
-	select VIRTUAL_SPACE_IFACE if IOMMU || CPU_VIRT
-
-config AMD64
-	bool "AMD64 processor family"
-	select HAS_VIRT_OBJ_SPACE_OPTION
-	select HAS_JDB_DISASM_OPTION
-	select HAS_JDB_GZIP_OPTION
-	select BIT64
-	select FPU
-	select HAS_FPU_OPTION
-	select HAS_LAZY_FPU
-	select JDB_REGEX
-	select VIRTUAL_SPACE_IFACE if IOMMU || CPU_VIRT
 
 #  ARCH_CHOICE
 endchoice
@@ -81,19 +61,7 @@ config BIG_ENDIAN
 
 choice
 	prompt "Platform"
-	default PF_PC         if IA32
-	default PF_PC         if AMD64
 # ARCH_DEFAULT_PF
-
-config PF_PC
-	bool "PC platform"
-	depends on IA32 || AMD64
-	select HAS_SERIAL_OPTION
-	select HAS_WATCHDOG_OPTION
-	select HAS_IOMMU_OPTION
-	select HAS_MP_OPTION
-	select HAS_CPU_VIRT
-	select HAS_SYNC_CLOCK
 
 # PF_CHOICE
 
@@ -114,74 +82,6 @@ config CPU_VIRT
 	  Support virtualization extensions provided by CPUs, including
 	  nested paging. This feature allows you to run a virtual machine
 	  monitor (VMM) on top of Fiasco.
-
-choice
-	prompt "Timer tick source"
-	depends on PF_PC
-	default SCHED_APIC
-
-config SCHED_PIT
-	bool "Use PIT for scheduling"
-	depends on PF_PC && !MP
-	help
-	  Normally, Fiasco uses the RTC at IRQ8 for scheduling. This can be
-	  disadvantageous in certain circumstances, e.g. VMWare doesn't seem
-	  to emulate the RTC good enough so that not enough timer interrupts
-	  are produced. The PIT mode (using IRQ0) seems to work better in
-	  this case.  It is generally safe to use this option, so if you are
-	  unsure, say 'Y'.
-
-	  Consider that the interrupt priorities change: Using RTC, IRQ8 has
-	  the highest priority. Using PIT, IRQ0 has the highest priority.
-	  The only case where PIT scheduling does not work is with
-	  profiling. If profiling is enabled the PIT is used for generating
-	  the profiling interrupts.
-
-config SCHED_RTC
-	bool "Use RTC for scheduling"
-	depends on PF_PC && !MP
-	help
-	  'Yes' is the standard for this option. If this option is set
-	  Fiasco uses the RTC on IRQ 8 for scheduling.  This can be
-	  disadvantageous in certain circumstances, e.g. VMWare doesn't seem
-	  to emulate the RTC good enough so that not enough timer interrupts
-	  are produced.  The PIT (8254) mode (say 'no' here), seems to work
-	  better in this case. It is generally safe to use the PIT, so if
-	  you are unsure, say 'no'.
-	  Consider that the interrupt priorities change: Using RTC, IRQ8 has
-	  the highest priority. Using PIT, IRQ0 has the highest priority.
-	  The only case where PIT scheduling does not work is with
-	  profiling. If profiling is enabled the PIT is used for generating
-	  the profiling interrupts and the RTC must be used for scheduling.
-	  In the case where profiling shall be used within VMWare the
-	  SLOW_RTC option must be set, so that the timer resolution of
-	  Fiasco is reduced to 100Hz.
-
-config SCHED_APIC
-	bool "Use APIC timer for scheduling"
-	depends on PF_PC
-	help
-	  Use the Local APIC for scheduling.
-
-config SCHED_HPET
-	bool "Use HPET timer for scheduling (EXPERIMENTAL)"
-	depends on PF_PC && !MP && EXPERIMENTAL
-	help
-	  Use the HPET timer for scheduling.
-
-endchoice
-
-config WORKAROUND_AMD_FPU_LEAK
-	bool "Enables workaroud for AMD FPU security leak"
-	depends on PF_PC
-	help
-	  If you use Fiasco for high assurance, high security and use AMD
-	  CPUs you should enable this option. In any other case it is no
-	  harm to disable it.
-
-config REGPARM3
-	def_bool y
-	depends on IA32 && PF_PC
 
 config FPU
 	bool "Enable FPU co-processor" if HAS_FPU_OPTION
@@ -205,7 +105,11 @@ config LAZY_FPU
 
 endmenu # target
 
+
+################################################################################
 menu "Kernel options"
+# Platform-independent options (mostly).
+################################################################################
 
 config MP
 	bool "Enable multi processor support"
@@ -253,14 +157,6 @@ config CONTEXT_4K
 	help
 	  Use this option to use 4K kernel stacks. Only disable this option
 	  when you know what you're doing.
-
-config SLOW_RTC
-	bool "Use RTC with 100 ticks per second"
-	depends on SCHED_RTC
-	help
-	  This option should be enabled if you use VMWare and no PIT
-	  scheduling. The timer resolution is lowered to 100 ticks per
-	  second.
 
 config ONE_SHOT
 	bool "Use scheduling timer in one-shot mode"
@@ -410,20 +306,16 @@ config NO_IO_PAGEFAULT
 	  enabled, the kernel does not generate page-fault IPC for failed
 	  IO-Port accesses. An exception IPC with a #GP is generated instead.
 
-config NO_LDT
-	bool "Disable support for the LDT" if (IA32 || AMD64) && !KERNEL_ISOLATION
-	depends on IA32 || AMD64
-	default y if IA32 || AMD64
-	help
-	  This option disables support for the X86 local descriptor
-	  table (LDT).  This reduces some overhead. However, this
-	  also makes the use of the LDT in L4Linux impossible.
-
 # PF_SECTION: KERNEL
 
 endmenu # kernel options
 
+
+################################################################################
 menu "Debugging"
+# Options relevant for improving the debugging experience.
+# Changing these options different from default could make the kernel slower!
+################################################################################
 
 config PERF_CNT_USER
 	bool "Allow user-level access to performance counters"
@@ -597,7 +489,11 @@ endchoice # warn levels
 
 endmenu # debugging
 
+
+################################################################################
 menu "Compiling"
+# Build-related options (tools, compiler optimizations).
+################################################################################
 
 config CC
 	string "C compiler"
@@ -657,6 +553,8 @@ config LABEL
 
 endmenu
 
+
+################################################################################
 config EXPERIMENTAL
 	bool "Prompt for experimental features"
 	help
@@ -665,6 +563,7 @@ config EXPERIMENTAL
 	  disrupt the stability of your kernel.
 
 	  Use with caution!
+################################################################################
 
 config BIT32
 	bool
