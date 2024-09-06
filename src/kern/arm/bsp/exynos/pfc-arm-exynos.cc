@@ -20,7 +20,8 @@
 struct Pfc_exynos_base : Pfc_arm
 {
 public:
-  Pfc_exynos_base() : pmu(Kmem::mmio_remap(Mem_layout::Pmu_phys_base, 0x4000))
+  Pfc_exynos_base() : pmu(Kmem::mmio_remap(Mem_layout::Pmu_phys_base,
+                                           Mem_layout::Pmu_phys_size))
   {}
 
   [[noreturn]] void system_reboot() override
