@@ -780,7 +780,7 @@ Jdb_tcb::cmds() const
     {
         { 0, "t", "tcb", "%C",
           "t[<threadid>]\tshow current/given thread control block (TCB)\n"
-          "t{+|-}\tshow current thread control block at every JDB entry\n",
+          "t{+|-}\tshow current thread control block at every JDB entry",
           &first_char },
         { 1, "", "tcbdump", "%C", 0, &first_char },
     };
