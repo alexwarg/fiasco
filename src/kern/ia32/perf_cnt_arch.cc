@@ -5,6 +5,8 @@
 #include <cxx/union>
 #include <static_init.h>
 
+#include <cstdio>
+
 enum
 {
   // Intel P5

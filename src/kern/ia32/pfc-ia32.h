@@ -9,6 +9,8 @@
 #include <apic.h>
 #include <mem.h>
 #include <kmem.h>
+
+#include <cstdio>
 #endif
 
 class Pfc_ia32 : public virtual Pfc

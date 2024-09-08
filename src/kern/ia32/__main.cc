@@ -22,5 +22,4 @@ __main(unsigned checksum_ro)
   static_construction();
 
   kernel_main();
-  exit(0);
 }

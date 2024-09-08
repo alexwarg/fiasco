@@ -415,7 +415,7 @@ Jdb_ia32_base::handle_special_cmds(int c)
   switch (c)
     {
     case 'j': // do restricted "go"
-      switch (putchar(c=getchar()))
+      switch (putchar(c=Kconsole::console()->getchar()))
 	{
 	case 'b': // go until next branch
 	case 'r': // go until current function returns
@@ -683,7 +683,7 @@ Jdb_ia32_base::get_register(char *reg)
 
   for (i = 1; i < 3; i++)
     {
-      int c = getchar();
+      int c = Kconsole::console()->getchar();
       if (c == KEY_ESC)
 	return false;
       putchar(reg_name.c[i] = c & 0xdf);

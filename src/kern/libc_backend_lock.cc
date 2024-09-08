@@ -14,9 +14,9 @@ void __libc_backend_printf_local_force_unlock()
     __libc_backend_printf_spinlock = ~0UL;
 }
 
-unsigned long __libc_backend_printf_lock()
+unsigned int __libc_backend_printf_lock()
 {
-  unsigned long r = cpu_lock.test() ? 1 : 0;
+  unsigned int r = cpu_lock.test() ? 1 : 0;
   cpu_lock.lock();
 
   Mword pid = cxx::int_value<Cpu_phys_id>(Proc::cpu_id());
@@ -40,7 +40,7 @@ unsigned long __libc_backend_printf_lock()
     }
 }
 
-void __libc_backend_printf_unlock(unsigned long state)
+void __libc_backend_printf_unlock(unsigned int state)
 {
   if (!(state & 2))
     __libc_backend_printf_spinlock = ~0UL;

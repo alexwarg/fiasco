@@ -8,11 +8,11 @@
 
 extern "C"
 void assert_fail(char const *expr_msg, char const *file, unsigned int line,
-                 void *caller);
+                 void const *caller);
 
 void
 assert_fail(char const *expr_msg, char const *file, unsigned int line,
-            void *caller)
+            void const *caller)
 {
   // make sure that GZIP mode is off
   Kconsole::console()->end_exclusive(Console::GZIP);
