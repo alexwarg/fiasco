@@ -39,7 +39,7 @@ public:
    */
   void init()
   {
-    _wakeup = ULONG_LONG_MAX;
+    _wakeup = ULLONG_MAX;
   }
 
   /**
@@ -265,7 +265,7 @@ public:
   }
 
   Timeout_q() noexcept
-  : _current(ULONG_LONG_MAX), _old_clock(0)
+  : _current(ULLONG_MAX), _old_clock(0)
   {}
 
   bool have_timeouts(Timeout const *ignore) const
