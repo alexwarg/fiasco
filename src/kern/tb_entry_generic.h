@@ -133,7 +133,7 @@ public:
   Unsigned8 type() const
   { return _type & (Tbuf_max-1); }
 
-  int hidden() const
+  int is_hidden() const
   { return _type & Tbuf_hidden; }
 
   Mword number() const

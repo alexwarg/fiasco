@@ -71,7 +71,7 @@ Jdb_tbuf::entries()
   Mword cnt = 0;
 
   for (Mword idx = 0; idx<unfiltered_entries(); idx++)
-    if (!buffer()[idx].hidden())
+    if (!buffer()[idx].is_hidden())
       cnt++;
 
   return cnt;
@@ -89,7 +89,7 @@ Jdb_tbuf::lookup(Mword look_idx)
 
       if (!e)
 	return 0;
-      if (e->hidden())
+      if (e->is_hidden())
 	continue;
       if (!look_idx--)
 	return e;
@@ -108,7 +108,7 @@ Jdb_tbuf::idx(Tb_entry const *e)
 
   for (;;)
     {
-      if (!ef->hidden())
+      if (!ef->is_hidden())
         idx++;
       ef++;
       if (ef >= buffer() + _max_entries)
@@ -139,9 +139,9 @@ Jdb_tbuf::search_to_idx(Mword nr)
   for (Mword idx_u = 0, idx_f = 0; (e = unfiltered_lookup(idx_u)); idx_u++)
     {
       if (e->number() == nr)
-        return e->hidden() ? static_cast<Mword>(-2) : idx_f;
+        return e->is_hidden() ? static_cast<Mword>(-2) : idx_f;
 
-      if (!e->hidden())
+      if (!e->is_hidden())
         idx_f++;
     }
 
