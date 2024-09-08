@@ -1,6 +1,7 @@
 #include "cpu.h"
 
 #include <cstdio>
+#include <cstdarg>
 #include "panic.h"
 #include "cp0_status.h"
 #include "alternatives.h"
