@@ -161,10 +161,10 @@ public:
    || defined(CONFIG_ARM_SA)   || defined(CONFIG_ARM_926) \
    || defined(CONFIG_ARM_920T)
 
-  static inline Mword dcache_line_size()
+  static constexpr Mword dcache_line_size()
   { return 32; }
 
-  static inline Mword icache_line_size()
+  static constexpr Mword icache_line_size()
   { return 32; }
 
 #endif
