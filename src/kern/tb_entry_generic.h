@@ -275,6 +275,7 @@ public:
     Mword tmp1 = utcb->values[1];
     _dword[0]  = tmp0;
     _dword[1]  = tmp1;
+    set_abs_timeout(utcb);
   }
 
   Mword ipc_type() const
@@ -307,14 +308,39 @@ public:
 
   Unsigned64 timeout_abs_rcv() const
   { return _to_abs_rcv; }
+
+  static constexpr bool timeout_abs_snd_stored()
+  { return false; }
+
+  static constexpr bool timeout_abs_rcv_stored()
+  { return true; }
+
+  static constexpr Unsigned64 timeout_abs_snd()
+  { return 0ULL; }
+
 #else
-  void set_abs_timeout(Utcb *)
+  void set_abs_timeout(Utcb *utcb)
   {
-    // ignore absolute timeouts due to lack of space
+    // store absolute timeouts in _dword[0,1] iff send phase omitted
+    if (EXPECT_FALSE(_timeout.rcv.is_absolute()
+                     && !(ipc_type() & L4_obj_ref::Ipc_send)))
+      {
+        Unsigned64 to_abs_rcv = _timeout.rcv.microsecs_abs(utcb);
+        _dword[0] = to_abs_rcv;
+        _dword[1] = to_abs_rcv >> 32;
+      }
   }
 
-  Unsigned64 timeout_abs_rcv() const
+  static constexpr bool timeout_abs_snd_stored() { return false; }
+  bool timeout_abs_rcv_stored() const
+  { return !(ipc_type() & L4_obj_ref::Ipc_send); }
+
+  static constexpr Unsigned64 timeout_abs_snd()
   { return 0ULL; }
+
+  Unsigned64 timeout_abs_rcv() const
+  { return (Unsigned64{_dword[1]} << 32) | _dword[0]; }
+
 #endif
 };
 
