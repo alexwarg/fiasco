@@ -16,23 +16,26 @@ struct Arch_time_source_generic_timer
   { return Gtimer::counter(); }
 
   static Unsigned64 ts_to_ns(Unsigned64 ts)
-  { return timer_value_to_time(ts, _scaler_ts_to_ns, _shift_ts_to_ns); }
+  { return timer_value_to_time(ts, _scaler_shift_ts_to_ns); }
 
   static Unsigned64 ts_to_us(Unsigned64 ts)
-  { return timer_value_to_time(ts, _scaler_ts_to_us, _shift_ts_to_us); }
+  { return timer_value_to_time(ts, _scaler_shift_ts_to_us); }
 
   static void setup_scalers(Unsigned32 freq);
 
+  struct Scaler_shift
+  {
+    Unsigned32 scaler;
+    Unsigned32 shift;
+  };
 
 private:
-  static Unsigned32 _scaler_ts_to_ns;
-  static Unsigned32 _scaler_ts_to_us;
-  static Unsigned32 _shift_ts_to_ns;
-  static Unsigned32 _shift_ts_to_us;
+  static Scaler_shift _scaler_shift_ts_to_ns;
+  static Scaler_shift _scaler_shift_ts_to_us;
 
 #ifdef CONFIG_BIT32
   static Unsigned64
-  timer_value_to_time(Unsigned64 v, Mword scaler, Mword shift)
+  timer_value_to_time(Unsigned64 v, Scaler_shift scaler_shift)
   {
     Mword lo = v & 0xffffffff;
     Mword hi = v >> 32;
@@ -61,14 +64,14 @@ private:
 #endif
          : "+r"(lo), "+r"(hi),
            "=&r"(dummy1), "=&r"(dummy2), "=&r"(dummy3), "=&r"(dummy4)
-         : [scaler]"r"(scaler), [shift]"r"(shift)
+         : [scaler]"r"(scaler_shift.scaler), [shift]"r"(scaler_shift.shift)
          : "cc");
     return ((Unsigned64)hi << 32) | lo;
   }
 #endif // CONFIG_BIT32
 #ifdef CONFIG_BIT64
   static Unsigned64
-  timer_value_to_time(Unsigned64 v, Mword scaler, Mword shift)
+  timer_value_to_time(Unsigned64 v, Scaler_shift scaler_shift)
   {
     Mword dummy1, dummy2, dummy3;
     // This code is written in Assembler so that it doesn't require libgcc. It
@@ -83,7 +86,7 @@ private:
          "lsl     %1, %1, %2              \n\t"
          "orr     %0, %0, %1              \n\t"
          : "+r"(v), "=&r"(dummy1), "=&r"(dummy2), "=&r"(dummy3)
-         : [scaler]"r"(scaler), [shift]"r"(shift)
+         : [scaler]"r"(scaler_shift.scaler), [shift]"r"(scaler_shift.shift)
          : "cc");
     return v;
   }

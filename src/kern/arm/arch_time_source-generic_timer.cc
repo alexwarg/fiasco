@@ -9,22 +9,8 @@
 #include <kip_asm.h>
 #include <kip_clock_init.h>
 
-Unsigned32 Arch_time_source_generic_timer::_scaler_ts_to_ns;
-Unsigned32 Arch_time_source_generic_timer::_scaler_ts_to_us;
-Unsigned32 Arch_time_source_generic_timer::_shift_ts_to_ns;
-Unsigned32 Arch_time_source_generic_timer::_shift_ts_to_us;
-
-#if 0
-void
-Arch_time_source_generic_timer::init_scalers(Mword *sc_ts_to_us, Mword *sh_ts_to_us,
-                                  Mword *sc_ts_to_ns, Mword *sh_ts_to_ns)
-{
-  *sc_ts_to_us = _scaler_ts_to_us;
-  *sh_ts_to_us = _shift_ts_to_us;
-  *sc_ts_to_ns = _scaler_ts_to_ns;
-  *sh_ts_to_ns = _shift_ts_to_ns;
-}
-#endif
+Arch_time_source_generic_timer::Scaler_shift Arch_time_source_generic_timer::_scaler_shift_ts_to_ns;
+Arch_time_source_generic_timer::Scaler_shift Arch_time_source_generic_timer::_scaler_shift_ts_to_us;
 
 /**
  * Determine scaling factor and shift value for transforming a time stamp
@@ -48,22 +34,20 @@ Arch_time_source_generic_timer::init_scalers(Mword *sc_ts_to_us, Mword *sh_ts_to
  */
 static
 void freq_to_scaler_shift(Unsigned64 period, Unsigned32 freq,
-                          Unsigned32 *scaler, Unsigned32 *shift)
+                          Arch_time_source_generic_timer::Scaler_shift *scaler_shift)
 {
   Mword s = 0;
   while ((period / (1 << s)) / freq > 0)
     ++s;
-  *scaler = (((1ULL << 32) / (1ULL << s)) * period) / freq;
-  *shift = s;
+  scaler_shift->scaler = (((1ULL << 32) / (1ULL << s)) * period) / freq;
+  scaler_shift->shift = s;
 }
 
 void
 Arch_time_source_generic_timer::setup_scalers(Unsigned32 freq)
 {
-  freq_to_scaler_shift(1000000000, freq,
-                       &_scaler_ts_to_ns, &_shift_ts_to_ns);
-  freq_to_scaler_shift(1000000, freq,
-                       &_scaler_ts_to_us, &_shift_ts_to_us);
+  freq_to_scaler_shift(1'000'000'000, freq, &_scaler_shift_ts_to_ns);
+  freq_to_scaler_shift(1'000'000, freq, &_scaler_shift_ts_to_us);
 }
 
 void
@@ -72,10 +56,10 @@ Arch_time_source_generic_timer::init_system_clock()
   extern unsigned char const _kip_time_code[];
   kip_clock_deploy_code_blob(Kip::k(), _kip_time_code);
   Mword *b = reinterpret_cast<Mword *>(Kip::k()->clock_blob());
-  b[0x70 / sizeof(Mword)] = _scaler_ts_to_us;
-  b[0x78 / sizeof(Mword)] = _shift_ts_to_us;
-  b[0xf0 / sizeof(Mword)] = _scaler_ts_to_ns;
-  b[0xf8 / sizeof(Mword)] = _shift_ts_to_ns;
+  b[0x70 / sizeof(Mword)] = _scaler_shift_ts_to_us.scaler;
+  b[0x78 / sizeof(Mword)] = _scaler_shift_ts_to_us.shift;
+  b[0xf0 / sizeof(Mword)] = _scaler_shift_ts_to_ns.scaler;
+  b[0xf8 / sizeof(Mword)] = _scaler_shift_ts_to_ns.shift;
 }
 
 #ifdef CONFIG_BIT64
