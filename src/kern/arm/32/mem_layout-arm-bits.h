@@ -51,7 +51,6 @@ public:
     Caps_start           = 0xf5000000,
     Caps_end             = 0xfd000000,
     Utcb_ptr_page        = 0xffffd000,
-    utcb_ptr_align       = Tl_math::Ld<sizeof(void*)>::Res,
   };
 #else // CONFIG_CPU_VIRT
   enum Virt_layout_kern : Address {

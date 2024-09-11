@@ -63,7 +63,6 @@ public:
 
     Caps_start           = 0xff8005000000,
     Caps_end             = 0xff800d000000,
-    utcb_ptr_align       = Tl_math::Ld<sizeof(void*)>::Res,
   };
 #endif
 

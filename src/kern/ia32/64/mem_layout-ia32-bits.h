@@ -38,7 +38,6 @@ public:
     Tbuf_status_page  = Service_page + 0x6000,   ///< % 4KB
     Tbuf_ustatus_page = Tbuf_status_page,
     Jdb_bench_page    = Service_page + 0x8000,   ///< % 4KB
-    utcb_ptr_align    = Tl_math::Ld<64>::Res,    // 64byte cachelines
     Tbuf_buffer_area  = Service_page + 0x200000, ///< % 2MB
     Tbuf_buffer_size  = 0x200000,
     Tbuf_ubuffer_area = Tbuf_buffer_area,
