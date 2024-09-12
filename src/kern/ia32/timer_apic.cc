@@ -16,7 +16,7 @@ Timer_apic::init(Cpu_number)
   if (Config::Scheduler_one_shot)
     {
       Apic::timer_set_one_shot();
-      Apic::timer_reg_write(0xffffffff);
+      Apic::timer_reg_write(Apic::Timer_max);
     }
   else
     {

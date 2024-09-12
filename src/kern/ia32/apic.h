@@ -94,6 +94,8 @@ public:
 
   static Per_cpu<Static_object<Apic> > apic;
 
+  static constexpr Unsigned32 Timer_max = UINT32_MAX;
+
   Apic(Cpu_number cpu) : _id(get_id()) { register_pm(cpu); }
 
   static Cpu_number find_cpu(Apic_id phys_id)
