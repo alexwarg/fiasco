@@ -99,7 +99,7 @@ Io_apic::Io_apic(Unsigned64 phys, unsigned gsi_base)
   _next = *c;
   *c = this;
 
-  Mword cpu_phys = ::Apic::apic.cpu(Cpu_number::boot_cpu())->apic_id();
+  Apic_id cpu_phys = ::Apic::apic.cpu(Cpu_number::boot_cpu())->apic_id();
 
   for (unsigned i = 0; i < _irqs; ++i)
     {
@@ -241,7 +241,7 @@ Io_apic::save_state()
 void
 Io_apic::restore_state(bool set_boot_cpu)
 {
-  Mword cpu_phys = 0;
+  Apic_id cpu_phys = 0;
   if (set_boot_cpu)
     cpu_phys = ::Apic::apic.cpu(Cpu_number::boot_cpu())->apic_id();
 
@@ -250,7 +250,7 @@ Io_apic::restore_state(bool set_boot_cpu)
       {
         Io_apic_entry e = _state_save_area[a->_offset + i];
         if (set_boot_cpu && e.format() == 0)
-          e.dest() = cpu_phys;
+          e.dest() = cxx::int_value<Apic_id>(cpu_phys);
         a->write_entry(i, e);
       }
 }

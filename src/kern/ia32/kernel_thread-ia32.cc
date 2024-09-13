@@ -45,7 +45,7 @@ static void populate_cpu_id_map()
   if (!madt)
     return;
 
-  Unsigned32 boot_apic_id = Apic::get_id();
+  Apic_id boot_apic_id = Apic::get_id();
 
   // make sure the boot CPU gets the right CPU number
   kernel_cpu_id_map.set(Cpu_number::boot_cpu(), boot_apic_id);
@@ -72,7 +72,7 @@ static void populate_cpu_id_map()
       if (last_cpu == Cpu_number::boot_cpu())
         ++last_cpu;
 
-      Unsigned32 aid = ((Unsigned32)lapic->apic_id) << 24;
+      Apic_id aid = Unsigned32{lapic->apic_id} << 24;
 
       // the boot CPU already has a CPU number assigned
       if (aid == boot_apic_id)

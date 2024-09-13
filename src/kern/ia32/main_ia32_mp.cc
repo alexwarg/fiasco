@@ -23,10 +23,10 @@
 #include <cpu_id_map.h>
 
 [[noreturn]] static void
-stop_booting_ap_cpu(char const *msg, Unsigned32 apic_id)
+stop_booting_ap_cpu(char const *msg, Apic_id apic_id)
 {
   extern Spin_lock<Mword> _tramp_mp_spinlock;
-  printf("%s, disabling CPU: %x\n", msg, apic_id);
+  printf("%s, disabling CPU: %x\n", msg, cxx::int_value<Apic_id>(apic_id));
   _tramp_mp_spinlock.clear();
 
   while (1)
@@ -34,7 +34,7 @@ stop_booting_ap_cpu(char const *msg, Unsigned32 apic_id)
 }
 
 inline Cpu_number
-get_ap_cpu_num(bool *is_new, Unsigned32 apic_id)
+get_ap_cpu_num(bool *is_new, Apic_id apic_id)
 {
   Cpu_number cpu = Apic::find_cpu(apic_id);
   if (cpu !=  Cpu_number::nil())
@@ -61,7 +61,7 @@ int FIASCO_FASTCALL boot_ap_cpu()
 {
   Apic::activate_by_msr();
 
-  Unsigned32 apic_id = Apic::get_id();
+  Apic_id apic_id = Apic::get_id();
   bool cpu_is_new = false;
   Cpu_number _cpu = get_ap_cpu_num(&cpu_is_new, apic_id);
 

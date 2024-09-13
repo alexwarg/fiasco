@@ -2,9 +2,11 @@
 
 #include <types.h>
 #include <pm.h>
+#include <cxx/cxx_int>
 #include <per_cpu_data.h>
 #include <processor.h>
 #include <cpu.h>
+#include <apic_id.h>
 
 #include <globalconfig.h>
 #include <cassert>
@@ -87,14 +89,14 @@ public:
   static void done();
   static void dump_info();
 
-  Unsigned32 apic_id() const { return _id; }
-  Unsigned32 cpu_id() const { return _id >> 24; }
+  Apic_id apic_id() const { return _id; }
+  Unsigned32 cpu_id() const { return cxx::int_value<Apic_id>(_id) >> 24; }
 
   static Per_cpu<Static_object<Apic> > apic;
 
   Apic(Cpu_number cpu) : _id(get_id()) { register_pm(cpu); }
 
-  static Cpu_number find_cpu(Unsigned32 phys_id)
+  static Cpu_number find_cpu(Apic_id phys_id)
   {
     return apic.find_cpu([phys_id](Apic const *a)
                          { return a && a->apic_id() == phys_id; });
@@ -119,9 +121,12 @@ public:
     return reg_read(APIC_lvr) & 0xFF;
   }
 
-  static Unsigned32 get_id()
+  /**
+   * APIC identifier of the current CPU.
+   */
+  static Apic_id get_id()
   {
-    return reg_read(APIC_id) & 0xff000000;
+    return Apic_id{reg_read(APIC_id) & 0xff000000};
   }
 
   static void irq_ack()
@@ -309,7 +314,7 @@ private:
   Apic(const Apic&) = delete;
   Apic &operator = (Apic const &) = delete;
 
-  Unsigned32 _id;
+  Apic_id _id;
   Unsigned32 _saved_apic_timer;
 
   static void error_interrupt(Return_frame *regs)
@@ -393,30 +398,31 @@ public:
     return mp_ipi_idle();
   }
 
-  static void mp_send_ipi(Unsigned32 dest, Unsigned32 vect,
+  static void mp_send_ipi(Apic_id dest, Unsigned32 vect,
                           Unsigned32 mode = APIC_IPI_FIXED)
   {
     Unsigned32 tmp_val;
+    Unsigned32 dest_val = cxx::int_value<Apic_id>(dest);
 
-    assert((dest & 0x00f3ffff) == 0);
+    assert((dest_val & 0x00f3ffff) == 0);
     assert(vect <= 0xff);
 
     while (!mp_ipi_idle())
       Proc::pause();
 
     // Set destination for no-shorthand destination type
-    if ((dest & APIC_IPI_DSTMSK) == APIC_IPI_NOSHRT)
+    if ((dest_val & APIC_IPI_DSTMSK) == APIC_IPI_NOSHRT)
       {
         tmp_val  = reg_read(APIC_ICR2);
         tmp_val &= 0x00ffffff;
-        tmp_val |= dest & 0xff000000;
+        tmp_val |= dest_val & 0xff000000;
         reg_write(APIC_ICR2, tmp_val);
       }
 
     // send the interrupt vector to the destination...
     tmp_val  = reg_read(APIC_ICR);
     tmp_val &= 0xfff32000;
-    tmp_val |= (dest & 0x000c0000) |
+    tmp_val |= (dest_val & 0x000c0000) |
                (       0x00004000) | // phys proc num, edge triggered, assert
                (mode & 0x00000700) |
                (vect & 0x000000ff);

@@ -372,7 +372,7 @@ Apic::dump_info()
 {
   if (Warn::is_enabled(Info))
     printf("Local APIC[%02x]: version=%02x max_lvt=%d\n",
-           get_id() >> 24, get_version(), get_max_lvt());
+           cxx::int_value<Apic_id>(get_id()) >> 24, get_version(), get_max_lvt());
 }
 
 FIASCO_INIT_CPU_AND_PM

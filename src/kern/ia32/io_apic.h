@@ -9,6 +9,7 @@
 #include <mem.h>
 #include <pm.h>
 #include <globalconfig.h>
+#include <apic_id.h>
 
 #include <cassert>
 
@@ -28,10 +29,10 @@ public:
 
   Io_apic_entry() = default;
   Io_apic_entry(Unsigned8 vector, Delivery d, Dest_mode dm, Polarity p,
-                Trigger t, Unsigned32 dest)
+                Trigger t, Apic_id dest)
     : _e(  vector_bfm_t::val(vector) | delivery_bfm_t::val(d) | mask_bfm_t::val(1)
          | dest_mode_bfm_t::val(dm)  | polarity_bfm_t::val(p)
-         | trigger_bfm_t::val(t)     | dest_bfm_t::val(dest >> 24))
+         | trigger_bfm_t::val(t)     | dest_bfm_t::val(cxx::int_value<Apic_id>(dest) >> 24))
   {}
 
   CXX_BITFIELD_MEMBER( 0,  7, vector, _e);
@@ -107,11 +108,12 @@ public:
     (void)_apic->data;
   }
 
-  void set_dest(unsigned irq, Mword dst)
+  void set_dest(unsigned irq, Apic_id dst)
   {
     auto g = lock_guard(_l);
     //assert(irq <= _apic->num_entries());
-    _apic->modify(0x11 + irq * 2, dst & (~0UL << 24), ~0UL << 24);
+    _apic->modify(0x11 + irq * 2,
+                  cxx::int_value<Apic_id>(dst) & (~0UL << 24), ~0UL << 24);
   }
 
   unsigned gsi_offset() const

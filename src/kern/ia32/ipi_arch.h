@@ -8,7 +8,7 @@
 class Ipi_arch_base
 {
 protected:
-  Unsigned32 _apic_id = ~0;
+  Apic_id _apic_id = ~0;
 
 public:
   enum Message
