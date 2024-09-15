@@ -79,9 +79,9 @@ int FIASCO_FASTCALL boot_ap_cpu()
   if (cpu_is_new)
     {
       Kmem::init_cpu(cpu);
+      Apic::apic.cpu(_cpu).construct(_cpu); // do before IDT setup!
       Idt::init_current_cpu();
       Apic::init_ap();
-      Apic::apic.cpu(_cpu).construct(_cpu);
       Ipi::init(_cpu);
     }
   else
