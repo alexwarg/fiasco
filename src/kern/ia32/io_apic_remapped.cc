@@ -73,7 +73,7 @@ public:
     // To avoid having to wait for the invalidation of the interrupt remapping
     // table entry to complete whenever the target CPU of an IRQ is changed (in
     // set_cpu), directly assign a valid destination CPU ID here.
-    e.dst_xapic() = ::Apic::apic.cpu(Cpu_number::boot_cpu())->cpu_id();
+    e.set_dst_xapic(::Apic::apic.cpu(Cpu_number::boot_cpu())->cpu_id());
 
     _irt[vect] = e;
     clean_dcache(&_irt[vect]);
@@ -101,12 +101,12 @@ public:
 
     Intel::Io_mmu::Irte volatile &irte = _irt[vect];
     Intel::Io_mmu::Irte e = irte;
-    Mword target =  Apic::apic.cpu(cpu)->cpu_id();
+    Cpu_phys_id target =  Apic::apic.cpu(cpu)->cpu_id();
 
-    if (target == e.dst_xapic())
+    if (target == e.get_dst_xapic())
       return;
 
-    e.dst_xapic() = target;
+    e.set_dst_xapic(target);
     irte = e;
     clean_dcache(&irte);
 
@@ -256,7 +256,7 @@ Io_apic_remapped::alloc(Irq_base *irq, Mword pin, bool init)
   // To avoid having to wait for the invalidation of the interrupt remapping
   // table entry to complete whenever the target CPU of an IRQ is changed (in
   // set_cpu), directly assign a valid destination CPU ID here.
-  i.dst_xapic() = ::Apic::apic.cpu(Cpu_number::boot_cpu())->cpu_id();
+  i.set_dst_xapic(::Apic::apic.cpu(Cpu_number::boot_cpu())->cpu_id());
   _iommu->set_irq_mapping(i, v, Intel::Io_mmu::Flush_op::No_flush);
 
   e.format() = 1;
@@ -307,12 +307,12 @@ Io_apic_remapped::set_cpu(Mword pin, Cpu_number cpu)
     return;
 
   Intel::Io_mmu::Irte e = _iommu->get_irq_mapping(vect);
-  Mword target = ::Apic::apic.cpu(cpu)->cpu_id();
+  Cpu_phys_id target = ::Apic::apic.cpu(cpu)->cpu_id();
 
-  if (e.dst_xapic() == target)
+  if (e.get_dst_xapic() == target)
     return;
 
-  e.dst_xapic() = target;
+  e.set_dst_xapic(target);
   // There is no need to wait for the IRTE invalidation to complete. If an IRQ
   // occurs while the old CPU is still targeted by an IRT cache entry that has
   // not yet been invalidated, the old CPU will forward the IRQ to the new CPU.

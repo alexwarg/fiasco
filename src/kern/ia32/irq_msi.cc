@@ -42,7 +42,7 @@ public:
       return -L4_err::ERange;
 
     inf->data = vector(pin) | (1 << 14);
-    Unsigned32 apicid = Apic::apic.current()->cpu_id();
+    Unsigned32 apicid = cxx::int_value<Cpu_phys_id>(Apic::apic.current()->cpu_id());
     inf->addr = 0xfee00000 | (apicid << 12);
 
     return 0;

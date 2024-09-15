@@ -140,17 +140,17 @@ Intel::Io_mmu::pm_on_resume(Cpu_number cpu)
 
   if (_irq_remapping_table)
     {
-      Mword target =  Apic::apic.cpu(cpu)->cpu_id();
+      Cpu_phys_id target =  Apic::apic.cpu(cpu)->cpu_id();
 
       for (auto *irte = _irq_remapping_table;
            irte != _irq_remapping_table + (1 << _irq_remap_table_size);
            ++irte)
         {
           Intel::Io_mmu::Irte e = *irte;
-          if (!e.present() || target == e.dst_xapic())
+          if (!e.present() || target == e.get_dst_xapic())
             continue;
 
-          e.dst_xapic() = target;
+          e.set_dst_xapic(target);
           *irte = e;
         }
 

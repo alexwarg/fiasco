@@ -93,6 +93,16 @@ public:
       hi = v.hi;
       low = v.low;
     }
+
+    Cpu_phys_id get_dst_xapic() const
+    {
+      return Cpu_phys_id{dst_xapic()};
+    }
+
+    void set_dst_xapic(Cpu_phys_id dst)
+    {
+      dst_xapic() = cxx::int_value<Cpu_phys_id>(dst);
+    }
   };
 
   /// Root table entry
