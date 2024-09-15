@@ -147,15 +147,18 @@ Intel::Io_mmu::pm_on_resume(Cpu_number cpu)
            ++irte)
         {
           Intel::Io_mmu::Irte e = *irte;
-          if (!e.present() || target == e.get_dst_xapic())
+          if (!e.present() || target == e.get_dst())
             continue;
 
-          e.set_dst_xapic(target);
+          e.set_dst(target);
           *irte = e;
         }
 
-      Address irt_pa = Kmem::virt_to_phys(const_cast<Irte*>(_irq_remapping_table));
-      regs[Reg_64::Irt_addr] = irt_pa | (_irq_remap_table_size - 1);
+      Address irta = Kmem::virt_to_phys(const_cast<Irte*>(_irq_remapping_table));
+      irta |= (_irq_remap_table_size - 1);
+      if (Apic::use_x2apic())
+        irta |= Irta_eime;
+      regs[Reg_64::Irt_addr] = irta;
       modify_cmd(Cmd_sirtp);
       queue_and_wait(Inv_desc::global_iec());
       modify_cmd(Cmd_ire, Cmd_cfi);
