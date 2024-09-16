@@ -9,6 +9,7 @@
 
 static bool _has_sve;
 static unsigned _max_vl;
+static unsigned _dyn_size;
 
 #if ! defined (CONFIG_CPU_VIRT)
 static inline void enable_sve()
@@ -108,10 +109,15 @@ public:
   /// First-fault register (same length and layout as a P register)
   using Ffr = Element<Unsigned16, 0, 2, P>;
 
-  static unsigned dyn_size()
+  static void init_dyn_size()
   {
     using End = Element<Unsigned8, 0, 0, Ffr>;
-    return End::off(_max_vl);
+    _dyn_size = End::off(_max_vl);
+  }
+
+  static unsigned dyn_size()
+  {
+    return _dyn_size;
   }
 
   alignas(16) Unsigned8 ext_state[0];
@@ -422,6 +428,7 @@ static void detect_sve(Cpu_number cpu)
 
       _has_sve = has_sve;
       _max_vl = max_vl;
+      Fpu_state_sve::init_dyn_size();
     }
   else
     {
