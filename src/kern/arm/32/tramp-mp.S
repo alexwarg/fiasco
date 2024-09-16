@@ -252,6 +252,14 @@ defvar _tramp_mp_startup_mair1
 	teq	r2, #0
 	bne	1b
 
+#ifdef ARM_V7PLUS
+	// acquire barrier
+	dmb
+#else
+        // CP15DMB
+	mcr p15, 0, r0, c7, c10, 5
+#endif
+
 	// TLB flush
 	mcr p15, 0, r0, c8, c7, 0
 
