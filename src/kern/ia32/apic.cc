@@ -225,6 +225,7 @@ Apic::init_lvt()
     reg_write(APIC_lvtthmr, reg_read(APIC_lvtthmr) | APIC_lvt_masked | 0xff);
 }
 
+// give us a hint if we have an APIC but it is disabled (debugging only)
 int
 Apic::test_present_but_disabled()
 {
@@ -243,7 +244,7 @@ Apic::activate_by_msr()
 
   msr = Cpu::rdmsr(APIC_base_msr);
   phys_base = msr & 0xfffff000;
-  msr |= (1<<11);
+  msr |= 1 << 11;
   Cpu::wrmsr(msr, APIC_base_msr);
 
   // later we have to call update_feature_info() as the flags may have changed
@@ -326,8 +327,8 @@ Apic::error_interrupt(Return_frame *regs)
 
   if (err1 == 0x80 || err2 == 0x80)
     {
-      // ignore possible invalid access which may happen in
-      // jdb::do_dump_memory()
+      // ignore possible invalid access which may happen when JDB tries to
+      // access non-existent memory
       if (ignore_invalid_apic_reg_access)
 	return;
 
@@ -350,11 +351,11 @@ Apic::done()
     return;
 
   val = reg_read(APIC_spiv);
-  val &= ~(1<<8);
+  val &= ~(1 << 8);
   reg_write(APIC_spiv, val);
 
   val = Cpu::rdmsr(APIC_base_msr);
-  val  &= ~(1<<11);
+  val &= ~(1 << 11);
   Cpu::wrmsr(val, APIC_base_msr);
 }
 
@@ -381,29 +382,29 @@ Apic::map_registers()
 {
   Cpu *cpu = Cpu::boot_cpu();
 
-  if (test_present(cpu))
+  if (cpu->features() & FEAT_APIC)
     {
-      set_present();
-      set_present_before_msr();
+      present |= Present;
+      present |= Present_before_msr;
     }
   else
     {
-      clear_present();
-      clear_present_before_msr();
+      present &= ~Present;
+      present &= ~Present_before_msr;
     }
 
-  if (!is_present_before_msr())
+  if (!(present & Present_before_msr))
     {
       good_cpu = test_cpu(cpu);
 
       if (good_cpu && Config::apic)
         {
           // activate; this could lead an disabled APIC to appear
-          // set base address of I/O registers to be able to access the registers
+          // set MMIO base address to be able to access the registers
           activate_by_msr();
           cpu->update_features_info();
-          if (test_present(cpu))
-            set_present();
+          if (cpu->features() & FEAT_APIC)
+            present |= Present;
         }
     }
 
@@ -422,36 +423,30 @@ Apic::init(bool resume)
 {
   Cpu *cpu = Cpu::boot_cpu();
 
-  // FIXME: reset cached CPU features, we should add a special function
-  // for the apic bit
+  // FIXME: reset cached CPU features, we should add a special function for the
+  //        APIC bit
   if (resume)
     cpu->update_features_info();
 
   if (!Config::apic)
     return;
 
-  // initialize if available
   if (is_present())
     {
-      // set some interrupt vectors to appropriate values
       init_lvt();
-
-      // initialize APIC_spiv register
       init_spiv();
-
-      // initialize task-priority register
       init_tpr();
 
       // test if local timer counts down
       if (check_working())
         {
-          if (!is_present_before_msr())
-            // APIC _was_ not present before writing to msr so we have
-            // to set APIC_lvt0 and APIC_lvt1 to appropriate values
+          if (!(present & Present_before_msr))
+            // APIC was not present *before* writing to MSR but is now present.
+            // We have to set APIC_lvt0 and APIC_lvt1 to appropriate values.
             route_pic_through_apic();
         }
       else
-        clear_present();
+        present &= ~Present;
     }
 
   if (!is_present())

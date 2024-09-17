@@ -241,31 +241,6 @@ public:
     return ((present & Present) == Present);
   }
 
-  static int is_present_before_msr()
-  {
-    return ((present & Present_before_msr) == Present_before_msr);
-  }
-
-  static void set_present()
-  {
-    present |= Present;
-  }
-
-  static void set_present_before_msr()
-  {
-    present |= Present_before_msr;
-  }
-
-  static void clear_present()
-  {
-    present &= ~Present;
-  }
-
-  static void clear_present_before_msr()
-  {
-    present &= ~Present_before_msr;
-  }
-
   static void timer_enable_irq()
   {
     Unsigned32 tmp_val;
@@ -347,11 +322,6 @@ private:
     APIC_ICR	= 0x300,
     APIC_ICR2	= 0x310,
   };
-
-  static bool test_present(Cpu *cpu)
-  {
-    return cpu->features() & FEAT_APIC;
-  }
 
   static bool is_integrated()
   {
