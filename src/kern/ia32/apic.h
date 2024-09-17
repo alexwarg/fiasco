@@ -7,6 +7,7 @@
 #include <processor.h>
 #include <cpu.h>
 #include <apic_id.h>
+#include <alternatives.h>
 
 #include <globalconfig.h>
 #include <cassert>
@@ -88,10 +89,15 @@ public:
   static void done();
   static void dump_info();
 
+  struct use_x2apic : public Alternative_static_functor<use_x2apic>
+  {
+    static bool probe() { return Apic::use_x2; }
+  };
+
   Apic_id apic_id() const { return _id; }
   Cpu_phys_id cpu_id() const
   {
-    if (use_x2)
+    if (use_x2apic())
       return Cpu_phys_id{cxx::int_value<Apic_id>(_id)};
     else
       return Cpu_phys_id{cxx::int_value<Apic_id>(_id) >> 24};
@@ -133,7 +139,7 @@ public:
    */
   static Apic_id get_id()
   {
-    if (use_x2)
+    if (use_x2apic())
       return Apic_id{reg_read(APIC_id)};
     else
       return Apic_id{reg_read(APIC_id) & 0xff000000};
@@ -144,7 +150,7 @@ public:
    */
   static Apic_id acpi_lapic_to_apic_id(Unsigned32 acpi_id)
   {
-    if (use_x2)
+    if (use_x2apic())
       return Apic_id{acpi_id};
     else
       return Apic_id{Unsigned32{acpi_id} << 24};
@@ -172,7 +178,7 @@ public:
 
   static Unsigned32 reg_read(unsigned reg)
   {
-    if (use_x2)
+    if (use_x2apic())
       return Cpu::rdmsr(APIC_msr_base + (reg >> 4));
     else
       return *offset_cast<volatile Unsigned32 *>(io_base, reg);
@@ -180,7 +186,7 @@ public:
 
   static void reg_write(unsigned reg, Unsigned32 val)
   {
-    if (use_x2)
+    if (use_x2apic())
       Cpu::wrmsr(val, 0, APIC_msr_base + (reg >> 4));
     else
       *offset_cast<volatile Unsigned32 *>(io_base, reg) = val;
@@ -392,7 +398,7 @@ public:
 
   static bool mp_ipi_idle()
   {
-    if (use_x2)
+    if (use_x2apic())
       return true;
     else
       return ((reg_read(Apic_icr) & 0x00001000) == 0);
@@ -416,7 +422,7 @@ public:
                            | static_cast<Unsigned32>(delivery_mode) << 8
                            | vector;
 
-    if (use_x2)
+    if (use_x2apic())
       {
         asm volatile ("mfence; lfence"); // enforce serializing as in xAPIC mode
         Cpu::wrmsr(lower_icr, cxx::int_value<Apic_id>(dest),
