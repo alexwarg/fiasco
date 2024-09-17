@@ -3,6 +3,7 @@
 #include <types.h>
 #include <mem_unit.h>
 #include <cstring>
+#include <alternatives_arch.h>
 
 /**
  * Single feature dependent instruction alternative.
@@ -13,39 +14,38 @@
  */
 struct Alternative_insn
 {
+  enum { Debug = false };
   bool (*probe)(); ///< function called to determine which version is used
   Signed32 disabled; ///< offset of the "disabled" instruction relative to `this`
   Signed32 enabled; ///< offset of the "enabled" instruction relative to `this`
   Unsigned8 len; ///< Number of bytes in the code
 
-  Unsigned32 *disabled_insn() const
+  void *disabled_insn() const
   {
-    return reinterpret_cast<Unsigned32*>(reinterpret_cast<Address>(this) + disabled);
+    return reinterpret_cast<void*>(reinterpret_cast<Address>(this) + disabled);
   }
 
-  Unsigned32 const *enabled_insn() const
+  void const *enabled_insn() const
   {
-    return reinterpret_cast<Unsigned32*>(reinterpret_cast<Address>(this) + enabled);
+    return reinterpret_cast<void*>(reinterpret_cast<Address>(this) + enabled);
   }
 
   static void init();
 
 private:
-  void enable() const
-  {
-    Unsigned32 *insn = disabled_insn();
-    Unsigned32 const *enabled_insn = this->enabled_insn();
-    memcpy(insn, enabled_insn, len);
-    Mem_unit::make_coherent_to_pou(insn, len);
-  }
+  void enable() const;
 } __attribute__((packed));
 
 #if defined(__aarch64__)
-#define ASM_ALTERNATIVE_ENTRY_PTR ".dword %c[alt_probe]"
+# define ASM_ALTERNATIVE_ENTRY_PTR ".dword %c[alt_probe]"
 #elif defined(__arm__)
-#define ASM_ALTERNATIVE_ENTRY_PTR ".word %c[alt_probe]"
+# define ASM_ALTERNATIVE_ENTRY_PTR ".word %c[alt_probe]"
+#elif defined(__x86_64__)
+# define ASM_ALTERNATIVE_ENTRY_PTR ".quad %c[alt_probe]"
+#elif defined(__i386__) || defined(__i686__)
+# define ASM_ALTERNATIVE_ENTRY_PTR ".long %c[alt_probe]"
 #else
-#error "Implementation requires an ARM compiler!"
+# error "Implementation requires a GNU compiler!"
 #endif
 
 /**
@@ -141,8 +141,7 @@ struct Alternative_static_functor
 {
   inline ALWAYS_INLINE operator bool()
   {
-    asm goto (ALTERNATIVE_INSN("b %l[no]", "nop")
-              : : [alt_probe] "i"(BASE::probe) : : no);
+    asm goto (ARCH_ALTERNATIVE_ASM_GOTO(BASE::probe, no));
     return true;
   no:
     return false;

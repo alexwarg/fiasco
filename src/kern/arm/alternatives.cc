@@ -2,6 +2,16 @@
 #include <alternatives.h>
 #include <cstdio>
 
+inline void
+Alternative_insn::enable() const
+{
+  void *insn = disabled_insn();
+  void const *enabled_insn = this->enabled_insn();
+  memcpy(insn, enabled_insn, len);
+  Mem_unit::make_coherent_to_pou(insn, len);
+}
+
+
 void
 Alternative_insn::init()
 {
@@ -27,3 +37,4 @@ Alternative_insn::init()
   // Mem::dsb() already included in Mem_unit::make_coherent_to_pou()
   Mem::isb();
 }
+

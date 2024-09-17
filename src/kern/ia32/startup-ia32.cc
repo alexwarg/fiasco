@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include <alternatives.h>
 #include <apic.h>
 #include <banner.h>
 #include <boot_console.h>
@@ -68,12 +69,16 @@ static void stage2()
   Kip_init::init_freq(Cpu::cpus.cpu(Cpu_number::boot_cpu()));
 
   Intel::Io_mmu::init(Cpu_number::boot_cpu());
+
   // also has a fallback to IO-APIC without remapping
   if (Config::apic)
-    {
-      Apic::map_registers();
-      Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
-    }
+    Apic::map_registers();
+
+  // Must come after Apic::map_registers() but before constructing Apic!
+  Alternative_insn::init();
+  if (Config::apic)
+    Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
+
   bool use_io_apic = Io_apic_remapped::init_apics();
   if (use_io_apic)
     {

@@ -104,7 +104,8 @@ CXXSRC_KERNEL              += \
 	boot_console-ia32-amd64.cc \
 	sys_call_page.cc \
 	vmem_alloc-ia32.cc \
-	startup-ia32.cc
+	startup-ia32.cc \
+	alternatives.cc
 
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm.cc
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
