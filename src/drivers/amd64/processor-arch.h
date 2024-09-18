@@ -18,12 +18,20 @@ public:
     Efer_svme_flag = 0x00001000,      // Enable SVM
   };
 
+  /**
+   * Return CPU ID.
+   *
+   * Depending on the platform, this is either a 6-bit, an 8-bit, or a 32-bit
+   * value. Note that the 32-bit x2APIC CPU ID requires 2 invocations of CPUID.
+   */
   static inline Cpu_phys_id cpu_id()
   {
-    Mword eax, ebx, ecx, edx;
-    asm volatile ("cpuid" : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-                          : "a" (1));
-    return Cpu_phys_id((ebx >> 24) & 0xff);
+    Unsigned32 eax, ebx, ecx, edx;
+    cpuid(1, &eax, &ebx, &ecx, &edx);
+    if (eax >= 0xb)
+      return Cpu_phys_id(cpuid_edx(0xb));
+    else
+      return Cpu_phys_id(ebx >> 24);
   }
 
   static inline Mword stack_pointer()
