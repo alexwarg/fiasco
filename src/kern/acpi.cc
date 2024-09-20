@@ -201,6 +201,10 @@ Acpi::init_virt()
             {
               x->print_info();
               _sdt.print_summary();
+
+              Acpi_srat const *srat = Acpi::find<Acpi_srat const *>("SRAT");
+              if (srat)
+                srat->show();
             }
           return;
         }
@@ -220,6 +224,10 @@ Acpi::init_virt()
             {
               r->print_info();
               _sdt.print_summary();
+
+              Acpi_srat const *srat = Acpi::find<Acpi_srat const *>("SRAT");
+              if (srat)
+                srat->show();
             }
           return;
         }
@@ -249,6 +257,52 @@ Acpi_rsdp const *locate_via_kip()
       }
 
   return 0;
+}
+
+void
+Acpi_srat::show() const
+{
+  printf("SRAT Table Revision: 0x%x (len: %d)\n", table_revision, len);
+
+  for (unsigned i = 0; i < len - sizeof(Acpi_srat);)
+    {
+      auto *h = reinterpret_cast<Acpi_subtable_header const *>(data + i);
+      switch (h->type)
+        {
+        case Type::Cpu_affinity:
+          {
+            auto *c = reinterpret_cast<Cpu_affinity const *>(data + i);
+            if (c->flags & Cpu_use_affinity)
+              printf("  Cpu: prox_dom_lo,hi[3]=%x,%x,%x,%x apic_id=0x%x local_sapic_eid=0x%x clk_dom=0x%x\n",
+                     c->proximity_domain_lo, c->proximity_domain_hi[0],
+                     c->proximity_domain_hi[1], c->proximity_domain_hi[2],
+                     c->apic_id, c->local_sapic_eid, c->clock_domain);
+            break;
+          }
+        case Type::Memory_affinity:
+          {
+            auto *m = reinterpret_cast<Mem_affinity const *>(data + i);
+            if (m->flags & Mem_enabled)
+              printf("  Mem: Proxdomain=%d Baseaddr=%llx Len=%llx %s %s\n",
+                     m->proximity_domain, m->base_address, m->length,
+                     (m->flags & Mem_hot_pluggable) ? "HotPluggable" : "Noplug",
+                     (m->flags & Mem_non_volatile) ? "NonVolatile" : "Forgetting");
+            break;
+          }
+        case Type::X2APIC_cpu_affinity:
+          {
+            auto *p = reinterpret_cast<Proc_lapic2 const *>(data + i);
+            printf("  Cpu: domain=0x%x x2apic_id=0x%x flags=0x%x clk_dom=0x%x\n",
+                   p->domain, p->x2apic_id, p->flags, p->clock_domain);
+            break;
+          }
+        default:
+          printf("Unhandled SRAT type %d\n", h->type);
+          break;
+        }
+
+      i += h->len;
+    }
 }
 
 

@@ -246,6 +246,85 @@ private:
   char data[0];
 } __attribute__((packed));
 
+class Acpi_srat : public Acpi_table_head
+{
+public:
+  struct Acpi_subtable_header
+  {
+    Unsigned8 type;
+    Unsigned8 len;
+  } __attribute__((packed));
+
+  class Type
+  {
+  public:
+    enum
+    {
+      Cpu_affinity        = 0,
+      Memory_affinity     = 1,
+      X2APIC_cpu_affinity = 2,
+      Gicc_affinity       = 3,
+    };
+  };
+
+  enum Cpu_affinity_flags
+  {
+    Cpu_use_affinity = 1,
+  };
+
+  struct Cpu_affinity : public Acpi_subtable_header
+  {
+    Unsigned8  proximity_domain_lo;
+    Unsigned8  apic_id;
+    Unsigned32 flags;
+    Unsigned8  local_sapic_eid;
+    Unsigned8  proximity_domain_hi[3];
+    Unsigned32 clock_domain;
+  } __attribute__((packed));
+
+  enum Mem_affinity_flags
+  {
+    Mem_enabled       = 1,
+    Mem_hot_pluggable = 1 << 1,
+    Mem_non_volatile  = 1 << 2,
+  };
+
+  struct Mem_affinity : public Acpi_subtable_header
+  {
+    Unsigned32 proximity_domain;
+    Unsigned16 reserved;           /* Reserved, must be zero */
+    Unsigned64 base_address;
+    Unsigned64 length;
+    Unsigned32 reserved1;
+    Unsigned32 flags;
+    Unsigned64 reserved2;          /* Reserved, must be zero */
+  } __attribute__((packed));
+
+  struct Proc_lapic2 : public Acpi_subtable_header
+  {
+    Unsigned8 reserved1[2];
+    Unsigned32 domain;
+    Unsigned32 x2apic_id;
+    Unsigned32 flags;
+    Unsigned32 clock_domain;
+    Unsigned8 reserved2[4];
+  };
+
+  Unsigned32 table_revision;
+  Unsigned64 reserved;
+
+  template<typename T>
+  T const *find() const
+  {
+    return nullptr;
+  }
+
+  void show() const;
+
+private:
+  char data[0];
+};
+
 template< bool >
 struct Acpi_helper_get_msb
 { template<typename P> static Address msb(P) { return 0; } };
