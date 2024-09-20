@@ -50,53 +50,46 @@ static void populate_cpu_id_map()
   // make sure the boot CPU gets the right CPU number
   kernel_cpu_id_map.set(Cpu_number::boot_cpu(), boot_apic_id);
 
-  unsigned entry = 0;
   Cpu_number last_cpu = Cpu_number::first();
 
-  // First we collect all enabled CPUs and assign them the leading CPU
-  // numbers. Disabled CPUs are collected in a second run and get the
-  // remaining CPU numbers assigned. This way we make sure that we can boot
-  // at least the maximum number of enabled CPUs. Disabled CPUs may come
-  // online later through e.g. hot plugging.
-  while (last_cpu < Config::max_num_cpus())
+  // Collect all *enabled* CPUs and assign them the leading CPU numbers.
+  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
     {
-      auto const *lapic = madt->find<Acpi_madt::Lapic>(entry++);
+      auto const *lapic = madt->find<Acpi_madt::Lapic>(entry);
       if (!lapic)
         break;
 
-      // skip disabled CPUs
       if (!(lapic->flags & 1))
-        continue;
-
-      // skip logical boot CPU number
-      if (last_cpu == Cpu_number::boot_cpu())
-        ++last_cpu;
+        continue; // skip disabled entries
 
       Apic_id aid = Unsigned32{lapic->apic_id} << 24;
 
-      // the boot CPU already has a CPU number assigned
       if (aid == boot_apic_id)
-        continue;
+        continue; // boot CPU already has a CPU number assigned
+
+      // skip logical boot CPU number
+      if (last_cpu == Cpu_number::boot_cpu())
+        ++last_cpu; // skip logical boot CPU number
 
       kernel_cpu_id_map.set(last_cpu++, aid);
     }
 
-  entry = 0;
-  while (last_cpu < Config::max_num_cpus())
+  // Collect all *disabled* CPUs and assign them the remaining CPU numbers
+  // to make sure that we can boot at least the maximum number of enabled CPUs.
+  // Disabled CPUs may come online later by hot plugging.
+  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
     {
-      auto const *lapic = madt->find<Acpi_madt::Lapic>(entry++);
+      auto const *lapic = madt->find<Acpi_madt::Lapic>(entry);
       if (!lapic)
         break;
 
-      // skip enabled CPUs
       if (lapic->flags & 1)
-        continue;
+        continue; // skip enabled entries
 
-      // skip logical boot CPU number
       if (last_cpu == Cpu_number::boot_cpu())
-        ++last_cpu;
+        ++last_cpu; // skip logical boot CPU number
 
-      kernel_cpu_id_map.set(last_cpu++, ((Unsigned32)lapic->apic_id) << 24);
+      kernel_cpu_id_map.set(last_cpu++, Unsigned32{lapic->apic_id} << 24);
     }
 }
 
