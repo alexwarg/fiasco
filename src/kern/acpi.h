@@ -87,7 +87,7 @@ public:
     if (idx >= _num_tables)
       {
         printf("ACPI: table index out of range (%u >= %u)\n", idx, _num_tables);
-        return 0;
+        return nullptr;
       }
 
     return Acpi::map_table_head<Acpi_table_head>((Unsigned64)phys);
@@ -106,7 +106,7 @@ public:
           return t;
       }
 
-    return 0;
+    return nullptr;
   }
 
 private:
@@ -229,7 +229,7 @@ public:
         i += a->len;
       }
 
-    return 0;
+    return nullptr;
   }
 
   template<typename T>

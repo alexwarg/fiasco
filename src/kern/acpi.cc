@@ -57,7 +57,7 @@ public:
           return t;
       }
 
-    return 0;
+    return nullptr;
   }
 
 } __attribute__((packed));
@@ -117,7 +117,7 @@ public:
           return r;
       }
 
-    return 0;
+    return nullptr;
   }
 } __attribute__((packed));
 
@@ -151,7 +151,7 @@ Acpi::_map_table_head(Unsigned64 phys)
     {
       printf("ACPI: cannot map phys address %llx, out of range (%ubit)\n",
              (unsigned long long)phys, (unsigned)sizeof(Address) * 8);
-      return 0;
+      return nullptr;
     }
 
   void *t = (void *)Kmem::mmio_remap(phys, Config::PAGE_SIZE, true);
@@ -159,7 +159,7 @@ Acpi::_map_table_head(Unsigned64 phys)
     {
       printf("ACPI: cannot map phys address %llx, map failed\n",
              (unsigned long long)phys);
-      return 0;
+      return nullptr;
     }
 
   return t;
@@ -256,7 +256,7 @@ Acpi_rsdp const *locate_via_kip()
         panic("RSDP memory descriptor from bootstrap invalid");
       }
 
-  return 0;
+  return nullptr;
 }
 
 void
@@ -333,7 +333,7 @@ Acpi_rsdp::locate()
   if (Acpi_rsdp const *r = locate_in_region(ebda, ebda + 1024))
     return r;
 
-  return 0;
+  return nullptr;
 }
 
 #endif // CONFIG_IA32 || CONFIG_AMD64
