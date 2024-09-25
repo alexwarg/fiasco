@@ -53,12 +53,8 @@ static void populate_cpu_id_map()
   Cpu_number last_cpu = Cpu_number::first();
 
   // xAPIC: Collect all *enabled* CPUs and assign them the leading CPU numbers.
-  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
+  for (auto *lapic : madt->iterate<Acpi_madt::Lapic>())
     {
-      auto const *lapic = madt->find<Acpi_madt::Lapic>(entry);
-      if (!lapic)
-        break;
-
       if (!(lapic->flags & 1))
         continue; // skip disabled entries
 
@@ -70,6 +66,9 @@ static void populate_cpu_id_map()
       // skip logical boot CPU number
       if (last_cpu == Cpu_number::boot_cpu())
         ++last_cpu; // skip logical boot CPU number
+                    //
+      if (last_cpu >= Config::max_num_cpus())
+        break; // cannot store more CPU information
 
       kernel_cpu_id_map.set(last_cpu++, aid);
     }
@@ -78,12 +77,8 @@ static void populate_cpu_id_map()
   // less than 255 must use the Processor Local APIC structure but there is
   // hardware which has only MADT entry type LOCAL_X2AIC but no MADT entry type
   // LAPIC!
-  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
+  for (auto *lx2apic : madt->iterate<Acpi_madt::Local_x2apic>())
     {
-      auto const *lx2apic = madt->find<Acpi_madt::Local_x2apic>(entry++);
-      if (!lx2apic)
-        break;
-
       if (!(lx2apic->flags & 1))
         continue; // skip disabled entries
 
@@ -96,41 +91,44 @@ static void populate_cpu_id_map()
       if (last_cpu == Cpu_number::boot_cpu())
         ++last_cpu; // skip logical boot CPU number
 
+      if (last_cpu >= Config::max_num_cpus())
+        break; // cannot store more CPU information
+
       kernel_cpu_id_map.set(last_cpu++, aid);
     }
 
   // Collect all *disabled* CPUs and assign them the remaining CPU numbers
   // to make sure that we can boot at least the maximum number of enabled CPUs.
   // Disabled CPUs may come online later by hot plugging.
-  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
+  for (auto *lapic : madt->iterate<Acpi_madt::Lapic>())
     {
-      auto const *lapic = madt->find<Acpi_madt::Lapic>(entry);
-      if (!lapic)
-        break;
-
       if (lapic->flags & 1)
         continue; // skip enabled entries
 
       if (last_cpu == Cpu_number::boot_cpu())
         ++last_cpu; // skip logical boot CPU number
-                    //
+
+      if (last_cpu >= Config::max_num_cpus())
+        break; // cannot store more CPU information
+
       Apic_id aid = Apic::acpi_lapic_to_apic_id(lapic->apic_id);
       kernel_cpu_id_map.set(last_cpu++, aid);
     }
 
-  for (unsigned entry = 0; last_cpu < Config::max_num_cpus(); ++entry)
+  for (auto *lx2apic : madt->iterate<Acpi_madt::Local_x2apic>())
     {
-      auto const *lx2apic = madt->find<Acpi_madt::Local_x2apic>(entry);
-      if (!lx2apic)
-        break;
-
       if (lx2apic->flags & 1)
         continue; // skip enabled entries
 
       Apic_id aid{lx2apic->apic_id};
 
-      if (aid != Apic_id{0xffffffff}) // ignore dummy entries
-        kernel_cpu_id_map.set(last_cpu++, aid);
+      if (aid == Apic_id{0xffffffff})
+        continue; // ignore dummy entries
+
+      if (last_cpu >= Config::max_num_cpus())
+        break; // cannot store more CPU information
+
+      kernel_cpu_id_map.set(last_cpu++, aid);
    }
 }
 
