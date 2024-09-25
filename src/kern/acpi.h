@@ -224,21 +224,101 @@ public:
     Unsigned64  base;
   } __attribute__((packed));
 
+  template<typename T>
+  class Iterator
+  {
+  public:
+    Iterator(char const *data, unsigned len, unsigned idx)
+    : _data(data), _len(len), _idx(idx)
+    {
+      // Find first matching element.
+      while (_idx < _len && !filter(cur()) && !next())
+        ;
+    }
+
+    T const *operator*()
+    { return static_cast<T const *>(cur()); }
+
+    void operator++()
+    {
+      // Find next matching element.
+      while (_idx < _len && !next())
+        ;
+    }
+
+    bool operator!=(Iterator<T> const &other)
+    { return _idx != other._idx; }
+
+  private:
+    Apic_head const *cur() const
+    { return reinterpret_cast<Apic_head const *>(_data + _idx); }
+
+    bool next()
+    {
+      _idx += cur()->len;
+      if (_idx >= _len)
+        {
+          // Clamp to _len so that comparison with end() iterator works.
+          _idx = _len;
+          return false;
+        }
+
+      // Found next matching element?
+      return filter(cur());
+    }
+
+    static constexpr bool filter(Apic_head const *h)
+    {
+      if constexpr (cxx::is_same_v<T, Apic_head>)
+        return true;
+      else
+        return h->type == T::ID;
+    }
+
+    char const *_data;
+    unsigned _len;
+    unsigned _idx;
+  };
+
+  template<typename T>
+  class Iterable
+  {
+  public:
+    constexpr Iterable(char const *data, unsigned len)
+    : _data(data), _len(len) {}
+
+    constexpr Iterator<T> begin() const
+    { return Iterator<T>(_data, _len, 0); }
+
+    constexpr Iterator<T> end() const
+    { return Iterator<T>(_data, _len, _len); }
+
+  private:
+    char const *_data;
+    unsigned _len;
+  };
+
+  /**
+   * Iterate through all entries of the given type `T`.
+   */
+  template<typename T = Apic_head>
+  Iterable<T> iterate() const
+  {
+    return Iterable<T>(data, len - sizeof(Acpi_madt));
+  }
+
   Apic_head const *find(Unsigned8 type, int idx) const
   {
-    for (unsigned i = 0; i < len-sizeof(Acpi_madt);)
+    for (Apic_head const *a: iterate())
       {
-        Apic_head const *a = (Apic_head const *)(data + i);
-        //printf("a=%p, a->type=%u, a->len=%u\n", a, a->type, a->len);
-        if (a->type == type)
-          {
-            if (!idx)
-              return a;
-            --idx;
-          }
-        i += a->len;
-      }
+        if (a->type != type)
+          continue;
 
+        if (!idx)
+          return a;
+
+        --idx;
+      }
     return nullptr;
   }
 
