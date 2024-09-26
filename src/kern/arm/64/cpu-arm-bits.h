@@ -135,6 +135,9 @@ public:
   bool has_hpmn0() const
   { return ((self()->_cpu_id._dfr0 >> 60) & 0xf) == 1; }
 
+  bool has_pmuv3() const
+  { return ((self()->_cpu_id._dfr0 >> 8) & 0xf) >= 1; }
+
   static Mword midr() noexcept
   {
     Mword m;
@@ -317,7 +320,19 @@ public:
                       | (Page::Tcr_attribs << 8)
                       | Page::vtcr_bits(pa_range())));
 
-    Mword mdcr = Mword{Mdcr_bits} | (has_hpmn0() ? 0 : 1);
+    Mword mdcr;
+    if (self()->has_pmuv3())
+      {
+        Mword pmcr;
+        asm ("mrs %0, PMCR_EL0" : "=r"(pmcr));
+        mdcr = (pmcr >> 11) & 0x1f;
+      }
+    else
+      {
+        asm ("mrs %0, MDCR_EL2" : "=r"(mdcr));
+        mdcr &= 0x1f; // keep HPMN reset value
+      }
+    mdcr |= Mdcr_bits;
     asm volatile ("msr MDCR_EL2, %x0" : : "r"(mdcr));
 
     asm volatile ("msr SCTLR_EL1, %x0" : : "r"(Mword{Sctlr_el1_generic}));

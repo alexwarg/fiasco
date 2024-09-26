@@ -33,6 +33,9 @@ public:
   static void clear_actrl(Mword bit_mask)
   { modify_actrl(0, bit_mask); }
 
+  static Mword dfr0() FIASCO_PURE
+  { Mword r; asm ("mrc p15, 0, %0, c0, c1, 2": "=r" (r)); return r; }
+
   static Mword dfr1()
   { Mword v; asm volatile ("mrc p15, 0, %0, c0, c3, 5": "=r" (v)); return v; }
 
@@ -40,6 +43,14 @@ public:
   {
     if constexpr (IS_ENABLED(CONFIG_ARM_V8PLUS))
       return ((dfr1() >> 4) & 0xf) == 1;
+    else
+      return false;
+  }
+
+  static bool has_pmuv3()
+  {
+    if constexpr (IS_ENABLED(CONFIG_ARM_V7PLUS))
+      return ((dfr0() >> 24) & 0xf) >= 3;
     else
       return false;
   }
@@ -435,15 +446,26 @@ public:
           : : "r" ((1UL << 31) | (Page::Tcr_attribs << 8) | (1 << 6)));
 
     Mword sctlr_ignore;
+    Mword hdcr;
+    if (C::has_pmuv3())
+      {
+        Mword pmcr;
+        asm ("mrc p15, 0, %0, c9, c12, 0" : "=r" (pmcr)); // read PMCR
+        hdcr = (pmcr >> 11) & 0x1f;
+      }
+    else
+      {
+        asm ("mrc p15, 4, %0, c1, c1, 1" : "=r"(hdcr)); // read HDCR
+        hdcr &= 0x1f; // keep HPMN at reset value
+      }
+    hdcr |= Hdcr_bits;
     asm volatile (
           "mcr p15, 4, %[hdcr], c1, c1, 1 \n"     // HDCR
           "mrc p15, 0, %[sctlr], c1, c0, 0 \n"    // SCTLR
           "bic %[sctlr], #1 \n"                   // disable PL1&0 stage 1 MMU
           "mcr p15, 0, %[sctlr], c1, c0, 0 \n"    // SCTLR
-          :
-          [sctlr]"=&r"(sctlr_ignore)
-          :
-          [hdcr]"r"(Mword{Hdcr_bits} | (D::has_hpmn0() ? 0 : 1)));
+          : [sctlr]"=&r"(sctlr_ignore)
+          : [hdcr]"r"(hdcr));
 
     C::hcr(Hcr_non_vm_bits);
     asm ("mcr p15, 4, %0, c1, c1, 3" : : "r"(D::Hstr_non_vm)); // HSTR

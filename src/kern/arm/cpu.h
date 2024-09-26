@@ -69,6 +69,8 @@ public:
     Mdcr_tpms      = 1UL << 14,
     Mdcr_ttrf      = 1UL << 19,
   };
+
+  static constexpr bool has_pmuv3() { return false; }
 };
 
 class Cpu_arm_v5 : public Cpu_arm_generic
