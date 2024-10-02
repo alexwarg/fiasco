@@ -32,8 +32,7 @@ void set_exit_question(void (*eq)(void))
 }
 
 
-extern "C" void _exit(int) __attribute__((noreturn));
-
+[[noreturn]]
 void
 terminate(int exit_value)
 {
