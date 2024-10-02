@@ -10,7 +10,8 @@
 #include "main.h"
 
 extern "C" FIASCO_FASTCALL FIASCO_INIT
-void __main(unsigned checksum_ro);
+[[noreturn]] void __main(unsigned checksum_ro);
+[[noreturn]] void kernel_main(void);
 
 extern "C" FIASCO_FASTCALL FIASCO_INIT
 void

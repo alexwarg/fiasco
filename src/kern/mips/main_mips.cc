@@ -23,7 +23,7 @@
 
 static int exit_question_active = 0;
 
-extern "C" void __attribute__ ((noreturn))
+extern "C" [[noreturn]] void
 _exit(int)
 {
   if (exit_question_active && Pfc::get())
@@ -34,6 +34,8 @@ _exit(int)
       Proc::halt();
       Proc::pause();
     }
+
+  __builtin_unreachable();
 }
 
 
@@ -64,7 +66,7 @@ static void exit_question()
     }
 }
 
-extern "C" void kernel_main()
+extern "C" [[noreturn]] void kernel_main()
 {
   static_construction();
   // caution: no stack variables in this function because we're going
@@ -87,5 +89,7 @@ extern "C" void kernel_main()
     ("  move $29,%0             \n"	// switch stack
      "  jal call_bootstrap      \n"
      : : "r" (kernel->init_stack()), "r" (a0));
+
+  __builtin_unreachable();
 }
 

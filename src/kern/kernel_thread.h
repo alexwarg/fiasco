@@ -42,7 +42,7 @@ private:
    */
   void bootstrap() asm ("call_bootstrap") FIASCO_FASTCALL;
   void bootstrap_arch();
-  void run();
+  [[noreturn]] void run();
 
 protected:
   void init_workload();

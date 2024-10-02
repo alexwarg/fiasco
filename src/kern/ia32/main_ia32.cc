@@ -18,8 +18,7 @@
 
 static int exit_question_active;
 
-
-extern "C" void __attribute__ ((noreturn))
+extern "C" [[noreturn]] void
 _exit(int)
 {
   if (exit_question_active)
@@ -30,6 +29,8 @@ _exit(int)
       Proc::halt();
       Proc::pause();
     }
+
+  __builtin_unreachable();
 }
 
 static

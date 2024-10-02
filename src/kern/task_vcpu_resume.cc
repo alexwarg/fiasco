@@ -5,8 +5,8 @@
 #include "trap_state.h"
 #include "entry_frame.h"
 
-extern "C" void vcpu_resume(Trap_state *, Return_frame *sp)
-   FIASCO_FASTCALL FIASCO_NORETURN;
+extern "C" [[noreturn]] void vcpu_resume(Trap_state *, Return_frame *sp)
+   FIASCO_FASTCALL;
 
 int
 Task::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)

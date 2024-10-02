@@ -14,7 +14,7 @@
 void main_arch();
 
 FIASCO_INIT
-void
+[[noreturn]] void
 kernel_main(void)
 {
   unsigned dummy;
@@ -45,5 +45,4 @@ kernel_main(void)
      : "=a" (dummy), "=c" (dummy), "=d" (dummy)
      : "S" (kernel->init_stack()), "D" (kernel));
 }
-
 

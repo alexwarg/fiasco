@@ -119,7 +119,7 @@ Kernel_thread::bootstrap()
  * The idle loop
  * NEVER inline this function, because our caller is an initcall
  */
-FIASCO_NOINLINE FIASCO_NORETURN
+FIASCO_NOINLINE [[noreturn]]
 void
 Kernel_thread::run()
 {
