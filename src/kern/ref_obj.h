@@ -58,7 +58,7 @@ public:
    *
    * \return The reference counter value after decrementing.
    */
-  Smword FIASCO_WARN_RESULT dec_ref()
+  [[nodiscard]] Smword dec_ref()
   {
     return _ref_cnt.fetch_sub(1) - 1;
   }

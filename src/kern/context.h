@@ -407,7 +407,7 @@ public:
    * @param mode helping mode; we either help, don't help or leave the
    *             helping state unchanged
    */
-  FIASCO_WARN_RESULT
+  [[nodiscard]]
   Switch switch_exec_locked(Context *t, enum Helping_mode mode);
 
   Switch switch_exec_helping(Context *t, Mword const *lock, Mword val);
@@ -509,7 +509,7 @@ protected:
    * @param t Destination thread whose scheduling context and execution context
    *          should be activated.
    */
-  FIASCO_WARN_RESULT
+  [[nodiscard]]
   Switch schedule_switch_to_locked(Context *t)
   {
      // Must be called with CPU lock held

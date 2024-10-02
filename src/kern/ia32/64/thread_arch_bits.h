@@ -56,7 +56,7 @@ protected:
       };
   }
 
-  static bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   copy_utcb_to_ts(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
                   L4_fpage::Rights rights)
   {
@@ -112,7 +112,7 @@ protected:
     return ret;
   }
 
-  static bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   copy_ts_to_utcb(L4_msg_tag const &, Thread *snd, Thread *rcv,
                   L4_fpage::Rights rights)
   {

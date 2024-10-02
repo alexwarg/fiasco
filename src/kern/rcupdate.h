@@ -186,7 +186,7 @@ public:
 
   ~Rcu_data();
 
-  bool FIASCO_WARN_RESULT process_callbacks(Rcu_glbl *rgp);
+  [[nodiscard]] bool process_callbacks(Rcu_glbl *rgp);
 
   /**
    * \pre must run under cpu lock
@@ -368,11 +368,11 @@ public:
     rdp->enqueue(i);
   }
 
-  static bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   process_callbacks() noexcept
   { return _rcu_data.current().process_callbacks(&_rcu); }
 
-  static bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   process_callbacks(Cpu_number cpu) noexcept
   { return _rcu_data.cpu(cpu).process_callbacks(&_rcu); }
 

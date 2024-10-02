@@ -319,8 +319,7 @@ private:
     return false;
   }
 
-  static
-  bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   copy_utcb_to_utcb(L4_msg_tag const &tag, Thread *snd, Thread *rcv,
                     L4_fpage::Rights rights)
   {
@@ -346,7 +345,7 @@ private:
     return success;
   }
 
-  bool FIASCO_WARN_RESULT
+  [[nodiscard]] bool
   copy_utcb_to(L4_msg_tag tag, Thread* receiver,
                        L4_fpage::Rights rights)
   {

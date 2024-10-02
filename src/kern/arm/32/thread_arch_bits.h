@@ -12,7 +12,7 @@ private:
   Thread const *_this() const { return static_cast<Thread const *>(this); }
 
 protected:
-  static bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   copy_utcb_to_ts(L4_msg_tag tag, Thread *snd, Thread *rcv,
                   L4_fpage::Rights rights)
   {
@@ -51,7 +51,7 @@ protected:
   }
 
 
-  static bool FIASCO_WARN_RESULT
+  [[nodiscard]] static bool
   copy_ts_to_utcb(L4_msg_tag, Thread *snd, Thread *rcv,
                   L4_fpage::Rights rights)
   {
