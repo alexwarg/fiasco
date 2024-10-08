@@ -13,8 +13,8 @@
 
 void main_arch();
 
-FIASCO_INIT
-[[noreturn]] void
+[[noreturn]] FIASCO_INIT
+void
 kernel_main(void)
 {
   unsigned dummy;
@@ -44,5 +44,7 @@ kernel_main(void)
      "	call call_bootstrap	\n\t"	// bootstrap kernel thread
      : "=a" (dummy), "=c" (dummy), "=d" (dummy)
      : "S" (kernel->init_stack()), "D" (kernel));
+
+  __builtin_unreachable();
 }
 
