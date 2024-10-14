@@ -802,7 +802,10 @@ public:
         for (unsigned i = 0; i < nr_fixed_function_perctr; ++i)
           if ((ecx & (1 << i)) || ((edx & 0x1f) > i))
             {
-              msr_fixed_ctr_ctrl |= (3ULL << (4 * i)); // enable for CPL0..CPL3
+              if (IS_ENABLED(CONFIG_PERF_CNT_COUNT_CPL0))
+                msr_fixed_ctr_ctrl |= (3ULL << (4 * i)); // enable for CPL>=0
+              else
+                msr_fixed_ctr_ctrl |= (2ULL << (4 * i)); // enable for CPL>0
               msr_perf_global_ctrl |= (1ULL << (32 + i)); // EN_FIXED_CTR<i>=1
             }
 
