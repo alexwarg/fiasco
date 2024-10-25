@@ -1,5 +1,5 @@
 # PF: IMX
-# PFDESCR: NXP/Freescale i.MX
+# PFDESCR: NXP i.MX
 # PFDEPENDS: ARM
 
 config ARM_IMX_TIMER_EPIT
@@ -9,7 +9,7 @@ config ARM_IMX_MXC_TZIC
 	bool
 
 choice
-	prompt "NXP/Freescale i.MX"
+	prompt "NXP i.MX"
 	default PF_IMX_51
 
 config PF_IMX_21
