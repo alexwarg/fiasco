@@ -67,9 +67,10 @@ config PF_IMX_6
           Choose for i.MX6 platform.
 
 config PF_IMX_6UL
-        bool "i.MX6UL"
-        depends on PF_IMX
-        select CAN_ARM_CPU_CORTEX_A7
+	bool "i.MX6UL"
+	depends on PF_IMX
+	select CAN_ARM_CPU_CORTEX_A7
+	select HAS_CPU_VIRT
 	select ARM_GIC
 	select HAVE_ARM_GICV2
         select ARM_GENERIC_TIMER
@@ -77,10 +78,11 @@ config PF_IMX_6UL
           Choose for i.MX6UL platform.
 
 config PF_IMX_7
-        bool "i.MX7"
-        depends on PF_IMX
-        select CAN_ARM_CPU_CORTEX_A7
-        select HAS_ARM_PSCI
+	bool "i.MX7"
+	depends on PF_IMX
+	select CAN_ARM_CPU_CORTEX_A7
+	select HAS_CPU_VIRT
+	select HAS_ARM_PSCI
 	select ARM_GIC
 	select HAVE_ARM_GICV2
         select ARM_GENERIC_TIMER
