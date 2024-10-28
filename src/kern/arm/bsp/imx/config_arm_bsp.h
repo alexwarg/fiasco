@@ -25,3 +25,27 @@
 #ifdef CONFIG_PF_IMX_6
 #define TARGET_NAME "i.MX6"
 #endif
+
+#ifdef CONFIG_PF_IMX_6UL
+#define TARGET_NAME "i.MX6UL"
+#endif
+
+#ifdef CONFIG_PF_IMX_7
+#define TARGET_NAME "i.MX7"
+#endif
+
+#ifdef CONFIG_PF_IMX_8M
+#define TARGET_NAME "i.MX8M"
+#endif
+
+#ifdef CONFIG_PF_IMX_8MP
+#define TARGET_NAME "i.MX8MP"
+#endif
+
+#ifdef CONFIG_PF_IMX_8XQ
+#define TARGET_NAME "i.MX8XQ"
+#endif
+
+#ifdef CONFIG_PF_IMX_95
+#define TARGET_NAME "i.MX95"
+#endif

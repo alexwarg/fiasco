@@ -2,6 +2,7 @@
 
 OBJECTS_LIBUART         += uart_imx.o uart_pl011.o
 OBJECTS_LIBUART         += $(if $(CONFIG_PF_IMX_8XQ),uart_lpuart.o)
+OBJECTS_LIBUART         += $(if $(CONFIG_PF_IMX_95),uart_lpuart.o)
 RAM_PHYS_BASE           := $(CONFIG_PF_IMX_RAM_PHYS_BASE)
 
 MPCORE_PHYS_BASE      := 0x00a00000
@@ -28,6 +29,8 @@ LIBUART_HDR-$(CONFIG_PF_IMX_8M)    += uart_imx.h
 LIBUART_TYP-$(CONFIG_PF_IMX_8M)    += L4::Uart_imx8
 LIBUART_HDR-$(CONFIG_PF_IMX_8MP)   += uart_imx.h
 LIBUART_TYP-$(CONFIG_PF_IMX_8MP)   += L4::Uart_imx8
+LIBUART_HDR-$(CONFIG_PF_IMX_95)    += uart_lpuart.h
+LIBUART_TYP-$(CONFIG_PF_IMX_95)    += L4::Uart_lpuart
 
 LIBUART_UART_FLAGS += -include $(LIBUART_HDR-y) -DFIASCO_UART_TYPE=$(LIBUART_TYP-y)
 

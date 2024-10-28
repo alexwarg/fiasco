@@ -95,12 +95,18 @@ public:
 
 #ifdef CONFIG_PF_IMX_8M
   enum Phys_layout_imx8m : Address {
+    Gic_dist_phys_base   = 0x38800000,
+    Gic_redist_phys_base = 0x38880000,
+    Gic_redist_size      = 0x000c0000,
     /*dummy*/ Watchdog_phys_base   = ~0UL
   };
 #endif
 
 #ifdef CONFIG_PF_IMX_8MP
   enum Phys_layout_imx8mp : Address {
+    Gic_dist_phys_base   = 0x38800000,
+    Gic_redist_phys_base = 0x38880000,
+    Gic_redist_size      = 0x000c0000,
     /*dummy*/ Watchdog_phys_base   = ~0UL
   };
 #endif
@@ -110,6 +116,15 @@ public:
     Gic_dist_phys_base   = 0x51a00000,
     Gic_redist_phys_base = 0x51b00000,
     Gic_redist_size      = 0x00100000,
+    /*dummy*/ Watchdog_phys_base   = ~0UL
+  };
+#endif
+
+#ifdef CONFIG_PF_IMX_95
+  enum Phys_layout_imx95 : Address {
+    Gic_dist_phys_base   = 0x48000000,
+    Gic_redist_phys_base = 0x48060000,
+    Gic_redist_size      = 0x000c0000,
     /*dummy*/ Watchdog_phys_base   = ~0UL
   };
 #endif

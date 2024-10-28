@@ -140,6 +140,15 @@ struct Pfc_imx8mp : Pfc_psci
   }
 };
 
+struct Pfc_imx95 : Pfc_psci
+{
+  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  {
+    boot_ap_cpus_psci(phys_tramp_mp_addr,
+                      { 0x000, 0x100, 0x200, 0x300, 0x400, 0x500 }, true);
+  }
+};
+
 struct Pfc_imx_21 : Pfc_arm
 {
   [[noreturn]] void system_reboot() override
@@ -211,6 +220,9 @@ using Pfc_imx = Pfc_imx8mp;
 #endif
 #ifdef CONFIG_PF_IMX_8XQ
 using Pfc_imx = Pfc_imx8;
+#endif
+#ifdef CONFIG_PF_IMX_95
+using Pfc_imx = Pfc_imx95;
 #endif
 
 static Pfc_singleton<Pfc_imx> __pfc;

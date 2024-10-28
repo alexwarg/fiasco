@@ -19,6 +19,6 @@ Pic_gic::Gic_info const Pic_gic::primary_gic_info =
 
 #ifdef CONFIG_HAVE_ARM_GICV3
 Pic_gic::Gic_info const Pic_gic::primary_gic_info = Pic_gic::gic_v3_info(
-    0x38800000,  // distributor
-    0x38880000, 0x000c0000); // redist
+    Mem_layout::Gic_dist_phys_base,
+    Mem_layout::Gic_redist_phys_base, Mem_layout::Gic_redist_size);
 #endif
