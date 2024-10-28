@@ -181,9 +181,8 @@ public:
 
   /**
    * Create a map item.
-   * \param base the hot spot address of the map item.
    */
-  static constexpr L4_msg_item map(Mword base) { return L4_msg_item(base | Map); }
+  static constexpr L4_msg_item map() { return L4_msg_item(Map); }
 
 private:
   /**
