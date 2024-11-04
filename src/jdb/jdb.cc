@@ -15,6 +15,7 @@
 #include <push_console.h>
 #include <kernel_uart.h>
 #include <kernel_console.h>
+#include <paging_bits.h>
 
 #include <ctype.h>
 
@@ -783,28 +784,51 @@ Jdb::std_cursor_key(int c, Mword cols, Mword lines,
 // memory access wrappers
 //
 
-int
-Jdb::peek_task(Jdb_address addr, void *value, int width)
+template < typename T >
+static int
+peek_or_poke_task(Jdb_address addr, T *value, size_t bytes)
 {
-  unsigned char const *mem = access_mem_task(addr, false);
+  bool do_write = cxx::is_same_v<T, void const>;
+  unsigned char *mem = Jdb::access_mem_task(addr, do_write);
   if (!mem)
     return -1;
+  size_t bytes_to_copy = bytes;
 
-  memcpy(value, mem, width);
+  if (Pg::trunc(addr.addr()) != Pg::trunc(addr.addr() + bytes))
+    bytes_to_copy = Pg::round(addr.addr()) - addr.addr();
+  if constexpr (cxx::is_same_v<T, void>)
+    memcpy(value, mem, bytes_to_copy);
+  else
+    {
+      memcpy(mem, value, bytes_to_copy);
+      Mem_unit::make_coherent_to_pou(mem, bytes_to_copy);
+    }
+
+  if (bytes_to_copy != bytes)
+    {
+      mem = Jdb::access_mem_task(addr, do_write);
+      if (!mem)
+        return -1;
+      addr += bytes_to_copy;
+      bytes_to_copy = bytes - bytes_to_copy;
+      if constexpr (cxx::is_same_v<T, void>)
+        memcpy(value, mem, bytes_to_copy);
+      else
+        {
+          memcpy(mem, value, bytes_to_copy);
+          Mem_unit::make_coherent_to_pou(mem, bytes_to_copy);
+        }
+    }
   return 0;
 }
 
 int
-Jdb::poke_task(Jdb_address addr, void const *value, int width)
-{
-  unsigned char *mem = access_mem_task(addr, true);
-  if (!mem)
-    return -1;
+Jdb::peek_task(Jdb_address addr, void *value, size_t width)
+{ return peek_or_poke_task(addr, value, width); }
 
-  memcpy(mem, value, width);
-  Mem_unit::make_coherent_to_pou(mem, width);
-  return 0;
-}
+int
+Jdb::poke_task(Jdb_address addr, void const *value, size_t width)
+{ return peek_or_poke_task(addr, value, width); }
 
 
 class Jdb_base_cmds : public Jdb_module

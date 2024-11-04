@@ -155,9 +155,10 @@ private:
   static bool handle_user_request(Cpu_number cpu);
   static bool handle_debug_traps(Cpu_number cpu);
 
-  static unsigned char *access_mem_task(Jdb_address addr, bool write);
 
 public:
+  static unsigned char *access_mem_task(Jdb_address addr, bool write);
+
   static Jdb_handler_queue jdb_enter;
   static Jdb_handler_queue jdb_leave;
 
@@ -277,16 +278,13 @@ public:
                             Mword max_absy, Mword max_pos,
                             Mword *absy, Mword *addy, Mword *addx, bool *redraw);
 
-  static int peek_task(Jdb_address addr, void *value, int width);
-  static int poke_task(Jdb_address addr, void const *value, int width);
+  static int peek_task(Jdb_address addr, void *value, size_t width);
+  static int poke_task(Jdb_address addr, void const *value, size_t width);
 
   template< typename T >
   static bool peek(Jdb_addr<T> addr, cxx::remove_const_t<T> &value)
   {
-    // use an Mword here instead of T as some implementations of peek_task use
-    // an Mword in their operation which is potentially bigger than T
-    // XXX: should be fixed
-    Mword tmp;
+    T tmp;
     bool ret = peek_task(addr, &tmp, sizeof(T)) == 0;
     value = tmp;
     return ret;
