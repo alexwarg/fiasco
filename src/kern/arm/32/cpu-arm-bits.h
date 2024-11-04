@@ -33,9 +33,6 @@ public:
   static void clear_actrl(Mword bit_mask)
   { modify_actrl(0, bit_mask); }
 
-  static Mword dfr0() FIASCO_PURE
-  { Mword r; asm ("mrc p15, 0, %0, c0, c1, 2": "=r" (r)); return r; }
-
   static Mword dfr1() FIASCO_PURE
   { Mword v; asm ("mrc p15, 0, %0, c0, c3, 5": "=r" (v)); return v; }
 
@@ -43,14 +40,6 @@ public:
   {
     if constexpr (IS_ENABLED(CONFIG_ARM_V8PLUS))
       return ((dfr1() >> 4) & 0xf) == 1;
-    else
-      return false;
-  }
-
-  static bool has_pmuv3()
-  {
-    if constexpr (IS_ENABLED(CONFIG_ARM_V7PLUS))
-      return ((dfr0() >> 24) & 0xf) >= 3;
     else
       return false;
   }
@@ -296,6 +285,15 @@ public:
 
   bool has_generic_timer() const { return (self()->_cpu_id._pfr[1] & 0xf0000) == 0x10000; }
 
+  bool has_pmuv3()
+  {
+    if constexpr (IS_ENABLED(CONFIG_ARM_V7PLUS))
+      return ((self()->_cpu_id._dfr0 >> 24) & 0xf) >= 3;
+    else
+      return false;
+  }
+
+
   static Unsigned32 sctlr;
 
   static void check_for_swp_enable()
@@ -434,7 +432,7 @@ public:
                 | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_ttrf,
   };
 
-  static void init_hyp_mode()
+  void init_hyp_mode()
   {
     extern char hyp_vector_base[];
 
@@ -447,7 +445,7 @@ public:
 
     Mword sctlr_ignore;
     Mword hdcr;
-    if (C::has_pmuv3())
+    if (has_pmuv3())
       {
         Mword pmcr;
         asm ("mrc p15, 0, %0, c9, c12, 0" : "=r" (pmcr)); // read PMCR
