@@ -25,7 +25,7 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
 
   if (entry.level != Pdir::Depth && entry.is_leaf())
     printf((phys >> 20) > 0xFF
-           ? "       %03lx/2" : "        %02lx/2", phys >> 20);
+           ? "%10lx/2" : "        %02lx/2", phys >> 20);
   else
     // truncates the upper 4bit of the physical address,
     // which are attributes anyways
