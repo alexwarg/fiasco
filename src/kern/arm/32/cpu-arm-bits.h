@@ -285,10 +285,13 @@ public:
 
   bool has_generic_timer() const { return (self()->_cpu_id._pfr[1] & 0xf0000) == 0x10000; }
 
-  bool has_pmuv3()
+  bool has_pmuv3() const
   {
     if constexpr (IS_ENABLED(CONFIG_ARM_V7PLUS))
-      return ((self()->_cpu_id._dfr0 >> 24) & 0xf) >= 3;
+      {
+        unsigned pmuv = (self()->_cpu_id._dfr0 >> 24) & 0xf;
+        return pmuv >= 3 && pmuv != 0xf;
+      }
     else
       return false;
   }
