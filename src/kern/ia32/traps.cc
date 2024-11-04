@@ -129,6 +129,45 @@ check_io_bitmap_delimiter_fault(Thread *ct, Trap_state *ts)
 }
 
 
+/**
+ * Chech whether the current trap is #GP caused by an unknown IRQ.
+ *
+ * If the current trap is a #GP caused by a non-present entry in the IDT, we
+ * consider it an unknown interrupt which we acknowledge and ignore.
+ *
+ * Such unknown interrupts are usually caused by the firmware or the boot
+ * loader configuring an interrupt source (e.g. the local APIC timer) and
+ * failing to deactivate the source. The interrupt is then asserted while
+ * interrupts are masked and there is no fail-safe way to deassert it.
+ *
+ * \param ts  Trap state.
+ *
+ * \retval 0  Unknown interrupt detected, the trap should be ignored.
+ * \retval 1  The trap should be processed.
+ */
+inline int check_unknown_irq(Trap_state *ts)
+{
+  // Check for #GF and trap caused by invalid IDT entry (bit 1).
+  if (ts->_trapno == 13 && (ts->_err & 2) == 2)
+    {
+      // Interrupt vector derived from the IDT selector index.
+      Mword vector = (ts->_err & 0xffff) >> 3;
+
+      // Ignore non-IRQ interrupt vectors.
+      if (vector < 32 || vector >= Idt::_idt_max)
+        return 1;
+
+      if (!Idt::get(vector).present())
+        {
+          WARN("Unknown interrupt vector %lu, ignoring\n", vector);
+          Apic::irq_ack();
+          return 0;
+        }
+    }
+
+  return 1;
+}
+
 inline int
 handle_io_page_fault(Thread *ct, Trap_state *ts)
 {
@@ -207,6 +246,9 @@ handle_slow_trap(Thread *c, Trap_state *ts)
 
   if (EXPECT_FALSE(!from_user))
     {
+      if (!check_unknown_irq(ts))
+        return 0;
+
       if (handle_kernel_exc(ts))
         goto success;
 
