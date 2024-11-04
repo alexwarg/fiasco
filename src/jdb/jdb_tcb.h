@@ -57,7 +57,7 @@ public:
 
   bool edit_registers();
 
-  void dump(bool dump_only);
+  void dump(bool dump_only, Address ksp);
   void highlight(bool highl);
 
   Jdb_stack_view(unsigned y, int show_obj_help = 1)
