@@ -34,8 +34,8 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
 void
 Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp)
 {
-  printf("CS=%04lx  EIP=%s%08lx\033[m  EFlags=%08lx kernel ESP=%08lx",
-      current.top_value(-4) & 0xffff, Jdb::esc_emph, 
+  printf("CS=%04lx  EIP=%s%08lx\033[m  EFlags=%08lx kernel ESP=%08lx\n",
+      current.top_value(-4) & 0xffff, Jdb::esc_emph,
       current.top_value(-5), current.top_value(-3), ksp);
 }
 
@@ -53,7 +53,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "EBX=%08lx  EDI=%08lx\n"
     	     "ECX=%08lx  EBP=%08lx\n"
 	     "EDX=%08lx  ESP=%08lx  SS=%04lx\n"
-	     "in %s (user level registers)",
+	     "in %s (user level registers)\n",
 	     p.top_value( -6), p.top_value(-10),
 	     p.top_value( -8), p.top_value( -9),
 	     p.top_value(-12), p.top_value( -7),
@@ -65,7 +65,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "EBX=00000000  EDI=00000000\n"
 	     "ECX=00000000  EBP=00000000\n"
 	     "EDX=00000000  ESP=%08lx  SS=%04lx\n"
-	     "invoking user the first time (user level registers)",
+	     "invoking user the first time (user level registers)\n",
 	     p.top_value(-2), p.top_value(-1) & 0xffff);
       break;
     case Jdb::s_fputrap:
@@ -73,7 +73,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "\n"
     	     "ECX=%08lx\n"
 	     "EDX=%08lx  ESP=%08lx  SS=%04lx\n"
-	     "in exception #0x07 (user level registers)",
+	     "in exception #0x07 (user level registers)\n",
 	     p.top_value(-7), p.top_value(-8),
 	     p.top_value(-9), p.top_value(-2), p.top_value(-1) & 0xffff);
       break;
@@ -84,9 +84,9 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "EDX=%08lx  ESP=%08lx  SS=%04lx\n"
 	     "in page fault, error %08lx (user level registers)\n"
 	     "\n"
-	     "page fault linear address %08lx",
-	     p.top_value( -7), p.top_value( -8), p.top_value(-6), 
-	     p.top_value( -9), p.top_value( -2), p.top_value(-1) & 0xffff, 
+	     "page fault linear address %08lx\n",
+	     p.top_value( -7), p.top_value( -8), p.top_value(-6),
+	     p.top_value( -9), p.top_value( -2), p.top_value(-1) & 0xffff,
 	     p.top_value(-11), p.top_value(-10));
       break;
     case Jdb::s_interrupt:
@@ -94,7 +94,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "\n"
     	     "ECX=%08lx\n"
 	     "EDX=%08lx  ESP=%08lx  SS=%04lx\n"
-	     "in interrupt #0x%02lx (user level registers)",
+	     "in interrupt #0x%02lx (user level registers)\n",
 	     p.top_value(-6), p.top_value(-8),
 	     p.top_value(-7), p.top_value(-2), p.top_value(-1) & 0xffff,
 	     p.top_value(-9));
@@ -106,7 +106,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "\n"
     	     "ECX=%08lx\n"
 	     "EDX=%08lx  ESP=%08lx  SS=%04lx\n"
-	     "in timer interrupt (user level registers)",
+	     "in timer interrupt (user level registers)\n",
 	     p.top_value(-6-sub), p.top_value(-8-sub),
 	     p.top_value(-7-sub), p.top_value(-2), p.top_value(-1) & 0xffff);
       break;
@@ -115,8 +115,8 @@ Jdb_tcb::info_thread_state(Thread *t)
              "EBX=%08lx  EDI=%08lx  ES=%04lx\n"
              "ECX=%08lx  EBP=%08lx  GS=%04lx\n"
              "EDX=%08lx  ESP=%08lx  SS=%04lx\n"
-             "in exception %lu, error %08lx (user level registers)",
-	     p.top_value( -8), p.top_value(-14), p.top_value(-18) & 0xffff, 
+             "in exception %lu, error %08lx (user level registers)\n",
+	     p.top_value( -8), p.top_value(-14), p.top_value(-18) & 0xffff,
 	     p.top_value(-11), p.top_value(-15), p.top_value(-19) & 0xffff,
 	     p.top_value( -9), p.top_value(-13), p.top_value(-17) & 0xffff,
 	     p.top_value(-10), p.top_value( -2), p.top_value( -1) & 0xffff,

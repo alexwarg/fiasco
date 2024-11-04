@@ -40,7 +40,7 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
 void
 Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp)
 {
-  printf("RIP=%s%016lx\033[m  RFlags=%016lx kernel RSP=%016lx",
+  printf("RIP=%s%016lx\033[m  RFlags=%016lx kernel RSP=%016lx\n",
          Jdb::esc_emph, current.top_value(-5), current.top_value(-3), ksp);
 }
 
@@ -62,7 +62,7 @@ Jdb_tcb::info_thread_state(Thread *t)
              "R10=%016lx  R11=%016lx\n"
              "R12=%016lx  R13=%016lx  SS=%04lx\n"
              "R14=%016lx  R15=%016lx  CS=%04lx\n"
-	     "in %s (user level registers)",
+	     "in %s (user level registers)\n",
 	     p.top_value( -6), p.top_value(-10),
 	     p.top_value( -8), p.top_value( -9),
 	     p.top_value(-12), p.top_value( -7),
@@ -70,7 +70,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     p.top_value(-19), p.top_value(-18),
 	     p.top_value(-17), p.top_value(-16),
 	     p.top_value(-15), p.top_value(-14), p.top_value(-1) & 0xffff,
-	     p.top_value(-13), p.top_value(-12), p.top_value(-4) & 0xffff, 
+	     p.top_value(-13), p.top_value(-12), p.top_value(-4) & 0xffff,
 	     state == Jdb::s_ipc ? "ipc" : "syscall");
       break;
     case Jdb::s_user_invoke:
@@ -82,7 +82,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "R10=0000000000000000  R11=0000000000000000\n"
 	     "R12=0000000000000000  R13=0000000000000000\n"
 	     "R14=0000000000000000  R15=0000000000000000\n"
-	     "invoking user the first time (user level registers)",
+	     "invoking user the first time (user level registers)\n",
 	     p.top_value(-2), p.top_value(-1) & 0xffff);
       break;
     case Jdb::s_fputrap:
@@ -94,7 +94,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "R10=----------------  R11=----------------\n"
 	     "R12=----------------  R13=----------------\n"
 	     "R14=----------------  R15=----------------\n"
-	     "in exception #0x07 (user level registers)",
+	     "in exception #0x07 (user level registers)\n",
 	     p.top_value(-7), p.top_value(-8),
 	     p.top_value(-9), p.top_value(-2), p.top_value(-1) & 0xffff);
       break;
@@ -109,9 +109,9 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "R14=----------------  R15=----------------\n"
 	     "in page fault, error %08lx (user level registers)\n"
 	     "\n"
-	     "page fault linear address %16lx",
-	     p.top_value( -7), p.top_value( -8), p.top_value(-6), 
-	     p.top_value( -9), p.top_value( -2), p.top_value(-1) & 0xffff, 
+	     "page fault linear address %16lx\n",
+	     p.top_value( -7), p.top_value( -8), p.top_value(-6),
+	     p.top_value( -9), p.top_value( -2), p.top_value(-1) & 0xffff,
 	     p.top_value(-10), p.top_value(-11));
       break;
     case Jdb::s_interrupt:
@@ -123,7 +123,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "R10=----------------  R11=----------------\n"
 	     "R12=----------------  R13=----------------\n"
 	     "R14=----------------  R15=----------------\n"
-	     "in interrupt #0x%02lx (user level registers)",
+	     "in interrupt #0x%02lx (user level registers)\n",
 	     p.top_value(-6), p.top_value(-8),
 	     p.top_value(-7), p.top_value(-2), p.top_value(-1) & 0xffff,
 	     p.top_value(-9));
@@ -139,7 +139,7 @@ Jdb_tcb::info_thread_state(Thread *t)
 	     "R10=----------------  R11=----------------\n"
 	     "R12=----------------  R13=----------------\n"
 	     "R14=----------------  R15=----------------\n"
-	     "in timer interrupt (user level registers)",
+	     "in timer interrupt (user level registers)\n",
 	     p.top_value(-6-sub), p.top_value(-8-sub),
 	     p.top_value(-7-sub), p.top_value(-2), p.top_value(-1) & 0xffff);
       break;
@@ -152,7 +152,7 @@ Jdb_tcb::info_thread_state(Thread *t)
              "R10=%016lx  R11=%016lx\n"
              "R12=%016lx  R13=%016lx\n"
              "R14=%016lx  R15=%016lx  CS=%04lx\n"
-             "in exception %lu, error %08lx (user level registers)",
+             "in exception %lu, error %08lx (user level registers)\n",
 	     p.top_value( -8), p.top_value(-14),
 	     p.top_value(-11), p.top_value(-15),
 	     p.top_value( -9), p.top_value(-13),
