@@ -28,7 +28,6 @@ public:
     Kmem_tmp_page_2   = Service_page + 0x4000,   ///< % 4KB size 8KB
     Tbuf_status_page  = Service_page + 0x6000,   ///< % 4KB
     Tbuf_ustatus_page = Tbuf_status_page,
-    Jdb_bench_page    = Service_page + 0x8000,   ///< % 4KB
     Jdb_bts_area      = Service_page + 0xf000,   ///< % 4KB size 0x81000
     Idt               = Service_page + 0xfe000,  ///< % 4KB
     Syscalls          = Service_page + 0xff000,  ///< % 4KB syscall page
