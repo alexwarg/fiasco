@@ -8,11 +8,11 @@
 class Acpi_sdt;
 
 namespace Acpi {
-  void *_map_table_head(Unsigned64 phys);
+  void *_map_table(Unsigned64 phys, unsigned size);
 
   template<typename TAB>
-  inline TAB *map_table_head(Unsigned64 phys)
-  { return reinterpret_cast<TAB *>(_map_table_head(phys)); }
+  inline TAB *map_table(Unsigned64 phys, unsigned size)
+  { return reinterpret_cast<TAB *>(_map_table(phys, size)); }
 
   Acpi_sdt const *sdt();
   bool check_signature(char const *sig, char const *reference);
@@ -59,6 +59,12 @@ public:
 
 } __attribute__((packed));
 
+namespace Acpi
+{
+  template<typename TAB>
+  inline TAB *map_table_head(Unsigned64 phys)
+  { return reinterpret_cast<TAB *>(_map_table(phys, sizeof(Acpi_table_head))); }
+}
 
 class Acpi_sdt
 {
@@ -90,7 +96,8 @@ public:
         return nullptr;
       }
 
-    return Acpi::map_table_head<Acpi_table_head>((Unsigned64)phys);
+    auto const *h = Acpi::map_table_head<Acpi_table_head>(Unsigned64{phys});
+    return Acpi::map_table<Acpi_table_head>(Unsigned64{phys}, h->len);
   }
 
   Acpi_table_head const *find(char const *sig) const

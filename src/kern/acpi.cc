@@ -144,17 +144,17 @@ Acpi_sdt::print_summary() const
 
 
 void *
-Acpi::_map_table_head(Unsigned64 phys)
+Acpi::_map_table(Unsigned64 phys, unsigned size)
 {
   // is the acpi address bigger that our handled physical addresses
-  if (Acpi_helper_get_msb<(sizeof(phys) > sizeof(Address))>::msb(phys))
+  if (Acpi_helper_get_msb < (sizeof(phys) > sizeof(Address))>::msb(phys + size - 1))
     {
       printf("ACPI: cannot map phys address %llx, out of range (%ubit)\n",
              (unsigned long long)phys, (unsigned)sizeof(Address) * 8);
       return nullptr;
     }
 
-  void *t = (void *)Kmem::mmio_remap(phys, Config::PAGE_SIZE, true);
+  void *t = (void *)Kmem::mmio_remap(phys, size, true);
   if (t == (void *)~0UL)
     {
       printf("ACPI: cannot map phys address %llx, map failed\n",
