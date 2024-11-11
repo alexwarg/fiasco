@@ -352,19 +352,6 @@ inline void done_spiv()
   Apic::reg_write(Apic::APIC_spiv, val);
 }
 
-void
-Apic::done()
-{
-  if (!is_present())
-    return;
-
-  done_spiv();
-
-  Unsigned64 val = Cpu::rdmsr(APIC_base_msr);
-  val &= ~(1 << 11);
-  Cpu::wrmsr(val, APIC_base_msr);
-}
-
 FIASCO_INIT_CPU_AND_PM
 void
 Apic::init_timer(Cpu *cpu)

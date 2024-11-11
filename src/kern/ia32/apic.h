@@ -86,7 +86,6 @@ public:
   static int test_cpu(Cpu *cpu);
   static int test_present_but_disabled();
   static void activate_by_msr();
-  static void done();
   static void dump_info();
 
   struct use_x2apic : public Alternative_static_functor<use_x2apic>
