@@ -84,19 +84,29 @@ public:
                      Frame *sframe, Frame *dframe)
   {
     Kobject_mappable *srn = sobj->map_root();
-    srn->_lock.lock();
-
-    if (sva._c->obj() != sobj)
-      {
-        srn->_lock.clear();
-        return -1;
-      }
-
     Kobject_mappable *drn = dobj->map_root();
     bool same_obj = drn == srn;
 
-    if (!same_obj)
-      drn->_lock.lock();
+    if (same_obj)
+      srn->_lock.lock();
+    else if (sobj > dobj)
+      {
+        srn->_lock.lock();
+        drn->_lock.lock();
+      }
+    else
+      {
+        drn->_lock.lock();
+        srn->_lock.lock();
+      }
+
+    if (sva._c->obj() != sobj)
+      {
+        if (!same_obj)
+          drn->_lock.clear();
+        srn->_lock.clear();
+        return -1;
+      }
 
     if (dva._c->obj() != dobj)
       {
