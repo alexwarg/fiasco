@@ -8,39 +8,34 @@
 #include <cstdio>
 #include <arithmetic.h>
 
-void
-Gic_redist::find(Address base, Unsigned64 mpidr, Cpu_number cpu)
+Mmio_register_block
+Gic_redist_find::scan_range(Address base, Unsigned64 mpidr)
 {
   unsigned o = 0;
-  Typer gicr_typer;
+  Gic_redist::Typer gicr_typer;
   Unsigned64 typer_aff = (mpidr & 0x0000ffffff) | ((mpidr & 0xff00000000) >> 8);
   do
     {
       Mmio_register_block r(base + o);
 
-      unsigned arch_rev = (r.read<Unsigned32>(GICR_PIDR2) >> 4) & 0xf;
+      unsigned arch_rev = (r.read<Unsigned32>(Gic_redist::GICR_PIDR2) >> 4) & 0xf;
       if (arch_rev != 0x3 && arch_rev != 0x4)
         // No GICv3 and no GICv4
         break;
 
-      gicr_typer.raw = r.read_non_atomic<Unsigned64>(GICR_TYPER);
+      gicr_typer.raw = r.read_non_atomic<Unsigned64>(Gic_redist::GICR_TYPER);
       if (gicr_typer.affinity() == typer_aff)
-        {
-          printf("CPU%d: GIC Redistributor at %lx for 0x%llx\n",
-                 cxx::int_value<Cpu_number>(cpu),
-                 r.get_mmio_base(), mpidr & ~0xc0000000ull);
-          _redist = r;
-          return;
-        }
+        return r;
 
-      o += 2 * GICR_frame_size;
+      o += 2 * Gic_redist::GICR_frame_size;
       if (gicr_typer.vlpis())
-        o += 2 * GICR_frame_size;
+        o += 2 * Gic_redist::GICR_frame_size;
     }
   while (!gicr_typer.last());
 
-  panic("GIC: Did not find a redistributor for CPU%d\n",
-        cxx::int_value<Cpu_number>(cpu));
+  Mmio_register_block r;
+  r.set_mmio_base(0);
+  return r;
 }
 
 void

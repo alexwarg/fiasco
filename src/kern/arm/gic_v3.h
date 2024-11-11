@@ -16,13 +16,15 @@ class Gic_v3 : public Gic_mixin<Gic_v3, Gic_cpu_v3>
   static Per_cpu<Gic_redist> _redist;
   Per_cpu_array<Unsigned64> _sgi_template;
 
-  Address _redist_base;
+  Gic_redist_find *_redist_get;
 
 public:
   using Version = Gic_dist::V3;
 
-  explicit Gic_v3(Address dist_base, Address redist_base)
-  : Gic(dist_base), _redist_base(redist_base)
+  explicit Gic_v3(Address dist_base, Address redist_base);
+
+  explicit Gic_v3(Address dist_base, Gic_redist_find *redist_get)
+  : Gic(dist_base), _redist_get(redist_get)
   {
     init_gic(-1);
   }
@@ -71,7 +73,12 @@ public:
     auto &rd = _redist.cpu(cpu);
     Unsigned64 mpidr = ::Cpu::mpidr();
 
-    rd.find(_redist_base, mpidr, cpu);
+    Mmio_register_block redist = _redist_get->get_redist_mmio(mpidr);
+    if (!redist.get_mmio_base())
+      panic("GIC: Did not find a redistributor for CPU%d\n",
+            cxx::int_value<Cpu_number>(cpu));
+
+    rd.set_region(redist);
     rd.cpu_init();
 
     if (mpidr & 0xf0)

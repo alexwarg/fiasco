@@ -13,6 +13,13 @@
 #include <gic_mem.h>
 #endif
 
+class Gic_redist_find
+{
+public:
+  virtual Mmio_register_block get_redist_mmio(Unsigned64) = 0;
+  static Mmio_register_block scan_range(Address base, Unsigned64 mpidr);
+};
+
 class Gic_redist
 {
 private:
@@ -58,7 +65,9 @@ public:
     CXX_BITFIELD_MEMBER_RO(32, 63, affinity, raw);
   };
 
-  void find(Address base, Unsigned64 mpidr, Cpu_number cpu);
+  void set_region(Mmio_register_block b)
+  { _redist = b; }
+
   void cpu_init();
   void disable();
 

@@ -2,9 +2,32 @@
 #include "gic_v3.h"
 #include <gic_its.h>
 #include "globalconfig.h"
+#include <boot_alloc.h>
 
 
 DEFINE_PER_CPU Per_cpu<Gic_redist> Gic_v3::_redist;
+namespace
+{
+  class Gic_redist_find_array : public Gic_redist_find
+  {
+  public:
+    Gic_redist_find_array() = default;
+    explicit Gic_redist_find_array(Address redist_base) : _redist_base(redist_base) {}
+
+    Mmio_register_block get_redist_mmio(Unsigned64 mpid) override
+    { return scan_range(_redist_base, mpid); }
+
+  private:
+    Address _redist_base;
+  };
+}
+
+Gic_v3::Gic_v3(Address dist_base, Address redist_base)
+: Gic(dist_base),
+  _redist_get(new Boot_object<Gic_redist_find_array>(redist_base))
+{
+  init_gic(-1);
+}
 
 void
 Gic_v3::set_cpu(Mword pin, Cpu_number cpu)
