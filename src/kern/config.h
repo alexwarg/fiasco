@@ -49,7 +49,7 @@ namespace Config
 
     One_shot_min_interval_us =   200,
     One_shot_max_interval_us = 10000,
-
+    Rcu_grace_period = 1000,
 
     Fine_grained_cputime = IS_ENABLED(CONFIG_FINE_GRAINED_CPUTIME),
 

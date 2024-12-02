@@ -12,6 +12,8 @@
 #include <config.h>
 #include <system_clock.h>
 
+#include <rcupdate.h>
+
 /** A timeout basic object. It contains the necessary queues and handles
     enqueuing, dequeuing and handling of timeouts. Real timeout classes
     should overwrite expired(), which will do the real work, if an
@@ -190,6 +192,22 @@ private:
     program_timer(next_timeout);
   }
 
+  /**
+   * Update the timer interrupt to the next timeout.
+   *
+   * \param now current time
+   */
+  void update_timer_max_oneshot(Unsigned64 now)
+  {
+    if constexpr (!Config::Scheduler_one_shot)
+      return;
+
+    if (Rcu::idle(current_cpu()))
+      update_timer(now + Config::One_shot_max_interval_us);
+    else
+      update_timer(now + Config::Rcu_grace_period);
+  }
+
 public:
   static Per_cpu<Timeout_q> timeout_queue;
 
@@ -285,7 +303,7 @@ public:
           break;
       }
 
-    update_timer(now + Config::One_shot_max_interval_us);
+    update_timer_max_oneshot(now);
     return reschedule;
   }
 
