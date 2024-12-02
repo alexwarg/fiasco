@@ -6,6 +6,8 @@
 class Timer_apic
 {
 public:
+  static constexpr Unsigned64 Infinite_timeout = UINT64_MAX;
+
   static int irq()
   { return -1; }
 

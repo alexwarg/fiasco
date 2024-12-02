@@ -143,6 +143,53 @@ private:
   Unsigned64 _current;
   Unsigned64 _old_clock;
 
+  /**
+   * Program the timer interrupt to the given timeout.
+   *
+   * Enforces a lower bound for the timeout, as defined by
+   * Config::One_shot_min_interval_us, to prevent too frequent handling of the
+   * timeout queue.
+   */
+  void program_timer(Unsigned64 timeout)
+  {
+    if (timeout < _old_clock + Config::One_shot_min_interval_us)
+      _current = _old_clock + Config::One_shot_min_interval_us;
+    else
+      _current = timeout;
+
+    Timer::update_timer(_current);
+  }
+
+  /**
+   * Update the timer interrupt to the next timeout.
+   *
+   * Set the timer to the next timeout in one-shot mode. The parameter
+   * gives a hint for the maximum timeout to set.
+   *
+   * \param max_timeout  Maximum timeout to set.
+   *                     Use Timer::Infinite_timeout for no timeout.
+   */
+  void update_timer(Unsigned64 max_timeout)
+  {
+    if constexpr (!Config::Scheduler_one_shot)
+      return;
+
+    Unsigned64 next_timeout = max_timeout;
+
+    // scan all queues for the next minimum
+    for (int i = 0; i < Wakeup_queue_count; i++)
+      {
+        // make sure that something enqueued other than the dummy element
+        if (first(i).empty())
+          continue;
+
+        if (first(i).front()->_wakeup < next_timeout)
+          next_timeout = first(i).front()->_wakeup;
+      }
+
+    program_timer(next_timeout);
+  }
+
 public:
   static Per_cpu<Timeout_q> timeout_queue;
 
@@ -170,11 +217,11 @@ public:
 
     q.insert_before(to, tmp);
 
-    if (Config::Scheduler_one_shot && (to->_wakeup < _current))
-      {
-        _current = to->_wakeup;
-        Timer::update_timer(_current);
-      }
+    if constexpr (! Config::Scheduler_one_shot)
+      return;
+
+    if (to->_wakeup < _current)
+      program_timer(to->_wakeup);
   }
 
   /**
@@ -238,29 +285,7 @@ public:
           break;
       }
 
-    if (Config::Scheduler_one_shot)
-      {
-        // scan all queues for the next minimum
-        //_current = (Unsigned64) ULONG_LONG_MAX;
-        _current = now + 10000; // 10ms
-        bool update_timer = true;
-
-        for (int i = 0; i < Wakeup_queue_count; i++)
-          {
-            // make sure that something enqueued other than the dummy element
-            if (first(i).empty())
-              continue;
-
-            update_timer = true;
-
-            if (first(i).front()->_wakeup < _current)
-              _current =  first(i).front()->_wakeup;
-          }
-
-        if (update_timer)
-          Timer::update_timer(_current);
-
-      }
+    update_timer(now + Config::One_shot_max_interval_us);
     return reschedule;
   }
 

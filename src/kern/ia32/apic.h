@@ -102,6 +102,8 @@ public:
 
   static Per_cpu<Static_object<Apic> > apic;
 
+  // A write of 0 to effectively stops the Local APIC timer.
+  static constexpr Unsigned32 Timer_min = 1;
   static constexpr Unsigned32 Timer_max = UINT32_MAX;
 
   Apic(Cpu_number cpu) : _id(get_id()) { register_pm(cpu); }
