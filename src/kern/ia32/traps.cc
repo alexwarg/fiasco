@@ -491,3 +491,62 @@ thread_handle_fputrap()
   return current_thread()->switchin_fpu();
 }
 
+
+extern "C" void thread_handle_machine_check(Return_frame *rf);
+
+namespace Msr {
+enum : uint32_t
+{
+  Ia32_mcg_cap = 0x179,             // Global Machine Check Capability
+  Ia32_mcg_status = 0x17a,          // Global Machine Check Status
+  Ia32_mcg_ctl = 0x17b,             // Global Machine Check Control
+  Ia32_mc0_ctl2 = 0x280,            // , 0x281, ... up to 31 registers
+  Ia32_mc0_ctl = 0x400,             // , 0x404, ... up to 31 registers
+  Ia32_mc0_status = 0x401,          // , 0x405, ... up to 31 registers
+  Ia32_mc0_addr = 0x402,            // , 0x406, ... up to 31 registers
+  Ia32_mc0_misc = 0x403,            // , 0x407, ... up to 31 registers
+  Ia32_mcg_ext_ctl = 0x4d0,
+};
+}
+
+void
+thread_handle_machine_check(Return_frame *rf)
+{
+  LOG_TRAP_N(12);
+
+  Unsigned64 mcg_cap = Cpu::rdmsr(Msr::Ia32_mcg_cap);
+  Unsigned64 mcg_status = Cpu::rdmsr(Msr::Ia32_mcg_status);
+  printf("Machine check exception: ip=%08lx mcg_cap=%08llx mcg_status=%08llx\n",
+         rf->ip(), mcg_cap, mcg_status);
+
+  if (mcg_cap & (1ULL << 8))
+    {
+      Unsigned64 mcg_ctl = Cpu::rdmsr(Msr::Ia32_mcg_ctl);
+      printf("  mcg_ctl=%016llx\n", mcg_ctl);
+    }
+
+  if (mcg_cap & (1ULL << 27))
+    {
+      Unsigned64 mcg_ext_ctl = Cpu::rdmsr(Msr::Ia32_mcg_ext_ctl);
+      printf("  mcg_ext_ctl=%016llx\n", mcg_ext_ctl);
+    }
+
+  printf("Banks:\n");
+  unsigned hw_units = mcg_cap & 0xff;
+  for (unsigned i = 0; i < hw_units; ++i)
+    {
+      Unsigned64 ctl = Cpu::rdmsr(Msr::Ia32_mc0_ctl + 4 * i);
+      Unsigned64 status = Cpu::rdmsr(Msr::Ia32_mc0_status + 4 * i);
+      Unsigned64 addr = Cpu::rdmsr(Msr::Ia32_mc0_addr + 4 * i);
+      Unsigned64 misc = Cpu::rdmsr(Msr::Ia32_mc0_misc + 4 * i);
+      printf("  %2u: ctl=%016llx stat=%016llx addr=%016llx misc=%016llx\n",
+             i, ctl, status, addr, misc);
+      if (mcg_cap & (1ULL << 10))
+        {
+          Unsigned64 ctl2 = Cpu::rdmsr(Msr::Ia32_mc0_ctl2 + i);
+          printf("      ctl2=%0816llx\n", ctl2);
+        }
+    }
+}
+
+
