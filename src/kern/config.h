@@ -66,6 +66,8 @@ namespace Config
     Big_endian = IS_ENABLED(CONFIG_BIG_ENDIAN),
   };
 
+  static constexpr bool Scheduler_one_shot = IS_ENABLED(CONFIG_ONE_SHOT);
+
   constexpr Cpu_number max_num_cpus() { return Cpu_number(Max_num_cpus); }
 
   extern bool getchar_does_hlt_works_ok;

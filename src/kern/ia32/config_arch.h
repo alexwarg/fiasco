@@ -70,8 +70,6 @@ namespace Config
     Default_time_slice    = 10 * Scheduler_granularity,
 #endif
 
-    Scheduler_one_shot = IS_ENABLED(CONFIG_ONE_SHOT),
-
 #ifdef CONFIG_SCHED_RTC
     Scheduler_mode = SCHED_RTC,
 #  ifdef CONFIG_SLOW_RTC
