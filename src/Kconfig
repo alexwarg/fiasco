@@ -43,6 +43,8 @@ config VIRTUAL_SPACE_IFACE
 config FPU_ALLOC_TYPED
 	bool
 
+config HAS_ONE_SHOT
+	bool
 
 ################################################################################
 menu "Target configuration"
@@ -160,7 +162,7 @@ config CONTEXT_4K
 
 config ONE_SHOT
 	bool "Use scheduling timer in one-shot mode"
-	depends on SCHED_APIC && SYNC_CLOCK
+	depends on HAS_ONE_SHOT
 	help
 	  More costly than periodic but more fine-granular scheduling
 	  possible.  EXPERIMENTAL!
