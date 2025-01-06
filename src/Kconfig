@@ -163,6 +163,7 @@ config CONTEXT_4K
 config ONE_SHOT
 	bool "Use scheduling timer in one-shot mode"
 	depends on HAS_ONE_SHOT
+	select FINE_GRAINED_CPUTIME
 	help
 	  More costly than periodic but more fine-granular scheduling
 	  possible.  EXPERIMENTAL!
@@ -176,6 +177,7 @@ config SYNC_CLOCK
 
 config FINE_GRAINED_CPUTIME
 	bool "Fine-grained CPU time"
+	depends on !PERFORMANCE || ONE_SHOT
 	help
 	  Measure CPU time consumed by a thread from switching to the thread
 	  until switching to another thread. Induces an overhead during each
