@@ -1,10 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only OR License-Ref-kk-custom */
 /*
- * Copyright (C) 2023 Kernkonzept GmbH.
- */
-/*
- * (c) 2015
- *     economic rights: Technische Universität Dresden (Germany)
+ * Copyright (C) 2015 Technische Universität Dresden.
+ * Copyright (C) 2023-2024 Kernkonzept GmbH.
+ * Author(s): Adam Lackorzynski <adam@l4re.org>
  *
  * This file is part of TUD:OS and distributed under the terms of the
  * GNU General Public License 2.

@@ -1,9 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only OR License-Ref-kk-custom */
 /*
- * Copyright (C) 2023 Kernkonzept GmbH.
- */
-/*
- * (c) 2017 Adam Lackorzynski <adam@l4re.org>
+ * Copyright (C) 2017, 2023-2024 Kernkonzept GmbH.
+ * Author(s): Adam Lackorzynski <adam@l4re.org>
  *
  * This file is part of L4Re and distributed under the terms of the
  * GNU General Public License 2.
