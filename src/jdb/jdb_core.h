@@ -98,7 +98,7 @@ public:
    * Like strlen but do not count ESC sequences.
    */
   static int print_len(const char *s);
-
+  static int invisible_len(char const *s);
   static char esc_prompt[];
 
   static void (*wait_for_input)();

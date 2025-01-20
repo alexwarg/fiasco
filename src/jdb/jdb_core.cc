@@ -80,6 +80,32 @@ int Jdb_core::print_len(const char *s)
   return l;
 }
 
+int Jdb_core::invisible_len(char const *s)
+{
+  int l = 0;
+  while (*s)
+    {
+      if (s[0] == '\033' && s[1] == '[')
+        {
+          s += 2;
+          l += 2;
+          while (*s && *s != 'm')
+            {
+              ++s;
+              ++l;
+            }
+          if (*s)
+            {
+              ++s; // skip 'm'
+              ++l;
+            }
+        }
+      else
+        s++;
+    }
+  return l;
+}
+
 int Jdb_core::set_prompt_color(char x)
 {
   unsigned pc = get_ansi_color(x);
