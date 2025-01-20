@@ -3,19 +3,6 @@
 #include <thread.h>
 #include <dbg_stack.h>
 
-struct On_dbg_stack
-{
-  Mword sp;
-  On_dbg_stack(Mword sp) : sp(sp) {}
-  bool operator () (Cpu_number cpu) const
-  {
-    Dbg::Dbg_stack const &st = Dbg::dbg_stack.cpu(cpu);
-    return sp <= Mword(st.stack_top) 
-       && sp >= Mword(st.stack_top) - Dbg::Dbg_stack::Stack_size;
-  }
-};
-
-
 Thread*
 Jdb::get_thread(Cpu_number cpu)
 {
@@ -26,7 +13,13 @@ Jdb::get_thread(Cpu_number cpu)
   if (entry_frame->_trapno == 8 && !(entry_frame->cs() & 3))
     sp = entry_frame->sp(); // we can trust esp since it comes from main_tss
 
-  if (foreach_cpu(On_dbg_stack(sp), false))
+  auto on_dbg_stack = [sp](Cpu_number cpu) -> bool
+    {
+      Dbg::Dbg_stack const &st = Dbg::dbg_stack.cpu(cpu);
+      Mword stack_top = reinterpret_cast<Mword>(st.stack_top);
+      return sp <= stack_top && sp >= stack_top - Dbg::Dbg_stack::Stack_size;
+    };
+  if (foreach_cpu(on_dbg_stack, false))
     return 0;
 
   if (!Helping_lock::threading_system_active)
