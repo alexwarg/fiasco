@@ -434,7 +434,13 @@ public:
   static void mp_send_ipi(Ipi_dest_shrt dest_shrt, Apic_id dest,
                           Ipi_delivery_mode delivery_mode, Unsigned8 vector)
   {
+    // Do NOT consider INIT Level De-assert (Delivery Mode: INIT, Level: 1/Assert,
+    // Trigger Mode: 1/Level). Since Pentium 4, this mode is no longer supported
+    // anyway.
     Unsigned32 const lower_icr =   static_cast<Unsigned32>(dest_shrt) << 18
+                                 | 0U << 15 // Trigger Mode: Edge
+                                 | 1U << 14 // Level: Assert, including INIT
+                                 | 0U << 11 // Destination Mode: Physical
                                  | static_cast<Unsigned32>(delivery_mode) << 8
                                  | vector;
 
