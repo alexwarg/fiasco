@@ -217,6 +217,8 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   if (!Cpu::is_canonical_address(addr.addr()))
     return nullptr;
 
+  bool is_sigma0 = false;
+
   Address phys;
 
   if (addr.is_kmem())
@@ -236,7 +238,8 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
     phys = addr.phys();
   else
     {
-      // user address, use temporary mapping
+      // user address (addr.have_space() == true), use temporary mapping
+      is_sigma0 = addr.space()->is_sigma0();
       phys = Address(addr.space()->virt_to_phys(addr.addr()));
 
 #ifndef CONFIG_CPU_LOCAL_MAP
@@ -248,7 +251,7 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   if (phys == ~0UL)
     return nullptr;
 
-  Address virt = Kmem::map_phys_page_tmp(phys, 0);
+  Address virt = Kmem::map_phys_page_tmp(phys, is_sigma0);
   return reinterpret_cast<unsigned char *>(virt);
 }
 
