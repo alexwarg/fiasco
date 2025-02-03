@@ -70,7 +70,7 @@ public:
       }
 
     if (v.info.exit_ctls.allowed(Vmx_info::Ex_load_perf_global_ctl))
-      v.vmwrite(Vmx::F_host_ia32_perf_global_ctrl, Cpu::rdmsr(0x199));
+      v.vmwrite(Vmx::F_host_ia32_perf_global_ctrl, Cpu::rdmsr(0x38f));
     else
       // do not allow Load IA32_PERF_GLOBAL_CTRL on entry
       v.info.entry_ctls.enforce(Vmx_info::En_load_perf_global_ctl, false);
