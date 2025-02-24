@@ -7,6 +7,6 @@ struct Irq_entry_stub
 {
   char _res[2];
   Irq_base *irq;
-  char _res2[5];
+  char _res2[10];
 } __attribute__((packed));
 
