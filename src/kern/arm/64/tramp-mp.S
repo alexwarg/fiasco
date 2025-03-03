@@ -159,6 +159,7 @@ _tramp_mp_entry:
 	// TLB flush
 	tlbi	alle2
 	tlbi	alle1
+	dsb	sy
 
 	adr	x0, _tramp_mp_startup_tcr
 	ldr	x0, [x0]
@@ -171,13 +172,17 @@ _tramp_mp_entry:
 	adr	x0, _tramp_mp_startup_ttbr_kern
 	ldr	x0, [x0]
 	msr	TTBR0_EL2, x0
-	dsb	sy
+
+	// Ensure paging configuration is committed before MMU and caches are
+	// enabled.
+	isb	sy
 
 	adr	x0, _tramp_mp_startup_sctlr
 	ldr	x0, [x0]
 	msr	SCTLR_EL2, x0
 #else
 	tlbi	vmalle1
+	dsb	sy
 
 	msr	CONTEXTIDR_EL1, xzr
 
@@ -196,7 +201,10 @@ _tramp_mp_entry:
 	adr	x0, _tramp_mp_startup_mair
 	ldr	x0, [x0]
 	msr	MAIR_EL1, x0
-	dsb	sy
+
+	// Ensure paging configuration is committed before MMU and caches are
+	// enabled.
+	isb	sy
 
 	adr x0, _tramp_mp_startup_sctlr
 	ldr x0, [x0]
