@@ -157,7 +157,7 @@ _tramp_mp_entry:
         // init TTBCR
         adr r0, .LC_tramp_mp_startup_ttbcr
         ldr r1, [r0]
-        mcr p15, 4, r1, c2, c0, 2
+        mcr p15, 4, r1, c2, c0, 2   // HTCR
 
         adr r0, .LC_tramp_mp_startup_mair0
         ldr r0, [r0]
@@ -166,7 +166,7 @@ _tramp_mp_entry:
         adr r0, .LC_tramp_mp_startup_pdbr
         ldr r0, [r0]
         mov r1, #0
-        mcrr p15, 4, r0, r1, c2     // HTBR
+        mcrr p15, 4, r0, r1, c2     // HTTBR
 
         // Ensure paging configuration is committed before MMU and caches are
         // enabled.
@@ -177,21 +177,21 @@ _tramp_mp_entry:
 
 #else
 	// TLB flush
-	mcr p15, 0, r0, c8, c7, 0
+	mcr p15, 0, r0, c8, c7, 0 // TLBIALL
 	dsb sy
 
 	adr r0, .LC_tramp_mp_startup_dcr
 	ldr r0, [r0]
-	mcr p15, 0, r0, c3, c0
+	mcr p15, 0, r0, c3, c0	  // DACR
 
 	// reset ASID and PROCID
 	mov r0, #0
-	mcr p15, 0, r0, c13, c0, 1
+	mcr p15, 0, r0, c13, c0, 1  // CONTEXTIDR
 
 	// init TTBCR
 	adr r0, .LC_tramp_mp_startup_ttbcr
 	ldr r1, [r0]
-	mcr p15, 0, r1, c2, c0, 2
+	mcr p15, 0, r1, c2, c0, 2   // TTBCR
 
 	adr r0, .LC_tramp_mp_startup_mair0
 	ldr r0, [r0]
@@ -205,10 +205,10 @@ _tramp_mp_entry:
 	tst r1, #(1 << 31)
 	beq 1f
 	mov r1, #0
-	mcrr p15, 0, r0, r1, c2
+	mcrr p15, 0, r0, r1, c2 // TTBR0
 	b 2f
 1:
-	mcr p15, 0, r0, c2, c0
+	mcr p15, 0, r0, c2, c0  // TTBR0
 2:
 
 	// Ensure paging configuration is committed before MMU and caches are
@@ -218,7 +218,7 @@ _tramp_mp_entry:
 
 	adr r0, .LC_tramp_mp_startup_cp15_c1
 	ldr r0, [r0]
-	mcr p15, 0, r0, c1, c0
+	mcr p15, 0, r0, c1, c0  // SCTLR
 
 	isb sy
 
