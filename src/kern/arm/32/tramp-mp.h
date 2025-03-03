@@ -18,6 +18,8 @@ inline Address
 tramp_mp_prepare()
 {
   extern char _tramp_mp_entry[];
+  extern char _tramp_mp_startup_data_begin[];
+  extern char _tramp_mp_startup_data_end[];
   extern volatile Mword _tramp_mp_startup_cp15_c1;
   extern volatile Mword _tramp_mp_startup_pdbr;
   extern volatile Mword _tramp_mp_startup_dcr;
@@ -34,7 +36,7 @@ tramp_mp_prepare()
   _tramp_mp_startup_dcr     = 0x55555555;
 
   __asm__ __volatile__ ("" : : : "memory");
-  Mem_unit::clean_dcache();
+  Mem_unit::clean_dcache(_tramp_mp_startup_data_begin, _tramp_mp_startup_data_end);
 
   Outer_cache::clean(Kmem::kdir->virt_to_phys((Address)&_tramp_mp_startup_cp15_c1));
   Outer_cache::clean(Kmem::kdir->virt_to_phys((Address)&_tramp_mp_startup_pdbr));

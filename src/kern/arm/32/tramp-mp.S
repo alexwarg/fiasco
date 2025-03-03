@@ -235,12 +235,16 @@ defvar _tramp_mp_scu_phys
 	.long 0xff0fff00
 	.long 0x410fc000
 
+.global _tramp_mp_startup_data_begin
+_tramp_mp_startup_data_begin:
 defvar _tramp_mp_startup_cp15_c1
 defvar _tramp_mp_startup_pdbr
 defvar _tramp_mp_startup_dcr
 defvar _tramp_mp_startup_ttbcr
 defvar _tramp_mp_startup_mair0
 defvar _tramp_mp_startup_mair1
+.global _tramp_mp_startup_data_end
+_tramp_mp_startup_data_end:
 
 	// we run paged now
 .LC_tramp_mp_virt:

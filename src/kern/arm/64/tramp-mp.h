@@ -29,7 +29,7 @@ struct Mp_boot_info
   Mword gic_cpu_base;
 };
 
-extern Mp_boot_info volatile _tramp_mp_boot_info;
+extern Mp_boot_info _tramp_mp_boot_info;
 
 inline void
 tramp_mp_setup_gic_info(Pic_gic::Gic_info const *inf, unsigned version)
@@ -51,7 +51,7 @@ inline Address
 tramp_mp_prepare()
 {
   extern char _tramp_mp_entry[];
-  Mp_boot_info volatile *_tmp = &_tramp_mp_boot_info;
+  Mp_boot_info *_tmp = &_tramp_mp_boot_info;
 
   _tmp->sctlr = Proc::sctlr();
   _tmp->mair  = Page::Mair0_prrr_bits;
@@ -62,7 +62,7 @@ tramp_mp_prepare()
   _tmp->tcr   = Page::Ttbcr_bits;
 
   asm volatile ("dsb sy" : : : "memory");
-  Mem_unit::clean_dcache();
+  Mem_unit::clean_dcache(_tmp, _tmp + 1);
 
   return Kmem::kdir->virt_to_phys(reinterpret_cast<Address>(_tramp_mp_entry));
 }
