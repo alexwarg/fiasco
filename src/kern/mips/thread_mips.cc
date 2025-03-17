@@ -2,15 +2,6 @@
 #include <cstdio>
 #include <cassert>
 
-void
-Thread::print_page_fault_error(Mword e)
-{
-  printf("%s (%ld), %s(%c) (%lx)",
-         Trap_state::exc_code_to_str(e), (e >> 2) & 0x1f,
-         PF::is_usermode_error(e) ? "user" : "kernel",
-         PF::is_read_error(e) ? 'r' : 'w', e);
-}
-
 [[noreturn]] void
 Thread::user_invoke()
 {

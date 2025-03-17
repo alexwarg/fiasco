@@ -356,8 +356,6 @@ private:
     do_trigger_exception(regs(), (void*)&leave_and_kill_myself);
   }
 
-  static void print_page_fault_error(Mword e);
-
 public:
   /** nesting level in debugger (always critical) if >1 */
   static Per_cpu<unsigned long> nested_trap_recover;
