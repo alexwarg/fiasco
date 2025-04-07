@@ -105,17 +105,6 @@ public:
 protected:
   bool send_msg(Receiver *receiver, bool is_not_xcpu)
   {
-    if constexpr (!Config::Irq_shortcut)
-      {
-        // enqueue _after_ shortcut if still necessary
-        sender_enqueue(receiver->sender_list(), 255);
-        receiver->vcpu_set_irq_pending();
-      }
-
-    // if the thread is waiting for this interrupt, make it ready;
-    // this will cause it to run irq->receiver_ready(), which
-    // handles the rest
-
     // XXX careful!  This code may run in midst of an do_ipc()
     // operation (or similar)!
     if (Receiver::Rcv_state s = receiver->sender_ok(this))
@@ -158,12 +147,9 @@ protected:
         return false;
       }
 
-    if constexpr (Config::Irq_shortcut)
-      {
-        // enqueue after shortcut if still necessary
-        sender_enqueue(receiver->sender_list(), 255);
-        receiver->vcpu_set_irq_pending();
-      }
+    // enqueue after shortcut if still necessary
+    sender_enqueue(receiver->sender_list(), 255);
+    receiver->vcpu_set_irq_pending();
     return false;
   }
 
