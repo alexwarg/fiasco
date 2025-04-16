@@ -91,16 +91,10 @@ Ipc_gate_obj::unblock_all(bool abort)
 }
 
 void
-Ipc_gate_obj::initiate_deletion(Kobject ***r)
-{
-  poly()->del_notify();
-  Kobject::initiate_deletion(r);
-}
-
-void
 Ipc_gate_obj::destroy(Kobject ***r)
 {
   Kobject::destroy(r);
+  poly()->del_notify();
   auto *tmp = _tgt.load(cxx::memory_order_acquire);
   if (tmp)
     {

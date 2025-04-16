@@ -209,7 +209,6 @@ public:
   //{ return Kobject::map_root(); }
 
   void unblock_all(bool abort = false);
-  void initiate_deletion(Kobject ***r) override;
   void destroy(Kobject ***r) override;
 
   ~Ipc_gate_obj() noexcept
