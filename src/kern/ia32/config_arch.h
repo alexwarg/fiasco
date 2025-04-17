@@ -118,7 +118,5 @@ namespace Config
   // the default uart to use for serial console
   constexpr unsigned default_console_uart = 1;
   constexpr unsigned default_console_uart_baudrate = 115200;
-
-  extern bool found_vmware;
 };
 

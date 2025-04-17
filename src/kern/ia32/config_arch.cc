@@ -6,7 +6,6 @@
 
 bool Config::hlt_works_ok = true;
 
-bool Config::found_vmware = false;
 bool Config::apic = false;
 unsigned Config::scheduler_irq_vector;
 
