@@ -232,10 +232,7 @@ public:
         snprintf(cpu_mhz, sizeof(cpu_mhz), "%u.%03u MHz", mhz, khz);
       }
 
-    printf ("CPU: %s %s (%s)\n",
-            Cpu::boot_cpu()->model_str(), cpu_mhz,
-            Config::found_vmware ? "vmware" : "native");
-    Cpu::boot_cpu()->show_cache_tlb_info("     ");
+    Cpu::boot_cpu()->print_infos();
     show_features();
 
     if (Cpu::boot_cpu()->tsc())
