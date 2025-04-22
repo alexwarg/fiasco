@@ -69,7 +69,8 @@ public:
         v.info.entry_ctls.enforce(Vmx_info::En_load_ia32_efer, false);
       }
 
-    if (v.info.exit_ctls.allowed(Vmx_info::Ex_load_perf_global_ctl))
+    if (v.info.exit_ctls.allowed(Vmx_info::Ex_load_perf_global_ctl)
+        && c.arch_perf_mon_version() > 0)
       v.vmwrite(Vmx::F_host_ia32_perf_global_ctrl, Cpu::rdmsr(0x38f));
     else
       // do not allow Load IA32_PERF_GLOBAL_CTRL on entry
