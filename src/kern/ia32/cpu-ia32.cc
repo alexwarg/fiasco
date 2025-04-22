@@ -333,6 +333,37 @@ Cpu::get_features()
   return cpuid_edx(1);
 }
 
+/** Determine the vendor string for the current CPU. */
+static void get_vendor_str_current_cpu(Cpu const &c, char vendor_id[12])
+{
+  Unsigned32 dummy;
+  c.cpuid(0, &dummy, reinterpret_cast<Unsigned32 *>(vendor_id),
+          reinterpret_cast<Unsigned32 *>(vendor_id + 8),
+          reinterpret_cast<Unsigned32 *>(vendor_id + 4));
+}
+
+/** Determine the model string for the current CPU. */
+int
+Cpu_ia32::get_model_str_current_cpu(char model_str[52])
+{
+  strcpy(model_str, "Generic CPU");
+
+  if (cpuid_eax(0x80000000) >= 0x80000004)
+    {
+      Unsigned32 *s = reinterpret_cast<Unsigned32 *>(model_str);
+      for (unsigned i = 0; i < 3; ++i)
+        cpuid(0x80000002 + i, &s[0 + 4 * i], &s[1 + 4 * i],
+              &s[2 + 4 * i], &s[3 + 4 * i]);
+      model_str[48] = 0;
+    }
+
+  // strip trailing spaces for printing pleasant CPU model name
+  int i = strlen(model_str);
+  while (i > 0 && model_str[i - 1] == ' ')
+    --i;
+
+  return i;
+}
 
 /** Identify the CPU features.
     Attention: This function may be called more than once. The reason is
@@ -360,10 +391,7 @@ Cpu::identify()
 
     Unsigned32 max, i;
     char vendor_id[12];
-
-    cpuid(0, &max, (Unsigned32 *)(vendor_id),
-                   (Unsigned32 *)(vendor_id + 8),
-                   (Unsigned32 *)(vendor_id + 4));
+    get_vendor_str_current_cpu(*this, vendor_id);
 
     for (i = cxx::size(vendor_ident) - 1; i; --i)
       if (!memcmp(vendor_id, vendor_ident[i], 12))
@@ -376,6 +404,7 @@ Cpu::identify()
 
     init_indirect_branch_mitigation();
 
+    max = cpuid_eax(0);
     switch (max)
       {
       default:
@@ -445,9 +474,7 @@ Cpu::identify()
           }
       }
 
-    // Get maximum number for extended functions
     max = cpuid_eax(0x80000000);
-
     if (max > 0x80000000)
       {
         switch (max)
@@ -726,39 +753,22 @@ Cpu::init()
   print_errata();
 }
 
+
 void
 Cpu::print_infos() const
 {
   if (if_show_infos())
     {
-      Unsigned32 max;
+      // actually determining vendor/model for the current CPU, not "this" CPU
       char vendor_id[12];
-      char model_str[52] = "Generic CPU";
+      get_vendor_str_current_cpu(*this, vendor_id);
 
-      // This and the next gets the info from the current core and not the
-      // "this" core.
-      cpuid(0, &max, reinterpret_cast<Unsigned32 *>(vendor_id),
-                     reinterpret_cast<Unsigned32 *>(vendor_id + 8),
-                     reinterpret_cast<Unsigned32 *>(vendor_id + 4));
-
-      unsigned max_extended_funcs = cpuid_eax(0x80000000);
-      if (max_extended_funcs >= 0x80000004)
-        {
-          Unsigned32 *s = reinterpret_cast<Unsigned32 *>(model_str);
-          for (unsigned i = 0; i < 3; ++i)
-            cpuid(0x80000002 + i, &s[0 + 4 * i], &s[1 + 4 * i],
-                                  &s[2 + 4 * i], &s[3 + 4 * i]);
-          model_str[48] = 0;
-        }
-
-      // strip trailing spaces for printing pleasant CPU model name
-      int i = strlen(model_str);
-      while (i > 0 && model_str[i - 1] == ' ')
-        --i;
+      char model_str[52];
+      int len_model_str = get_model_str_current_cpu(model_str);
 
       printf("CPU[%u]: %.*s (%X:%X:%X:%X)[%08x] Model: %.*s at %lluMHz\n",
              cxx::int_value<Cpu_number>(id()), 12, vendor_id, family(),
-             model(), stepping(), brand(), _version, i, model_str,
+             model(), stepping(), brand(), _version, len_model_str, model_str,
              div32(frequency(), 1000000));
     }
 }

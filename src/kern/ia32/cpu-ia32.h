@@ -480,13 +480,11 @@ public:
       }
   }
 
+  static int get_model_str_current_cpu(char model_str[52]);
+
 protected:
-  void cache_tlb_intel();
   void set_frequency_and_scalers(Unsigned64 freq);
   bool tsc_frequency_from_cpuid_15h(bool check_only = false);
-  void set_model_str();
-  void cache_tlb_l1();
-  void cache_tlb_l2_l3();
   void addr_size_info();
 
   Unsigned64 _frequency;
