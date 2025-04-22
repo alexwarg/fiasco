@@ -144,9 +144,7 @@ public:
     static char const * const attr_str[] =
       { "Direct", "Uart", "<unk>", "Push", "Gzip", "Buffer", "Kdb" };
 
-    return (bit < 2 || bit >= (sizeof(attr_str)/sizeof(attr_str[0]))+2)
-      ? "???"
-      : attr_str[bit-2];
+    return (bit < 2 || bit >= cxx::size(attr_str)+2) ? "???" : attr_str[bit-2];
   }
 
 public:
