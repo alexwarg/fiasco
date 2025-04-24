@@ -446,13 +446,4 @@ size(const T(&)[N]) noexcept
 }
 
 #endif
-
-/// standard size type
-///typedef mword_t size_t;
-///typedef signed int ssize_t;
-
-/// momentary only used in UX since there the kernel has a different
-/// address space than user mode applications
-enum Address_type { ADDR_KERNEL = 0, ADDR_USER = 1, ADDR_UNKNOWN = 2 };
-
 #endif // TYPES_H__

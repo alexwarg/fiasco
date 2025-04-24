@@ -33,9 +33,9 @@ public:
     return c.exc_code() == 9 && c.bp_spec() == 3;
   }
 
-  Address_type from_user() const
+  bool from_user() const
   {
-    return (status & Cp0_status::ST_KSU_USER) ? ADDR_USER : ADDR_KERNEL;
+    return status & Cp0_status::ST_KSU_USER;
   }
 
   Address ksp() const

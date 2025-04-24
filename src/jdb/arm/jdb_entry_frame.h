@@ -11,8 +11,8 @@
 class Jdb_entry_frame : public Trap_state
 {
 public:
-  Address_type from_user() const
-  { return check_valid_user_psr() ? ADDR_USER : ADDR_KERNEL; }
+  bool from_user() const
+  { return check_valid_user_psr(); }
 
   Address ksp() const
   { return Address(this); }

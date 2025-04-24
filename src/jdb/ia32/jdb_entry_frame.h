@@ -21,8 +21,8 @@ public:
   bool debug_ipi() const
   { return _trapno == 0xee; }
 
-  Address_type from_user() const
-  { return cs() & 3 ? ADDR_USER : ADDR_KERNEL; }
+  bool from_user() const
+  { return cs() & 3; }
 
   Address ksp() const
   { return (Address)&_sp; }
