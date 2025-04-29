@@ -79,13 +79,13 @@ public:
    * waiting sender when they get ready to receive a message from that sender (in
    * this case an Ipc_sender aka Irq_sender).
    */
-  void ipc_send_msg(Context *recv, bool) override
+  void ipc_send_msg(Context *receiver, bool) override
   {
-    derived()->transfer_msg(recv);
+    derived()->transfer_msg(receiver);
     if (derived()->requeue_sender())
       {
-        sender_enqueue(recv->sender_list(), 255);
-        recv->vcpu_set_irq_pending();
+        sender_enqueue(receiver->sender_list(), 255);
+        receiver->vcpu_set_irq_pending();
       }
   }
 

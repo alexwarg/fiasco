@@ -244,9 +244,9 @@ public:
    *      Receiver's state, e.g. on the Receiver's home CPU or in a DRQ targeted
    *      at the Receiver.
    */
-  bool is_partner(Sender *s) const
+  bool is_partner(Sender *sender) const
   {
-    return sender_list()->current_poi() == s;
+    return sender_list()->current_poi() == sender;
   }
 
 protected:

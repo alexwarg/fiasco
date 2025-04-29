@@ -216,7 +216,7 @@ protected:
   Thread_ptr _exc_handler{Thread_ptr::Invalid};
 
 public:
-  void ipc_send_msg(Context *recv, bool open_wait) override;
+  void ipc_send_msg(Context *receiver, bool open_wait) override;
   void modify_label(Mword const *todo, int cnt) override;
   static bool transfer_msg_items(L4_msg_tag tag, Thread* snd, Utcb *snd_utcb,
                                  Thread *rcv, Utcb *rcv_utcb,
@@ -693,13 +693,13 @@ private:
  */
 template<typename THREAD>
 void
-Thread_ipc<THREAD>::ipc_send_msg(Context *recv, bool open_wait)
+Thread_ipc<THREAD>::ipc_send_msg(Context *receiver, bool open_wait)
 {
-  if (EXPECT_FALSE(_this()->home_cpu() != recv->home_cpu()
+  if (EXPECT_FALSE(_this()->home_cpu() != receiver->home_cpu()
         && _snd_msg_tag.transfer_fpu()))
-    clear_fpu_before_receive(nonull_static_cast<Thread*>(recv));
+    clear_fpu_before_receive(nonull_static_cast<Thread*>(receiver));
 
-  bool success = transfer_msg(_snd_msg_tag, nonull_static_cast<Thread*>(recv),
+  bool success = transfer_msg(_snd_msg_tag, nonull_static_cast<Thread*>(receiver),
                               open_wait);
 
   Mword state_del;
@@ -720,7 +720,7 @@ Thread_ipc<THREAD>::ipc_send_msg(Context *recv, bool open_wait)
   _this()->state.change(~state_del, state_add);
   // state_add always has ready set, so unconditionally enqueue
   if (_this()->xcpu_lazy_ready_enqueue())
-    recv->switch_to_locked(_this());
+    receiver->switch_to_locked(_this());
 }
 
 template<typename T>

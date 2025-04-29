@@ -218,9 +218,9 @@ public:
   bool requeue_sender()
   { return consume() > 0; }
 
-  Syscall_frame *transfer_msg(Context *recv)
+  Syscall_frame *transfer_msg(Context *receiver)
   {
-    Syscall_frame* dst_regs = recv->rcv_regs();
+    Syscall_frame* dst_regs = receiver->rcv_regs();
 
     // set ipc return value: OK
     dst_regs->tag(L4_msg_tag(0));
