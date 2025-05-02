@@ -334,7 +334,6 @@ static Phys_addr init_paging(Address load_addr)
   set_mair0(Page::Mair0_prrr_bits);
   asm volatile (
       "msr tcr_el2, %1   \n"
-      "dsb sy            \n"
       "msr ttbr0_el2, %0 \n"
       "isb               \n"
       : :
@@ -502,7 +501,6 @@ static Phys_addr init_paging(Address)
   set_mair0(Page::Mair0_prrr_bits);
   asm volatile (
       "msr tcr_el1, %2   \n"
-      "dsb sy            \n"
       "msr ttbr0_el1, %0 \n"
       "msr ttbr1_el1, %1 \n"
       "isb               \n"
