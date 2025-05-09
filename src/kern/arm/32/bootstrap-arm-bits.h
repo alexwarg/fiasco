@@ -4,16 +4,38 @@
 #include <globalconfig.h>
 #include <paging-page.h>
 #include <mem.h>
+#include <mem.h>
 #include <mem_layout.h>
 #include <cpu.h>
 #include <kip.h>
 #include <config.h>
 
+extern char start_of_loader[];
+extern char end_of_loader[];
 namespace Bootstrap
 {
 inline void set_mair0(Mword v)
 {
   asm volatile ("mcr p15, 0, %0, c10, c2, 0" : : "r"(v));
+}
+
+inline void disable_mmu_and_caches()
+{
+  unsigned long sctlr;
+  asm ("mrc p15, 0, %0, c1, c0" : "=r" (sctlr));
+  if (sctlr & Cpu::Cp15_c1_mmu)
+    {
+      if (sctlr & Cpu::Cp15_c1_cache)
+        {
+          Mmu<>::clean_dcache(&bs_info, &bs_info + 1);
+          Mmu<>::clean_dcache(start_of_loader, end_of_loader);
+        }
+
+      sctlr &= ~(Cpu::Cp15_c1_mmu | Cpu::Cp15_c1_cache | Cpu::Cp15_c1_insn_cache);
+      asm volatile("mcr p15, 0, %0, c1, c0" : : "r" (sctlr));
+      Mem::isb();
+      Mem::barrier();
+    }
 }
 
 #ifdef CONFIG_ARM_V6PLUS
@@ -82,7 +104,7 @@ inline void create_initial_mappings()
 
 #else // CONFIG_CPU_VIRT
 
-static void leave_hyp_mode()
+static void switch_to_el1()
 {
   Mword cpsr;
   asm volatile ("mrs %0, cpsr" : "=r"(cpsr));
@@ -114,7 +136,7 @@ inline void create_initial_mappings()
 
   void *page_dir = kern_to_boot(bs_info.pi.kernel_page_directory);
 
-  leave_hyp_mode();
+  switch_to_el1();
 
   Virt_addr va;
   Phys_addr pa;
@@ -140,6 +162,8 @@ inline void create_initial_mappings()
 
 inline void enable_paging(Mword pdir)
 {
+  disable_mmu_and_caches();
+
   asm volatile("mcr p15, 4, %[ttbcr], c2, c0, 2" // HTCR
                : : [ttbcr] "r" (Page::Ttbcr_bits));
   asm volatile("mcr p15, 4, %[hmair0], c10, c2, 0" // HMAIR0
@@ -163,6 +187,9 @@ inline void enable_paging(Mword pdir)
   unsigned domains = 0x55555555; // client for all domains
   unsigned control = Config::Cache_enabled
                      ? Cpu::Cp15_c1_cache_enabled : Cpu::Cp15_c1_cache_disabled;
+
+  disable_mmu_and_caches();
+  set_mair0(Page::Mair0_prrr_bits);
 
   asm volatile("mcr p15, 0, %[ttbcr], c2, c0, 2" // TTBCR
                : : [ttbcr] "r" (Page::Ttbcr_bits));
@@ -190,7 +217,6 @@ inline Phys_addr init_paging(Address)
   for (unsigned i = 0; i < 4; ++i)
     lpae[i] = Phys_addr((reinterpret_cast<Address>(page_dir) + 0x1000 * i) | 3);;
 
-  set_mair0(Page::Mair0_prrr_bits);
   create_initial_mappings();
 
   return Phys_addr(reinterpret_cast<Mword>(lpae));
@@ -203,6 +229,8 @@ inline void enable_paging(Mword pdir)
   unsigned domains = 0x55555555; // client for all domains
   unsigned control = Config::Cache_enabled
                      ? Cpu::Cp15_c1_cache_enabled : Cpu::Cp15_c1_cache_disabled;
+
+  disable_mmu_and_caches();
 
   set_asid();
   set_ttbcr();

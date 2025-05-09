@@ -13,6 +13,8 @@
 #include <pic-gic-helper.h>
 #include <bootstrap.h>
 
+extern char start_of_loader[];
+extern char end_of_loader[];
 
 namespace Bootstrap
 {
@@ -54,6 +56,39 @@ namespace Bootstrap
     Address _p;
     Mword &_free_map;
   };
+
+
+inline void disable_mmu_and_caches(unsigned el)
+{
+  Mem::barrier();
+
+  unsigned long sctlr;
+  if (el == 2)
+    asm("mrs %0, SCTLR_EL2" : "=r"(sctlr));
+  else if (el == 1)
+    asm("mrs %0, SCTLR_EL1" : "=r"(sctlr));
+  else
+    asm("mrs %0, SCTLR_EL3" : "=r"(sctlr));
+  if (sctlr & Cpu::Sctlr_m)
+    {
+      if (sctlr & Cpu::Sctlr_c)
+        {
+          Mmu<>::clean_dcache(&bs_info, &bs_info + 1);
+          Mmu<>::clean_dcache(start_of_loader, end_of_loader);
+        }
+
+      sctlr &= ~(Cpu::Sctlr_m | Cpu::Sctlr_c | Cpu::Sctlr_i);
+      if (el == 2)
+        asm volatile("msr SCTLR_EL2, %0" : : "r"(sctlr));
+      else if (el == 1)
+        asm volatile("msr SCTLR_EL1, %0" : : "r"(sctlr));
+      else
+        asm volatile("msr SCTLR_EL3, %0" : : "r"(sctlr));
+      Mem::isb();
+      Mem::barrier();
+    }
+}
+
 
 /**
  * Map RAM range with super pages.
@@ -214,7 +249,7 @@ inline void set_mair0(Mword v)
   asm volatile ("msr MAIR_EL2, %0" : : "r"(v));
 }
 
-static void leave_el3()
+static void switch_to_el2()
 {
   Mword cel;
   asm volatile ("mrs %0, CurrentEL" : "=r"(cel));
@@ -275,10 +310,7 @@ static Phys_addr init_paging(Address load_addr)
   // HCR_EL2.{E2H,TGE} change behavior of paging so make sure they are disabled
   asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
 
-  leave_el3();
-
   Kpdir *d = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_dir));
-  set_mair0(Page::Mair0_prrr_bits);
 
   Bs_alloc alloc(kern_to_boot(bs_info.pi.scratch), bs_info.pi.free_map);
 
@@ -294,6 +326,12 @@ static Phys_addr init_paging(Address load_addr)
   if (Virt_ofs + load_addr != 0)
     map_ram_range(d, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys, 0);
 
+  // Attention zone:
+  // Only touch loader's own memory from this point on until paging is
+  // enabled again.
+  switch_to_el2();
+  disable_mmu_and_caches(2);
+  set_mair0(Page::Mair0_prrr_bits);
   asm volatile (
       "msr tcr_el2, %1   \n"
       "dsb sy            \n"
@@ -390,12 +428,11 @@ switch_from_el2_to_el1()
   Bootstrap::config_feature_traps(Bootstrap::read_pfr0(), false, true);
 
   asm volatile ("dsb sy" : : : "memory");
-  // SCTLR.C might toggle, so flush cache
-  Mmu<Bootstrap::Cache_flush_area, true>::flush_cache();
 
   // Ensure defined state of SCTLR_EL1
   asm volatile ("msr SCTLR_EL1, %0       \n"
-                : : "r" (Cpu::Sctlr_generic & ~Cpu::Sctlr_m));
+                : : "r" (Cpu::Sctlr_generic
+                         & ~(Cpu::Sctlr_m | Cpu::Sctlr_c | Cpu::Sctlr_i)));
 
   asm volatile ("   mrs %[tmp], MIDR_EL1    \n"
                 "   msr VPIDR_EL2, %[tmp]   \n"
@@ -412,12 +449,14 @@ switch_from_el2_to_el1()
                 : "cc", "memory");
 }
 
-static void leave_hyp_mode()
+static void switch_to_el1()
 {
   Mword cel;
   asm volatile ("mrs %0, CurrentEL" : "=r"(cel));
   cel >>= 2;
   cel &= 3;
+
+  disable_mmu_and_caches(cel);
 
   switch (cel)
     {
@@ -428,18 +467,19 @@ static void leave_hyp_mode()
     case 2:
       switch_from_el2_to_el1();
       break;
+
     case 1:
     default:
       break;
     }
+
+  disable_mmu_and_caches(1);
 }
 
 static Phys_addr init_paging(Address)
 {
-  leave_hyp_mode();
   Pdir  *ud = reinterpret_cast<Pdir *>(kern_to_boot(bs_info.pi.l0_dir));
   Kpdir *kd = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_vdir));
-
 
   Bs_alloc alloc(kern_to_boot(bs_info.pi.scratch), bs_info.pi.free_map);
 
@@ -451,12 +491,15 @@ static Phys_addr init_paging(Address)
   map_ram_range(kd, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys,
                 Virt_ofs);
 
-  set_mair0(Page::Mair0_prrr_bits);
-
   // Create 1:1 mapping of the kernel in the idle (user) page table. Needed by
   // add_initial_pmem().
   map_ram_range(ud, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys, 0);
 
+  // Attention zone:
+  // Only touch loader's own memory from this point on until paging is
+  // enabled again.
+  switch_to_el1();
+  set_mair0(Page::Mair0_prrr_bits);
   asm volatile (
       "msr tcr_el1, %2   \n"
       "dsb sy            \n"
