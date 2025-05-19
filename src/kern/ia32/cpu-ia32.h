@@ -492,10 +492,10 @@ protected:
   Unsigned32 _brand;                    // CPUID(1).EBX
   Unsigned32 _ext_features;             // CPUID(1).ECX
   Unsigned32 _features;                 // CPUID(1).EDX
-  Unsigned32 _ext_07_ebx;               // CPUID(7).EBX
-  Unsigned32 _ext_07_edx;               // CPUID(7).EDX
-  Unsigned32 _ext_8000_0001_ecx;        // CPUID(8000_0001).ECX
-  Unsigned32 _ext_8000_0001_edx;        // CPUID(8000_0001).EDX
+  Unsigned32 _ext_07_ebx;               // CPUID(7,0).EBX
+  Unsigned32 _ext_07_edx;               // CPUID(7,0).EDX
+  Unsigned32 _ext_8000_0001_ecx;        // CPUID(8000_0001H).ECX
+  Unsigned32 _ext_8000_0001_edx;        // CPUID(8000_0001H).EDX
   Unsigned32 _local_features;           // See Local_features
   Unsigned64 _arch_capabilities;        // MSR_IA32_ARCH_CAPABILITIES
 
@@ -535,10 +535,10 @@ protected:
   Vendor _vendor;
   char _model_str[52];
 
-  Unsigned32 _arch_perfmon_info_eax;    // CPUID(10).EAX
-  Unsigned32 _arch_perfmon_info_ebx;    // CPUID(10).EBX
-  Unsigned32 _arch_perfmon_info_ecx;    // CPUID(10).ECX
-  Unsigned32 _arch_perfmon_info_edx;    // CPUID(10).EDX
+  Unsigned32 _arch_perfmon_info_eax;    // CPUID(0AH).EAX
+  Unsigned32 _arch_perfmon_info_ebx;    // CPUID(0AH).EBX
+  Unsigned32 _arch_perfmon_info_ecx;    // CPUID(0AH).ECX
+  Unsigned32 _arch_perfmon_info_edx;    // CPUID(0AH).EDX
 
   Unsigned32 _monitor_mwait_eax;        // CPUID(5).EAX
   Unsigned32 _monitor_mwait_ebx;        // CPUID(5).EBX

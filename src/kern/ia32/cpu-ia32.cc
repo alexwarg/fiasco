@@ -429,7 +429,7 @@ Cpu::identify()
             _arch_capabilities = rdmsr(MSR_IA32_ARCH_CAPABILITIES);
         }
 
-      if (max >= 10 && _vendor == Vendor_intel) // CPUID Leaf 10 reserved on AMD
+      if (max >= 10 && _vendor == Vendor_intel) // CPUID(0AH) reserved on AMD
         cpuid(10, &_arch_perfmon_info_eax, &_arch_perfmon_info_ebx,
               &_arch_perfmon_info_ecx, &_arch_perfmon_info_edx);
 
@@ -874,17 +874,17 @@ Cpu_ia32::set_frequency_and_scalers(Unsigned64 freq)
  *
  * See Intel Manual Volume 3 Chapter 18.7.3 for details.
  *
- * CPUID_15 is quite accurate.
+ * CPUID(15H) is quite accurate.
  *
- * CPUID_16 is less accurate and should be probably only used for informational
- * purposes. For instance, for a Kaby Lake processor, CPUID_16 returned a value
- * of 2800MHz while the actual CPU frequency is 2808MHz.
+ * CPUID(16H) is less accurate and should probably be used for informational
+ * purposes only. For instance, for a Kaby Lake processor, CPUID(16H) returned a
+ * value of 2800MHz while the actual CPU frequency is 2808MHz.
  *
  * MSR_PLATFORM_INFO is less accurate as well. On the mentioned Kaby Lake CPU,
  * bits 15:8 report 28 defining a frequency of 28*100=2800MHz.
  *
  * Calibrating the TSC delivers results which are still more accurate than the
- * rounded information from CPUID_16 and MSR_PLATFORM_INFO, even on QEMU.
+ * rounded information from CPUID(16H) and Msr::Platform_info, even on QEMU.
  */
 bool
 Cpu_ia32::tsc_frequency_from_cpuid_15h(bool check_only)

@@ -122,7 +122,7 @@ public:
   }
 
   /**
-   * Support for RDTSCP is indicated by CPUID.80000001H:EDX[27].
+   * Support for RDTSCP is indicated by CPUID.8000_0001H:EDX[27].
    */
   static Unsigned64 rdtscp()
   {
