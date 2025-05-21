@@ -109,13 +109,6 @@ class Kobject :
   template<typename T, bool>
   friend class Map_traits;
 
-private:
-  template<typename T>
-  class Tconv {};
-
-  template<typename T>
-  class Tconv<T*> { public: typedef T Base; };
-
 public:
   using Dyn_castable<Kobject, Kobject_iface>::_cxx_dyn_type;
 
