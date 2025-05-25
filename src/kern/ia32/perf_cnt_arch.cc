@@ -792,6 +792,12 @@ public:
     Unsigned32 eax, ebx, ecx, edx;
     Cpu::boot_cpu()->arch_perfmon_info(&eax, &ebx, &ecx, &edx);
     _nr_regs = (eax & 0x0000ff00) >> 8;
+  }
+
+  int init() override
+  {
+    Unsigned32 eax, ebx, ecx, edx;
+    Cpu::boot_cpu()->arch_perfmon_info(&eax, &ebx, &ecx, &edx);
 
     if ((eax & 0xff) > 1)
       {
@@ -812,6 +818,8 @@ public:
         Cpu::wrmsr(msr_fixed_ctr_ctrl, 0x38d);
         Cpu::wrmsr(msr_perf_global_ctrl, 0x38f);
       }
+
+    return 1;
   }
 
   void start_pmc(Mword reg_nr) override
