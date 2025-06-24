@@ -206,7 +206,7 @@ inline void enable_paging(Mword)
   Mem::dsb();
   asm volatile("msr SCTLR_EL2, %[control]" : : [control] "r" (control));
   Mem::isb();
-  asm volatile ("ic iallu; dsb nsh; isb");
+  asm volatile ("ic iallu; dsb nsh; isb" : : : "memory");
 }
 
 inline void set_mair0(Mword v)
@@ -321,7 +321,7 @@ inline void enable_paging(Mword)
   Mem::dsb();
   asm volatile("msr SCTLR_EL1, %[control]" : : [control] "r" (control));
   Mem::isb();
-  asm volatile ("ic iallu; dsb nsh; isb");
+  asm volatile ("ic iallu; dsb nsh; isb" : : : "memory");
 }
 
 inline void set_mair0(Mword v)
