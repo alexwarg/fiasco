@@ -70,6 +70,7 @@ vcpu_return_to_kernel(Context *, Mword ip, Mword sp, T arg)
      // p[4] = kernel entry scratch register
      : [cr3] "a" (p[3]),
        [flags] "i" (EFLAGS_IF), "c" (ip), [sp] "r" (sp), "D"(arg)
+     : "memory"
     );
   __builtin_unreachable();
 }
@@ -93,6 +94,7 @@ vcpu_return_to_kernel(Context *, Mword ip, Mword sp, T arg)
      "sysretq \t\n"
      :
      : [flags] "i" (EFLAGS_IF), "c" (ip), [sp] "r" (sp), "D"(arg)
+     : "memory"
     );
   __builtin_unreachable();
 }

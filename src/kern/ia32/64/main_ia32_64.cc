@@ -43,7 +43,8 @@ kernel_main(void)
     ("	movq %3, %%rsp		\n\t"	// switch stack
      "	call call_bootstrap	\n\t"	// bootstrap kernel thread
      : "=a" (dummy), "=c" (dummy), "=d" (dummy)
-     : "S" (kernel->init_stack()), "D" (kernel));
+     : "S" (kernel->init_stack()), "D" (kernel)
+     : "memory");
 
   __builtin_unreachable();
 }

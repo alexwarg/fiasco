@@ -23,6 +23,7 @@ template<typename T>
      "iret         \t\n"
      :
      : "r" (regs), "a" (arg)
+     : "memory"
     );
   __builtin_unreachable();
 }

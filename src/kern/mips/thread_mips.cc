@@ -32,7 +32,8 @@ Thread::user_invoke()
           :
           : [ra] "r" (ra),
             [ts] "r" (a0),
-            [cfs] "i" (ASM_WORD_BYTES * ASM_NARGSAVE));
+            [cfs] "i" (ASM_WORD_BYTES * ASM_NARGSAVE)
+          : "memory");
     }
   while (0);
 

@@ -24,6 +24,7 @@ Thread::user_invoke()
      : "a" (nonull_static_cast<Return_frame*>(current()->regs())),
        "d" (Gdt::gdt_data_user | Gdt::Selector_user),
        "c" (cx)
+     : "memory"
      );
 
   __builtin_unreachable();
