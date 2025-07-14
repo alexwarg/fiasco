@@ -23,16 +23,20 @@ public:
   // ARM v6plus: range flush_cache, clean_dcache, flush_dcache, inv_dcache
   static inline void flush_cache(void const *start, void const *end)
   {
-    unsigned long s = (unsigned long)start;
-    unsigned long e = (unsigned long)end;
-    unsigned long is = icache_line_size(), ds = dcache_line_size();
+    unsigned long ds = dcache_line_size();
+    auto s = reinterpret_cast<unsigned long>(start) & ~(ds - 1U);
+    auto e = (reinterpret_cast<unsigned long>(end) + ds - 1U) & ~(ds - 1);
 
-    for (unsigned long i = s & ~(ds - 1U); i < e; i += ds)
+    for (unsigned long i = s; i != e; i += ds)
       __asm__ __volatile__ ("mcr p15, 0, %0, c7, c14, 1" : : "r"(i));  // DCCIMVAC
 
     Mem::dsb(); // make sure data cache changes are visible to instruction cache
 
-    for (unsigned long i = s & ~(is - 1U); i < e; i += is)
+    unsigned long is = icache_line_size();
+    s = reinterpret_cast<unsigned long>(start) & ~(is - 1U);
+    e = (reinterpret_cast<unsigned long>(end) + is - 1U) & ~(is - 1U);
+
+    for (unsigned long i = s; i != e; i += is)
       __asm__ __volatile__ (
           "mcr p15, 0, %0, c7, c5, 1   \n"  // ICIMVAU
           "mcr p15, 0, %0, c7, c5, 7   \n"  // BPIMVA
@@ -53,17 +57,21 @@ public:
 
   static inline void clean_dcache(void const *start, void const *end)
   {
+    unsigned long ds = dcache_line_size();
+    unsigned long s = reinterpret_cast<unsigned long>(start);
+    unsigned long e = reinterpret_cast<unsigned long>(end);
+
     Mem::dsb();
     __asm__ __volatile__ (
         // arm1176 only: "    mcrr p15, 0, %2, %1, c12         \n"
         "1:  mcr p15, 0, %[i], c7, c10, 1   \n" // DCCMVAC
         "    add %[i], %[i], %[clsz]        \n"
         "    cmp %[i], %[end]               \n"
-        "    blo 1b                         \n"
+        "    bne 1b                         \n"
         : [i]     "=&r" (start)
-        :         "0"   ((unsigned long)start & ~(dcache_line_size() - 1)),
-          [end]   "r"   (end),
-          [clsz]  "ir"  (dcache_line_size())
+        :         "0"   (s & ~(ds - 1)),
+          [end]   "r"   ((e + ds - 1) & ~(ds - 1)),
+          [clsz]  "ir"  (ds)
         : "memory");
     btc_inv();
     Mem::dsb();
@@ -71,16 +79,20 @@ public:
 
   FIASCO_NOINLINE static void flush_dcache(void const *start, void const *end)
   {
+    unsigned long ds = dcache_line_size();
+    unsigned long s = reinterpret_cast<unsigned long>(start);
+    unsigned long e = reinterpret_cast<unsigned long>(end);
+
     Mem::dsb();
     __asm__ __volatile__ (
         "1:  mcr p15, 0, %[i], c7, c14, 1 \n" // Clean and Invalidate Data Cache Line (using MVA) Register
         "    add %[i], %[i], %[clsz]      \n"
         "    cmp %[i], %[end]             \n"
-        "    blo 1b                       \n"
+        "    bne 1b                       \n"
         : [i]    "=&r" (start)
-        :        "0"   ((unsigned long)start & ~(dcache_line_size() - 1)),
-          [end]  "r"   (end),
-          [clsz] "ir"  (dcache_line_size())
+        :        "0"   (s & ~(ds - 1)),
+          [end]  "r"   ((e + ds - 1) & ~(ds - 1)),
+          [clsz] "ir"  (ds)
         : "memory");
     btc_inv();
     Mem::dsb();
@@ -88,16 +100,20 @@ public:
 
   FIASCO_NOINLINE static void inv_dcache(void const *start, void const *end)
   {
+    unsigned long ds = dcache_line_size();
+    unsigned long s = reinterpret_cast<unsigned long>(start);
+    unsigned long e = reinterpret_cast<unsigned long>(end);
+
     Mem::dsb();
     __asm__ __volatile__ (
         "1:  mcr p15, 0, %[i], c7, c6, 1  \n" // Invalidate Data Cache Line (using MVA) Register
         "    add %[i], %[i], %[clsz]      \n"
         "    cmp %[i], %[end]             \n"
-        "    blo 1b                       \n"
+        "    bne 1b                       \n"
         : [i]    "=&r" (start)
-        :        "0"   ((unsigned long)start & ~(dcache_line_size() - 1)),
-          [end]  "r"   (end),
-          [clsz] "ir"  (dcache_line_size())
+        :        "0"   (s & ~(ds - 1)),
+          [end]  "r"   ((e + ds - 1) & ~(ds - 1)),
+          [clsz] "ir"  (ds)
         : "memory");
     btc_inv();
     Mem::dsb();
@@ -260,14 +276,16 @@ public:
       clean_dcache();
     else
       {
+        unsigned long ds = dcache_line_size();
+        auto s = reinterpret_cast<unsigned long>(start) & ~(ds - 1);
+        auto e = (reinterpret_cast<unsigned long>(end) + ds - 1) & ~(ds - 1);
         asm volatile (
-            "    bic  %0, %0, %2 - 1         \n"
             "1:  mcr  p15, 0, %0, c7, c10, 1 \n"
             "    add  %0, %0, %2             \n"
             "    cmp  %0, %1                 \n"
-            "    blo  1b                     \n"
+            "    bne  1b                     \n"
             "    mcr  p15, 0, %0, c7, c10, 4 \n" // drain WB
-            : : "r" (start), "r" (end), "i" (dcache_line_size())
+            : : "r" (s), "r" (e), "i" (ds)
             );
       }
   }
@@ -284,27 +302,31 @@ public:
       flush_dcache();
     else
       {
+        unsigned long ds = dcache_line_size();
+        auto s = reinterpret_cast<unsigned long>(start) & ~(ds - 1);
+        auto e = (reinterpret_cast<unsigned long>(end) + ds - 1) & ~(ds - 1);
         asm volatile (
-            "    bic  %0, %0, %2 - 1         \n"
             "1:  mcr  p15, 0, %0, c7, c14, 1 \n"
             "    add  %0, %0, %2             \n"
             "    cmp  %0, %1                 \n"
-            "    blo  1b                     \n"
+            "    bne  1b                     \n"
             "    mcr  p15, 0, %0, c7, c10, 4 \n" // drain WB
-            : : "r" (start), "r" (end), "i" (dcache_line_size())
+            : : "r" (s), "r" (e), "i" (ds)
             );
       }
   }
 
   FIASCO_NOINLINE static void inv_dcache(void const *start, void const *end)
   {
+    unsigned long ds = dcache_line_size();
+    auto s = reinterpret_cast<unsigned long>(start) & ~(ds - 1);
+    auto e = (reinterpret_cast<unsigned long>(end) + ds - 1) & ~(ds - 1);
     asm volatile (
-        "    bic  %0, %0, %2 - 1         \n"
         "1:  mcr  p15, 0, %0, c7, c6, 1  \n"
         "    add  %0, %0, %2             \n"
         "    cmp  %0, %1                 \n"
         "    blo  1b                     \n"
-        : : "r" (start), "r" (end), "i" (dcache_line_size())
+        : : "r" (s), "r" (e), "i" (ds)
         );
   }
 #endif // CONFIG_ARM_PXA || CONFIG_ARM_SA || CONFIG_ARM_926
