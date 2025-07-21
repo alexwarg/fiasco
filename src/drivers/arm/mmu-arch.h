@@ -23,7 +23,7 @@ private:
     for (unsigned cl = 0; cl < lvl; cl += 2, clidr >>= 3)
       {
         // - 0x2 data cache only
-        // - 0x3 seperate instruction/data caches
+        // - 0x3 separate instruction/data caches
         // - 0x4 unified cache
         if ((clidr & 6) == 0)
           continue;
