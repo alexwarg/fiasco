@@ -23,14 +23,14 @@ public:
   {
     asm volatile ("mrs %0, TPIDR_EL0" : "=r" (_tpidrurw));
     asm volatile (ALTERNATIVE_INSN("nop", "mrs %0, S3_3_c13_c0_5") // TPIDR2_EL0, bintutils >= 2.38
-                  : "=r" (_tpidr2rw) : [alt_probe] "i"(Cpu::has_sme::probe));
+                  : "=r" (_tpidr2rw) : [alt_probe] "i"(Cpu::boot_cpu_has_sme::probe));
   }
 
   void load_tpidrurw() const
   {
     asm volatile ("msr TPIDR_EL0, %0" : : "r" (_tpidrurw));
     asm volatile (ALTERNATIVE_INSN("nop", "msr S3_3_c13_c0_5, %0") // TPIDR2_EL0, bintutils >= 2.38
-                  : : "r" (_tpidr2rw), [alt_probe] "i"(Cpu::has_sme::probe));
+                  : : "r" (_tpidr2rw), [alt_probe] "i"(Cpu::boot_cpu_has_sme::probe));
   }
 
   void store_tpidruro()

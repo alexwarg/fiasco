@@ -89,7 +89,8 @@ public:
   static constexpr Mword Zcr_vl_max  = Zcr_vl_2048;
   static constexpr Mword Zcr_vl_mask = 0xf;
 
-  struct has_aarch32_el1 : public Alternative_static_functor<has_aarch32_el1>
+  struct boot_cpu_has_aarch32_el1
+  : public Alternative_static_functor<boot_cpu_has_aarch32_el1>
   {
     static bool probe()
     {
@@ -99,7 +100,7 @@ public:
     }
   };
 
-  struct has_sme : public Alternative_static_functor<has_sme>
+  struct boot_cpu_has_sme : public Alternative_static_functor<boot_cpu_has_sme>
   {
     static bool probe()
     {

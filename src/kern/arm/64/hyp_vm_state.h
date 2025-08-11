@@ -115,7 +115,7 @@ public:
     asm volatile ("mrs %x0, AFSR0_EL1" : "=r"(afsr[0]));
     asm volatile ("mrs %x0, AFSR1_EL1" : "=r"(afsr[1]));
 
-    if (EXPECT_TRUE(Cpu::has_aarch32_el1()))
+    if (EXPECT_TRUE(Cpu::boot_cpu_has_aarch32_el1()))
       {
         asm volatile ("mrs %x0, DACR32_EL2" : "=r"(dacr32));
         //  asm volatile ("mrs %x0, FPEXC32_EL2" : "=r"(fpexc32));
@@ -138,7 +138,7 @@ public:
 
     // Workaround for errata #852523 (Cortex-A57) and #853709 (Cortex-A72):
     // Do this before writing to SCTLR_EL1.
-    if (EXPECT_TRUE(Cpu::has_aarch32_el1()))
+    if (EXPECT_TRUE(Cpu::boot_cpu_has_aarch32_el1()))
       {
         asm volatile ("msr DACR32_EL2, %x0"  : : "r"(dacr32));
         //  asm volatile ("msr FPEXC32_EL2, %x0" : : "r"(fpexc32));
@@ -275,7 +275,7 @@ Context_hyp::save()
   asm volatile ("mrs %x0, SPSR_EL1"  : "=r"(spsr_svc));
   asm volatile ("mrs %x0, CSSELR_EL1": "=r"(csselr));
 
-  if (EXPECT_TRUE(Cpu::has_aarch32_el1()))
+  if (EXPECT_TRUE(Cpu::boot_cpu_has_aarch32_el1()))
     {
       asm volatile ("mrs %x0, SPSR_fiq"  : "=r"(spsr_fiq));
       asm volatile ("mrs %x0, SPSR_irq"  : "=r"(spsr_irq));
@@ -306,7 +306,7 @@ Context_hyp::load()
   asm volatile ("msr SPSR_EL1, %x0"       : : "r"(spsr_svc));
   asm volatile ("msr CSSELR_EL1, %x0"     : : "r"(csselr));
 
-  if (EXPECT_TRUE(Cpu::has_aarch32_el1()))
+  if (EXPECT_TRUE(Cpu::boot_cpu_has_aarch32_el1()))
     {
       asm volatile ("msr SPSR_fiq, %x0"       : : "r"(spsr_fiq));
       asm volatile ("msr SPSR_irq, %x0"       : : "r"(spsr_irq));
