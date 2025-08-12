@@ -64,14 +64,6 @@ namespace L4
     return true;
   }
 
-  bool Uart_cadence::enable_rx_irq(bool enable)
-  {
-    _regs->write<unsigned>(RXWM, 1);
-    _regs->write<unsigned>(ISR, ~0U);
-    _regs->write<unsigned>(IER, enable ? IXR_RXOVR : 0);
-    return true;
-  }
-
   void Uart_cadence::shutdown()
   {
     _regs->write<unsigned>(CR, Ctrl::Rxdis | Ctrl::Txdis);
@@ -89,21 +81,6 @@ namespace L4
     return true;
   }
 
-  int Uart_cadence::get_char(bool blocking) const
-  {
-    while (!char_avail())
-      if (!blocking)
-        return -1;
-
-    _regs->write<unsigned>(ISR, IXR_RXOVR);
-    return _regs->read<unsigned>(FIFO);
-  }
-
-  int Uart_cadence::char_avail() const
-  {
-    return !(_regs->read<unsigned>(SR) & IXR_RXEMPTY);
-  }
-
   int Uart_cadence::tx_avail() const
   {
     return !(_regs->read<unsigned>(SR) & IXR_TXFULL);
@@ -119,8 +96,32 @@ namespace L4
     return generic_write<Uart_cadence>(s, count, blocking);
   }
 
+  bool Uart_cadence::enable_rx_irq(bool enable)
+  {
+    _regs->write<unsigned>(RXWM, 1);
+    _regs->write<unsigned>(ISR, ~0U);
+    _regs->write<unsigned>(IER, enable ? IXR_RXOVR : 0);
+    return true;
+  }
+
   void Uart_cadence::irq_ack()
   {
     _regs->write<unsigned>(ISR, IXR_RXOVR);
   }
-};
+
+  int Uart_cadence::char_avail() const
+  {
+    return !(_regs->read<unsigned>(SR) & IXR_RXEMPTY);
+  }
+
+  int Uart_cadence::get_char(bool blocking) const
+  {
+    while (!char_avail())
+      if (!blocking)
+        return -1;
+
+    _regs->write<unsigned>(ISR, IXR_RXOVR);
+    return _regs->read<unsigned>(FIFO);
+  }
+
+}

@@ -39,15 +39,6 @@ namespace L4
     return true;
   }
 
-  bool Uart_mvebu::enable_rx_irq(bool enable)
-  {
-    if (enable)
-      _regs->set<unsigned>(CTRL, CTRL_RX_RDY_INT_EN);
-    else
-      _regs->clear<unsigned>(CTRL, CTRL_RX_RDY_INT_EN);
-    return true;
-  }
-
   void Uart_mvebu::shutdown()
   {
     //_regs->write<unsigned>(CTRL, 0);
@@ -57,20 +48,6 @@ namespace L4
   {
     _regs->write<unsigned>(BRDV, _baserate / r / 16);
     return true;
-  }
-
-  int Uart_mvebu::get_char(bool blocking) const
-  {
-    while (!char_avail())
-      if (!blocking)
-        return -1;
-
-    return _regs->read<unsigned>(RBR) & 0xff;
-  }
-
-  int Uart_mvebu::char_avail() const
-  {
-    return _regs->read<unsigned>(STAT) & STAT_RX_RDY;
   }
 
   int Uart_mvebu::tx_avail() const
@@ -88,4 +65,28 @@ namespace L4
   {
     return generic_write<Uart_mvebu>(s, count, blocking);
   }
+
+  bool Uart_mvebu::enable_rx_irq(bool enable)
+  {
+    if (enable)
+      _regs->set<unsigned>(CTRL, CTRL_RX_RDY_INT_EN);
+    else
+      _regs->clear<unsigned>(CTRL, CTRL_RX_RDY_INT_EN);
+    return true;
+  }
+
+  int Uart_mvebu::char_avail() const
+  {
+    return _regs->read<unsigned>(STAT) & STAT_RX_RDY;
+  }
+
+  int Uart_mvebu::get_char(bool blocking) const
+  {
+    while (!char_avail())
+      if (!blocking)
+        return -1;
+
+    return _regs->read<unsigned>(RBR) & 0xff;
+  }
+
 }
