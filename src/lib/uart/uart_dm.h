@@ -10,25 +10,26 @@
 
 #include "uart_base.h"
 
-namespace L4
-{
-  class Uart_dm : public Uart
-  {
-  public:
-    explicit Uart_dm(unsigned /*base_rate*/) {}
-    Uart_dm() = default;
-    void set_base_rate(unsigned) override {}
-    bool startup(Io_register_block const *) override;
-    void shutdown() override;
-    bool change_mode(Transfer_mode m, Baud_rate r) override;
-    int tx_avail() const;
-    void wait_tx_done() const;
-    inline void out_char(char c) const;
-    int write(char const *s, unsigned long count,
-              bool blocking = true) const override;
+namespace L4 {
 
-    bool enable_rx_irq(bool enable = true) override;
-    int char_avail() const override;
-    int get_char(bool blocking = true) const override;
-  };
+class Uart_dm : public Uart
+{
+public:
+  explicit Uart_dm(unsigned /*base_rate*/) {}
+  Uart_dm() = default;
+  void set_base_rate(unsigned) override {}
+  bool startup(Io_register_block const *) override;
+  void shutdown() override;
+  bool change_mode(Transfer_mode m, Baud_rate r) override;
+  int tx_avail() const;
+  void wait_tx_done() const;
+  inline void out_char(char c) const;
+  int write(char const *s, unsigned long count,
+            bool blocking = true) const override;
+
+  bool enable_rx_irq(bool enable = true) override;
+  int char_avail() const override;
+  int get_char(bool blocking = true) const override;
 };
+
+}

@@ -18,8 +18,7 @@
  */
 #include "uart_16550_dw.h"
 
-namespace L4
-{
+namespace L4 {
 
 void Uart_16550_dw::irq_ack()
 {
@@ -39,4 +38,4 @@ void Uart_16550_dw::irq_ack()
     }
 }
 
-}
+} // namespace L4

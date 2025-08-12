@@ -12,17 +12,17 @@
 
 #include "uart_16550.h"
 
-namespace L4
+namespace L4 {
+
+class Uart_16550_dw : public Uart_16550
 {
-  class Uart_16550_dw : public Uart_16550
-  {
-  public:
-    Uart_16550_dw() = default;
+public:
+  Uart_16550_dw() = default;
 
-    explicit Uart_16550_dw(unsigned long base_rate)
-    : Uart_16550(base_rate)
-    {}
+  explicit Uart_16550_dw(unsigned long base_rate)
+  : Uart_16550(base_rate)
+  {}
 
-    void irq_ack() override;
-  };
+  void irq_ack() override;
+};
 }
