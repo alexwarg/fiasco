@@ -2,6 +2,7 @@
 
 #include <irq_chip.h>
 #include <generic_timer.h>
+#include <std_macros.h>
 
 class Timer_generic_timer
 {
@@ -75,7 +76,9 @@ protected:
   }
 
   static bool is_boot_cpu(Cpu_number cpu)
-  { return cpu == Cpu_number::boot_cpu(); }
+  {
+    return !IS_ENABLED(CONFIG_MP) || (cpu == Cpu_number::boot_cpu());
+  }
 
   static Mword _interval;
   static Mword _freq0;
