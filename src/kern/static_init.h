@@ -50,6 +50,7 @@
  */
 //@{
 #define __STATIC_INITIALIZER(_func, va) \
+namespace { \
 class static_init_##va { \
 public: \
   static_init_##va() FIASCO_INIT; \
@@ -57,9 +58,11 @@ public: \
 static_init_##va::static_init_##va() { \
   _func(); \
 } \
-static static_init_##va __static_construction_of_##va##__
+static static_init_##va __static_construction_of_##va##__; \
+}
 
 #define __STATIC_INITIALIZER_P(_func, va, prio) \
+namespace { \
 class static_init_##va { \
 public: \
   static_init_##va() FIASCO_INIT; \
@@ -68,7 +71,8 @@ static_init_##va::static_init_##va() { \
   _func(); \
 } \
 static static_init_##va __static_construction_of_##va##__ \
-  __attribute__((init_priority(prio)))
+  __attribute__((init_priority(prio))); \
+}
 //@}
 
 
@@ -91,7 +95,7 @@ static static_init_##va __static_construction_of_##va##__ \
 /// static initialization of singleton (static) classes
 /**
  * The classes that should be initialized must provide
- * a init() member function that takes no arguments.
+ * an init() member function that takes no arguments.
  */
 //@{
 
