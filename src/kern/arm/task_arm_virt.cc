@@ -11,12 +11,12 @@ map_gicc_page(Task *t, L4_msg_tag tag, Utcb *utcb)
 {
   using Ko = Kobject_iface;
 
-  if (tag.words() < 2)
-    return Ko::commit_result(-L4_err::EInval);
-
   auto addr = Gic_h_global::gic->gic_v_address();
   if (!addr)
     return Ko::commit_result(-L4_err::ENosys);
+
+  if (tag.words() < 2)
+    return Ko::commit_result(-L4_err::EInval);
 
   L4_fpage gicc_page(utcb->values[1]);
   if (   !gicc_page.is_valid()
