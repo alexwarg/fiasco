@@ -39,7 +39,7 @@ Kmem_alloc_arch::base_init()
   if (0)
     printf("Kmem_alloc::base_init(): kip=%p\n", Kip::k());
 
-  Mem_region_map<64> map;
+  Kmem_alloc::Free_regions_map map;
   unsigned long available_size = Kmem_alloc::create_free_map(Kip::k(), &map);
 
   unsigned long alloc_size = Kmem_alloc::determine_kmem_alloc_size(available_size);

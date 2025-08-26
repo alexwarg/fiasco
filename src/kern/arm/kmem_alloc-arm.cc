@@ -58,7 +58,7 @@ Kmem_alloc::Kmem_alloc()
 {
   // The -Wframe-larger-than= warning for this function is known and
   // no problem, because the function runs only on our boot stack.
-  Mem_region_map<64> map;
+  Free_regions_map map;
   unsigned long available_size = create_free_map(Kip::k(), &map);
 
 

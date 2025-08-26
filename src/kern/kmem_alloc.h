@@ -8,6 +8,7 @@
 #include <mem_layout.h>
 #include <kmem_alloc_arch.h>
 #include <initcalls.h>
+#include <mem_region.h>
 
 #include <cassert>
 
@@ -23,6 +24,7 @@ class Kmem_alloc
   friend class Kmem_alloc_tester;
 
 public:
+  using Free_regions_map = Mem_region_map<64>;
   typedef Buddy_alloc Alloc;
 
   Kmem_alloc() FIASCO_INIT;
