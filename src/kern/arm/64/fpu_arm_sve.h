@@ -10,7 +10,6 @@
 
 enum class Fpu_state_type
 {
-  None,
   Simd,
   Sve,
 
