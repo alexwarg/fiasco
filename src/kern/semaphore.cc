@@ -168,7 +168,7 @@ public:
         Thread *t = static_cast<Thread*>(Sender::cast(f));
         // Do not reset t´s partner because t still has Thread_receive_wait
         // set. The fake partner avoids IPCs to that thread.
-        t->utcb().access(true)->error = L4_error::Not_existent;
+        t->utcb().access()->error = L4_error::Not_existent;
         t->activate();
       }
   }
