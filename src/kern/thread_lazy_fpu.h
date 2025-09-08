@@ -39,10 +39,12 @@ public:
     Fpu_state_ptr &_fpu_state = _this()->fpu_state();
 
     // Allocate FPU state slab if we didn't already have one
-    if (!_fpu_state
-        && (EXPECT_FALSE(!alloc_new_fpu
-                         || !Fpu_alloc::alloc_state(_this()->quota(), _fpu_state))))
-      return 0;
+    if (!_fpu_state)
+      {
+        if (EXPECT_FALSE(!alloc_new_fpu
+                         || !Fpu_alloc::alloc_state(_this()->quota(), _fpu_state)))
+          return 0;
+      }
 
     // Enable the FPU before accessing it, otherwise recursive trap
     f.enable();
