@@ -12,6 +12,8 @@
 class Buddy_base
 {
 protected:
+  enum { Debug = false };
+
   unsigned long _base;
 
   struct Head : cxx::H_list_item
@@ -119,9 +121,10 @@ public:
     while ((Min_size << size_index) < size)
       ++size_index;
 
-    if (size != Min_size << size_index)
-      WARNX(Info, "Buddy::free: Size mismatch: %lx v %lx\n",
-            size, Min_size << size_index);
+    if constexpr (Debug)
+      if (size != Min_size << size_index)
+        WARNX(Info, "Buddy::free: Size mismatch: %lx v %lx\n",
+              size, Min_size << size_index);
 
 
     // no need to look for a buddy if we already have the biggest block size
@@ -179,9 +182,10 @@ public:
     while ((Min_size << size_index) < size)
       ++size_index;
 
-    if (size != Min_size << size_index)
-      WARNX(Info, "Buddy::alloc: Size mismatch: %lx v %lx\n",
-            size, Min_size << size_index);
+    if constexpr (Debug)
+      if (size != Min_size << size_index)
+        WARNX(Info, "Buddy::alloc: Size mismatch: %lx v %lx\n",
+              size, Min_size << size_index);
 
     //printf("[%u]: Buddy::alloc(%ld)[ret=%p]: size_index=%d\n", Proc::cpu_id(), size, __builtin_return_address(0), size_index);
 
