@@ -66,5 +66,6 @@ instructions](https://l4re.org/fiasco/build.html).
 
 # License
 
-Fiasco is licensed under the GPLv2. If you require a different licensing scheme
-please contact us at **info@kernkonzept.com**.
+The core L4Re microkernel is licensed under the MIT license, with 3rd-party
+code being BSD 2-clause and other parts of debugging functionality being
+licensed under other licenes. Please consult the LICENSE.spdx for details.
