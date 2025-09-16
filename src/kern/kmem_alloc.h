@@ -72,7 +72,6 @@ public:
 
   void *alloc(Bytes size);
   void free(Bytes size, void *page);
-  void dump() const;
   void debug_dump() const;
 
   template<typename T = void, typename Q = void>

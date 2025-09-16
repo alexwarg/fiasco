@@ -176,12 +176,6 @@ Kmem_alloc::free(Bytes size, void *page)
   a->free(page, sz);
 }
 
-void
-Kmem_alloc::dump() const
-{
-  a->dump();
-}
-
 /**
  * Create map entries for all regions which could be used for kernel memory.
  *
