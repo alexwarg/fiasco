@@ -206,6 +206,16 @@ public:
 
   void dump() const
   {
+    auto print_freelist_entry = [](B_list::Const_iterator &h, bool valid)
+      {
+        void *hp = static_cast<void *>(*h);
+        if (!hp)
+          printf("null");
+        else
+          printf("%p", hp);
+        printf("(%lu)", valid ? h->index : 0UL);
+      };
+
     unsigned long total = 0;
     printf("Buddy_alloc [%ld,%ld]\n", Min_size, Num_sizes);
     for (unsigned i = 0; i < Num_sizes; ++i)
@@ -213,24 +223,25 @@ public:
         unsigned long c = 0;
         unsigned long avail = 0;
         B_list::Const_iterator h = _free[i].begin();
-        printf("  [%ld] %p(%lu)", Min_size << i, *h, h != _free[i].end() ? h->index : 0UL);
+        static_assert(Min_size >= 1024); // 2^64 == 16 EiB
+        printf("  [%3lu %ciB] ", Min_size >> (10 - (i % 10)), "KMGTPE"[i / 10]);
+        print_freelist_entry(h, h != _free[i].end());
         while (h != _free[i].end())
           {
             ++h;
+            if (c <= 5)
+              printf("\n%15s", c < 5 ? "-> " : "...");
             if (c < 5)
-              printf(" -> %p(%lu)", *h, *h?h->index:0UL);
-            else if (c == 5)
-              printf(" ...");
+              print_freelist_entry(h, !!*h);
 
             avail += Min_size << i;
-
             ++c;
           }
-        printf(" == %luK (%lu)\n", avail / 1024, avail);
+        printf(" == %lu KiB (%lu bytes)\n", avail / 1024, avail);
         total += avail;
       }
 
-    printf("sum of available memory: %luK (%lu)\n", total / 1024, total);
+    printf("sum of available memory: %lu KiB (%lu)\n", total / 1024, total);
   }
 
   void init(unsigned long base)
