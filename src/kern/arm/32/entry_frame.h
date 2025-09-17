@@ -9,7 +9,6 @@ class Syscall_frame
 public:
   //protected:
   Mword r[13];
-  void dump() const;
 
   L4_obj_ref ref() const
   { return L4_obj_ref::from_raw(r[2]); }

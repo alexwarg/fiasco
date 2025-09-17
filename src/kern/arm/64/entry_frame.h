@@ -38,8 +38,6 @@ public:
 
   void tag(L4_msg_tag const &tag)
   { r[0] = tag.raw(); }
-
-  void dump() const;
 };
 
 class Entry_frame;

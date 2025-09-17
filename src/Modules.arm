@@ -113,7 +113,6 @@ CXXSRC_KERNEL += main_arm.cc \
 	kmem_alloc-arm.cc \
 	kmem_space_arm_$(BITS).cc \
 	mem_space_arm.cc \
-	entry_frame.cc \
 	traps.cc \
 	nested_trap_handler.cc \
 	__main.cc \
