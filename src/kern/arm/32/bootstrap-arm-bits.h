@@ -184,7 +184,7 @@ inline void enable_paging(Mword pdir)
 
 inline void enable_paging(Mword pdir)
 {
-  unsigned domains = 0x55555555; // client for all domains
+  unsigned dacr = 0x55555555; // client for all domains
   unsigned control = Cpu::Sctlr_generic;
 
   disable_mmu_and_caches();
@@ -195,8 +195,8 @@ inline void enable_paging(Mword pdir)
   Mem::dsb();
   asm volatile("mcr p15, 0, r0, c8, c7, 0"); // TLBIALL
   Mem::dsb();
-  asm volatile("mcr p15, 0, %[doms], c3, c0, 0" // domains
-               : : [doms]  "r" (domains));
+  asm volatile("mcr p15, 0, %[doms], c3, c0, 0" // dacr
+               : : [doms]  "r" (dacr));
 
   asm volatile("mcrr p15, 0, %[pdir], %[null], c2" // TTBR0
                : : [pdir]  "r" (pdir), [null]  "r" (0));
@@ -225,7 +225,7 @@ inline Phys_addr init_paging(Address)
 
 inline void enable_paging(Mword pdir)
 {
-  unsigned domains = 0x55555555; // client for all domains
+  unsigned dacr = 0x55555555; // client for all domains
   unsigned control = Cpu::Sctlr_generic;
 
   disable_mmu_and_caches();
@@ -235,8 +235,8 @@ inline void enable_paging(Mword pdir)
   Mem::dsb();
   asm volatile("mcr p15, 0, r0, c8, c7, 0"); // TLBIALL
   Mem::dsb();
-  asm volatile("mcr p15, 0, %[doms], c3, c0, 0" // domains
-               : : [doms]  "r" (domains));
+  asm volatile("mcr p15, 0, %[doms], c3, c0, 0" // dacr
+               : : [doms]  "r" (dacr));
 
   asm volatile("mcr p15, 0, %[pdir], c2, c0, 0" // TTBR0
                : : [pdir] "r" (pdir));
