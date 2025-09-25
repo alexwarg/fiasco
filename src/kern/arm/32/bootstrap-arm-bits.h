@@ -32,7 +32,7 @@ inline void disable_mmu_and_caches()
         }
 
       sctlr &= ~(Cpu::Sctlr_m | Cpu::Sctlr_c | Cpu::Sctlr_i);
-      asm volatile("mcr p15, 0, %0, c1, c0" : : "r" (sctlr));
+      asm volatile("mcr p15, 0, %0, c1, c0, 0" : : "r" (sctlr));
       Mem::isb();
       Mem::barrier();
     }
@@ -175,7 +175,7 @@ inline void enable_paging(Mword pdir)
   asm volatile("mcr p15, 4, r0, c8, c7, 4" : : : "memory"); // TLBIALLNSNH
   Mem::dsb();
 
-  asm volatile("mcr p15, 4, %[control], c1, c0" // HSCTLR
+  asm volatile("mcr p15, 4, %[control], c1, c0, 0" // HSCTLR
       : : [control] "r" (1 | 4 | 32 | 0x1000));
   Mem::isb();
 }
@@ -195,13 +195,13 @@ inline void enable_paging(Mword pdir)
   Mem::dsb();
   asm volatile("mcr p15, 0, r0, c8, c7, 0"); // TLBIALL
   Mem::dsb();
-  asm volatile("mcr p15, 0, %[doms], c3, c0" // domains
+  asm volatile("mcr p15, 0, %[doms], c3, c0, 0" // domains
                : : [doms]  "r" (domains));
 
   asm volatile("mcrr p15, 0, %[pdir], %[null], c2" // TTBR0
                : : [pdir]  "r" (pdir), [null]  "r" (0));
 
-  asm volatile("mcr p15, 0, %[control], c1, c0" // control
+  asm volatile("mcr p15, 0, %[control], c1, c0, 0" // control
                : : [control] "r" (control));
   Mem::isb();
 }
@@ -235,13 +235,13 @@ inline void enable_paging(Mword pdir)
   Mem::dsb();
   asm volatile("mcr p15, 0, r0, c8, c7, 0"); // TLBIALL
   Mem::dsb();
-  asm volatile("mcr p15, 0, %[doms], c3, c0" // domains
+  asm volatile("mcr p15, 0, %[doms], c3, c0, 0" // domains
                : : [doms]  "r" (domains));
 
-  asm volatile("mcr p15, 0, %[pdir], c2, c0" // TTBR0
+  asm volatile("mcr p15, 0, %[pdir], c2, c0, 0" // TTBR0
                : : [pdir] "r" (pdir));
 
-  asm volatile("mcr p15, 0, %[control], c1, c0" // control
+  asm volatile("mcr p15, 0, %[control], c1, c0, 0" // control
                : : [control] "r" (control));
   Mem::isb();
 }
