@@ -222,7 +222,7 @@ public:
   static constexpr Mword
   Sctlr_generic = Sctlr_el1_generic
                   | Sctlr_m
-                  | (Config::Cp15_c1_use_alignment_check ?  Sctlr_a : 0);
+                  | (Config::Sctlr_use_alignment_check ?  Sctlr_a : 0);
 
   static constexpr Unsigned64
   Scr_default_bits = Scr_ns | Scr_rw | Scr_smd;
@@ -286,7 +286,7 @@ public:
               | (1UL << 18) | (3UL << 22) | (3UL << 28),
 
     Sctlr_generic = Sctlr_m
-                    | (Config::Cp15_c1_use_alignment_check ?  Sctlr_a : 0)
+                    | (Config::Sctlr_use_alignment_check ?  Sctlr_a : 0)
                     | Sctlr_c
                     | Sctlr_i
                     | Sctlr_res,

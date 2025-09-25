@@ -185,39 +185,39 @@ class Cpu_arm_v6 : public Cpu_arm_v6plus<C, B>
   C const *self() const noexcept { return static_cast<C const *>(this); }
 
 public:
-  static constexpr Mword Cp15_c1_l4          = 1 << 15;
-  static constexpr Mword Cp15_c1_u           = 1 << 22;
-  static constexpr Mword Cp15_c1_xp          = 1 << 23;
-  static constexpr Mword Cp15_c1_ee          = 1 << 25;
-  static constexpr Mword Cp15_c1_nmfi        = 1 << 27;
-  static constexpr Mword Cp15_c1_tre         = 1 << 28;
-  static constexpr Mword Cp15_c1_force_ap    = 1 << 29;
+  static constexpr Mword Sctlr_l4          = 1 << 15;
+  static constexpr Mword Sctlr_u           = 1 << 22;
+  static constexpr Mword Sctlr_xp          = 1 << 23;
+  static constexpr Mword Sctlr_ee          = 1 << 25;
+  static constexpr Mword Sctlr_nmfi        = 1 << 27;
+  static constexpr Mword Sctlr_tre         = 1 << 28;
+  static constexpr Mword Sctlr_force_ap    = 1 << 29;
 
-  static constexpr Unsigned32 Cp15_c1_cache_bits =
-                                B::Cp15_c1_cache | B::Cp15_c1_insn_cache;
+  static constexpr Unsigned32 Sctlr_cache_bits =
+                                B::Sctlr_cache | B::Sctlr_insn_cache;
 
 #ifndef CONFIG_ARM_MPCORE
   static constexpr Mword
-    Cp15_c1_generic         = B::Cp15_c1_mmu
-                              | (Config::Cp15_c1_use_alignment_check ?  B::Cp15_c1_alignment_check : 0)
+    Sctlr_generic         = B::Sctlr_mmu
+                              | (Config::Sctlr_use_alignment_check ?  B::Sctlr_alignment_check : 0)
                               | (Config::Cache_enabled
-                                 ? Cp15_c1_cache_bits : 0)
-                              | B::Cp15_c1_branch_predict
-                              | B::Cp15_c1_high_vector
-                              | Cp15_c1_u
-                              | Cp15_c1_xp;
+                                 ? Sctlr_cache_bits : 0)
+                              | B::Sctlr_branch_predict
+                              | B::Sctlr_high_vector
+                              | Sctlr_u
+                              | Sctlr_xp;
 #else // CONFIG_ARM_MPCORE
   static constexpr Mword
-    Cp15_c1_generic         = B::Cp15_c1_mmu
-                              | (Config::Cp15_c1_use_alignment_check
-                                 ? B::Cp15_c1_alignment_check : 0)
+    Sctlr_generic         = B::Sctlr_mmu
+                              | (Config::Sctlr_use_alignment_check
+                                 ? B::Sctlr_alignment_check : 0)
                               | (Config::Cache_enabled
-                                 ? Cp15_c1_cache_bits : 0)
-                              | B::Cp15_c1_branch_predict
-                              | B::Cp15_c1_high_vector
-                              | Cp15_c1_u
-                              | Cp15_c1_xp
-                              | Cp15_c1_tre;
+                                 ? Sctlr_cache_bits : 0)
+                              | B::Sctlr_branch_predict
+                              | B::Sctlr_high_vector
+                              | Sctlr_u
+                              | Sctlr_xp
+                              | Sctlr_tre;
 #endif // CONFIG_ARM_MPCORE
 
   static void modify_actrl(Mword set_mask, Mword clear_mask)
@@ -303,7 +303,7 @@ public:
 
   static void check_for_swp_enable()
   {
-    if (!Config::Cp15_c1_use_swp_enable)
+    if (!Config::Sctlr_use_swp_enable)
       return;
 
     if (((D::midr() >> 16) & 0xf) != 0xf)
@@ -317,7 +317,7 @@ public:
     if (((D::mpidr() >> 31) & 1) == 0)
       return; // CPU has no MP extensions -> no swp enable
 
-    sctlr |= D::Cp15_c1_v7_sw;
+    sctlr |= D::Sctlr_v7_sw;
   }
 
   static void enable_dcache() noexcept
@@ -325,7 +325,7 @@ public:
     asm volatile("mrc     p15, 0, %0, c1, c0, 0 \n"
                  "orr     %0, %1                \n"
                  "mcr     p15, 0, %0, c1, c0, 0 \n"
-                 : : "r" (0), "i" (D::Cp15_c1_cache));
+                 : : "r" (0), "i" (D::Sctlr_cache));
   }
 
   static void disable_dcache() noexcept
@@ -333,12 +333,12 @@ public:
     asm volatile("mrc     p15, 0, %0, c1, c0, 0 \n"
                  "bic     %0, %1                \n"
                  "mcr     p15, 0, %0, c1, c0, 0 \n"
-                 : : "r" (0), "i" (D::Cp15_c1_cache));
+                 : : "r" (0), "i" (D::Sctlr_cache));
   }
 
   static void early_init()
   {
-    sctlr = C::Cp15_c1_generic;
+    sctlr = C::Sctlr_generic;
 
     check_for_swp_enable();
 
@@ -366,7 +366,7 @@ public:
   {
     Mword sctrl;
     asm volatile("mrc p15, 0, %0, c1, c0, 0" : "=r" (sctrl));
-    if (sctrl & D::Cp15_c1_nmfi)
+    if (sctrl & D::Sctlr_nmfi)
       panic("Non-maskable FIQs (NMFI) detected, cannot use TZ mode");
 
     // set monitor vector base address

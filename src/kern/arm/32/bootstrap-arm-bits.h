@@ -23,15 +23,15 @@ inline void disable_mmu_and_caches()
 {
   unsigned long sctlr;
   asm ("mrc p15, 0, %0, c1, c0" : "=r" (sctlr));
-  if (sctlr & Cpu::Cp15_c1_mmu)
+  if (sctlr & Cpu::Sctlr_mmu)
     {
-      if (sctlr & Cpu::Cp15_c1_cache)
+      if (sctlr & Cpu::Sctlr_cache)
         {
           Mmu<>::clean_dcache(&bs_info, &bs_info + 1);
           Mmu<>::clean_dcache(start_of_loader, end_of_loader);
         }
 
-      sctlr &= ~(Cpu::Cp15_c1_mmu | Cpu::Cp15_c1_cache | Cpu::Cp15_c1_insn_cache);
+      sctlr &= ~(Cpu::Sctlr_mmu | Cpu::Sctlr_cache | Cpu::Sctlr_insn_cache);
       asm volatile("mcr p15, 0, %0, c1, c0" : : "r" (sctlr));
       Mem::isb();
       Mem::barrier();
@@ -185,7 +185,7 @@ inline void enable_paging(Mword pdir)
 inline void enable_paging(Mword pdir)
 {
   unsigned domains = 0x55555555; // client for all domains
-  unsigned control = Cpu::Cp15_c1_generic;
+  unsigned control = Cpu::Sctlr_generic;
 
   disable_mmu_and_caches();
   set_mair0(Page::Mair0_prrr_bits);
@@ -226,7 +226,7 @@ inline Phys_addr init_paging(Address)
 inline void enable_paging(Mword pdir)
 {
   unsigned domains = 0x55555555; // client for all domains
-  unsigned control = Cpu::Cp15_c1_generic;
+  unsigned control = Cpu::Sctlr_generic;
 
   disable_mmu_and_caches();
 

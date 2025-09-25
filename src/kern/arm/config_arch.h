@@ -49,8 +49,8 @@ namespace Config
 
   enum
   {
-    Cp15_c1_use_swp_enable      = IS_ENABLED(CONFIG_ARM_ENABLE_SWP),
-    Cp15_c1_use_alignment_check = IS_ENABLED(CONFIG_ARM_ALIGNMENT_CHECK),
+    Sctlr_use_swp_enable      = IS_ENABLED(CONFIG_ARM_ENABLE_SWP),
+    Sctlr_use_alignment_check = IS_ENABLED(CONFIG_ARM_ALIGNMENT_CHECK),
 
     Support_arm_linux_cache_API = 1,
   };

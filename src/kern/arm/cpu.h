@@ -22,13 +22,13 @@ class Cpu_arm_generic : public Cpu_arm_bits_generic
 public:
   enum
   {
-    Cp15_c1_mmu             = 1 << 0,
-    Cp15_c1_alignment_check = 1 << 1,
-    Cp15_c1_cache           = 1 << 2,
-    Cp15_c1_branch_predict  = 1 << 11,
-    Cp15_c1_v7_sw           = 1 << 10,
-    Cp15_c1_insn_cache      = 1 << 12,
-    Cp15_c1_high_vector     = 1 << 13,
+    Sctlr_mmu             = 1 << 0,
+    Sctlr_alignment_check = 1 << 1,
+    Sctlr_cache           = 1 << 2,
+    Sctlr_branch_predict  = 1 << 11,
+    Sctlr_v7_sw           = 1 << 10,
+    Sctlr_insn_cache      = 1 << 12,
+    Sctlr_high_vector     = 1 << 13,
   };
 
   enum : Unsigned64
@@ -78,34 +78,34 @@ class Cpu_arm_v5 : public Cpu_arm_generic
 public:
   enum
   {
-    Cp15_c1_write_buffer    = 1 << 3,
-    Cp15_c1_prog32          = 1 << 4,
-    Cp15_c1_data32          = 1 << 5,
-    Cp15_c1_late_abort      = 1 << 6,
-    Cp15_c1_big_endian      = 1 << 7,
-    Cp15_c1_system_protect  = 1 << 8,
-    Cp15_c1_rom_protect     = 1 << 9,
-    Cp15_c1_f               = 1 << 10,
-    Cp15_c1_rr              = 1 << 14,
-    Cp15_c1_l4              = 1 << 15,
+    Sctlr_write_buffer    = 1 << 3,
+    Sctlr_prog32          = 1 << 4,
+    Sctlr_data32          = 1 << 5,
+    Sctlr_late_abort      = 1 << 6,
+    Sctlr_big_endian      = 1 << 7,
+    Sctlr_system_protect  = 1 << 8,
+    Sctlr_rom_protect     = 1 << 9,
+    Sctlr_f               = 1 << 10,
+    Sctlr_rr              = 1 << 14,
+    Sctlr_l4              = 1 << 15,
   };
 
-  static constexpr Unsigned32 Cp15_c1_cache_bits =
-                                Cp15_c1_cache
-                                | Cp15_c1_insn_cache
-                                | Cp15_c1_write_buffer;
+  static constexpr Unsigned32 Sctlr_cache_bits =
+                                Sctlr_cache
+                                | Sctlr_insn_cache
+                                | Sctlr_write_buffer;
 
-  static constexpr Unsigned32 Cp15_c1_generic =
-                                Cp15_c1_mmu
-                                | (Config::Cp15_c1_use_alignment_check ?  Cp15_c1_alignment_check : 0)
+  static constexpr Unsigned32 Sctlr_generic =
+                                Sctlr_mmu
+                                | (Config::Sctlr_use_alignment_check ?  Sctlr_alignment_check : 0)
                                 | (Config::Cache_enabled
-                                   ? Cp15_c1_cache_bits : 0)
-                                | Cp15_c1_write_buffer
-                                | Cp15_c1_prog32
-                                | Cp15_c1_data32
-                                | Cp15_c1_late_abort
-                                | Cp15_c1_rom_protect
-                                | Cp15_c1_high_vector;
+                                   ? Sctlr_cache_bits : 0)
+                                | Sctlr_write_buffer
+                                | Sctlr_prog32
+                                | Sctlr_data32
+                                | Sctlr_late_abort
+                                | Sctlr_rom_protect
+                                | Sctlr_high_vector;
 };
 
 
@@ -125,27 +125,27 @@ public:
 
   enum
   {
-    Cp15_c1_ha              = 1 << 17,
-    Cp15_c1_ee              = 1 << 25,
-    Cp15_c1_nmfi            = 1 << 27,
-    Cp15_c1_tre             = 1 << 28,
-    Cp15_c1_te              = 1 << 30,
-    Cp15_c1_rao_sbop        = (0xf << 3) | (1 << 16) | (1 << 18) | (1 << 22) | (1 << 23),
+    Sctlr_ha              = 1 << 17,
+    Sctlr_ee              = 1 << 25,
+    Sctlr_nmfi            = 1 << 27,
+    Sctlr_tre             = 1 << 28,
+    Sctlr_te              = 1 << 30,
+    Sctlr_rao_sbop        = (0xf << 3) | (1 << 16) | (1 << 18) | (1 << 22) | (1 << 23),
   };
 
-  static constexpr Unsigned32 Cp15_c1_cache_bits =
-                                C::Cp15_c1_cache | C::Cp15_c1_insn_cache;
+  static constexpr Unsigned32 Sctlr_cache_bits =
+                                C::Sctlr_cache | C::Sctlr_insn_cache;
 
-  static constexpr Unsigned32 Cp15_c1_generic =
-                                C::Cp15_c1_mmu
-                                | (Config::Cp15_c1_use_alignment_check
-                                   ? C::Cp15_c1_alignment_check : 0)
+  static constexpr Unsigned32 Sctlr_generic =
+                                C::Sctlr_mmu
+                                | (Config::Sctlr_use_alignment_check
+                                   ? C::Sctlr_alignment_check : 0)
                                 | (Config::Cache_enabled
-                                   ? Cp15_c1_cache_bits : 0)
-                                | C::Cp15_c1_branch_predict
-                                | C::Cp15_c1_high_vector
-                                | Cp15_c1_tre
-                                | Cp15_c1_rao_sbop;
+                                   ? Sctlr_cache_bits : 0)
+                                | C::Sctlr_branch_predict
+                                | C::Sctlr_high_vector
+                                | Sctlr_tre
+                                | Sctlr_rao_sbop;
 
   enum Hstr_values
   {

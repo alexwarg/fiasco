@@ -134,7 +134,7 @@ public:
 
     Unsigned32 _sctlr = access_once(&sctlr);
     if (el0_only)
-      _sctlr &= ~Cpu::Cp15_c1_mmu;
+      _sctlr &= ~Cpu::Sctlr_mmu;
 
     // Workaround for errata #852523 (Cortex-A57) and #853709 (Cortex-A72):
     // Do this before writing to SCTLR_EL1.
