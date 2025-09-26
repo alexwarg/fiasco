@@ -193,13 +193,15 @@ public:
   static constexpr Mword Cp15_c1_tre         = 1 << 28;
   static constexpr Mword Cp15_c1_force_ap    = 1 << 29;
 
-  static constexpr Mword Cp15_c1_cache_bits  = B::Cp15_c1_cache
-                                               | B::Cp15_c1_insn_cache;
+  static constexpr Unsigned32 Cp15_c1_cache_bits =
+                                B::Cp15_c1_cache | B::Cp15_c1_insn_cache;
 
 #ifndef CONFIG_ARM_MPCORE
   static constexpr Mword
     Cp15_c1_generic         = B::Cp15_c1_mmu
                               | (Config::Cp15_c1_use_alignment_check ?  B::Cp15_c1_alignment_check : 0)
+                              | (Config::Cache_enabled
+                                 ? Cp15_c1_cache_bits : 0)
                               | B::Cp15_c1_branch_predict
                               | B::Cp15_c1_high_vector
                               | Cp15_c1_u
@@ -209,6 +211,8 @@ public:
     Cp15_c1_generic         = B::Cp15_c1_mmu
                               | (Config::Cp15_c1_use_alignment_check
                                  ? B::Cp15_c1_alignment_check : 0)
+                              | (Config::Cache_enabled
+                                 ? Cp15_c1_cache_bits : 0)
                               | B::Cp15_c1_branch_predict
                               | B::Cp15_c1_high_vector
                               | Cp15_c1_u
@@ -269,12 +273,6 @@ public:
   static constexpr Unsigned32
     Hcr_non_vm_bits = Hcr_must_set_bits | D::Hcr_dc | D::Hcr_tsw
                       | D::Hcr_ttlb | D::Hcr_tvm;
-
-  static constexpr Mword
-    Cp15_c1_cache_enabled  = D::Cp15_c1_generic | D::Cp15_c1_cache_bits;
-
-  static constexpr Mword
-    Cp15_c1_cache_disabled = D::Cp15_c1_generic;
 
 #ifndef CONFIG_ARM_LPAE
   static unsigned phys_bits() { return 32; }
@@ -340,8 +338,7 @@ public:
 
   static void early_init()
   {
-    sctlr = Config::Cache_enabled
-            ? Cp15_c1_cache_enabled : Cp15_c1_cache_disabled;
+    sctlr = C::Cp15_c1_generic;
 
     check_for_swp_enable();
 

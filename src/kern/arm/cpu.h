@@ -88,20 +88,24 @@ public:
     Cp15_c1_f               = 1 << 10,
     Cp15_c1_rr              = 1 << 14,
     Cp15_c1_l4              = 1 << 15,
-
-    Cp15_c1_generic         = Cp15_c1_mmu
-                              | (Config::Cp15_c1_use_alignment_check ?  Cp15_c1_alignment_check : 0)
-                              | Cp15_c1_write_buffer
-                              | Cp15_c1_prog32
-                              | Cp15_c1_data32
-                              | Cp15_c1_late_abort
-                              | Cp15_c1_rom_protect
-                              | Cp15_c1_high_vector,
-
-    Cp15_c1_cache_bits      = Cp15_c1_cache
-                              | Cp15_c1_insn_cache
-                              | Cp15_c1_write_buffer,
   };
+
+  static constexpr Unsigned32 Cp15_c1_cache_bits =
+                                Cp15_c1_cache
+                                | Cp15_c1_insn_cache
+                                | Cp15_c1_write_buffer;
+
+  static constexpr Unsigned32 Cp15_c1_generic =
+                                Cp15_c1_mmu
+                                | (Config::Cp15_c1_use_alignment_check ?  Cp15_c1_alignment_check : 0)
+                                | (Config::Cache_enabled
+                                   ? Cp15_c1_cache_bits : 0)
+                                | Cp15_c1_write_buffer
+                                | Cp15_c1_prog32
+                                | Cp15_c1_data32
+                                | Cp15_c1_late_abort
+                                | Cp15_c1_rom_protect
+                                | Cp15_c1_high_vector;
 };
 
 
@@ -127,17 +131,21 @@ public:
     Cp15_c1_tre             = 1 << 28,
     Cp15_c1_te              = 1 << 30,
     Cp15_c1_rao_sbop        = (0xf << 3) | (1 << 16) | (1 << 18) | (1 << 22) | (1 << 23),
-
-    Cp15_c1_cache_bits      = C::Cp15_c1_cache
-                              | C::Cp15_c1_insn_cache,
-
-    Cp15_c1_generic         = C::Cp15_c1_mmu
-                              | (Config::Cp15_c1_use_alignment_check ?  C::Cp15_c1_alignment_check : 0)
-                              | C::Cp15_c1_branch_predict
-                              | C::Cp15_c1_high_vector
-                              | Cp15_c1_tre
-                              | Cp15_c1_rao_sbop,
   };
+
+  static constexpr Unsigned32 Cp15_c1_cache_bits =
+                                C::Cp15_c1_cache | C::Cp15_c1_insn_cache;
+
+  static constexpr Unsigned32 Cp15_c1_generic =
+                                C::Cp15_c1_mmu
+                                | (Config::Cp15_c1_use_alignment_check
+                                   ? C::Cp15_c1_alignment_check : 0)
+                                | (Config::Cache_enabled
+                                   ? Cp15_c1_cache_bits : 0)
+                                | C::Cp15_c1_branch_predict
+                                | C::Cp15_c1_high_vector
+                                | Cp15_c1_tre
+                                | Cp15_c1_rao_sbop;
 
   enum Hstr_values
   {
