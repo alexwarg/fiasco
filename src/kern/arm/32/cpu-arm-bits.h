@@ -194,27 +194,27 @@ public:
   static constexpr Mword Sctlr_force_ap    = 1 << 29;
 
   static constexpr Unsigned32 Sctlr_cache_bits =
-                                B::Sctlr_cache | B::Sctlr_insn_cache;
+                                B::Sctlr_c | B::Sctlr_i;
 
 #ifndef CONFIG_ARM_MPCORE
   static constexpr Mword
-    Sctlr_generic         = B::Sctlr_mmu
-                              | (Config::Sctlr_use_alignment_check ?  B::Sctlr_alignment_check : 0)
+    Sctlr_generic         = B::Sctlr_m
+                              | (Config::Sctlr_use_alignment_check ?  B::Sctlr_a : 0)
                               | (Config::Cache_enabled
                                  ? Sctlr_cache_bits : 0)
-                              | B::Sctlr_branch_predict
-                              | B::Sctlr_high_vector
+                              | B::Sctlr_z
+                              | B::Sctlr_v
                               | Sctlr_u
                               | Sctlr_xp;
 #else // CONFIG_ARM_MPCORE
   static constexpr Mword
-    Sctlr_generic         = B::Sctlr_mmu
+    Sctlr_generic         = B::Sctlr_m
                               | (Config::Sctlr_use_alignment_check
-                                 ? B::Sctlr_alignment_check : 0)
+                                 ? B::Sctlr_a : 0)
                               | (Config::Cache_enabled
                                  ? Sctlr_cache_bits : 0)
-                              | B::Sctlr_branch_predict
-                              | B::Sctlr_high_vector
+                              | B::Sctlr_z
+                              | B::Sctlr_v
                               | Sctlr_u
                               | Sctlr_xp
                               | Sctlr_tre;
@@ -325,7 +325,7 @@ public:
     asm volatile("mrc     p15, 0, %0, c1, c0, 0 \n"
                  "orr     %0, %1                \n"
                  "mcr     p15, 0, %0, c1, c0, 0 \n"
-                 : : "r" (0), "i" (D::Sctlr_cache));
+                 : : "r" (0), "i" (D::Sctlr_c));
   }
 
   static void disable_dcache() noexcept
@@ -333,7 +333,7 @@ public:
     asm volatile("mrc     p15, 0, %0, c1, c0, 0 \n"
                  "bic     %0, %1                \n"
                  "mcr     p15, 0, %0, c1, c0, 0 \n"
-                 : : "r" (0), "i" (D::Sctlr_cache));
+                 : : "r" (0), "i" (D::Sctlr_c));
   }
 
   static void early_init()

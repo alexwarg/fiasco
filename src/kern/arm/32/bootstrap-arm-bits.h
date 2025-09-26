@@ -23,15 +23,15 @@ inline void disable_mmu_and_caches()
 {
   unsigned long sctlr;
   asm ("mrc p15, 0, %0, c1, c0" : "=r" (sctlr));
-  if (sctlr & Cpu::Sctlr_mmu)
+  if (sctlr & Cpu::Sctlr_m)
     {
-      if (sctlr & Cpu::Sctlr_cache)
+      if (sctlr & Cpu::Sctlr_c)
         {
           Mmu<>::clean_dcache(&bs_info, &bs_info + 1);
           Mmu<>::clean_dcache(start_of_loader, end_of_loader);
         }
 
-      sctlr &= ~(Cpu::Sctlr_mmu | Cpu::Sctlr_cache | Cpu::Sctlr_insn_cache);
+      sctlr &= ~(Cpu::Sctlr_m | Cpu::Sctlr_c | Cpu::Sctlr_i);
       asm volatile("mcr p15, 0, %0, c1, c0" : : "r" (sctlr));
       Mem::isb();
       Mem::barrier();

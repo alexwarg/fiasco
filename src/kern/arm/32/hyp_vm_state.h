@@ -164,7 +164,7 @@ public:
 
     Unsigned32 _sctlr = access_once(&sctlr);
     if (el0_only)
-      _sctlr &= ~Cpu::Sctlr_mmu;
+      _sctlr &= ~Cpu::Sctlr_m;
 
     asm volatile ("mcr p15, 0, %0, c1, c0, 0" : : "r"(_sctlr));
     // we unconditionally trap actlr accesses
@@ -201,7 +201,7 @@ public:
 
   static Unsigned32 arm_host_sctlr()
   {
-    return (Cpu::sctlr | Cpu::Sctlr_cache_bits) & ~(Cpu::Sctlr_mmu | (1 << 28));
+    return (Cpu::sctlr | Cpu::Sctlr_cache_bits) & ~(Cpu::Sctlr_m | (1 << 28));
   }
 
   void switch_to_host(Mword tpidruro)
