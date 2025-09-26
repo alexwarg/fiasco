@@ -280,8 +280,7 @@ public:
                   : : "r"(Cpu::Hcr_non_vm_bits));
     asm volatile ("mcr p15, 4, %0, c1, c1, 3" : : "r"(Cpu::Hstr_non_vm)); // HSTR
     // load normal SCTLR ...
-    asm volatile ("mcr p15, 0, %0, c1, c0, 0"
-                  : : "r" ((Cpu::sctlr | Cpu::Cp15_c1_cache_bits) & ~Cpu::Cp15_c1_mmu));
+    asm volatile ("mcr p15, 0, %0, c1, c0, 0" : : "r" (arm_host_sctlr()));
     asm volatile ("mcr p15, 0, %0,  c1, c0, 2" : : "r" (0xf00000));
     asm volatile ("mcr p15, 0, %0, c13, c0, 0" : : "r" (0));
   }
