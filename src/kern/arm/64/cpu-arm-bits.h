@@ -331,7 +331,7 @@ public:
     mdcr |= Mdcr_bits;
     asm volatile ("msr MDCR_EL2, %x0" : : "r"(mdcr));
 
-    asm volatile ("msr SCTLR_EL1, %x0" : : "r"(Mword{Sctlr_el1_generic}));
+    asm volatile ("msr SCTLR_EL1, %x0" : : "r"(Sctlr_el1_generic));
     hcr(Hcr_non_vm_bits);
     asm volatile ("msr HSTR_EL2, %x0" : : "r" (D::Hstr_non_vm));
 
