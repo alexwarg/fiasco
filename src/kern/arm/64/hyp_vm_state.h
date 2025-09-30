@@ -5,6 +5,8 @@
 struct Context_hyp : Context_hyp_generic
 {
 public:
+  // The following registers are not protected by HCR.{TRVM,TVM} and hence need
+  // to be context-switched during Context_hyp::{load,store}().
   Unsigned64 sp_el1;
   Unsigned64 elr_el1;
   Unsigned64 vbar;
@@ -57,7 +59,8 @@ public:
 
   typedef Gic_h_global::Arm_vgic Gic;
 
-  /* The following part is our user API */
+  /* === The following part is our user API === */
+
   Regs_h host_regs;
   Regs_g guest_regs;
 
@@ -68,35 +71,43 @@ public:
 
   Unsigned32 _rsvd[3];
 
-  // size depdens on gic version, numer of LRs and APRs
+  // size depends on GIC version, number of LRs and APRs
   Gic  gic;
 
-  /* The user API ends here */
+  /* === The user API ends here =============== */
 
   /* we should align this at a cache line ... */
-  Unsigned64 actlr;
+  Unsigned64 actlr;     // ACTLR_EL1 protected by HCR.TACR=1
 
-  Unsigned64 tcr;
-  Unsigned64 ttbr0;
-  Unsigned64 ttbr1;
+  Unsigned64 tcr;       // TCR_EL1 protected by HCR.{TRVM,TVM}=1
+  Unsigned64 ttbr0;     // TTBR0_EL1 protected by HCR.{TRVM,TVM}=1
+  Unsigned64 ttbr1;     // TTBR1_EL1 protected by HCR.{TRVM,TVM}=1
 
-  Unsigned32 sctlr;
-  Unsigned32 esr;
+  Unsigned32 sctlr;     // SCTLR_EL1 protected by HCR.{TRVM,TVM}=1
+  Unsigned32 esr;       // ESR_EL1 protected by HCR.{TRVM,TVM}=1
 
-  Unsigned64 mair;
-  Unsigned64 amair;
+  Unsigned64 mair;      // MAIR_EL1 protected by HCR.{TRVM,TVM}=1
+  Unsigned64 amair;     // AMAIR_EL1 protected by HCR.{TRVM,TVM}=1
 
-  Unsigned64 sp_el1;
-  Unsigned64 elr_el1;
+  Unsigned64 sp_el1;    // also in Context_hyp
+  Unsigned64 elr_el1;   // also in Context_hyp
 
-  Unsigned64 far;
+  Unsigned64 far;       // FAR_EL1 protected by HCR.{TRVM,TVM}=1
 
-  Unsigned32 afsr[2];
+  Unsigned32 afsr[2];   // AFSR{0,1}_EL1 protected by HCR.{TRVM,TVM}=1
 
-  Unsigned32 dacr32;
-  Unsigned32 fpexc32;
-  Unsigned32 ifsr32;
+  Unsigned32 dacr32;    // DACR32_EL2 context-switched
+  Unsigned32 fpexc32;   // FPEXC32_EL2 untouched
+  Unsigned32 ifsr32;    // IFSR32_EL2 context-switched
 
+  /**
+   * Save system registers to Vm_state when switching away from this context
+   * having extended vCPU mode enabled.
+   *
+   * All _EL1 registers read here are trapped if extended vCPU mode is disabled
+   * due to HCR.TRVM=1, no matter if running at EL0 or EL1. Therefore these
+   * registers don't need handling in Context_hyp::{save,load}().
+   */
   void save()
   {
     // always trapped: asm volatile ("mrs %0, ACTLR_EL1" : "=r"(actlr));
@@ -123,6 +134,14 @@ public:
       }
   }
 
+  /**
+   * Load system registers from Vm_state when switching to this context having
+   * extended vCPU mode enabled.
+   *
+   * All _EL1 registers written here are trapped if extended vCPU mode is disabled
+   * due to HCR.TRVM=1, no matter if running at EL0 or EL1. Therefore these
+   * registers don't need handling in Context_hyp::{save,load}().
+   */
   void load(bool el0_only) const
   {
     // always trapped: asm volatile ("msr ACTLR_EL1, %0" : : "r"(v->actlr));
@@ -160,6 +179,17 @@ public:
     asm volatile ("msr VPIDR_EL2, %x0"  : : "r" (vpidr));
   }
 
+  /**
+   * Store system registers to Vcpu_state and Vm_state after this context entered
+   * extended vCPU host mode and load system registers with values suitable for
+   * executing this context in extended vCPU kernel mode.
+   *
+   * SCTLR_EL1 written here is trapped if extended vCPU mode is disabled due to
+   * HCR.TRVM=1, no matter if running at EL0 or EL1.
+   * MDSCR_EL1 written here is always trapped at EL0 or EL1 because of MDCR.TDA.
+   * CPACR_EL1 written here is accessible at and is therefore also saved/restored
+   * in Context_hyp::{save,load}().
+   */
   void switch_to_host(Mword tpidruro)
   {
     asm volatile ("mrs %x0, TPIDRRO_EL0" : "=r"(tpidruro));
@@ -178,6 +208,11 @@ public:
     asm volatile ("msr SCTLR_EL1, %x0" : : "r"(Cpu::Sctlr_el1_generic));
   }
 
+  /**
+   * Store current vCPU state into Vm_state after this context entering extended
+   * vCPU host mode but don't load any system register because this context is not
+   * the current one.
+   */
   [[gnu::nonnull]]
   void switch_to_host_no_load(Context_hyp *hyp)
   {
@@ -190,12 +225,20 @@ public:
     hyp->cpacr    = Cpu::Cpacr_el1_generic_hyp;
   }
 
+  /**
+   * Load a few more system registers after this context entered extended vCPU
+   * host mode.
+   */
   void load_host_regs(Mword tpidruro)
   {
     asm volatile ("msr TPIDRRO_EL0, %x0" : : "r"(tpidruro));
     asm volatile ("msr HCR_EL2, %x0"     : : "r"(Cpu::Hcr_host_bits));
   }
 
+  /**
+   * Load system registers from guest state before this context switches to
+   * extended vCPU guest mode.
+   */
   [[gnu::nonnull]]
   void switch_to_guest(Context_hyp *hyp)
   {
@@ -217,6 +260,10 @@ public:
     hyp->cntvoff  = cntvoff;
   }
 
+  /**
+   * Store TPIDRR0 and load a few system registers before this context enters
+   * extended vCPU guest mode.
+   */
   static Mword load_guest_regs(Unsigned64 hcr, Mword tpidruro)
   {
     Mword old_tpidruro;
@@ -226,6 +273,18 @@ public:
     return old_tpidruro;
   }
 
+  /**
+   * Load system registers with values suitable for executing a context with
+   * extended vCPU mode disabled.
+   *
+   * Called either when switching to a context with extended vCPU mode disabled or
+   * when shutting down a context having the extended vCPU mode enabled.
+   *
+   * SCTLR_EL1 written here is trapped if extended vCPU mode is disabled due to
+   * HCR.TRVM=1, no matter if running at EL0 or EL1.
+   * MDSCR_EL1 written here is always trapped at EL0 or EL1 because of MDCR.TDA.
+   * CNTKCTL_EL1 written here is always accessible at EL1.
+   */
   static void load_non_vm_state()
   {
     asm volatile ("msr HCR_EL2, %x0"   : : "r"(Cpu::Hcr_non_vm_bits));
