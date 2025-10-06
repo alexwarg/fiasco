@@ -221,7 +221,6 @@ CSRC_LIBC         := putchar.c \
                      vsnprintf.c \
                      vsprintf.c \
                      vprintf.c \
-                     __towrite.c \
                      puts.c \
                      \
                      atexit.c \
