@@ -147,12 +147,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   return reinterpret_cast<unsigned char *>(map_window | phys_ofs);
 }
 
-void
-Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
-{
-  write_tsc_s(buf, tsc, sign);
-}
-
 
 //----------------------------------------------------------------------------
 #ifdef CONFIG_MP

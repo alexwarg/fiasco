@@ -671,17 +671,17 @@ Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
     buf->printf("%lld c", uns);
 }
 
-#if 0
-IMPLEMENT_DEFAULT
 void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
-  Unsigned64 ns = Cpu::boot_cpu()->tsc_to_ns(tsc < 0 ? -tsc : tsc);
-  if (tsc < 0)
-    ns = -ns;
-  write_ll_ns(buf, ns, sign);
+  if constexpr (Arch_time_source::Ts_to_ns_woks)
+    {
+      Unsigned64 ns = Arch_time_source::ts_to_ns(tsc < 0 ? -tsc : tsc);
+      write_ll_ns(buf, tsc < 0 ? -ns : ns, sign);
+    }
+  else
+    write_tsc_s(buf, tsc, sign);
 }
-#endif
 
 /// handling of standard cursor keys (Up/Down/PgUp/PgDn)
 int

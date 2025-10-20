@@ -269,16 +269,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
                                            + Super_pg::offset(phys));
 }
 
-void
-Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
-{
-  Unsigned64 ns = Arch_time_source::ts_to_ns(tsc < 0 ? -tsc : tsc);
-  if (tsc < 0)
-    ns = -ns;
-  write_ll_ns(buf, ns, sign);
-}
-
-
 #ifdef CONFIG_MP
 //----------------------------------------------------------------------------
 
