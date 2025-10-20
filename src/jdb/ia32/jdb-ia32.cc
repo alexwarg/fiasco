@@ -707,22 +707,6 @@ Jdb_ia32_base::get_register(char *reg)
 }
 
 void
-Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
-{
-  Unsigned64 uns = Cpu::boot_cpu()->tsc_to_ns(tsc < 0 ? -tsc : tsc);
-
-  if (tsc < 0)
-    uns = -uns;
-
-  if (sign)
-    buf->printf("%c", (tsc < 0) ? '-' : (tsc == 0) ? ' ' : '+');
-
-  Mword _s  = uns / 1000000000;
-  Mword _us = div32(uns, 1000) - 1000000 * _s;
-  buf->printf("%3lu.%06lu s ", _s, _us);
-}
-
-void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
   Unsigned64 ns = Cpu::boot_cpu()->tsc_to_ns(tsc < 0 ? -tsc : tsc);

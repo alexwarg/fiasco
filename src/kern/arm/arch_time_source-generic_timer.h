@@ -27,6 +27,8 @@ struct Arch_time_source_generic_timer
   static Fix_point_multiplier const &us_to_ts_mult()
   { return _scaler_shift_us_to_ts; }
 
+  constexpr static bool Ts_to_ns_woks = true;
+
 private:
   static Fix_point_multiplier _scaler_shift_ts_to_ns;
   static Fix_point_multiplier _scaler_shift_ts_to_us;

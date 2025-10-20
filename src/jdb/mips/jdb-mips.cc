@@ -148,15 +148,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
 }
 
 void
-Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
-{
-  if (sign && tsc != 0)
-    buf->printf("%+lld c", tsc);
-  else
-    buf->printf("%lld c", tsc);
-}
-
-void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
   write_tsc_s(buf, tsc, sign);

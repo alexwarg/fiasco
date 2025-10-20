@@ -270,22 +270,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
 }
 
 void
-Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
-{
-  Unsigned64 uns = Arch_time_source::ts_to_ns(tsc < 0 ? -tsc : tsc);
-
-  if (tsc < 0)
-    uns = -uns;
-
-  if (sign)
-    buf->printf("%c", (tsc < 0) ? '-' : (tsc == 0) ? ' ' : '+');
-
-  Mword _s  = uns / 1000000000;
-  Mword _us = (uns / 1000) - 1000000 * _s;
-  buf->printf("%3lu.%06lu s ", _s, _us);
-}
-
-void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
   Unsigned64 ns = Arch_time_source::ts_to_ns(tsc < 0 ? -tsc : tsc);
