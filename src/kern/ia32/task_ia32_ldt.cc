@@ -32,7 +32,7 @@ Task::invoke_arch(L4_msg_tag &tag, Utcb *utcb)
 
           if (entry_number * Cpu::Ldt_entry_size + size > Config::PAGE_SIZE)
             {
-              WARN("set_ldt: LDT size exceeds one page, not supported.");
+              WARN("set_ldt: LDT size exceeds one page, not supported.\n");
               tag = commit_result(-L4_err::EInval);
               return true;
             }
@@ -49,7 +49,7 @@ Task::invoke_arch(L4_msg_tag &tag, Utcb *utcb)
               desc = *reinterpret_cast<Gdt_entry const *>(desc_addr);
               if (desc.unsafe())
                 {
-                  WARN("set_ldt: Bad descriptor.");
+                  WARN("set_ldt: Bad descriptor.\n");
                   tag = commit_result(-L4_err::EInval);
                   return true;
                 }
