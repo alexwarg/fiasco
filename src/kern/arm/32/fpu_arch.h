@@ -43,6 +43,14 @@ struct Fpu_arch
     FPEXC_EX   = 1 << 31,
   };
 
+  /// Result of emulate_insns().
+  enum class Emulate_result
+  {
+    Unknown,    ///< Instruction unknown / not eligible for emulation.
+    Undefined,  ///< Instruction undefined (sub architecture too old).
+    Emulated,   ///< Instruction was emulated.
+  };
+
   struct Fpsid
   {
     Mword v;
@@ -124,16 +132,7 @@ struct Fpu_arch
     return fpexc() & FPEXC_EX;
   }
 
-  static int is_emu_insn(Mword opcode)
-  {
-    if ((opcode & 0x0ff00f90) != 0x0ef00a10)
-      return false;
-
-    unsigned reg = (opcode >> 16) & 0xf;
-    return reg == 0 || reg == 6 || reg == 7;
-  }
-
-  static bool emulate_insns(Mword opcode, Trap_state *ts);
+  static Emulate_result emulate_insns(Mword opcode, Trap_state *ts);
 
   static unsigned state_size()
   { return sizeof (Fpu_regs); }

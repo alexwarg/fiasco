@@ -136,35 +136,34 @@ Fpu_arch::save_state(Fpu_state *fpu_regs)
   save_fpu_regs(fpu_regs, save_32r);
 }
 
-bool
+Fpu_arch::Emulate_result
 Fpu_arch::emulate_insns(Mword opcode, Trap_state *ts)
 {
-  unsigned reg = (opcode >> 16) & 0xf;
-  unsigned rt  = (opcode >> 12) & 0xf;
+  unsigned rt = (opcode >> 12) & 0xf;
   Fpsid fpsid = Fpu::fpu.current().fpsid();
-  switch (reg)
+  switch (opcode & 0x0fff'0f90)
     {
-    case 0: // FPSID
+    case 0x0ef0'0a10: // FPSID
       ts->r[rt] = fpsid.v;
       break;
-    case 6: // MVFR1
+    case 0x0ef6'0a10: // MVFR1
       if (fpsid.arch_version() < 2)
-        return false;
+        return Emulate_result::Undefined;
       ts->r[rt] = Fpu::mvfr1();
       break;
-    case 7: // MVFR0
+    case 0x0ef7'0a10: // MVFR0
       if (fpsid.arch_version() < 2)
-        return false;
+        return Emulate_result::Undefined;
       ts->r[rt] = Fpu::mvfr0();
       break;
     default:
-      return false;
+      return Emulate_result::Unknown;
     }
 
   if (ts->psr & Proc::Status_thumb)
     ts->pc += 2;
 
-  return true;
+  return Emulate_result::Emulated;
 }
 
 void
