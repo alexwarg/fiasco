@@ -6,6 +6,7 @@
 #include <feature.h>
 #include "context.h"
 #include "kmem_alloc.h"
+#include "kobject_rpc.h"
 #include "minmax.h"
 #include "panic.h"
 #include "space.h"
@@ -131,7 +132,7 @@ public:
             strncpy(dst, n->name(), l);
             dst[l] = 0;
 
-            f->tag(Kobject_iface::commit_result(0, (l + 1 + sizeof(Mword) - 1) / sizeof(Mword)));
+            f->tag(Kobject_iface::commit_result(0, Ko::message_words(l + 1)));
             return true;
           }
       }
