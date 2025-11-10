@@ -5,6 +5,7 @@
 #include "cpu_generic.h"
 #include <paging.h>
 #include <cpu_arm_defaults.h>
+#include <cxx/conditionals>
 #ifdef CONFIG_ARM_EM_TZ
 #include <panic.h>
 #endif
@@ -250,11 +251,11 @@ private:
   C const *self() const noexcept { return static_cast<C const *>(this); }
 
 public:
-  static constexpr Unsigned32
-    Hcr_must_set_bits = D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
-                      | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
-                      | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr;
-
+  static constexpr Unsigned64 Hcr_must_set_bits =
+    D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
+    | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
+    | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr
+    | cxx::const_ite<IS_ENABLED(CONFIG_ARM_V8PLUS)>(D::Hcr_terr | D::Hcr_tea, 0);
     /**
      * HCR value to be used for the VMM.
      *

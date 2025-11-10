@@ -196,29 +196,6 @@ public:
   }
 
 #ifndef CONFIG_CPU_VIRT
-  static constexpr Unsigned64
-  Hcr_must_set_bits = D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
-                    | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
-                    | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr
-                    | D::Hcr_tlor;
-
-  /**
-   * HCR value to be used for the VMM.
-   *
-   * The AArch64 VMM is currently running in EL1.
-   */
-  static constexpr Unsigned64
-  Hcr_host_bits  = Hcr_must_set_bits | D::Hcr_rw | D::Hcr_dc;
-
-  /**
-   * HCR value to be used for normal threads.
-   *
-   * On AArch64 (with virtualization support) running in EL1.
-   */
-  static constexpr Unsigned64
-  Hcr_non_vm_bits = Hcr_must_set_bits | D::Hcr_rw | D::Hcr_dc | D::Hcr_tsw
-                    | D::Hcr_ttlb | D::Hcr_tvm | D::Hcr_trvm;
-
   static constexpr Mword
   Sctlr_generic = Sctlr_el1_generic
                   | Sctlr_m
@@ -262,8 +239,8 @@ public:
   {
     Hcr_must_set_bits = D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
                       | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
-                      | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr,
-
+                      | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr
+                      | D::Hcr_tlor | D::Hcr_terr | D::Hcr_tea,
     /**
      * HCR value to be used for the VMM.
      *
