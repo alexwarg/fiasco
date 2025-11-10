@@ -359,5 +359,10 @@ Context_hyp::load()
   asm volatile ("msr SPSR_irq, %x0"       : : "r"(spsr_irq));
   asm volatile ("msr SPSR_abt, %x0"       : : "r"(spsr_abt));
   asm volatile ("msr SPSR_und, %x0"       : : "r"(spsr_und));
+
+  asm volatile (".arch_extension ras   \n"
+                ALTERNATIVE_INSN("nop", "msr VDISR_EL2, xzr")
+                ".arch_extension noras \n"
+                : : "r"(0), [alt_probe] "i"(Cpu::has_ras));
 }
 

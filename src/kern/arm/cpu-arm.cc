@@ -30,7 +30,7 @@ Cpu::init(bool /*resume*/, bool is_boot_cpu)
   id_init();
   init_errata_workarounds();
   init_supervisor_mode(is_boot_cpu);
-  init_hyp_mode();
+  init_hyp_mode(is_boot_cpu);
 }
 
 

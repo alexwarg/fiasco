@@ -110,6 +110,13 @@ public:
     }
   };
 
+  static bool has_ras()
+  {
+    Mword pfr0;
+    asm ("mrs %0, ID_AA64PFR0_EL1": "=r" (pfr0));
+    return (pfr0 >> 28) & 0xf;
+  }
+
   static bool is_canonical_address(Address addr) noexcept
   {
     // cf. ARMv8-A Address Translation
@@ -279,9 +286,11 @@ public:
   unsigned vmid_bits() const noexcept
   { return (self()->_cpu_id._mmfr[1] & 0xf0U) == 0x20 ? 16 : 8; }
 
-  void init_hyp_mode() noexcept
+  void init_hyp_mode(bool is_boot_cpu) noexcept
   {
     extern char exception_vector[];
+
+    C::init_ras(is_boot_cpu);
 
     if (vmid_bits() < Mem_unit::Asid_bits)
       panic("VMID size too small: HW provides %d bits, configured %d bits!",

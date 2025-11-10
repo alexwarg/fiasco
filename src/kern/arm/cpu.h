@@ -197,6 +197,8 @@ using Cpu_arm = Cpu_arm_v8<Cpu, Cpu_arm_generic>;
 
 class Cpu : public Cpu_arm_bits<Cpu, Cpu_arm>
 {
+  friend Cpu_arm_bits<Cpu, Cpu_arm>;
+
 public:
   void init(bool resume, bool is_boot_cpu);
 
@@ -254,6 +256,7 @@ public:
 #endif
 
 private:
+  static void init_ras(bool is_boot_cpu);
   static Cpu *_boot_cpu;
 
   // 32 bits: 24..31: Aff3 (0 for ARM32); 16..23: Aff2; 8..15: Aff1; 0..7: Aff0

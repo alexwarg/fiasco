@@ -3,6 +3,7 @@
 #include "hyp_vm_state_generic.h"
 
 #include "cpu.h"
+#include <alternatives.h>
 
 struct Context_hyp : Context_hyp_generic
 {
@@ -197,6 +198,12 @@ public:
 
     asm volatile ("mcr  p15, 4, %0, c0, c0, 5" : : "r" (vmpidr));
     asm volatile ("mcr  p15, 4, %0, c0, c0, 0" : : "r" (vpidr));
+
+    // Clear VDISR when switching to a thread running in extended vCPU mode. Not
+    // required when switching to other threads running at PL1 due to HSTR.T12=1.
+    asm volatile (ALTERNATIVE_INSN("nop", "mcr p15, 4, %0, c12, c1, 1")
+        : : "r"(0), // VDISR
+            [alt_probe] "i"(Cpu::has_ras));
   }
 
   static Unsigned32 arm_host_sctlr()

@@ -421,9 +421,18 @@ public:
                 | D::Mdcr_tde
                 | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_ttrf;
 
-  void init_hyp_mode()
+  static bool has_ras()
+  {
+    Mword pfr0;
+    __asm__("mrc p15, 0, %0, c0, c1, 0": "=r" (pfr0));
+    return (pfr0 >> 28) & 0xf;
+  }
+
+  void init_hyp_mode(bool is_boot_cpu)
   {
     extern char hyp_vector_base[];
+
+    C::init_ras(is_boot_cpu);
 
     assert (!(reinterpret_cast<Mword>(hyp_vector_base) & 31));
     asm volatile ("mcr p15, 4, %0, c12, c0, 0 \n" : : "r"(hyp_vector_base));
