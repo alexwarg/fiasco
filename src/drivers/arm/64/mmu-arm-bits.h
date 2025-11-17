@@ -131,6 +131,13 @@ protected:
     return ccsidr;
   }
 
+  static bool has_feat_ccidx()
+  {
+    Mword f;
+    asm("mrs %0, ID_AA64MMFR2_EL1": "=r" (f));
+    return (f >> 20) & 0xf;
+  }
+
   static inline void dc_cisw(Mword v)
   {
     asm volatile("dc cisw, %0" : : "r" (v) : "memory");

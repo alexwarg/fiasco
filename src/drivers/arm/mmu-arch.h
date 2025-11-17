@@ -15,10 +15,27 @@ private:
   set_way_full_loop(T const &f)
   {
     Mem::dmb();
-    Mword clidr = B::get_clidr();
+    Unsigned64 clidr = B::get_clidr();
     // Level of Coherency CLIDR[26:24] * 2 to simplify
     //   get_ccsidr((cache level << 1) | 0)
     unsigned lvl = ((clidr >> 24) & 7) << 1;
+
+    unsigned assoc_mask;
+    unsigned set_shift;
+    unsigned set_mask;
+    if (B::has_feat_ccidx())
+      {
+        assoc_mask = 0x1fffffff;
+        set_shift = 32;
+        set_mask = 0xffffffff;
+      }
+    else
+      {
+        assoc_mask = 0x3ff;
+        set_shift = 13;
+        set_mask = 0x7fff;
+      }
+
 
     for (unsigned cl = 0; cl < lvl; cl += 2, clidr >>= 3)
       {
@@ -30,9 +47,9 @@ private:
 
         Mword ccsidr = B::get_ccsidr(cl);
 
-        unsigned assoc       = ((ccsidr >> 3) & 0x3ff);
+        unsigned assoc       = ((ccsidr >> 3) & assoc_mask);
         unsigned w_shift     = __builtin_clz(assoc);
-        unsigned set         = ((ccsidr >> 13) & 0x7fff);
+        unsigned set         = ((ccsidr >> set_shift) & set_mask);
         unsigned log2linelen = (ccsidr & 7) + 4;
         do
           {

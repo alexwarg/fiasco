@@ -145,15 +145,28 @@ protected:
     return clidr;
   }
 
-  static inline Mword get_ccsidr(Mword csselr)
+  static Unsigned64 get_ccsidr(Mword csselr)
   {
     Mword ccsidr;
+    Mword ccsidr2 = 0;
     Proc::Status s = Proc::cli_save();
     asm volatile("mcr p15, 2, %0, c0, c0, 0" : : "r" (csselr));
     Mem::isb();
     asm volatile("mrc p15, 1, %0, c0, c0, 0" : "=r" (ccsidr));
+    if (has_feat_ccidx())
+      asm volatile ("mrc p15, 1, %0, c0, c0, 2" : "=r" (ccsidr2));
     Proc::sti_restore(s);
-    return ccsidr;
+    return ccsidr | (Unsigned64{ccsidr} << 32);
+  }
+
+  static bool has_feat_ccidx()
+  {
+    if constexpr (!IS_ENABLED(CONFIG_ARM_V8PLUS))
+      return false;
+
+    Mword f;
+    asm("mrc p15, 0, %0, c0, c2, 6": "=r" (f)); // ID_MMFR4
+    return (f >> 24) & 0xf;
   }
 
   static inline void dc_cisw(Mword v)
