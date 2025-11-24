@@ -202,7 +202,7 @@ public:
 
   static unsigned phys_bits()
   {
-    static char const pa_range_bits[16] = { 32, 36, 40, 42, 44, 48, 52 };
+    static char const pa_range_bits[16] = { 32, 36, 40, 42, 44, 48, 52, 56 };
     return pa_range_bits[pa_range()];
   }
 
