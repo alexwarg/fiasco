@@ -172,7 +172,7 @@ Context *context_of(const void *ptr) noexcept
 [[gnu::always_inline]] inline
 Context *current() noexcept
 {
-  return context_of((void *)Proc::stack_pointer());
+  return context_of(reinterpret_cast<void *>(Proc::stack_pointer_for_context()));
 }
 
 [[gnu::pure]] inline

@@ -41,6 +41,13 @@ public:
     return sp;
   }
 
+  static inline Mword stack_pointer_for_context()
+  {
+    Mword sp;
+    asm ("mov %%rsp, %0" : "=r" (sp));
+    return sp;
+  }
+
   static inline void stack_pointer(Mword sp)
   {
     asm volatile ("mov %0, %%rsp" : : "r" (sp));
