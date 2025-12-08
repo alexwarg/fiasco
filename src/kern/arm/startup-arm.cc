@@ -16,7 +16,6 @@
 #include <thread.h>
 #include <timer.h>
 #include <utcb_init.h>
-#include <alternatives.h>
 #include <arm_ipis.h>
 #include <platform_iface.h>
 #include <scu_init.h>
@@ -49,7 +48,6 @@ static void stage2()
 
   Kip_init::init();
   Kmem_alloc::init();
-  Alternative_insn::init();
 
   if (Platform_if::pf)
     Platform_if::pf->init();

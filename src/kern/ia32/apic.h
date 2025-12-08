@@ -90,7 +90,8 @@ public:
 
   struct use_x2apic : public Alternative_static_functor<use_x2apic>
   {
-    static bool probe() { return Apic::use_x2; }
+    //static bool probe() { return Apic::use_x2; }
+    static bool probe() { return Cpu::cpuid_ecx(1) & FEATX_X2APIC; }
   };
 
   Apic_id apic_id() const { return _id; }
@@ -213,7 +214,6 @@ public:
 
   static void reg_write64(unsigned reg, Unsigned64 val)
   {
-    assert(use_x2);
     Cpu::wrmsr(val, APIC_msr_base + (reg >> 4));
   }
 

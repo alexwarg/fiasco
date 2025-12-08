@@ -1,6 +1,7 @@
 #include <alternatives.h>
 #include <cstdio>
 #include <alternatives_arch_impl.h>
+#include <static_init.h>
 
 void
 Alternative_insn::init()
@@ -30,4 +31,6 @@ Alternative_insn::init()
   if constexpr (Debug)
     printf("Patching done.\n");
 }
+
+STATIC_INITIALIZE_P(Alternative_insn, ALT_INSN_INIT_PRIO);
 
