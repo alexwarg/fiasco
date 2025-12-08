@@ -48,11 +48,6 @@ public:
     return sp;
   }
 
-  static inline void stack_pointer(Mword sp)
-  {
-    asm volatile ("mov %0, %%rsp" : : "r" (sp));
-  }
-
   static inline ALWAYS_INLINE Mword program_counter()
   {
     Mword pc;

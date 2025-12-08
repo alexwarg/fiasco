@@ -82,11 +82,6 @@ public:
     asm volatile ("nop; nop;" : : : "memory");
   }
 
-  static inline void stack_pointer(Mword sp)
-  {
-    asm volatile ("move $29,%0" : : "r" (sp));
-  }
-
   static inline Mword stack_pointer()
   {
     Mword sp;

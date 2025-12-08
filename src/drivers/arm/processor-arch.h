@@ -143,11 +143,6 @@ public:
     return sp;
   }
 
-  static inline void stack_pointer(Mword sp)
-  {
-    asm volatile ("mov sp, %0" : : "r" (sp));
-  }
-
   static inline ALWAYS_INLINE void sti_restore(Status st)
   {
     if (!(st & Sti_mask))
