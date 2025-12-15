@@ -232,6 +232,7 @@ Kuart::startup(unsigned, int irq, bool resume)
 
 } // anon namespace
 
+FIASCO_INIT_SFX("kernel_uart")
 bool
 Kernel_uart::init_for_mode(Init_mode init_mode)
 {
@@ -252,6 +253,7 @@ Kernel_uart::pm_register()
   _kernel_uart->register_pm(Cpu_number::boot_cpu());
 }
 
+FIASCO_INIT_SFX("kernel_uart")
 bool
 Kernel_uart::init(Init_mode init_mode)
 {
@@ -282,9 +284,11 @@ Kernel_uart::enable_rcv_irq()
 #endif
 }
 
+FIASCO_INIT_SFX("kernel_uart_input")
 void
 Kernel_uart::setup_input()
 {
+#ifdef CONFIG_INPUT
   // Do not touch Kernel_uart::uart() if serial support is disabled as a whole.
   // The object won't be constructed in this case.
   if (Koptions::o()->opt(Koptions::F_noserial))
@@ -314,5 +318,6 @@ Kernel_uart::setup_input()
       puts("Not using serial hack in slow timer handler.");
       break;
     }
+#endif
 }
 
