@@ -13,7 +13,6 @@ namespace Bootstrap {
 }
 #endif
 
-
 extern "C" void bootstrap_main(unsigned long load_addr);
 void bootstrap_main(unsigned long load_addr)
 {
@@ -28,7 +27,9 @@ void bootstrap_main(unsigned long load_addr)
       bs_info.kernel_end_phys   += load_addr;
     }
 
-  Unsigned32 tbbr = cxx::int_value<Bootstrap::Phys_addr>(Bootstrap::init_paging(load_addr))
+  bs_info.kernel_load_addr += load_addr;
+
+  Unsigned32 tbbr = cxx::int_value<Bootstrap::Phys_addr>(Bootstrap::init_paging())
                     | Page::Ttbr_bits;
 
   // Attention zone:

@@ -305,7 +305,7 @@ static void switch_to_el2()
       : "cc", "x4");
 }
 
-static Phys_addr init_paging(Address load_addr)
+static Phys_addr init_paging()
 {
   // HCR_EL2.{E2H,TGE} change behavior of paging so make sure they are disabled
   asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
@@ -320,10 +320,10 @@ static Phys_addr init_paging(Address load_addr)
 
   // map kernel to desired virtual address
   map_ram_range(d, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys,
-                Virt_ofs + load_addr);
+                virt_ofs());
 
   // Add 1:1 mapping if not already done so above. Needed by add_initial_pmem().
-  if (Virt_ofs + load_addr != 0)
+  if (virt_ofs() != 0)
     map_ram_range(d, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys, 0);
 
   // Attention zone:
@@ -475,7 +475,7 @@ static void switch_to_el1()
   disable_mmu_and_caches(1);
 }
 
-static Phys_addr init_paging(Address load_addr)
+static Phys_addr init_paging()
 {
   Pdir  *ud = reinterpret_cast<Pdir *>(kern_to_boot(bs_info.pi.l0_dir));
   Kpdir *kd = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_vdir));
@@ -488,11 +488,12 @@ static Phys_addr init_paging(Address load_addr)
 
   // map kernel to desired virtual address
   map_ram_range(kd, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys,
-                Virt_ofs + load_addr);
+                virt_ofs());
 
   // Create 1:1 mapping of the kernel in the idle (user) page table. Needed by
   // add_initial_pmem().
-  map_ram_range(ud, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys, 0);
+  if (virt_ofs() != 0)
+    map_ram_range(ud, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys, 0);
 
   // Attention zone:
   // Only touch loader's own memory from this point on until paging is

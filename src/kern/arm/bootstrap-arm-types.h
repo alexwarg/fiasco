@@ -14,6 +14,7 @@ struct Bootstrap_info
   void *kip;
   Address kernel_start_phys;
   Address kernel_end_phys;
+  Address kernel_load_addr;
   Boot_paging_info pi;
 };
 
@@ -70,12 +71,6 @@ namespace Bootstrap
       = pt_entry(pa, cache, local);
   }
 
-
-  enum
-  {
-    Virt_ofs = Mem_layout::Sdram_phys_base - Mem_layout::Map_base,
-  };
-
   enum
   {
     Cache_flush_area = 0 // needed for XScale and StrongARM (just ignore them)
@@ -84,10 +79,15 @@ namespace Bootstrap
     // XSCALE: Cache_flush_area = 0xa0100000
   };
 
+  [[gnu::pure]] inline Address virt_ofs()
+  {
+    return bs_info.kernel_load_addr - Mem_layout::Map_base;
+  }
+
   inline ALWAYS_INLINE
   void *kern_to_boot(void *a)
   {
-    return offset_cast<void *>(a, Virt_ofs);
+    return offset_cast<void *>(a, virt_ofs());
   }
 }
 

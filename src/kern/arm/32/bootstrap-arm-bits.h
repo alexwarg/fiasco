@@ -208,7 +208,7 @@ inline void enable_paging(Mword pdir)
 
 #endif // CONFIG_CPU_VIRT
 
-inline Phys_addr init_paging(Address)
+inline Phys_addr init_paging()
 {
   void *page_dir = kern_to_boot(bs_info.pi.kernel_page_directory);
   Phys_addr *const lpae = reinterpret_cast<Phys_addr*>(kern_to_boot(bs_info.pi.kernel_lpae_dir));
@@ -248,7 +248,7 @@ inline void enable_paging(Mword pdir)
 
 #if !defined (CONFIG_ARM_V7) && !defined(CONFIG_ARM_V8) && !defined(CONFIG_ARM_MPCORE)
 
-inline Phys_addr init_paging(Address)
+inline Phys_addr init_paging()
 {
   create_initial_mappings();
   return Phys_addr(reinterpret_cast<Mword>(kern_to_boot(bs_info.pi.kernel_page_directory)));
@@ -256,7 +256,7 @@ inline Phys_addr init_paging(Address)
 
 #else
 
-inline Phys_addr init_paging(Address)
+inline Phys_addr init_paging()
 {
   asm volatile ("mcr p15, 0, %0, c10, c2, 0" : : "r"(Page::Mair0_prrr_bits));
   asm volatile ("mcr p15, 0, %0, c10, c2, 1" : : "r"(Page::Mair1_nmrr_bits));

@@ -9,11 +9,6 @@
 
 class Mem_layout_arch : public Mem_layout_arm_bits, public Mem_layout_arm_bsp
 {
-public:
-  enum Phys_layout : Address {
-    Sdram_phys_base = RAM_PHYS_BASE,
-  };
-
 private:
   // At least two entries are expected: the kernel image and the heap. If the
   // RAM is not contiguous there might be more than one heap region needed,
