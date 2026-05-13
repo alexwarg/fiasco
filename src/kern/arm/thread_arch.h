@@ -38,27 +38,14 @@ private:
   Thread const *_this() const { return static_cast<Thread const *>(this); }
 
 public:
-#ifdef CONFIG_ARM_LPAE
   // this is here because it is used from JDB code
   static Mword
-  is_debug_exception(Mword error_code, bool just_native_type = false)
+  is_debug_exception(Mword error_code)
   {
-    if (just_native_type)
-      return ((error_code >> 26) & 0x3f) == 0x22;
-    return (error_code & 0xc000003f) == 0x80000022;
+    // ARM does never trap debug traps into JDB
+    (void) error_code;
+    return 0;
   }
-#else // CONFIG_ARM_LPAE
-  // this is here because it is used from JDB code
-  static Mword
-  is_debug_exception(Mword error_code, bool just_native_type = false)
-  {
-    if (just_native_type)
-      return (error_code & 0x4f) == 2;
-
-    // LPAE type as already converted
-    return (error_code & 0xc000003f) == 0x80000022;
-  }
-#endif // CONFIG_ARM_LPAE
 
 protected:
   void save_fpu_state_to_utcb(Trap_state *ts, Utcb *u)

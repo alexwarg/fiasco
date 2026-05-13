@@ -12,8 +12,28 @@
 
 #ifdef CONFIG_ARM_LPAE
 
+inline bool error_has_fsr(Mword /* error */)
+{
+  return false;
+}
+
+inline Mword map_fsr_user(Mword fsr)
+{ return fsr; }
+
+inline bool is_debug_exception(Mword fsr)
+{
+  return (fsr & 0x3f) == 0x22;
+}
+
+#else // CONFIG_ARM_LPAE
+
+inline bool error_has_fsr(Mword error)
+{
+  return (error & 0xc0000000) == 0x80000000;
+}
+
 inline Mword
-map_fsr_user(Mword fsr, bool is_only_pf)
+map_fsr_user(Mword fsr)
 {
   static Unsigned16 const pf_map[32] =
   {
@@ -51,24 +71,21 @@ map_fsr_user(Mword fsr, bool is_only_pf)
     /* 0x1f */ 0,
   };
 
-  if (is_only_pf || (fsr & 0xc0000000) == 0x80000000)
-    return pf_map[((fsr >> 10) & 1) | (fsr & 0xf)] | (fsr & ~0x43f);
-
-  return fsr;
+  return pf_map[((fsr >> 6) & 0x10) | (fsr & 0xf)] | (fsr & ~0x43f);
 }
 
-#else // CONFIG_ARM_LPAE
-
-inline Mword map_fsr_user(Mword fsr, bool)
-{ return fsr; }
+inline bool is_debug_exception(Mword fsr)
+{
+  return (fsr & 0x40f) == 0x2;
+}
 
 #endif // CONFIG_ARM_LPAE
 
 inline
 Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
 {
-  if (!IS_ENABLED(CONFIG_ARM_LPAE)
-      && EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
+  if (!IS_ENABLED(ARM_USE_ESR_TRAPS)
+      && EXPECT_FALSE(is_debug_exception(error_code)))
     return 0;
 
   Log::page_fault(pfa, error_code, pc);
@@ -78,7 +95,7 @@ Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
 
   Thread *t = current_thread();
   // TODO: Avoid calling Thread::map_fsr_user here everytime!
-  if (Thread_vcpu::vcpu_pagefault(t, pfa, map_fsr_user(error_code, true), pc))
+  if (Thread_vcpu::vcpu_pagefault(t, pfa, map_fsr_user(error_code), pc))
     return 1;
 
   if (Mem_layout::in_kernel(pfa))
@@ -92,7 +109,8 @@ Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
 
 void slowtrap_entry(Trap_state *ts)
 {
-  ts->error_code = map_fsr_user(ts->error_code, false);
+  if (error_has_fsr(ts->error_code))
+    ts->error_code = map_fsr_user(ts->error_code);
 
   if (0)
     printf("Trap: pfa=%08lx pc=%08lx err=%08lx psr=%lx\n", ts->pf_address, ts->pc, ts->error_code, ts->psr);
@@ -115,12 +133,6 @@ void slowtrap_entry(Trap_state *ts)
 
   if (check_and_handle_coproc_faults(t, ts))
     return;
-
-  if (Thread::is_debug_exception(ts->error_code))
-    {
-      call_nested_trap_handler(ts);
-      return;
-    }
 
   // send exception IPC if requested
   if (t->send_exception(ts))
@@ -234,8 +246,7 @@ Mword kern_pagefault_entry(Mword pfa, Mword error_code,
       return 0;
     }
 
-  if (!IS_ENABLED(CONFIG_ARM_LPAE)
-      && EXPECT_FALSE(Thread::is_debug_exception(error_code, true)))
+  if (EXPECT_FALSE(is_debug_exception(error_code)))
     return 0;
 
   Log::page_fault(pfa, error_code, pc);
