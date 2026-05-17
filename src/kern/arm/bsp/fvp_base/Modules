@@ -5,8 +5,9 @@ LIBUART_UART_FLAGS    += $(call LIBUART_UART, pl011)
 PREPROCESS_PARTS      += pic_gic arm_generic_timer generic_tickless_idle
 RAM_PHYS_BASE         := 0x80000000
 
+CXXSRC_KERNEL         += pfc-arm-fvp_base.cc
+
 mem_layout_IMPL       += mem_layout-arm-fvp_base
 pic_IMPL              += pic-gic pic-arm-fvp_base
 reset_IMPL            += reset-arm-fvp_base
 clock_IMPL            += clock-generic
-platform_control_IMPL += platform_control-arm-fvp_base

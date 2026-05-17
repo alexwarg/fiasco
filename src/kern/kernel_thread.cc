@@ -22,12 +22,6 @@
  */
 [[gnu::weak]] void init_unittest();
 
-#ifndef CONFIG_MP
-void
-Kernel_thread::boot_app_cpus()
-{}
-#endif
-
 #ifdef CONFIG_JDB
 
 #include <koptions.h>

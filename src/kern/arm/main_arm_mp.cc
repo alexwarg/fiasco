@@ -10,7 +10,7 @@
 #include "per_cpu_data_alloc.h"
 #include "perf_cnt.h"
 #include "pic.h"
-#include "platform_control.h"
+#include <pfc.h>
 #include "spin_lock.h"
 #include <timer.h>
 #include <arm_ipis.h>
@@ -47,7 +47,7 @@ int boot_ap_cpu()
   Cpu::cpus.cpu(_cpu).init(!cpu_is_new, false);
   Pic::init_ap(_cpu, !cpu_is_new);
   Arm_ipis::init_per_cpu(_cpu, !cpu_is_new);
-  Platform_control::init(_cpu);
+  Pfc::get()->init(_cpu);
   Ipi::init(_cpu);
   Timer::init(_cpu);
   System_clock::check_ap_cpu(_cpu);

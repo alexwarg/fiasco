@@ -8,10 +8,9 @@ OBJECTS_LIBUART			+= uart_16550.o
 LIBUART_UART_FLAGS		+= $(call LIBUART_UART, 16550)
 
 INTERFACES_KERNEL		+= mips_bsp_irqs
-CXXSRC_KERNEL      += gic.cc
+CXXSRC_KERNEL      += gic.cc pfc-mips-malta.cc
 
 mips_bsp_irqs_IMPL	:= mips_bsp_irqs-malta
 clock_IMPL		+= clock-generic
 reset_IMPL		+= reset-mips-malta
-platform_control_IMPL	+= platform_control-mips-malta
 

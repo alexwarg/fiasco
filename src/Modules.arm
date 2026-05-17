@@ -159,7 +159,7 @@ CXXSRC_KERNEL += main_arm.cc \
 	nested_trap_handler.cc \
 	__main.cc \
 	kernel_thread-arm.cc \
-	kernel_thread-arm-$(BITS).cc \
+	pfc-arm.cc \
 	vmem_alloc-arm.cc \
 	startup-arm.cc
 
@@ -212,7 +212,6 @@ kmem_IMPL		:= kmem kmem-arm-$(BITS)
 kmem_alloc_IMPL		:= kmem_alloc kmem_alloc-arm
 perf_cnt_IMPL		:= perf_cnt perf_cnt-arm perf_cnt-arm-$(BITS)
 pic_IMPL		:= pic
-platform_control_IMPL   += platform_control-arm-psci
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 task_IMPL		:= task task-arm

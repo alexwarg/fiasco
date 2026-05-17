@@ -28,6 +28,7 @@ EXTENSION class Mem_layout
 public:
   enum Phys_layout_imx28 : Address {
     Timer_phys_base       = 0x80068000,
+    Watchdog_phys_base    = 0x80056000,
     Pic_phys_base         = 0x80000000,
   };
 };
@@ -130,6 +131,7 @@ public:
     Gic_dist_phys_base   = 0x38800000,
     Gic_redist_phys_base = 0x38880000,
     Gic_redist_size      = 0x000c0000,
+    /*dummy*/ Watchdog_phys_base   = ~0UL
   };
 };
 
@@ -142,5 +144,6 @@ public:
     Gic_dist_phys_base   = 0x51a00000,
     Gic_redist_phys_base = 0x51b00000,
     Gic_redist_size      = 0x00100000,
+    /*dummy*/ Watchdog_phys_base   = ~0UL
   };
 };

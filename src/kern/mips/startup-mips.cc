@@ -13,7 +13,7 @@
 #include <per_cpu_data.h>
 #include <per_cpu_data_alloc.h>
 #include <perf_cnt.h>
-#include <platform_control.h>
+#include <pfc.h>
 #include <mips_cpu_irqs.h>
 #include <mips_bsp_irqs.h>
 #include <static_init.h>
@@ -70,7 +70,6 @@ static void stage2()
 
   Kip::k()->frequency_cpu = boot_cpu_o.frequency() / 1000;
 
-  Platform_control::init(boot_cpu);
   Fpu::init(boot_cpu, false);
   Ipi::init(boot_cpu);
   //Thread_ipi::init(boot_cpu);

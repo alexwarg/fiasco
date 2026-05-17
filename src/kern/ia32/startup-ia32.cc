@@ -24,7 +24,7 @@
 #include <per_cpu_data.h>
 #include <per_cpu_data_alloc.h>
 #include <pic.h>
-#include <platform_control.h>
+#include <pfc.h>
 #include <static_init.h>
 #include <std_macros.h>
 #include <thread.h>
@@ -130,7 +130,6 @@ static void stage2()
   Kernel_uart::pm_register();
   Idt::set_vectors_run();
   Apic::check_still_getting_interrupts();
-  Platform_control::init(Cpu_number::boot_cpu());
 //  Cpu::init_global_features();
 }
 

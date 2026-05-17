@@ -1,13 +1,15 @@
+#pragma once
 
-#include <kernel_thread.h>
-#include <globalconfig.h>
+#include <paging-page.h>
+#include <kmem.h>
+#include <mem_unit.h>
+#include <cpu.h>
+#include <config.h>
+#include <processor.h>
+#include <kernel_task.h>
+
 #include <pre_parts.h>
-
-#ifdef CONFIG_MP
-
-#include <io.h>
-#include <platform_control.h>
-#include <paging.h>
+#include <globalconfig.h>
 
 struct Mp_boot_info
 {
@@ -37,12 +39,9 @@ inline void boot_app_cpu_gic(Mp_boot_info volatile *inf)
 
 #endif // GIC
 
-void
-Kernel_thread::boot_app_cpus()
+inline Address
+tramp_mp_prepare()
 {
-  if (Config::Max_num_cpus <= 1)
-    return;
-
   extern char _tramp_mp_entry[];
   extern char _tramp_mp_boot_info[];
   Mp_boot_info volatile *_tmp;
@@ -60,7 +59,6 @@ Kernel_thread::boot_app_cpus()
   asm volatile ("dsb sy" : : : "memory");
   Mem_unit::clean_dcache();
 
-  Platform_control::boot_ap_cpus(Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry));
+  return Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry);
 }
 
-#endif // CONFIG_MP

@@ -105,6 +105,7 @@ CXXSRC_KERNEL-$(CONFIG_IOMMU) += intel_dmar.cc
 CXXSRC_KERNEL-$(CONFIG_IA32_PCID) += mem_space-pcid.cc
 CXXSRC_KERNEL += $(if $(CONFIG_NO_LDT),,space-arch-ldt.cc)
 CXXSRC_KERNEL              += \
+	pfc-ia32.cc pfc-reboot.cc \
 	main_ia32_32.cc main_ia32.cc \
 	kernel_thread-ia32.cc \
 	syscalls-ia32.cc \
@@ -152,7 +153,6 @@ mem_space_IMPL		:= mem_space mem_space-ia32
 mem_unit_IMPL		:= mem_unit-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
 pic_IMPL		:= pic pic-i8259
-platform_control_IMPL	+= platform_control-acpi_sleep platform_control-ia32
 pmem_alloc_IMPL		:= pmem_alloc pmem_alloc-ia32
 rtc_IMPL		:= rtc-ia32
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \

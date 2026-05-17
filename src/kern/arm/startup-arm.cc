@@ -11,7 +11,6 @@
 #include <per_cpu_data.h>
 #include <per_cpu_data_alloc.h>
 #include <pic.h>
-#include <platform_control.h>
 #include <psci.h>
 #include <processor.h>
 #include <static_init.h>
@@ -72,8 +71,6 @@ static void stage2()
   Pic::init();
   Arm_ipis::init_per_cpu(boot_cpu, false);
 
-  Platform_control::init(boot_cpu);
-  Psci::init(boot_cpu);
   Fpu::init(boot_cpu, false);
   Ipi::init(boot_cpu);
   Timer::init(boot_cpu);

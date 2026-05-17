@@ -4,19 +4,7 @@
 
 #include <globalconfig.h>
 
-#ifdef CONFIG_MP
-
-#include <platform_control.h>
-
-void
-Kernel_thread::boot_app_cpus()
-{
-  if (Config::Max_num_cpus <= 1)
-    return;
-
-  Platform_control::boot_all_secondary_cpus();
-}
-#endif
+#include <pfc.h>
 
 #if 0
 IMPLEMENT inline
@@ -35,5 +23,10 @@ FIASCO_INIT
 void
 Kernel_thread::bootstrap_arch()
 {
-  boot_app_cpus();
+#ifdef CONFIG_MP
+  if (Config::Max_num_cpus <= 1)
+    return;
+
+  Pfc::get()->boot_ap_cpus();
+#endif
 }

@@ -11,10 +11,10 @@ OBJECTS_LIBUART         += uart_16550.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 
 CXXSRC_KERNEL-$(CONFIG_PF_TEGRA_TIMER_TMR) += timer_tegra_tmr.cc
+CXXSRC_KERNEL         += pfc-arm-tegra.cc
 
 mem_layout_IMPL       += mem_layout-arm-tegra
 pic_IMPL              += pic-gic pic-arm-tegra
 reset_IMPL            += reset-arm-tegra
 clock_IMPL            += clock-generic
-platform_control_IMPL += platform_control-arm-tegra
 outer_cache_IMPL      += outer_cache-arm-tegra

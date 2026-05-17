@@ -141,7 +141,7 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vz.cc
 CXXSRC_KERNEL-$(CONFIG_JDB) += traps.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += ipi_handler.cc
-CXXSRC_KERNEL += timer.cc
+CXXSRC_KERNEL += timer.cc pfc-mips.cc
 
 #missing: jdb_extensions
 
@@ -164,7 +164,6 @@ mem_unit_IMPL		:= mem_unit-mips
 mem_space_IMPL		:= mem_space mem_space-mips
 obj_space_IMPL		:= obj_space obj_space-phys
 perf_cnt_IMPL		:= perf_cnt perf_cnt-mips
-platform_control_IMPL	+= platform_control-mips
 cm_IMPL			:= cm
 cpc_IMPL		:= cpc
 pic_IMPL		:= pic

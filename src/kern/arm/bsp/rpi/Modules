@@ -26,6 +26,7 @@ INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPIZW) += irq_handler
 INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPI4)  += $(if $(CONFIG_BIT64),,arm_control)
 
 CXXSRC_KERNEL += $(if $(CONFIG_PF_RPI_RPI1)$(CONFIG_PF_RPI_RPIZW), timer_arm_rpi.cc)
+CXXSRC_KERNEL += pfc-arm-rpi.cc
 
 arm_control_IMPL      += arm_control-arm-rpi
 mem_layout_IMPL       += mem_layout-arm-rpi
@@ -34,5 +35,4 @@ pic_IMPL              += $(if $(CONFIG_ARM_GIC),pic-gic)
 reset_IMPL            += reset-arm-rpi
 clock_IMPL            += clock-generic
 ipi_IMPL              += ipi-arm-rpi
-platform_control_IMPL += platform_control-arm-rpi
 irq_handler_IMPL       = irq_handler-arm-rpi

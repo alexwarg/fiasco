@@ -26,8 +26,6 @@ public:
     return _cpu_state.kernel_sp;
   }
 
-  static void boot_app_cpus();
-
   static Cpu_idle_iface *idle;
 private:
   /**

@@ -3,11 +3,8 @@
 #include <cstdio>
 
 void
-Psci::init(Cpu_number cpu)
+Psci::init()
 {
-  if (cpu != Cpu_number::boot_cpu())
-    return;
-
   printf("Detecting PSCI ...\n");
   Result r = psci_call(Psci_version);
   printf("Detected PSCI v%ld.%ld\n", r.res[0] >> 16, r.res[0] & 0xffff);

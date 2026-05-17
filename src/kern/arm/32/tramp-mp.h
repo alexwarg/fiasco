@@ -1,19 +1,15 @@
-#include <kernel_thread.h>
-#include <globalconfig.h>
+#pragma once
 
-#ifdef CONFIG_MP
-
-#include <io.h>
-#include <platform_control.h>
+#include <paging-page.h>
+#include <kmem.h>
+#include <mem_unit.h>
 #include <outer_cache.h>
-#include <paging.h>
+#include <cpu.h>
+#include <config.h>
 
-void
-Kernel_thread::boot_app_cpus()
+inline Address
+tramp_mp_prepare()
 {
-  if (Config::Max_num_cpus <= 1)
-    return;
-
   extern char _tramp_mp_entry[];
   extern volatile Mword _tramp_mp_startup_cp15_c1;
   extern volatile Mword _tramp_mp_startup_pdbr;
@@ -40,6 +36,5 @@ Kernel_thread::boot_app_cpus()
   Outer_cache::clean(Kmem::kdir->virt_to_phys((Address)&_tramp_mp_startup_mair0));
   Outer_cache::clean(Kmem::kdir->virt_to_phys((Address)&_tramp_mp_startup_mair1));
 
-  Platform_control::boot_ap_cpus(Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry));
+  return Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry);
 }
-#endif

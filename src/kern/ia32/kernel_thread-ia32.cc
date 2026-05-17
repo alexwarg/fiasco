@@ -8,6 +8,7 @@
 #include <koptions.h>
 #include <mem_layout.h>
 #include <pic.h>
+#include <pfc.h>
 #include <trap_state.h>
 #include <watchdog.h>
 
@@ -100,45 +101,6 @@ static void populate_cpu_id_map()
     }
 }
 
-void
-Kernel_thread::boot_app_cpus()
-{
-  // where to start the APs for detection of the APIC-IDs
-  extern char _tramp_mp_entry[];
-
-  // feature enabling flags (esp. cache enabled flag and paging enabled flag)
-  extern volatile Mword _tramp_mp_startup_cr0;
-
-  // feature enabling flags (esp. needed for big pages)
-  extern volatile Mword _tramp_mp_startup_cr4;
-
-  // physical address of the page table directory to use
-  extern volatile Address _realmode_startup_pdbr;
-
-  // pseudo descriptor for the gdt to load
-  extern Pseudo_descriptor _tramp_mp_startup_gdt_pdesc;
-
-  Address tramp_page;
-
-  _realmode_startup_pdbr = Kmem::get_realmode_startup_pdbr();
-
-  _tramp_mp_startup_cr4 = Cpu::get_cr4();
-  _tramp_mp_startup_cr0 = Cpu::get_cr0();
-  _tramp_mp_startup_gdt_pdesc
-    = Pseudo_descriptor((Address)Cpu::boot_cpu()->get_gdt(), Gdt::gdt_max -1);
-
-  __asm__ __volatile__ ("" : : : "memory");
-
-  // Say what we do
-  printf("MP: detecting APs...\n");
-
-  // broadcast an AP startup via the APIC (let run the self-registration code)
-  tramp_page = (Address)&(_tramp_mp_entry[0]);
-
-  // Send IPI-Sequency to startup the APs
-  Apic::mp_startup(Cpu::boot_cpu(), Apic::APIC_IPI_OTHERS, tramp_page);
-}
-
 #else
 inline void populate_cpu_id_map()
 {}
@@ -165,5 +127,5 @@ Kernel_thread::bootstrap_arch()
     panic("option -irq0 not possible since irq 0 is used for scheduling");
 
   populate_cpu_id_map();
-  boot_app_cpus();
+  Pfc::get()->boot_ap_cpus();
 }

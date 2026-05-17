@@ -11,7 +11,7 @@
 #include "kernel_console.h"
 #include "koptions.h"
 #include "pic.h"
-#include "platform_control.h"
+#include <pfc.h>
 #include "processor.h"
 #include "reset.h"
 #include "timer_tick.h"
@@ -24,7 +24,7 @@ extern "C" void __attribute__ ((noreturn))
 _exit(int)
 {
   if (exit_question_active)
-    Platform_control::system_reboot();
+    Pfc::get()->system_reboot();
 
   while (1)
     {

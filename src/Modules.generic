@@ -25,11 +25,11 @@ INTERFACES_KERNEL	:= \
 			   mem_unit \
 			   cpu               \
                            platform_control_object          \
-			   platform_control          \
 			   perf_cnt   \
 
 CXXSRC_KERNEL += \
 	banner.cc \
+	pfc.cc \
 	boot_alloc.cc \
 	config.cc \
 	config_arch.cc \

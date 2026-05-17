@@ -49,6 +49,7 @@ CXXSRC_KERNEL-$(CONFIG_ARM_MPTIMER) += timer_arm_imx6_mptimer.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_IMX_TIMER_EPIT) += timer_arm_imx_epit.cc
 CXXSRC_KERNEL-$(CONFIG_PF_IMX_21) += timer_arm_imx21.cc
 CXXSRC_KERNEL-$(CONFIG_PF_IMX_28) += timer_arm_imx_timrot.cc
+CXXSRC_KERNEL                     += pfc-arm-imx.cc
 
 mem_layout_IMPL       += mem_layout-arm-imx
 pic_IMPL              += $(if $(CONFIG_PF_IMX_21),pic-arm-imx)
@@ -63,4 +64,3 @@ pic_IMPL              += $(if $(CONFIG_ARM_V8),pic-gic pic-arm-imx-gic)
 reset_IMPL            += reset-arm-imx
 outer_cache_IMPL      += outer_cache-arm-imx6
 clock_IMPL            += clock-generic
-platform_control_IMPL += platform_control-arm-imx

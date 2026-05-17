@@ -15,7 +15,7 @@
 #include "processor.h"
 #include "per_cpu_data_alloc.h"
 #include "perf_cnt.h"
-#include "platform_control.h"
+#include <pfc.h>
 #include "spin_lock.h"
 #include "idt.h"
 #include "koptions.h"
@@ -96,7 +96,7 @@ int FIASCO_FASTCALL boot_ap_cpu()
   System_clock::check_ap_cpu(_cpu);
 
   if (cpu_is_new)
-    Platform_control::init(_cpu);
+    Pfc::get()->init(_cpu);
 
   if (Koptions::o()->opt(Koptions::F_loadcnt))
     Perf_cnt::init_ap();

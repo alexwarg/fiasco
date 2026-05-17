@@ -1,13 +1,13 @@
 IMPLEMENTATION:
 
 #include "kobject_helper.h"
-#include "platform_control.h"
+#include <pfc.h>
 #include "irq_controller.h"
 #include "reset.h"
 
 namespace {
 
-class Pfc : public Kobject_h<Pfc, Icu>
+class Pfc_obj : public Kobject_h<Pfc_obj, Icu>
 {
   enum class Op
   {
@@ -20,19 +20,15 @@ class Pfc : public Kobject_h<Pfc, Icu>
   L4_msg_tag sys_cpu_allow_shutdown(L4_fpage::Rights, Syscall_frame *f,
                                     Utcb const *utcb)
   {
-    // silently ignore it if we have no support for it
-    if (!Platform_control::cpu_shutdown_available())
-      return commit_result(0);
-
     if (f->tag().words() < 3)
       return commit_result(-L4_err::EInval);
 
-    Cpu_number cpu = Cpu_number(utcb->values[1]);
+    Cpu_number cpu = Cpu_number(access_once(utcb->values + 1));
 
     if (cpu >= Cpu::invalid() || !Per_cpu_data::valid(cpu))
       return commit_result(-L4_err::EInval);
 
-    return commit_result(Platform_control::cpu_allow_shutdown(cpu, utcb->values[2]));
+    return commit_result(Pfc::get()->cpu_allow_shutdown(cpu, access_once(utcb->values + 2)));
   }
 
   L4_msg_tag
@@ -42,7 +38,7 @@ class Pfc : public Kobject_h<Pfc, Icu>
     if (f->tag().words() >= 2)
       extra = msg->values[1];
 
-    return commit_result(Platform_control::system_suspend(extra));
+    return commit_result(Pfc::get()->system_suspend(extra));
   }
 
   L4_msg_tag
@@ -52,10 +48,10 @@ class Pfc : public Kobject_h<Pfc, Icu>
       return commit_result(-L4_err::EInval);
 
     if (msg->values[1] == 1) // reboot?
-      Platform_control::system_reboot();
+      Pfc::get()->system_reboot();
 
     if (msg->values[1] == 0) // shutdown
-      Platform_control::system_off();
+      Pfc::get()->system_off();
 
     // There's no generic in-kernel way for system power-off
     return commit_result(-L4_err::ENosys);
@@ -68,10 +64,10 @@ class Pfc : public Kobject_h<Pfc, Icu>
       return commit_result(-L4_err::EInval);
 
     Mword phys_id = msg->values[1];
-    return commit_result(Platform_control::arch_cpu_hotplug(Cpu_phys_id(phys_id)));
+    return commit_result(Pfc::get()->hotplug_cpu(Cpu_phys_id(phys_id)));
   }
 
-  static Pfc pfc;
+  static Pfc_obj pfc;
 
 public:
   L4_msg_tag kinvoke(L4_obj_ref ref, L4_fpage::Rights rights, Syscall_frame *f,
@@ -97,8 +93,8 @@ public:
 
 };
 
-JDB_DEFINE_TYPENAME(Pfc, "Icu/Pfc");
+JDB_DEFINE_TYPENAME(Pfc_obj, "Icu/Pfc");
 
-Pfc Pfc::pfc;
+Pfc_obj Pfc_obj::pfc;
 
 }

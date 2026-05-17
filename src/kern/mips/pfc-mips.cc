@@ -1,52 +1,26 @@
-INTERFACE:
 
-#include "types.h"
+#include <pfc-mips.h>
 
-EXTENSION class Platform_control
-{
-public:
-  static void boot_all_secondary_cpus();
-};
+#include <kmem_alloc.h>
+#include <cm.h>
+#include <mem_unit.h>
+#include <globalconfig.h>
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [!mp]:
-
-IMPLEMENT_DEFAULT inline
-void
-Platform_control::boot_all_secondary_cpus()
-{}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [mp]:
-
-#include <cstdio>
 #include <cstring>
+#include <cstdio>
 
-#include "cm.h"
-#include "kmem_alloc.h"
-#include "mem_unit.h"
-
+#ifdef CONFIG_MP
 static void *_bev;
 
-IMPLEMENT_DEFAULT inline
-void
-Platform_control::boot_all_secondary_cpus()
-{
-  boot_all_secondary_cpus_cm();
-}
-
-PRIVATE static inline NOEXPORT
-Unsigned32 *
-Platform_control::copy_code(Unsigned32 *dst, void const *s, void const *e)
+static inline
+Unsigned32 *copy_code(Unsigned32 *dst, void const *s, void const *e)
 {
   unsigned long sz = (char const *)e - (char const *)s;
   memcpy(dst, s, sz);
   return dst + (sz / 4);
 }
 
-PRIVATE
-static void *
-Platform_control::alloc_secondary_boot_code()
+static void *alloc_secondary_boot_code()
 {
   if (_bev)
     return _bev;
@@ -112,11 +86,12 @@ Platform_control::alloc_secondary_boot_code()
 #undef COPY_MP_INIT
   return _bev;
 }
+#endif
 
-PRIVATE
-static void
-Platform_control::boot_all_secondary_cpus_cm()
+void
+Pfc_mips::boot_ap_cpus()
 {
+#ifdef CONFIG_MP
   if (!Cm::present())
     return;
 
@@ -129,5 +104,6 @@ Platform_control::boot_all_secondary_cpus_cm()
 
   Address e = Mem_layout::pmem_to_phys(bev) | Mem_layout::KSEG1;
   Cm::cm->start_all_vps(e);
+#endif
 }
 

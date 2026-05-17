@@ -6,8 +6,8 @@ PREPROCESS_PARTS      += generic_tickless_idle \
                          arm_generic_timer pic_gic psci
 RAM_PHYS_BASE         := 0x80000000
 
+CXXSRC_KERNEL         += pfc-arm-ls1046.cc
 mem_layout_IMPL       += mem_layout-arm-ls1046
 pic_IMPL              += pic-gic pic-arm-ls1046
 reset_IMPL            += reset-arm-ls1046
 clock_IMPL            += clock-generic
-platform_control_IMPL += platform_control-arm-ls1046

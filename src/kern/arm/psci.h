@@ -9,13 +9,14 @@
 #endif
 #ifdef CONFIG_ARM_PSCI_HVC
 #define FIASCO_ARM_PSCI_CALL_ASM_FUNC "hvc #0"
+#else
+#define FIASCO_ARM_PSCI_CALL_ASM_FUNC "smc #0"
 #endif
 
 class Psci
 {
-#ifdef CONFIG_ARM_PSCI
 public:
-  static void init(Cpu_number cpu);
+  static void init();
 
   struct Result
   {
@@ -107,11 +108,5 @@ public:
   static int cpu_on(unsigned long target, Address phys_tramp_mp_addr);
   static void system_reset();
   static void system_off();
-
-#else // CONFIG_ARM_PSCI
-public:
-  static void init(Cpu_number)
-  {}
-#endif // CONFIG_ARM_PSCI
 };
 
