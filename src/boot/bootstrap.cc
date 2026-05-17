@@ -20,7 +20,6 @@
 #include "mem_region.h"
 #include "panic.h"
 #include "processor.h"
-#include "reset.h"
 #include "mem_unit.h"
 
 struct check_sum

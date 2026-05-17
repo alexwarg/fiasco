@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include "helping_lock.h"
 #include "kernel_console.h"
-#include "reset.h"
+#include <pfc.h>
 
 /**
  * The exit handler as long as exit_question() is not installed.
@@ -20,7 +20,7 @@ raw_exit()
   Kconsole::console()->getchar();
   puts("\033[1mRebooting.\033[m");
   //  Cpu::busy_wait_ns(10000000);
-  platform_reset();
+  Pfc::get()->system_reboot();
 }
 
 

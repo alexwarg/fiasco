@@ -3,7 +3,6 @@ IMPLEMENTATION:
 #include "kobject_helper.h"
 #include <pfc.h>
 #include "irq_controller.h"
-#include "reset.h"
 
 namespace {
 

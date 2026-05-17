@@ -64,7 +64,7 @@ PRIVATE_INCDIR += lib/uart
 DRIVERS			:= libdrivers.a libgluedriverslibc.a
 VPATH			+= drivers/mips/$(BITS) drivers/mips drivers
 PRIVATE_INCDIR		+= drivers/mips/$(BITS) drivers/mips drivers
-INTERFACES_DRIVERS	:= mem reset \
+INTERFACES_DRIVERS	:= mem \
 			   processor mmu
 mem_IMPL		:= mem mem-mips
 processor_IMPL		:= processor processor-mips

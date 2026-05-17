@@ -1,10 +1,13 @@
 #pragma once
 
 #include <pfc.h>
+#include <infinite_loop.h>
+
 #include <globalconfig.h>
 
 #ifdef CONFIG_MP
 #include <apic.h>
+#include <kmem.h>
 #endif
 
 class Pfc_ia32 : public virtual Pfc
@@ -86,5 +89,13 @@ public:
     return -L4_err::ENodev;
 #endif
   }
+
+  [[noreturn]] void system_off() override
+  {
+    this->system_reboot();
+    L4::infinite_loop();
+  }
+
+  [[noreturn]] void system_reboot() override;
 
 };

@@ -13,7 +13,6 @@
 #include "pic.h"
 #include <pfc.h>
 #include "processor.h"
-#include "reset.h"
 #include "timer_tick.h"
 #include "terminate.h"
 

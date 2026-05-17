@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "kernel_console.h"
 #include "processor.h"
-#include "reset.h"
+#include <pfc.h>
 #include "trap_state.h"
 #include "tss.h"
 #include "watchdog.h"
@@ -88,7 +88,7 @@ void handle_double_fault()
     }
 
   puts("\033[1mRebooting...\033[0m");
-  platform_reset();
+  Pfc::get()->system_reboot();
 }
 
 }

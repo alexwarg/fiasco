@@ -15,7 +15,7 @@
 #include "kernel_thread.h"
 #include "kernel_task.h"
 #include "kernel_console.h"
-#include "reset.h"
+#include <pfc.h>
 #include "space.h"
 #include "terminate.h"
 
@@ -26,8 +26,8 @@ static int exit_question_active = 0;
 extern "C" void __attribute__ ((noreturn))
 _exit(int)
 {
-  if (exit_question_active)
-    platform_reset();
+  if (exit_question_active && Pfc::get())
+    Pfc::get()->system_reboot();
 
   while (1)
     {
@@ -58,7 +58,7 @@ static void exit_question()
 	  // problems.
 	  // SO just do the reset at this point.
 	  puts("\033[1mRebooting...\033[0m");
-	  platform_reset();
+          Pfc::get()->system_reboot();
 	  break;
 	}
     }
