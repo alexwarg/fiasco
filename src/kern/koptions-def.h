@@ -77,6 +77,8 @@ namespace L4_kernel_options
     Unsigned32  tbuf_entries;
     Unsigned32  out_buf;
 
+    Unsigned64  core_spin_addr;
+
     Unsigned32  opt(Flags flag) const { return flags & flag; }
 
   } __attribute__((packed));
