@@ -91,7 +91,6 @@ INTERFACES_KERNEL	+= \
 			   irq_chip_ia32 irq_chip_pic \
 			   io_apic \
 			   boot_console syscall_entry \
-			   dirq \
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += dmar_space
 
@@ -111,6 +110,7 @@ CXXSRC_KERNEL              += \
 	thread_ia32_64.cc \
 	thread_ia32.cc \
 	apic.cc \
+	dirq-ia32.cc \
 	timer_irq.cc \
 	traps.cc \
 	idt.cc \

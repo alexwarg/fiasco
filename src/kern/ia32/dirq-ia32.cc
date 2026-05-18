@@ -1,8 +1,3 @@
-INTERFACE[ia32,amd64]:
-#include <std_macros.h>
-#include <types.h>
-
-IMPLEMENTATION[ia32,amd64]:
 
 #include <cassert>
 
@@ -26,6 +21,9 @@ static inline void irq_spinners(int irqnum)
   (void)irqnum;
 #endif
 }
+
+extern "C" FIASCO_FASTCALL
+void irq_interrupt(Mword irqobj, Mword ip);
 
 /** Hardware interrupt entry point.  Calls corresponding Dirq instance's
     Dirq::hit() method.
