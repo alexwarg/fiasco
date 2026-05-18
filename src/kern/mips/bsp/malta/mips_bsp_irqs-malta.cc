@@ -1,22 +1,18 @@
-INTERFACE:
+#include <mips_bsp_irqs.h>
 
-#include "types.h"
+#include <cm.h>
+#include <i8259.h>
+#include <gic.h>
+#include <kmem.h>
+#include <irq_mgr_flex.h>
+#include <gt64120.h>
+#include <boot_alloc.h>
+#include <assert.h>
+#include <cascade_irq.h>
+#include <mips_cpu_irqs.h>
+#include <mem_layout.h>
 
-class Mips_bsp_irqs {};
-
-IMPLEMENTATION:
-
-#include "cm.h"
-#include "i8259.h"
-#include "gic.h"
-#include "kmem.h"
-#include "irq_mgr_flex.h"
-#include "gt64120.h"
-#include "boot_alloc.h"
-#include "assert.h"
-#include "cascade_irq.h"
-#include "mips_cpu_irqs.h"
-#include "mem_layout.h"
+namespace {
 
 struct Mmio_io_adapter
 {
@@ -55,7 +51,8 @@ static void gic_hit(Irq_base *_self, Upstream_irq const *u)
     i->handle_irq<Gic>(irq, &ui);
 }
 
-PUBLIC static
+} // namespace
+
 void
 Mips_bsp_irqs::init(Cpu_number cpu)
 {
@@ -100,7 +97,6 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   m->print_infos();
 }
 
-PUBLIC static
 void
 Mips_bsp_irqs::init_ap(Cpu_number)
 {

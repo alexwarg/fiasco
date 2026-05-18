@@ -7,11 +7,6 @@ PREPROCESS_PARTS		+= $(PREPROCESS_PARTS-y)
 OBJECTS_LIBUART			+= uart_16550.o uart_16550_dw.o
 LIBUART_UART_FLAGS		+= $(call LIBUART_UART, 16550_dw)
 
-INTERFACES_KERNEL		+= \
-				   mips_bsp_irqs
+CXXSRC_KERNEL += pfc-mips-ci20.cc mips_bsp_irqs-ci20.cc
 
-CXXSRC_KERNEL += pfc-mips-ci20.cc
-
-mips_bsp_irqs_IMPL	:= mips_bsp_irqs-ci20
 clock_IMPL		+= clock-generic
-reset_IMPL              += reset-mips-ci20

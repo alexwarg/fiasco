@@ -1,17 +1,12 @@
-INTERFACE:
 
-#include "types.h"
+#include <mips_bsp_irqs.h>
 
-class Mips_bsp_irqs {};
-
-IMPLEMENTATION:
-
-#include "assert.h"
-#include "irq_ingenic.h"
-#include "irq_mgr_flex.h"
-#include "boot_alloc.h"
-#include "cascade_irq.h"
-#include "mips_cpu_irqs.h"
+#include <assert.h>
+#include <irq_ingenic.h>
+#include <irq_mgr_flex.h>
+#include <boot_alloc.h>
+#include <cascade_irq.h>
+#include <mips_cpu_irqs.h>
 
 static Irq_chip_ingenic *_ic[2];
 
@@ -24,7 +19,6 @@ static void ingenic_cascade(Irq_base *_self, Upstream_irq const *u)
       return;
 }
 
-PUBLIC static
 void
 Mips_bsp_irqs::init(Cpu_number cpu)
 {
@@ -46,7 +40,6 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   m->print_infos();
 }
 
-PUBLIC static
 void
 Mips_bsp_irqs::init_ap(Cpu_number)
 {}

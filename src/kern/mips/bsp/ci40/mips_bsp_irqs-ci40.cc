@@ -1,19 +1,14 @@
-INTERFACE:
 
-#include "types.h"
+#include <mips_bsp_irqs.h>
 
-class Mips_bsp_irqs {};
-
-IMPLEMENTATION:
-
-#include "irq_mgr_flex.h"
-#include "boot_alloc.h"
-#include "assert.h"
-#include "cascade_irq.h"
-#include "mips_cpu_irqs.h"
-#include "gic.h"
-#include "kmem.h"
-#include "cm.h"
+#include <irq_mgr_flex.h>
+#include <boot_alloc.h>
+#include <assert.h>
+#include <cascade_irq.h>
+#include <mips_cpu_irqs.h>
+#include <gic.h>
+#include <kmem.h>
+#include <cm.h>
 
 static void gic_hit(Irq_base *_self, Upstream_irq const *u)
 {
@@ -26,7 +21,6 @@ static void gic_hit(Irq_base *_self, Upstream_irq const *u)
     i->handle_irq<Gic>(irq, &ui);
 }
 
-PUBLIC static
 void
 Mips_bsp_irqs::init(Cpu_number cpu)
 {
@@ -48,7 +42,6 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   m->print_infos();
 }
 
-PUBLIC static
 void
 Mips_bsp_irqs::init_ap(Cpu_number)
 {
