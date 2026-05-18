@@ -89,7 +89,7 @@ PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 
 INTERFACES_KERNEL	+= \
 			   io_apic \
-			   boot_console syscall_entry \
+			   boot_console \
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += dmar_space
 
