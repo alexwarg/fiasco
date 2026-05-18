@@ -3,7 +3,7 @@
 #include <types.h>
 #include <config.h>
 #include <irq_chip.h>
-#include <rtc.h>
+#include <rtc-ia32.h>
 
 class Timer_rtc
 {

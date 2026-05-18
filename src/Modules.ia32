@@ -152,7 +152,6 @@ mem_unit_IMPL		:= mem_unit-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
 pic_IMPL		:= pic pic-i8259
 pmem_alloc_IMPL		:= pmem_alloc pmem_alloc-ia32
-rtc_IMPL		:= rtc-ia32
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context
 sigma0_task_IMPL	:= sigma0_task sigma0_task-io
@@ -166,9 +165,6 @@ cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
 CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc timer_tick-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc timer_tick-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SCHED_RTC) += timer_rtc.cc timer_tick-ia32.cc
-ifeq ("$(CONFIG_SCHED_RTC)","y")
-  INTERFACES_KERNEL	+= rtc
-endif
 CXXSRC_KERNEL-$(CONFIG_SCHED_APIC) += timer_apic.cc timer_tick-apic.cc
 
 ifeq ("$(CONFIG_JDB)","y")

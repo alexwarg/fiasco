@@ -1,6 +1,6 @@
 
 #include <timer_rtc.h>
-#include <rtc.h>
+#include <rtc-ia32.h>
 #include <pit_i8254.h>
 
 #include <cstdio>
