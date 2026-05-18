@@ -1,98 +1,10 @@
-INTERFACE[amd64]:
-
-class Irq_base;
-
-/** this structure must exactly map to the code stubs from 64/entry.S */
-struct Irq_entry_stub
-{
-  char _res[3];
-  Irq_base *irq;
-  char _res2[5];
-} __attribute__((packed));
-
-INTERFACE[ia32]:
-
-class Irq_base;
-
-/** this structure must exactly map to the code stubs from 32/entry.S */
-struct Irq_entry_stub
-{
-  char _res[2];
-  Irq_base *irq;
-  char _res2[5];
-} __attribute__((packed));
-
-INTERFACE:
-
-#include "globals.h"
-#include "idt_init.h"
-#include "irq_chip.h"
-#include "boot_alloc.h"
-#include "spin_lock.h"
-#include "lock_guard.h"
-
-/**
- * Allocator for IA32 interrupt vectors in the IDT.
- *
- * Some vectors are fixed purpose, others can be dynamically
- * managed by this allocator to support MSIs and multiple IO-APICs.
- */
-class Int_vector_allocator
-{
-public:
-  enum
-  {
-    /// Start at vector 0x20, note: <0x10 is vorbidden here
-    Base = 0x20,
-
-    /// The Last vector + 1 that is managed
-    End  = APIC_IRQ_BASE - 0x08
-  };
-
-  bool empty() const { return !_first; }
-
-private:
-  /// array for free list
-  unsigned char _vectors[End - Base];
-
-  /// the first free vector
-  unsigned _first;
-
-  Spin_lock<> _lock;
-};
-
-/**
- * Generic IA32 IRQ chip class.
- *
- * Uses an array of Idt_entry_code objects to manage
- * the IRQ entry points and the Irq_base objects assigned to the
- * pins of a specific controller.
- */
-class Irq_chip_ia32
-{
-public:
-  /// Number of pins at this chip.
-  unsigned nr_irqs() const { return _irqs; }
-
-protected:
-  unsigned _irqs;
-  unsigned char *_vec;
-  Spin_lock<> _entry_lock;
-
-  static Int_vector_allocator _vectors;
-
-  unsigned char vector(Mword pin) const
-  { return _vec[pin]; }
-};
-
-
-IMPLEMENTATION:
+#include <irq_chip_ia32.h>
 
 #include <cassert>
-
-#include "cpu_lock.h"
-#include "idt.h"
-#include "mem.h"
+#include <cpu_lock.h>
+#include <idt.h>
+#include <mem.h>
+#include <irq_entry_stub.h>
 
 // The global INT vector allocator for IRQs uses these data
 Int_vector_allocator Irq_chip_ia32::_vectors;
@@ -103,7 +15,6 @@ Int_vector_allocator Irq_chip_ia32::_vectors;
  * \note This code is not thread / MP safe and assumed to be executed at boot
  * time.
  */
-PUBLIC
 void
 Int_vector_allocator::add_free(unsigned start, unsigned end)
 {
@@ -119,37 +30,9 @@ Int_vector_allocator::add_free(unsigned start, unsigned end)
   _first = start;
 }
 
-PUBLIC inline
-void
-Int_vector_allocator::free(unsigned v)
-{
-  assert (Base <= v && v < End);
-
-  auto g = lock_guard(_lock);
-  _vectors[v - Base] = _first;
-  _first = v;
-}
-
-PUBLIC inline
-unsigned
-Int_vector_allocator::alloc()
-{
-  if (!_first)
-    return 0;
-
-  auto g = lock_guard(_lock);
-  unsigned r = _first;
-  if (!r)
-    return 0;
-
-  _first = _vectors[r - Base];
-  return r;
-}
-
 /**
  * \note This code is not thread / MP safe.
  */
-PUBLIC explicit inline
 Irq_chip_ia32::Irq_chip_ia32(unsigned irqs)
 : _irqs(irqs),
   _vec(irqs ? (unsigned char *)Boot_alloced::alloc(irqs) : 0),
@@ -165,7 +48,6 @@ Irq_chip_ia32::Irq_chip_ia32(unsigned irqs)
 }
 
 
-PUBLIC
 Irq_base *
 Irq_chip_ia32::irq(Mword irqn) const
 {
@@ -198,7 +80,6 @@ Irq_chip_ia32::irq(Mword irqn) const
  * 5. Point IDT entry to the PIN's entry code
  * 6. Return the assigned vector number
  */
-PRIVATE
 unsigned
 Irq_chip_ia32::_valloc(Mword pin, unsigned vector)
 {
@@ -217,7 +98,6 @@ Irq_chip_ia32::_valloc(Mword pin, unsigned vector)
   return vector;
 }
 
-PRIVATE
 unsigned
 Irq_chip_ia32::_vsetup(Irq_base *irq, Mword pin, unsigned vector)
 {
@@ -236,24 +116,6 @@ Irq_chip_ia32::_vsetup(Irq_base *irq, Mword pin, unsigned vector)
 /**
  * \pre `irq->irqLock()` must be held
  */
-PROTECTED template<typename CHIP> inline
-unsigned
-Irq_chip_ia32::valloc(Irq_base *irq, Mword pin, unsigned vector, bool init)
-{
-  auto g = lock_guard(_entry_lock);
-  unsigned v = _valloc(pin, vector);
-  if (!v)
-    return 0;
-
-  static_cast<CHIP*>(this)->bind(irq, pin, !init);
-  _vsetup(irq, pin, v);
-  return v;
-}
-
-/**
- * \pre `irq->irqLock()` must be held
- */
-PROTECTED
 bool
 Irq_chip_ia32::vfree(Irq_base *irq, void *handler)
 {
@@ -271,7 +133,6 @@ Irq_chip_ia32::vfree(Irq_base *irq, void *handler)
 }
 
 
-PUBLIC
 bool
 Irq_chip_ia32::reserve(Mword irqn)
 {

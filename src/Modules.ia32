@@ -89,7 +89,6 @@ VPATH			+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 
 INTERFACES_KERNEL	+= \
-			   irq_chip_ia32 irq_chip_pic \
 			   io_apic \
 			   boot_console \
 
@@ -112,6 +111,8 @@ CXXSRC_KERNEL              += \
 	thread_ia32.cc \
 	apic.cc \
 	dirq-ia32.cc \
+	irq_chip_ia32.cc \
+	irq_chip_pic.cc \
 	timer_irq.cc \
 	traps.cc \
 	idt.cc \
