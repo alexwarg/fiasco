@@ -88,7 +88,6 @@ VPATH			+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 
 INTERFACES_KERNEL	+= \
-			   io_apic \
 			   boot_console \
 
 INTERFACES_KERNEL-$(CONFIG_IOMMU)    += dmar_space
@@ -119,6 +118,7 @@ CXXSRC_KERNEL              += \
 	entry_cc.cc \
 	doublefault.cc \
 	io_space.cc \
+	io_apic.cc \
 	io_apic_remapped.cc \
 	kmem_alloc-ia32.cc \
 	mem_space-ia32.cc \
