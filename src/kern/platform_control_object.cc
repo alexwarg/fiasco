@@ -1,8 +1,7 @@
-IMPLEMENTATION:
 
-#include "kobject_helper.h"
+#include <kobject_helper.h>
 #include <pfc.h>
-#include "irq_controller.h"
+#include <irq_controller.h>
 
 namespace {
 
