@@ -6,6 +6,9 @@
 #include <kmem.h>
 #include <gic_v2.h>
 #include <gic_v3.h>
+#include <vgic_v2.h>
+#include <vgic_v3.h>
+#include <vgic_global.h>
 #include <tramp-mp.h>
 #include <globalconfig.h>
 
@@ -31,8 +34,37 @@ namespace Pic_gic
     if (primary)
       tramp_mp_setup_gic_info(&inf, 2);
 
+    if (IS_ENABLED(CONFIG_CPU_VIRT) && primary)
+      {
+        if (!inf.cpu_h_size || !inf.cpu_v_size)
+          {
+            // no vGIC need to disable VM support (FIXME)
+            return -L4_err::ENodev;
+          }
+
+        Gic_h_global::gic =
+          new Boot_object<Gic_h_v2>(Kmem::mmio_remap(inf.cpu_h_phys, inf.cpu_h_size),
+                                    inf.cpu_v_phys);
+      }
+
     return 0;
   }
+
+  int create_gicv2(Irq_mgr_dyn *mgr, Gic_info const &inf)
+  {
+    if (inf.primary)
+      tramp_mp_setup_gic_info(nullptr, 0);
+
+    if (inf.dist_size < 0x1000)
+      {
+        printf("error: invalid GIC distributor mmio size (%lx)\n",
+               inf.dist_size);
+        return -L4_err::EInval;
+      }
+
+    Mmio_register_block dist(Kmem::mmio_remap(inf.dist_phys, inf.dist_size));
+    return add_gicv2(dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
+ }
 #endif
 
 #ifdef CONFIG_HAVE_ARM_GICV3
@@ -52,6 +84,9 @@ namespace Pic_gic
 
     if (primary)
       tramp_mp_setup_gic_info(&inf, 3);
+
+    if (IS_ENABLED(CONFIG_CPU_VIRT) && primary)
+      Gic_h_global::gic = new Boot_object<Gic_h_v3>();
 
     return 0;
   }
