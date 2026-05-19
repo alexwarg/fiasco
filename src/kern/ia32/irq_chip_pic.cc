@@ -8,7 +8,6 @@
 #include <globals.h>
 #include <irq_mgr.h>
 #include <koptions.h>
-#include <pic.h>
 
 bool
 Irq_chip_ia32_pic::alloc(Irq_base *irq, Mword irqn, bool init)

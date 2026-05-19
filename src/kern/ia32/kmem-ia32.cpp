@@ -89,7 +89,6 @@ IMPLEMENTATION [ia32, amd64]:
 #include "mem_unit.h"
 #include "panic.h"
 #include "paging.h"
-#include "pic.h"
 #include "std_macros.h"
 #include "simple_alloc.h"
 

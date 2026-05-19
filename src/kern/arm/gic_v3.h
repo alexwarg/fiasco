@@ -18,8 +18,17 @@ public:
   using Version = Gic_dist::V3;
 
   explicit Gic_v3(Address dist_base, Address redist_base)
-  : Gic(dist_base, -1), _redist_base(redist_base)
+  : Gic(dist_base), _redist_base(redist_base)
   {
+    init_gic(-1);
+  }
+
+  void init_gic(int nr_irqs_override = -1)
+  {
+    unsigned num = init_dist(nr_irqs_override);
+    printf("Number of IRQs available at this GIC: %d\n", num);
+    Irq_chip_gen::init(num);
+
     cpu_local_init(Cpu_number::boot_cpu());
     _cpu.enable();
   }

@@ -1,9 +1,9 @@
 
-#include "vgic_v3.h"
+#include <vgic_v3.h>
+#include <gic_iface.h>
 
-#include "boot_alloc.h"
-#include "vgic_global.h"
-#include "pic.h"
+#include <boot_alloc.h>
+#include <vgic_global.h>
 
 namespace {
 
@@ -11,7 +11,7 @@ struct Gic_h_v3_init
 {
   explicit Gic_h_v3_init()
   {
-    unsigned v = Pic::gic->gic_version();
+    unsigned v = Gic::primary->gic_version();
     if (v < 3 || v > 4)
       return;
 

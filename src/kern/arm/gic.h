@@ -1,16 +1,17 @@
 
 #pragma once
 
-#include "cascade_irq.h"
-#include "cpu.h"
-#include "irq_chip_generic.h"
-#include "gic_dist.h"
-#include "globalconfig.h"
+#include <cascade_irq.h>
+#include <cpu.h>
+#include <irq_chip_generic.h>
+#include <gic_dist.h>
+#include <gic_iface.h>
+#include <globalconfig.h>
 
 #include <cassert>
 #include <cstdio>
 
-class Gic : public Irq_chip_gen
+class Gic_x : public Gic
 {
   friend class Jdb;
 
@@ -18,25 +19,7 @@ protected:
   Gic_dist _dist;
 
 public:
-  static void set_irq_handler(void (*irq_handler)());
-
-  explicit Gic(Address dist_base) : _dist(dist_base) {}
-
-  virtual void softint_cpu(Cpu_number target, unsigned m) = 0;
-
-
-  // init / pm only functions (rarely used)
-  virtual void softint_bcast(unsigned m) = 0;
-  virtual void softint_phys(unsigned m, Unsigned64 target) = 0;
-  virtual void init_ap(Cpu_number cpu, bool resume) = 0;
-  virtual unsigned gic_version() const = 0;
-
-  // empty default for JDB
-  virtual void irq_prio_bootcpu(unsigned, unsigned) {}
-  virtual unsigned irq_prio_bootcpu(unsigned) { return 0; }
-  virtual unsigned get_pmr() { return 0; }
-  virtual void set_pmr(unsigned) {}
-  virtual unsigned get_pending() { return 1023; }
+  explicit Gic_x(Address dist_base) : _dist(dist_base) {}
 
   unsigned hw_nr_irqs()
   { return _dist.hw_nr_irqs(); }
@@ -80,11 +63,10 @@ public:
   char const *chip_type() const override
   { return "GIC"; }
 #endif // CONFIG_JDB
-
 };
 
 template<typename IMPL, typename CPU>
-class Gic_mixin : public Gic
+class Gic_mixin : public Gic_x
 {
 private:
   friend class Jdb;
@@ -98,36 +80,21 @@ private:
 protected:
   Cpu _cpu;
 
-  static IMPL *primary;
-
   static void _glbl_irq_handler()
-  { primary->hit(nullptr); }
-
-  void init_global_irq_handler()
   {
-    primary = self();
-    Gic::set_irq_handler(_glbl_irq_handler);
+    nonull_static_cast<IMPL *>(primary)->hit(nullptr);
   }
 
 public:
   template<typename ...CPU_ARGS>
-  Gic_mixin(Address dist_base, int nr_irqs_override, CPU_ARGS &&...args)
-  : Gic(dist_base), _cpu(cxx::forward<CPU_ARGS>(args)...)
-  {
-    unsigned num = init(true, nr_irqs_override);
-    printf("Number of IRQs available at this GIC: %d\n", num);
-    Irq_chip_gen::init(num);
-  }
+  Gic_mixin(Address dist_base, CPU_ARGS &&...args)
+  : Gic_x(dist_base), _cpu(cxx::forward<CPU_ARGS>(args)...)
+  {}
 
-  /**
-   * \brief Create a GIC device that is a physical alias for the
-   *        master GIC.
-   */
-  template<typename ...CPU_ARGS>
-  Gic_mixin(Address dist_base, Gic *master_mapping, CPU_ARGS &&...args)
-  : Gic(dist_base), _cpu(cxx::forward<CPU_ARGS>(args)...)
+  void set_as_primary_irq_handler()
   {
-    Irq_chip_gen::init(master_mapping->nr_irqs());
+    primary = self();
+    Gic::set_irq_handler(_glbl_irq_handler);
   }
 
   void init_ap(Cpu_number cpu, bool resume) override
@@ -140,22 +107,6 @@ public:
     _cpu.enable();
   }
 
-  unsigned init(bool primary_gic, int nr_irqs_override = -1)
-  {
-    if (!primary_gic)
-      {
-        self()->cpu_local_init(Cpu_number::boot_cpu());
-        return 0;
-      }
-
-    _cpu.disable();
-    unsigned num = _dist.init(typename IMPL::Version(),
-                              Cpu::Cpu_prio_val, nr_irqs_override);
-
-    self()->init_global_irq_handler();
-
-    return num;
-  }
 
   void acknowledge_locked(unsigned irq)
   {
@@ -208,7 +159,7 @@ public:
     if (EXPECT_FALSE((num & 0xfffffffc) == 0x3fc))
       return;
 
-    handle_irq<Gic>(num, u);
+    handle_irq<Gic_x>(num, u);
   }
 
   static void cascade_hit(Irq_base *_self, Upstream_irq const *u)
@@ -223,9 +174,14 @@ public:
 
   unsigned get_pmr() override { return _cpu.pmr(); }
   void set_pmr(unsigned prio) override { _cpu.pmr(prio); }
+
+protected:
+  unsigned init_dist(int nr_irqs_override = -1)
+  {
+    _cpu.disable();
+    unsigned num = _dist.init(typename IMPL::Version(),
+                              Cpu::Cpu_prio_val, nr_irqs_override);
+    return num;
+  }
 };
-
-template<typename IMPL, typename CPU>
-IMPL *Gic_mixin<IMPL, CPU>::primary;
-
 

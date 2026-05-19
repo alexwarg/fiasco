@@ -9,7 +9,6 @@ IMPLEMENTATION[ia32,amd64]:
 #include "gdt.h"
 #include "idt.h"
 #include "perf_cnt.h"
-#include "pic.h"
 #include "space.h"
 #include "tss.h"
 #include <x86desc_dbg.h>
@@ -82,8 +81,8 @@ Jdb_kern_info_test_tsc_scaler::show() override
 //---------------------------------------------------------------------------
 IMPLEMENTATION[ia32,amd64]:
 
-#include "io.h"
-#include "i8259.h"
+#include <io.h>
+#include <pc_i8259.h>
 
 class Jdb_kern_info_pic_state : public Jdb_kern_info_module
 {
@@ -101,17 +100,19 @@ Jdb_kern_info_pic_state::Jdb_kern_info_pic_state()
 void
 Jdb_kern_info_pic_state::show() override
 {
-  typedef Irq_chip_i8259<Io> I8259;
+  using I8259 = Pc_i8259;
+  Pc_i8259 i8259;
+
   int i;
   static char const hex[] = "0123456789ABCDEF";
 
   // show important I/O ports
-  Io::out8_p(I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IS_ONRD,
-	     Pic::MASTER_ICW );
-  unsigned in_service = Io::in8(Pic::MASTER_ICW);
-  Io::out8_p(I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IR_ONRD,
-	     Pic::MASTER_ICW);
-  unsigned requested = Io::in8(Pic::MASTER_ICW);
+  i8259.write_icw_m(I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IS_ONRD);
+  i8259.iodelay();
+  unsigned in_service = i8259.read_icw_m();
+  i8259.write_icw_m(I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IR_ONRD);
+  i8259.iodelay();
+  unsigned requested = i8259.read_icw_m();
   unsigned mask = Jdb::pic_status & 0x0ff;
   printf("master PIC: in service:");
   for (i=7; i>=0; i--)
@@ -124,12 +125,12 @@ Jdb_kern_info_pic_state::show() override
     putchar((mask & (1<<i)) ? hex[i] : '-');
   putchar('\n');
 
-  Io::out8_p( I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IS_ONRD,
-	      Pic::SLAVES_ICW);
-  in_service = Io::in8(Pic::SLAVES_ICW);
-  Io::out8_p( I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IR_ONRD,
-	      Pic::SLAVES_ICW);
-  requested = Io::in8(Pic::SLAVES_ICW);
+  i8259.write_icw_s(I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IS_ONRD);
+  i8259.iodelay();
+  in_service = i8259.read_icw_s();
+  i8259.write_icw_s(I8259::OCW_TEMPLATE | I8259::READ_NEXT_RD | I8259::READ_IR_ONRD);
+  i8259.iodelay();
+  requested = i8259.read_icw_s();
   mask = Jdb::pic_status >> 8;
   printf(" slave PIC: in service:");
   for (i=7; i>=0; i--)

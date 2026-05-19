@@ -36,7 +36,7 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   auto *c = new Boot_object<Cascade_irq>(gic, gic_hit);
   Mips_cpu_irqs::chip->alloc(c, 2);
   c->unmask();
-  m->add_chip(gic, 0); // expose GIC IRQs starting from IRQ 0
+  m->add_chip(0, gic); // expose GIC IRQs starting from IRQ 0
 
   m->print_infos();
 }

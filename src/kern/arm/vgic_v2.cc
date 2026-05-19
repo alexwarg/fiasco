@@ -1,9 +1,9 @@
 
-#include "vgic_v2.h"
+#include <vgic_v2.h>
+#include <gic_iface.h>
 
-#include "vgic_global.h"
-#include "boot_alloc.h"
-#include "pic.h"
+#include <vgic_global.h>
+#include <boot_alloc.h>
 
 Static_object<Gic_h_v2> Gic_h_v2::gic;
 
@@ -14,7 +14,7 @@ struct Gic_h_v2_init
 {
   explicit Gic_h_v2_init()
   {
-    if (Pic::gic->gic_version() > 2)
+    if (Gic::primary->gic_version() > 2)
       return;
 
     Gic_h_global::gic

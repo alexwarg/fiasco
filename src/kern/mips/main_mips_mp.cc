@@ -10,7 +10,6 @@
 #include <mips_bsp_irqs.h>
 #include <per_cpu_data_alloc.h>
 #include <perf_cnt.h>
-#include <pic.h>
 #include <pfc.h>
 #include <spin_lock.h>
 #include <timer.h>

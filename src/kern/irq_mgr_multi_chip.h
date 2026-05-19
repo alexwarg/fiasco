@@ -8,7 +8,7 @@
 #include <cstring>
 
 template< unsigned Bits_per_entry >
-class Irq_mgr_multi_chip : public Irq_mgr
+class Irq_mgr_multi_chip : public Irq_mgr_dyn
 {
 public:
   unsigned nr_irqs() const override { return _nchips << Bits_per_entry; }
@@ -30,26 +30,32 @@ public:
     return Irq(ci->chip, irqnum - ci->offset);
   }
 
-  int add_chip(unsigned irq_base, Irq_chip_icu *c, unsigned pins)
+  int add_chip(int irq_base, Irq_chip_icu *c, int pins = -1) override
   {
     if ((irq_base & ~(~0UL << Bits_per_entry)) != 0)
-      return -L4_err::EInval;
+      return -E_unaligned_base;
 
     if (!c)
-      return -L4_err::EInval;
+      return -E_no_chip;
 
-    if (pins == 0)
-      return -L4_err::EInval;
+    if (pins < 0)
+      pins = c->nr_irqs();
+
+    if (pins <= 0)
+      return -E_zero_pins;
 
     unsigned idx = irq_base >> Bits_per_entry;
     unsigned num = (pins + (1UL << Bits_per_entry) - 1) >> Bits_per_entry;
 
+    if (idx >= _nchips)
+      return -E_range;
+
     if (idx + num > _nchips)
-      return -L4_err::ERange;
+      num = _nchips - idx;
 
     for (unsigned i = idx; i < idx + num; ++i)
       if (_chips[i].chip)
-        return -L4_err::EExists;
+        return -E_irqs_in_use;
 
     for (unsigned i = idx; i < idx + num; ++i)
       {

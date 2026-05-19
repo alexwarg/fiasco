@@ -10,7 +10,7 @@
 #include "kdb_ke.h"
 #include "kernel_console.h"
 #include "koptions.h"
-#include "pic.h"
+#include <pc_i8259.h>
 #include <pfc.h>
 #include "processor.h"
 #include "timer_tick.h"
@@ -39,7 +39,7 @@ exit_question()
   Proc::cli();
   exit_question_active = 1;
 
-  Unsigned16 irqs = Pic::disable_all_save();
+  Unsigned16 irqs = Pc_i8259().disable_all_save();
   if (Config::getchar_does_hlt_works_ok)
     {
       Timer_tick::set_vectors_stop();
@@ -55,7 +55,7 @@ exit_question()
 
   if (c == 'k' || c == 'K') 
     {
-      Pic::restore_all(irqs);
+      Pc_i8259().restore_all(irqs);
       kdb_ke("_exit");
     }
   else

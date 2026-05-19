@@ -6,6 +6,7 @@
 #include <cpu.h>
 #include <mmio_register_block.h>
 #include <ipi.h>
+#include <gic_iface.h>
 #include <kmem.h>
 #include <infinite_loop.h>
 
@@ -60,7 +61,7 @@ struct Pfc_z : Pfc_arm
 
     pmu_c1.r<32>(0x24) = phys_tramp_mp_addr;
     Mem::mp_wmb();
-    Pic::gic->softint_phys(Ipi::Global_request, 1ul << (16 + hwcpu));
+    Gic::primary->softint_phys(Ipi::Global_request, 1ul << (16 + hwcpu));
 
     // CPU0..n Software Reset Control Register
     Mmio_register_block cpu_reset(Kmem::mmio_remap(0xf1020800, 8));

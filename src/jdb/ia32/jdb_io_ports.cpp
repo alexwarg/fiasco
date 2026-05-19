@@ -7,7 +7,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include "jdb_module.h"
 #include "jdb.h"
 #include "pci.h"
-#include "pic.h"
+#include <pc_i8259.h>
 #include "static_init.h"
 
 /**
@@ -118,10 +118,10 @@ Io_m::action( int cmd, void *&args, char const *&fmt, int &) override
 	    case '1':
 	      if (cmd==0) // in
 		{
-		  if (buf.io.adr == Pic::MASTER_OCW)
+		  if (buf.io.adr == Pc_i8259().ocw_m())
 		    printf("%02x (shadow of master-PIC register)\n",
 			Jdb::pic_status & 0x0ff);
-		  else if (buf.io.adr == Pic::SLAVES_OCW)
+		  else if (buf.io.adr == Pc_i8259().ocw_s())
 		    printf("%02x (shadow of slave-PIC register)\n",
 			Jdb::pic_status >> 8);
 		  else
@@ -132,13 +132,13 @@ Io_m::action( int cmd, void *&args, char const *&fmt, int &) override
 		}
 	      else // out
 		{
-		  if (buf.io.adr == Pic::MASTER_OCW)
+		  if (buf.io.adr == Pc_i8259().ocw_m())
 		    {
 		      Jdb::pic_status = 
 			(Jdb::pic_status & 0xff00) | buf.io.val;
 		      putstr(" (PIC mask will be set on \"g\")");
 	    	    }
-    		  else if (buf.io.adr == Pic::SLAVES_OCW)
+    		  else if (buf.io.adr == Pc_i8259().ocw_s())
 		    {
 		      Jdb::pic_status =
 			(Jdb::pic_status & 0x00ff) | (buf.io.val<<8);
@@ -184,11 +184,11 @@ Io_m::action( int cmd, void *&args, char const *&fmt, int &) override
 
 	case 'a': // manual acknowledge IRQ at pic
 	  if (buf.irq.irq < 8)
-	    Io::out8(0x60 + buf.irq.irq, Pic::MASTER_ICW);
+	    Io::out8(0x60 + buf.irq.irq, Pc_i8259().ocw_m());
 	  else 
 	    {
-	      Io::out8(0x60 + (buf.irq.irq & 7), Pic::SLAVES_ICW);
-	      Io::out8(0x60 + 2,                 Pic::MASTER_ICW);
+	      Io::out8(0x60 + (buf.irq.irq & 7), Pc_i8259().icw_s());
+	      Io::out8(0x60 + 2,                 Pc_i8259().icw_m());
 	    }
 	  putchar('\n');
 	  break;

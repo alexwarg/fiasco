@@ -5,7 +5,6 @@
 INTERFACE:
 
 #include <l4_types.h>
-#include <pic.h>
 
 class Trap_state;
 class Thread;
@@ -122,7 +121,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include <koptions.h>
 #include <logdefs.h>
 #include <mem_layout.h>
-#include <pic.h>
+#include <pc_i8259.h>
 #include <push_console.h>
 #include <processor.h>
 #include <regdefs.h>
@@ -242,7 +241,7 @@ Jdb::save_disable_irqs(Cpu_number cpu)
       if (cpu == Cpu_number::boot_cpu())
 	{
 	  Watchdog::disable();
-	  pic_status = Pic::disable_all_save();
+	  pic_status = Pc_i8259().disable_all_save();
           if (Config::getchar_does_hlt_works_ok)
             Timer_tick::disable(Cpu_number::boot_cpu());
 	}
@@ -282,7 +281,7 @@ Jdb::restore_irqs(Cpu_number cpu)
 
       if (cpu == Cpu_number::boot_cpu())
 	{
-	  Pic::restore_all(Jdb::pic_status);
+	  Pc_i8259().restore_all(Jdb::pic_status);
 	  Watchdog::enable();
 	}
 

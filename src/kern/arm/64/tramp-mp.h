@@ -1,5 +1,14 @@
 #pragma once
 
+#include <globalconfig.h>
+#ifndef CONFIG_MP
+
+inline void
+tramp_mp_setup_gic_info(void const *, unsigned)
+{}
+
+#else
+
 #include <paging-page.h>
 #include <kmem.h>
 #include <mem_unit.h>
@@ -7,9 +16,9 @@
 #include <config.h>
 #include <processor.h>
 #include <kernel_task.h>
+#include <pic-gic-helper.h>
 
 #include <pre_parts.h>
-#include <globalconfig.h>
 
 struct Mp_boot_info
 {
@@ -22,30 +31,29 @@ struct Mp_boot_info
   Mword gic_cpu_base;
 };
 
-#if defined (CONFIG_HAVE_ARM_GICV2) && defined (PRE_pic_gic)
+extern Mp_boot_info volatile _tramp_mp_boot_info;
 
-inline void boot_app_cpu_gic(Mp_boot_info volatile *inf)
+inline void
+tramp_mp_setup_gic_info(Pic_gic::Gic_info const *inf, unsigned version)
 {
-  inf->gic_dist_base = Mem_layout::Gic_dist_phys_base;
-  inf->gic_cpu_base = Mem_layout::Gic_cpu_phys_base;
+  if (!inf || !version)
+    {
+      _tramp_mp_boot_info.gic_dist_base = 0;
+      return;
+    }
+
+  _tramp_mp_boot_info.gic_dist_base = inf->dist_phys;
+  if (version == 2)
+    _tramp_mp_boot_info.gic_cpu_base = inf->cpu_phys;
+  else
+    _tramp_mp_boot_info.gic_cpu_base = 0;
 }
-
-#else // GIC
-
-inline void boot_app_cpu_gic(Mp_boot_info volatile *inf)
-{
-  inf->gic_dist_base = 0;
-}
-
-#endif // GIC
 
 inline Address
 tramp_mp_prepare()
 {
   extern char _tramp_mp_entry[];
-  extern char _tramp_mp_boot_info[];
-  Mp_boot_info volatile *_tmp;
-  _tmp = reinterpret_cast<Mp_boot_info*>(_tramp_mp_boot_info);
+  Mp_boot_info volatile *_tmp = &_tramp_mp_boot_info;
 
   _tmp->sctlr = Proc::sctlr();
   _tmp->mair  = Page::Mair0_prrr_bits;
@@ -54,7 +62,6 @@ tramp_mp_prepare()
     _tmp->ttbr_usr = cxx::int_value<Phys_mem_addr>(Kernel_task::kernel_task()->dir_phys());
 
   _tmp->tcr   = Page::Ttbcr_bits;
-  boot_app_cpu_gic(_tmp);
 
   asm volatile ("dsb sy" : : : "memory");
   Mem_unit::clean_dcache();
@@ -62,3 +69,4 @@ tramp_mp_prepare()
   return Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry);
 }
 
+#endif

@@ -1,5 +1,12 @@
 #pragma once
 
+inline void
+tramp_mp_setup_gic_info(void const *, unsigned)
+{}
+
+#include <globalconfig.h>
+
+#ifdef CONFIG_MP
 #include <paging-page.h>
 #include <kmem.h>
 #include <mem_unit.h>
@@ -38,3 +45,5 @@ tramp_mp_prepare()
 
   return Kmem::kdir->virt_to_phys((Address)_tramp_mp_entry);
 }
+
+#endif

@@ -120,6 +120,9 @@ config ARM_V8
 config ARM_GIC
 	bool
 
+config ARM_IPI_BSP
+	bool
+
 config HAVE_ARM_GICV2
         bool
 

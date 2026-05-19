@@ -31,7 +31,7 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   auto *m =  new Boot_object<Irq_mgr_flex<10> >();
   Irq_mgr::mgr = m;
 
-  m->add_chip(Mips_cpu_irqs::chip, 0);
+  m->add_chip(0, Mips_cpu_irqs::chip);
 
   Register_block<32> sead3_cfg_r(Kmem::mmio_remap(0x1b100110, sizeof(Unsigned32)));
   enum { GIC_PRESENT = 1 << 1 };
@@ -41,7 +41,7 @@ Mips_bsp_irqs::init(Cpu_number cpu)
       auto *c = new Boot_object<Cascade_irq>(gic, gic_hit);
       Mips_cpu_irqs::chip->alloc(c, 2);
       c->unmask();
-      m->add_chip(gic, 8);
+      m->add_chip(8, gic);
     }
 
   m->print_infos();

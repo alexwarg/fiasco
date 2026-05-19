@@ -9,7 +9,7 @@
 #include "ipi.h"
 #include "per_cpu_data_alloc.h"
 #include "perf_cnt.h"
-#include "pic.h"
+#include <pic.h>
 #include <pfc.h>
 #include "spin_lock.h"
 #include <timer.h>

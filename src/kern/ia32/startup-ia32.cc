@@ -23,7 +23,7 @@
 #include <kmem_alloc.h>
 #include <per_cpu_data.h>
 #include <per_cpu_data_alloc.h>
-#include <pic.h>
+#include <pc_i8259.h>
 #include <pfc.h>
 #include <static_init.h>
 #include <std_macros.h>
@@ -84,7 +84,7 @@ static void stage2()
         Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
       }
       Io_apic::init(Cpu_number::boot_cpu());
-      Pic::disable_all_save();
+      Pc_i8259().disable_all_save();
     }
   else
     {

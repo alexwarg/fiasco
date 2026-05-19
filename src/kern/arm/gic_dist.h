@@ -78,8 +78,8 @@ public:
 
   static constexpr bool Config_tz_sec = IS_ENABLED(CONFIG_ARM_EM_TZ);
 
-#if defined (PRE_have_arm_gicv2)
 public:
+  // GICv2 implementation ------------------------------------
   void init_targets(unsigned max, V2)
   {
     // use target from local IRQ 0-3
@@ -161,10 +161,10 @@ private:
     for (unsigned i = 32; i < num; i += 32)
       _dist.write<Unsigned32>(v, GICD_IGROUPR + i / 8);
   }
-#endif // PRE_have_arm_gicv2
+  // GICv2 end ---------------------------------
 
-#if defined (PRE_have_arm_gicv3)
 public:
+  // GICv3 implementation ------------------------------------
   void set_cpu(Mword pin, Cpu_phys_id cpu, V3)
   {
     if (pin < 32) // GICD_IROUTER<0..31> are reserved
@@ -196,7 +196,7 @@ private:
     for (unsigned i = 32; i < num; i += 32)
       _dist.write<Unsigned32>(~0u, GICD_IGROUPR + i / 8);
   }
-#endif // PRE_have_arm_gicv3
+  // GICv3 end ---------------------------------
 
 public:
   Unsigned32 itarget(unsigned offset)

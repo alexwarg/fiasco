@@ -11,39 +11,32 @@
 #include "globalconfig.h"
 
 template<typename IO>
-class Irq_chip_i8259 : public Irq_chip_icu, private Pm_object
+class Irq_i8259_base
 {
-  friend class Jdb_kern_info_pic_state;
 public:
-  typedef typename IO::Port_addr Io_address;
-  unsigned nr_irqs() const override { return 16; }
-  int set_mode(Mword, Mode) override { return 0; }
-  bool is_edge_triggered(Mword) const override { return false; }
-  void set_cpu(Mword, Cpu_number) override {}
-  using Pm_object::register_pm;
+  using Io_address = typename IO::Port_addr;
 
   /**
    * Create a i8259 chip, does not do any hardware access.
    * \note Hardware initalization is done in init().
    */
-  Irq_chip_i8259(Irq_chip_i8259::Io_address master,
-                 Irq_chip_i8259::Io_address slave)
-  : _master(master), _slave(slave)
+  constexpr Irq_i8259_base(Io_address master, Io_address slave)
+  : master(master), slave(slave)
   {}
 
   Unsigned16 disable_all_save()
   {
-    Unsigned16 s =   (Unsigned16)read_ocw(_master)
-                   | (Unsigned16)read_ocw(_slave) << 8;
-    write_ocw(0xff, _master);
-    write_ocw(0xff, _slave);
+    Unsigned16 s =   (Unsigned16)read_ocw_m()
+                   | (Unsigned16)read_ocw_s() << 8;
+    write_ocw_m(0xff);
+    write_ocw_s(0xff);
     return s;
   }
 
   void restore_all(Unsigned16 s)
   {
-    write_ocw(s & 0x0ff, _master);
-    write_ocw((s >> 8) & 0x0ff, _slave);
+    write_ocw_m(s & 0x0ff);
+    write_ocw_s((s >> 8) & 0x0ff);
   }
 
   /**
@@ -54,25 +47,23 @@ public:
   void init(Unsigned8 vect_base, bool use_sfn = false,
             bool high_prio_ir8 = false)
   {
-    auto g = lock_guard(_lock);
     _sfn = use_sfn;
-
     // disable all IRQs
-    write_ocw(0xff, _master);
-    write_ocw(0xff, _slave);
+    write_ocw_m(0xff);
+    write_ocw_s(0xff);
 
-    write_icw(PICM_ICW1, _master); iodelay();
-    write_ocw(vect_base, _master); iodelay();
-    write_ocw((1U << 2), _master); iodelay(); // cascade at IR2
+    write_icw_m(PICM_ICW1); iodelay();
+    write_ocw_m(vect_base); iodelay();
+    write_ocw_m((1U << 2)); iodelay(); // cascade at IR2
     Unsigned8 icw4 = PICM_ICW4;
     if (use_sfn)
       icw4 |= SNF_MODE_ENA;
-    write_ocw(icw4, _master); iodelay();
+    write_ocw_m(icw4); iodelay();
 
-    write_icw(PICS_ICW1, _slave); iodelay();
-    write_ocw(vect_base + 8, _slave); iodelay();
-    write_ocw(PICS_ICW3, _slave); iodelay();
-    write_ocw(icw4, _slave); iodelay();
+    write_icw_s(PICS_ICW1); iodelay();
+    write_ocw_s(vect_base + 8); iodelay();
+    write_ocw_s(PICS_ICW3); iodelay();
+    write_ocw_s(icw4); iodelay();
 
     if (use_sfn && high_prio_ir8)
       {
@@ -80,55 +71,21 @@ public:
         // -- see Intel 8259A reference manual
         // irq 1 on master hast lowest prio
         // => irq 2 (cascade) = irqs 8..15 have highest prio
-        write_icw(SET_PRIORITY | 1, _master); iodelay();
+        write_icw_m(SET_PRIORITY | 1); iodelay();
         // irq 7 on slave has lowest prio
         // => irq 0 on slave (= irq 8) has highest prio
-        write_icw(SET_PRIORITY | 7, _slave); iodelay();
+        write_icw_s(SET_PRIORITY | 7); iodelay();
       }
 
     // set initial masks
-    write_ocw(0xfb, _master); iodelay(); // unmask ir2
-    write_ocw(0xff, _slave); iodelay();  // mask everything
+    write_ocw_m(0xfb); iodelay(); // unmask ir2
+    write_ocw_s(0xff); iodelay();  // mask everything
 
     /* Ack any bogus intrs by setting the End Of Interrupt bit. */
-    write_icw(NON_SPEC_EOI, _master); iodelay();
-    write_icw(NON_SPEC_EOI, _slave); iodelay();
+    write_icw_m(NON_SPEC_EOI); iodelay();
+    write_icw_s(NON_SPEC_EOI); iodelay();
   }
 
-  void mask(Mword pin) override
-  {
-    auto g = lock_guard(_lock);
-    _mask(pin);
-  }
-
-  void unmask(Mword pin) override
-  {
-    auto g = lock_guard(_lock);
-    if (pin < 8)
-      write_ocw(read_ocw(_master) & ~(1U << pin), _master);
-    else
-      write_ocw(read_ocw(_slave) & ~(1U << (pin - 8)), _slave);
-  }
-
-  void ack(Mword pin) override
-  {
-    auto g = lock_guard(_lock);
-    _ack(pin);
-  }
-
-  void mask_and_ack(Mword pin) override
-  {
-    auto g = lock_guard(_lock);
-    _mask(pin);
-    _ack(pin);
-  }
-
-#if defined (CONFIG_JDB)
-  char const *chip_type() const override
-  { return "i8259"; }
-#endif // CONFIG_JDB
-
-private:
   enum
   {
     OFF_ICW = 0x00,
@@ -226,54 +183,146 @@ private:
                       | I8086_EMM_MOD,
   };
 
+  constexpr Io_address ocw_m() const { return master + OFF_OCW; }
+  constexpr Io_address icw_m() const { return master + OFF_ICW; }
+  constexpr Io_address ocw_s() const { return slave + OFF_OCW; }
+  constexpr Io_address icw_s() const { return slave + OFF_ICW; }
 
-  Unsigned8 read_ocw(Io_address base)
-  { return IO::in8(base + OFF_OCW); }
 
-  void write_ocw(Unsigned8 val, Io_address base)
-  { IO::out8(val, base + OFF_OCW); }
+  Unsigned8 read_ocw_m()
+  { return IO::in8(ocw_m()); }
 
-  Unsigned8 read_icw(Io_address base)
-  { return IO::in8(base + OFF_ICW); }
+  void write_ocw_m(Unsigned8 val)
+  { IO::out8(val, ocw_m()); }
 
-  void write_icw(Unsigned8 val, Io_address base)
-  { IO::out8(val, base + OFF_ICW); }
+  Unsigned8 read_icw_m()
+  { return IO::in8(icw_m()); }
 
-  void iodelay() const { IO::iodelay(); }
+  void write_icw_m(Unsigned8 val)
+  { IO::out8(val, icw_m()); }
 
-  // power-management hooks
-  void pm_on_suspend(Cpu_number) override
-  { _pm_saved_state = disable_all_save(); }
+  Unsigned8 read_ocw_s()
+  { return IO::in8(ocw_s()); }
 
-  void pm_on_resume(Cpu_number) override
-  { restore_all(_pm_saved_state); }
+  void write_ocw_s(Unsigned8 val)
+  { IO::out8(val, ocw_s()); }
 
-  void _mask(Mword pin)
+  Unsigned8 read_icw_s()
+  { return IO::in8(icw_s()); }
+
+  void write_icw_s(Unsigned8 val)
+  { IO::out8(val, icw_s()); }
+
+  void iodelay() const
+  { IO::iodelay(); }
+
+  void mask(Mword pin)
   {
     if (pin < 8)
-      write_ocw(read_ocw(_master) | (1U << pin), _master);
+      write_ocw_m(read_ocw_m() | (1U << pin));
     else
-      write_ocw(read_ocw(_slave) | (1U << (pin - 8)), _slave);
+      write_ocw_s(read_ocw_s() | (1U << (pin - 8)));
   }
 
-  void _ack(Mword pin)
+  void ack(Mword pin)
   {
     if (pin >= 8)
       {
-        write_icw(NON_SPEC_EOI, _slave);
+        write_icw_s(NON_SPEC_EOI);
         if (_sfn)
           {
-            write_icw(OCW_TEMPLATE | READ_NEXT_RD | READ_IS_ONRD, _slave);
-            if (read_icw(_slave))
+            write_icw_s(OCW_TEMPLATE | READ_NEXT_RD | READ_IS_ONRD);
+            if (read_icw_s())
               return; // still active IRQs at the slave, don't EOI master
           }
       }
-    write_icw(NON_SPEC_EOI, _master);
+    write_icw_m(NON_SPEC_EOI);
   }
 
-  Io_address _master, _slave;
-  Spin_lock<> _lock;
+  Io_address master, slave;
   bool _sfn = false;
+};
+
+template<typename IO>
+class Irq_chip_i8259 :
+  public Irq_chip_icu,
+  private Pm_object,
+  private Irq_i8259_base<IO>
+{
+  friend class Jdb_kern_info_pic_state;
+  using Base = Irq_i8259_base<IO>;
+
+public:
+  typedef typename IO::Port_addr Io_address;
+  unsigned nr_irqs() const override { return 16; }
+  int set_mode(Mword, Mode) override { return 0; }
+  bool is_edge_triggered(Mword) const override { return false; }
+  void set_cpu(Mword, Cpu_number) override {}
+  using Pm_object::register_pm;
+
+  /**
+   * Create a i8259 chip, does not do any hardware access.
+   * \note Hardware initalization is done in init().
+   */
+  Irq_chip_i8259(Irq_chip_i8259::Io_address master,
+                 Irq_chip_i8259::Io_address slave)
+  : Base(master, slave)
+  {}
+
+  /**
+   * Initialize the i8259 hardware.
+   * \pre The IO access must be enabled in the constructor if needed,
+   *      for example when using memory-mapped registers.
+   */
+  void init(Unsigned8 vect_base, bool use_sfn = false,
+            bool high_prio_ir8 = false)
+  {
+    auto g = lock_guard(_lock);
+    Base::init(vect_base, use_sfn, high_prio_ir8);
+  }
+
+  void mask(Mword pin) override
+  {
+    auto g = lock_guard(_lock);
+    Base::mask(pin);
+  }
+
+  void unmask(Mword pin) override
+  {
+    auto g = lock_guard(_lock);
+    if (pin < 8)
+      this->write_ocw_m(this->read_ocw_m() & ~(1U << pin));
+    else
+      this->write_ocw_s(this->read_ocw_s() & ~(1U << (pin - 8)));
+  }
+
+  void ack(Mword pin) override
+  {
+    auto g = lock_guard(_lock);
+    Base::ack(pin);
+  }
+
+  void mask_and_ack(Mword pin) override
+  {
+    auto g = lock_guard(_lock);
+    Base::mask(pin);
+    Base::ack(pin);
+  }
+
+#if defined (CONFIG_JDB)
+  char const *chip_type() const override
+  { return "i8259"; }
+#endif // CONFIG_JDB
+
+private:
+  // power-management hooks
+  void pm_on_suspend(Cpu_number) override
+  { _pm_saved_state = this->disable_all_save(); }
+
+  void pm_on_resume(Cpu_number) override
+  { this->restore_all(_pm_saved_state); }
+
+  Spin_lock<> _lock;
 
   // power-management state
   Unsigned16 _pm_saved_state;

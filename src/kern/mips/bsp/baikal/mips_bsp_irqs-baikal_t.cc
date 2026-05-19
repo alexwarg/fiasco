@@ -31,7 +31,7 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   Irq_mgr::mgr = m;
 
   if (0) // currently we do not expose the MIPS CPU IRQs to the user
-    m->add_chip(Mips_cpu_irqs::chip, 0);
+    m->add_chip(0, Mips_cpu_irqs::chip);
 
   Address my_gic_base = 0x1BDC0000;
   Cm::cm->set_gic_base_and_enable(my_gic_base);
@@ -41,7 +41,7 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   auto *c = new Boot_object<Cascade_irq>(gic, gic_hit);
   Mips_cpu_irqs::chip->alloc(c, 2);
   c->unmask();
-  m->add_chip(gic, 0); // expose GIC IRQs starting from IRQ 0
+  m->add_chip(0, gic); // expose GIC IRQs starting from IRQ 0
 
   m->print_infos();
 }

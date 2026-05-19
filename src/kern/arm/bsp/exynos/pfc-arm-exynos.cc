@@ -10,6 +10,7 @@
 #include <kmem.h>
 #include <infinite_loop.h>
 #include <platform.h>
+#include <irqs-arm-exynos.h>
 
 #include <scheduler_iface.h>
 #include <sched.h>
@@ -189,7 +190,7 @@ protected:
 
     // todo: the timer irq needs a proper cpu setting here too
     // (save + restore state)
-    Pic::reinit(cpu);
+    Irqs_arm_exynos::reinit(cpu);
 
     do_print_cpu_info(phys_cpu);
 
@@ -311,22 +312,12 @@ Pfc_exynos_base::do_sleep()
 #endif
 
 #ifdef CONFIG_MP
-#ifdef CONFIG_PF_EXYNOS_EXTGIC
 
 void
 Pfc_exynos_base::send_boot_ipi(unsigned val)
 {
-  Pic::gic.current()->softint_phys(Ipi::Global_request, 1u << (16 + val));
+  Ipi::softint_phys(Ipi::Global_request, 1u << (16 + val));
 }
-#else // CONFIG_PF_EXYNOS_EXTGIC
-
-void
-Pfc_exynos_base::send_boot_ipi(unsigned val)
-{
-  Pic::gic->softint_phys(Ipi::Global_request, 1u << (16 + val));
-}
-
-#endif // CONFIG_PF_EXYNOS_EXTGIC
 
 void
 Pfc_exynos_mp::do_boot_ap_cpus(Address phys_reset_vector)

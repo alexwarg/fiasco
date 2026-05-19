@@ -7,7 +7,6 @@
 #include <irq_mgr.h>
 #include <koptions.h>
 #include <mem_layout.h>
-#include <pic.h>
 #include <pfc.h>
 #include <trap_state.h>
 #include <watchdog.h>

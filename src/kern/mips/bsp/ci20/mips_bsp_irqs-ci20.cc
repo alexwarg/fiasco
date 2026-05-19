@@ -29,9 +29,9 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   Irq_mgr::mgr = m;
 
   _ic[0] = new Boot_object<Irq_chip_ingenic>(0xb0001000);
-  m->add_chip(_ic[0], 0);
+  m->add_chip(0, _ic[0]);
   _ic[1] = new Boot_object<Irq_chip_ingenic>(0xb0001020);
-  m->add_chip(_ic[1], 32);
+  m->add_chip(32, _ic[1]);
 
   auto *c = new Boot_object<Cascade_irq>(nullptr, ingenic_cascade);
   Mips_cpu_irqs::chip->alloc(c, 2);

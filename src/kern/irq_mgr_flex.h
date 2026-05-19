@@ -14,7 +14,7 @@
  * chip can start at an arbitrary 16bit IRQ number.
  */
 template<unsigned MAX_CHIPS>
-class Irq_mgr_flex : public Irq_mgr
+class Irq_mgr_flex : public Irq_mgr_dyn
 {
 public:
   unsigned max_chips() const { return MAX_CHIPS; }
@@ -43,14 +43,14 @@ public:
    * This function checks for overlaps and returns an error string in case
    * of any conflicts.
    */
-  char const *add_chip(Irq_chip_icu *chip, int pos = -1)
+  int add_chip(int pos, Irq_chip_icu *chip, int pins = -1) override
   {
     if (_used >= MAX_CHIPS)
-      return "too many IRQ chips";
+      return -E_too_many_chips;
 
-    unsigned n = chip->nr_irqs();
+    unsigned n = pins >= 0 ? pins : chip->nr_irqs();
     if (n == 0)
-      return "chip with zero interrupts";
+      return -E_zero_pins;
 
     if (pos < 0)
       pos = _max_irq;
@@ -75,7 +75,7 @@ public:
           continue;
 
         if (pos + n >= spot->start)
-          return "overlapping interrupt ranges";
+          return -E_irqs_in_use;
       }
 
     for (Chip *x = &_chips[_used]; x >= spot; --x)

@@ -20,7 +20,6 @@ CXXSRC_ABI += $(CXXSRC_ABI-y)
 PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
 INTERFACES_KERNEL	:= \
-			   pic   \
 			   kmem mem_layout        \
 			   mem_unit \
 			   cpu               \

@@ -47,20 +47,18 @@ LIBUART_UART_FLAGS += -include $(LIBUART_HDR-y) -DFIASCO_UART_TYPE=$(LIBUART_TYP
 
 CXXSRC_KERNEL-$(CONFIG_ARM_MPTIMER) += timer_arm_imx6_mptimer.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_IMX_TIMER_EPIT) += timer_arm_imx_epit.cc
-CXXSRC_KERNEL-$(CONFIG_PF_IMX_21) += timer_arm_imx21.cc
-CXXSRC_KERNEL-$(CONFIG_PF_IMX_28) += timer_arm_imx_timrot.cc
-CXXSRC_KERNEL                     += pfc-arm-imx.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_21)  += timer_arm_imx21.cc pic-arm-imx.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_28)  += timer_arm_imx_timrot.cc pic-arm-imx-icoll.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_35)  += pic-arm-imx.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_51)  += pic-arm-imx-gic.cc pic-gic-init.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_53)  += pic-arm-imx-gic.cc pic-gic-init.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_6)   += pic-arm-imx-gic.cc pic-gic-init.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_6UL) += pic-arm-imx-gic.cc pic-gic-init.cc
+CXXSRC_KERNEL-$(CONFIG_PF_IMX_7)   += pic-arm-imx-gic.cc pic-gic-init.cc
+CXXSRC_KERNEL-$(CONFIG_ARM_V8)     += pic-arm-imx-gic.cc pic-gic-init.cc
+CXXSRC_KERNEL                      += pfc-arm-imx.cc
 
 mem_layout_IMPL       += mem_layout-arm-imx
-pic_IMPL              += $(if $(CONFIG_PF_IMX_21),pic-arm-imx)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_28),pic-arm-imx-icoll)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_35),pic-arm-imx)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_51),pic-gic pic-arm-imx-gic)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_53),pic-gic pic-arm-imx-gic)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_6),pic-gic pic-arm-imx-gic)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_6UL),pic-gic pic-arm-imx-gic)
-pic_IMPL              += $(if $(CONFIG_PF_IMX_7),pic-gic pic-arm-imx-gic)
-pic_IMPL              += $(if $(CONFIG_ARM_V8),pic-gic pic-arm-imx-gic)
 reset_IMPL            += reset-arm-imx
 outer_cache_IMPL      += outer_cache-arm-imx6
 clock_IMPL            += clock-generic

@@ -5,6 +5,7 @@
 #include <initcalls.h>
 #include <entry_frame.h>
 #include <pit_i8254.h>
+#include <pc_i8259.h>
 
 #include <warn.h>
 #include <cstdio>
@@ -186,7 +187,7 @@ Apic::route_pic_through_apic()
   auto guard = lock_guard(cpu_lock);
 
   // mask 8259 interrupts
-  Unsigned16 old_irqs = Pic::disable_all_save();
+  Unsigned16 old_irqs = Pc_i8259().disable_all_save();
 
   // set LINT0 to ExtINT, edge triggered
   tmp_val = reg_read(APIC_lvt0);
@@ -201,7 +202,7 @@ Apic::route_pic_through_apic()
   reg_write(APIC_lvt1, tmp_val);
 
   // unmask 8259 interrupts
-  Pic::restore_all(old_irqs);
+  Pc_i8259().restore_all(old_irqs);
 
   printf("APIC was disabled --- routing PIC through APIC\n");
 }

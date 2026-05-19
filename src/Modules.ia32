@@ -151,7 +151,6 @@ mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-32
 mem_space_IMPL		:= mem_space mem_space-ia32
 mem_unit_IMPL		:= mem_unit-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
-pic_IMPL		:= pic pic-i8259
 pmem_alloc_IMPL		:= pmem_alloc pmem_alloc-ia32
 sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
 			   sched_context-fp_wfq sched_context

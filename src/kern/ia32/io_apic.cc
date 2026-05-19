@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <kmem.h>
 #include <kip.h>
-#include <pic.h>
+#include <pc_i8259.h>
 #include <lock_guard.h>
 #include <boot_alloc.h>
 #include <warn.h>
@@ -60,7 +60,7 @@ Io_apic_mgr::pm_on_resume(Cpu_number cpu)
 {
   (void)cpu;
   assert (cpu == Cpu_number::boot_cpu());
-  Pic::disable_all_save();
+  Pc_i8259().disable_all_save();
   Io_apic::restore_state(true);
 }
 

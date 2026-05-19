@@ -115,6 +115,23 @@ public:
 
 };
 
+class Irq_mgr_dyn : public Irq_mgr
+{
+public:
+  enum Errors : int
+  {
+    E_unaligned_base = 1,
+    E_range = 2,
+    E_too_many_chips = 3,
+    E_zero_pins = 4,
+    E_irqs_in_use = 5,
+    E_no_chip = 6,
+    E_ok = 0,
+  };
+
+  virtual int add_chip(int base, Irq_chip_icu *chip, int pins = -1) = 0;
+};
+
 template< typename CHIP >
 class Irq_mgr_single_chip : public Irq_mgr
 {

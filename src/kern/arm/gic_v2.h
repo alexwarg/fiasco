@@ -13,17 +13,26 @@ public:
   using Version = Gic_dist::V2;
 
   Gic_v2(Address cpu_base, Address dist_base, int num_override = -1)
-  : Gic(dist_base, num_override, cpu_base)
+  : Gic(dist_base, cpu_base)
   {
+    init_gic(num_override);
+  }
+
+  Gic_v2(Address cpu_base, Address dist_base, void *)
+  : Gic(dist_base, cpu_base)
+  {}
+
+  void init_gic(int nr_irqs_override = -1)
+  {
+    unsigned num = init_dist(nr_irqs_override);
+    printf("Number of IRQs available at this GIC: %d\n", num);
+    Irq_chip_gen::init(num);
+
     if (!Gic_dist::Config_mxc_tzic)
       cpu_local_init(Cpu_number::boot_cpu());
 
     _cpu.enable();
   }
-
-  Gic_v2(Address cpu_base, Address dist_base, Gic *master_mapping)
-  : Gic(dist_base, master_mapping, cpu_base)
-  {}
 
   void softint_cpu(Cpu_number target, unsigned m) override
   { _dist.softint(_sgi_template[target] | m); }
