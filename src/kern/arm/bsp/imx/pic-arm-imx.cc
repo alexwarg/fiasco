@@ -43,6 +43,8 @@ private:
     INTCTL_NIDIS = 1 << 22, // Normal Interrupt Disable
   };
 public:
+  IRQ_CHIP_DBG_INFO("i.MX IRQ");
+
   int set_mode(Mword, Mode) override { return 0; }
   bool is_edge_triggered(Mword) const override { return false; }
   void set_cpu(Mword, Cpu_number) override {}
@@ -93,11 +95,6 @@ public:
     if (EXPECT_TRUE(p != 0xffff))
       handle_irq<Irq_chip_arm_imx>(p, 0);
   }
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "HW i.MX IRQ"; }
-#endif
 };
 
 static Static_object<Irq_mgr_single_chip<Irq_chip_arm_imx> > mgr;

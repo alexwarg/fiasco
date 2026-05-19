@@ -22,6 +22,8 @@ class Irq_chip_rmsi : public Irq_chip_icu, private Irq_chip_ia32
 {
   friend class Irq_chip_ia32;
 public:
+  IRQ_CHIP_DBG_INFO("rMSI");
+
   // this is somehow arbitrary
   enum { Max_msis = Int_vector_allocator::End - Int_vector_allocator::Base - 0x8 };
   explicit Irq_chip_rmsi(Intel::Io_mmu::Irte volatile *irt, bool coherent)
@@ -170,12 +172,6 @@ public:
     irte = e;
     clean_dcache(&irte);
   }
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "rMSI"; }
-#endif
-
 
 private:
   void clean_dcache(Intel::Io_mmu::Irte volatile const *irte) const

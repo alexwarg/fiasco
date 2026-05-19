@@ -253,6 +253,8 @@ class Irq_chip_i8259 :
   using Base = Irq_i8259_base<IO>;
 
 public:
+  IRQ_CHIP_DBG_INFO("i8259");
+
   typedef typename IO::Port_addr Io_address;
   unsigned nr_irqs() const override { return 16; }
   int set_mode(Mword, Mode) override { return 0; }
@@ -308,11 +310,6 @@ public:
     Base::mask(pin);
     Base::ack(pin);
   }
-
-#if defined (CONFIG_JDB)
-  char const *chip_type() const override
-  { return "i8259"; }
-#endif // CONFIG_JDB
 
 private:
   // power-management hooks

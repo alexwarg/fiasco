@@ -22,6 +22,8 @@ class Gic_ipi_control {};
 class Gic : public Irq_chip_gen, public Gic_ipi_control
 {
 public:
+  IRQ_CHIP_DBG_INFO("GIC");
+
   enum
   {
     Size = 0x20000,
@@ -76,11 +78,6 @@ public:
   void ack_ipi(Cpu_number cpu) override;
   void init_ipis(Cpu_number cpu, Irq_base *irq) override;
 #endif // CONFIG_MP
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "GIC"; }
-#endif // CONFIG_JDB
 
 private:
   typedef Mword Reg_type;

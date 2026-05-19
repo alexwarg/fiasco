@@ -10,6 +10,8 @@
 class Irq_chip_bcm : public Irq_chip_gen, Mmio_register_block
 {
 public:
+  IRQ_CHIP_DBG_INFO("RPI IRQ");
+
   enum
   {
     Irq_basic_pending  = 0x0,
@@ -91,10 +93,5 @@ public:
           return;
       }
   }
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "Raspberry Pi"; }
-#endif
 };
 

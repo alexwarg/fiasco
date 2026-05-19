@@ -7,6 +7,8 @@ namespace Intel { class Io_mmu; }
 class Io_apic_remapped : public Io_apic
 {
 public:
+  IRQ_CHIP_DBG_INFO("rIO-APIC");
+
   Io_apic_remapped(Unsigned64 phys, unsigned gsi_base,
                    Intel::Io_mmu *iommu, Unsigned16 src_id)
   : Io_apic(phys, gsi_base), _iommu(iommu), _src_id(src_id)
@@ -18,11 +20,6 @@ public:
   void set_cpu(Mword pin, Cpu_number cpu) override;
 
   static bool init_apics();
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "rIO-APIC"; }
-#endif
 
 private:
   Intel::Io_mmu *_iommu;

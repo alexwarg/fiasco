@@ -80,6 +80,8 @@ class S3c_chip : public Irq_chip_gen, Mmio_register_block
   };
 
 public:
+  IRQ_CHIP_DBG_INFO("S3C2410 IRQ");
+
   int set_mode(Mword, Mode) override { return 0; }
   bool is_edge_triggered(Mword) const override { return false; }
   void set_cpu(Mword, Cpu_number) override {}
@@ -205,10 +207,6 @@ public:
       }
     return 32;
   }
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "HW S3C2410 IRQ"; }
-#endif
 };
 
 static Static_object<Irq_mgr_single_chip<S3c_chip> > mgr;

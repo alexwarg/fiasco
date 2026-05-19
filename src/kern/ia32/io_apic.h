@@ -52,6 +52,8 @@ class Io_apic : public Irq_chip_icu, protected Irq_chip_ia32
   friend class Jdb_io_apic_module;
   friend class Irq_chip_ia32;
 public:
+  IRQ_CHIP_DBG_INFO("IO-APIC");
+
   explicit Io_apic(Unsigned64 phys, unsigned gsi_base);
 
   unsigned nr_irqs() const override { return Irq_chip_ia32::nr_irqs(); }
@@ -128,13 +130,6 @@ public:
                         : Mode::Trigger_edge;
     return m;
   }
-
-#ifdef CONFIG_JDB
-  char const * chip_type() const override
-  {
-    return "IO-APIC";
-  }
-#endif
 
   static void init(Cpu_number);
   static bool init_scan_apics();

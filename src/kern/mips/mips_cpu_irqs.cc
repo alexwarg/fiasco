@@ -12,6 +12,8 @@
 class Mips_cpu_irq_chip : public Irq_chip_icu
 {
 public:
+  IRQ_CHIP_DBG_INFO("MIPScpu");
+
   Mips_cpu_irq_chip()
   {
     for (auto &i: _irqs)
@@ -109,11 +111,6 @@ public:
   {
     unmask(pin);
   }
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "MIPScpu"; }
-#endif
 
 private:
   Irq_base *_irqs[8];

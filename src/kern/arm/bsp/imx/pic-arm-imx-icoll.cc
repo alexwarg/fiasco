@@ -32,6 +32,8 @@ private:
   Register_block<32> _reg;
 
 public:
+  IRQ_CHIP_DBG_INFO("i.MX-icoll IRQ");
+
   int set_mode(Mword, Mode) override { return 0; }
   bool is_edge_triggered(Mword) const override { return false; }
   void set_cpu(Mword, Cpu_number) override {}
@@ -78,12 +80,6 @@ public:
     _reg[HW_ICOLL_VECTOR] = p; // write anything
     handle_irq<Irq_chip_imx_icoll>(p, 0);
   }
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  {
-    return "i.MX-icoll IRQ";
-  }
-#endif
 };
 
 static Static_object<Irq_mgr_single_chip<Irq_chip_imx_icoll> > mgr;

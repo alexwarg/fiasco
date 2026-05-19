@@ -17,6 +17,12 @@
 #include "string_buffer.h"
 #include "tb_entry.h"
 
+#define IRQ_CHIP_DBG_INFO(name) \
+  char const *chip_type() const override \
+  { return name; }
+
+#else // CONFIG_JDB
+#define IRQ_CHIP_DBG_INFO(name)
 #endif // CONFIG_JDB
 
 class Irq_base;
@@ -122,6 +128,7 @@ public:
 class Irq_chip_soft : public Irq_chip
 {
 public:
+  IRQ_CHIP_DBG_INFO("Soft");
   void mask(Mword) override {}
   void unmask(Mword) override {}
   void mask_and_ack(Mword) override {}
@@ -132,11 +139,6 @@ public:
   bool is_edge_triggered(Mword) const override { return true; }
 
   static Irq_chip_soft sw_chip;
-
-#if defined (CONFIG_JDB)
-  char const *chip_type() const override
-  { return "Soft"; }
-#endif
 };
 
 /**

@@ -28,6 +28,8 @@ private:
   };
 
 public:
+  IRQ_CHIP_DBG_INFO("Kirkwood IRQ");
+
   Irq_chip_kirkwood()
   : Irq_chip_gen(64),
     Mmio_register_block(Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x400))
@@ -86,10 +88,6 @@ public:
     return 64;
   }
 
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "HW Kirkwood IRQ"; }
-#endif
 };
 
 static Static_object<Irq_mgr_single_chip<Irq_chip_kirkwood> > mgr;

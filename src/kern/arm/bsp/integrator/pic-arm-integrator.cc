@@ -24,6 +24,8 @@ private:
   };
 
 public:
+  IRQ_CHIP_DBG_INFO("Integrator");
+
   int set_mode(Mword, Mode) override { return 0; }
   bool is_edge_triggered(Mword) const override { return false; }
   void set_cpu(Mword, Cpu_number) override {}
@@ -60,11 +62,6 @@ public:
   {
     return read<Mword>(IRQ_STATUS);
   }
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "Integrator"; }
-#endif
 };
 
 static Static_object<Irq_mgr_single_chip<Irq_chip_arm_integr> > mgr;

@@ -6,7 +6,9 @@
 class Irq_chip_ingenic : public Irq_chip_gen
 {
 public:
-  Irq_chip_ingenic(Address mmio)
+  IRQ_CHIP_DBG_INFO("Ingenic");
+
+  explicit Irq_chip_ingenic(Address mmio)
   : Irq_chip_gen(32), _r(mmio)
   {
     _r[R_mask] = 0xffffffff;
@@ -57,13 +59,6 @@ public:
 
   void set_cpu(Mword, Cpu_number) override
   {}
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  {
-    return "Ingenic";
-  }
-#endif
 
 private:
   enum : Address

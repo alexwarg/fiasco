@@ -63,6 +63,8 @@ private:
   unsigned offs(Mword pin) const { return (pin >> 3) * 4; }
 
 public:
+  IRQ_CHIP_DBG_INFO("EI-Gpio");
+
   Gpio_eint_chip(Mword gpio_base, unsigned num_irqs)
     : Irq_chip_gen(num_irqs), _gpio_base(gpio_base)
   {}
@@ -118,11 +120,6 @@ public:
 
   unsigned pending() { return Io::read<Mword>(_gpio_base + 0xb08); }
 
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "EI-Gpio"; }
-#endif
-
 private:
   enum {
     INTCON = 0x700,
@@ -138,6 +135,8 @@ private:
   unsigned offs(Mword pin) const { return (pin >> 3) * 4; }
 
 public:
+  IRQ_CHIP_DBG_INFO("WU-GPIO");
+
   explicit Gpio_wakeup_chip(Address physbase)
   : Irq_chip_gen(32),
     Mmio_register_block(Kmem::mmio_remap(physbase, 0x1000)),
@@ -213,10 +212,6 @@ public:
 
   Unsigned32 _wakeup;
 
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "WU-GPIO"; }
-#endif
 private:
   enum {
     INTCON = 0xe00,
@@ -229,6 +224,8 @@ private:
 class Combiner_chip : public Irq_chip_gen, private Mmio_register_block
 {
 public:
+  IRQ_CHIP_DBG_INFO("Comb");
+
   enum
   {
     Enable_set    = 0,
@@ -315,10 +312,6 @@ public:
       }
   }
 
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "Comb"; }
-#endif
 };
 
 
@@ -658,6 +651,8 @@ Mgr_ex5::Mgr_ex5()
 
 struct Ext_gic : Gic
 {
+  IRQ_CHIP_DBG_INFO("Ext GIC");
+
   Per_cpu_array<Static_object<Gic_v2>> g;
   Gic_v2 *current() { return g[current_cpu()]; }
   Gic_v2 *master() { return g[Cpu_number::boot_cpu()]; }
@@ -737,10 +732,6 @@ struct Ext_gic : Gic
     return current()->Gic_v2::is_edge_triggered(pin);
   }
 
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "Ext GIC"; }
-#endif
 };
 
 class Mgr_ext : public Mgr_exynos

@@ -19,6 +19,8 @@ protected:
   Gic_dist _dist;
 
 public:
+  IRQ_CHIP_DBG_INFO("GIC");
+
   explicit Gic_x(Address dist_base) : _dist(dist_base) {}
 
   unsigned hw_nr_irqs()
@@ -58,11 +60,6 @@ public:
   }
 
   bool alloc(Irq_base *irq, Mword pin, bool init = true) override;
-
-#if defined (CONFIG_JDB)
-  char const *chip_type() const override
-  { return "GIC"; }
-#endif // CONFIG_JDB
 };
 
 template<typename IMPL, typename CPU>

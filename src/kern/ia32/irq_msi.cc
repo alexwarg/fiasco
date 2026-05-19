@@ -12,6 +12,8 @@ class Irq_chip_msi : public Irq_chip_icu, private Irq_chip_ia32
 {
   friend class Irq_chip_ia32;
 public:
+  IRQ_CHIP_DBG_INFO("MSI");
+
   // this is somehow arbitrary
   enum { Max_msis = Int_vector_allocator::End - Int_vector_allocator::Base - 0x8 };
   Irq_chip_msi() : Irq_chip_ia32(Max_msis) {}
@@ -66,11 +68,6 @@ public:
 
   void unmask(Mword) override
   {}
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "MSI"; }
-#endif
 };
 
 class Irq_mgr_msi : public Irq_mgr

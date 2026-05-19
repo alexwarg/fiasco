@@ -41,6 +41,8 @@ private:
     INTCPS_ILRm_base         = 0x100,
   };
 public:
+  IRQ_CHIP_DBG_INFO("HW OMAP3 IRQ");
+
   int set_mode(Mword, Mode) { return 0; }
   bool is_edge_triggered(Mword) const { return false; }
   void set_cpu(Mword, Cpu_number) {}
@@ -107,11 +109,6 @@ public:
       }
     return 0;
   }
-
-#ifdef CONFIG_JDB
-  char const *chip_type() const override
-  { return "HW OMAP3 IRQ"; }
-#endif
 };
 
 static Static_object<Irq_mgr_single_chip<Irq_chip_arm_omap3> > mgr;
