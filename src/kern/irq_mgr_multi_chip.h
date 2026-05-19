@@ -1,7 +1,8 @@
 #pragma once
 
-#include "irq_mgr.h"
-#include "boot_alloc.h"
+#include <irq_mgr.h>
+#include <boot_alloc.h>
+#include <l4_types.h>
 
 #include <cassert>
 #include <cstring>
@@ -26,43 +27,43 @@ public:
 
     Chip *ci = _chips + c;
 
-    return Irq(ci->chip, irqnum & ci->mask);
+    return Irq(ci->chip, irqnum - ci->offset);
   }
 
-  void add_chip(unsigned irq_base, Irq_chip_icu *c, unsigned pins)
+  int add_chip(unsigned irq_base, Irq_chip_icu *c, unsigned pins)
   {
-    // check if the base is properly aligned
-    assert ((irq_base & ~(~0UL << Bits_per_entry)) == 0);
+    if ((irq_base & ~(~0UL << Bits_per_entry)) != 0)
+      return -L4_err::EInval;
+
+    if (!c)
+      return -L4_err::EInval;
+
+    if (pins == 0)
+      return -L4_err::EInval;
 
     unsigned idx = irq_base >> Bits_per_entry;
     unsigned num = (pins + (1UL << Bits_per_entry) - 1) >> Bits_per_entry;
 
-    unsigned mask = ~0U;
-    while (mask & (pins - 1))
-      mask <<= 1;
+    if (idx + num > _nchips)
+      return -L4_err::ERange;
 
-    assert (mask);
-    mask = ~mask;
-
-    // base irq must be aligned according to the number of pins
-    assert (!(irq_base & mask));
-
-    assert (num);
-    assert (idx < _nchips);
-    assert (idx + num <= _nchips);
+    for (unsigned i = idx; i < idx + num; ++i)
+      if (_chips[i].chip)
+        return -L4_err::EExists;
 
     for (unsigned i = idx; i < idx + num; ++i)
       {
-        assert (!_chips[i].chip);
         _chips[i].chip = c;
-        _chips[i].mask = mask;
+        _chips[i].offset = irq_base;
       }
+
+    return 0;
   }
 
 private:
   struct Chip
   {
-    unsigned mask;
+    unsigned offset;
     Irq_chip_icu *chip;
   };
 
