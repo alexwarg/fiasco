@@ -91,7 +91,7 @@ PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 INTERFACES_KERNEL	+= \
 			   boot_console \
 
-INTERFACES_KERNEL-$(CONFIG_IOMMU)    += dmar_space
+CXXSRC_KERNEL-$(CONFIG_IOMMU)    += dmar_space.cc
 
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
