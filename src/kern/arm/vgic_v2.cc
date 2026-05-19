@@ -4,9 +4,7 @@
 
 #include <vgic_global.h>
 #include <boot_alloc.h>
-
-Static_object<Gic_h_v2> Gic_h_v2::gic;
-
+#include <kmem.h>
 
 namespace {
 
@@ -19,7 +17,8 @@ struct Gic_h_v2_init
 
     Gic_h_global::gic
       = new Boot_object<Gic_h_v2>(Kmem::mmio_remap(Mem_layout::Gic_h_phys_base,
-                                                   Config::PAGE_SIZE));
+                                                   Config::PAGE_SIZE),
+                                  Mem_layout::Gic_v_phys_base);
   }
 };
 

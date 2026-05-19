@@ -1,11 +1,10 @@
 
 #pragma once
 
-#include "types.h"
-#include "mem.h"
-#include "kmem.h"
-#include "mmio_register_block.h"
-#include "vgic.h"
+#include <types.h>
+#include <mem.h>
+#include <mmio_register_block.h>
+#include <vgic.h>
 
 #include <cxx/bitfield>
 
@@ -52,12 +51,12 @@ public:
     CXX_BITFIELD_MEMBER( 31, 31, hw, raw);
   };
 
-  explicit Gic_h_v2(Address va) : Mmio_register_block(va) {}
-
-  static Static_object<Gic_h_v2> gic;
+  explicit Gic_h_v2(Address va, Address v_phys)
+  : Mmio_register_block(va), v_phys_base(v_phys)
+  {}
 
   Address gic_v_address() const override
-  { return Mem_layout::Gic_v_phys_base; }
+  { return v_phys_base; }
 
   Hcr hcr() const
   { return Hcr(read<Unsigned32>(HCR)); }
@@ -104,5 +103,7 @@ public:
   static void vgic_barrier()
   { Mem::dsb(); /* Ensure vgic completion before running user-land */ }
 
+private:
+  Address v_phys_base;
 };
 
