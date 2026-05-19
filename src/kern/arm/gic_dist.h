@@ -56,6 +56,11 @@ public:
     MXC_TZIC_CTRL_NSENMASK   = 1 << 31,
   };
 
+  Address get_mmio_base() const
+  {
+    return _dist.get_mmio_base();
+  }
+
 #if defined (PRE_pic_gic_mxc_tzic)
   static constexpr bool Config_mxc_tzic = true;
 

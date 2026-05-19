@@ -22,6 +22,11 @@ public:
   : Gic(dist_base, cpu_base)
   {}
 
+  Address get_cpu_base() const
+  {
+    return _cpu.get_mmio_base();
+  }
+
   void init_gic(int nr_irqs_override = -1)
   {
     unsigned num = init_dist(nr_irqs_override);

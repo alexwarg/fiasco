@@ -23,6 +23,11 @@ public:
 
   explicit Gic_x(Address dist_base) : _dist(dist_base) {}
 
+  Address get_dist_base() const
+  {
+    return _dist.get_mmio_base();
+  }
+
   unsigned hw_nr_irqs()
   { return _dist.hw_nr_irqs(); }
 

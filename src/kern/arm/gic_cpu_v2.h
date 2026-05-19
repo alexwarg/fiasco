@@ -35,6 +35,11 @@ public:
 
   static constexpr bool Config_tz_sec = IS_ENABLED(CONFIG_ARM_EM_TZ);
 
+  Address get_mmio_base() const
+  {
+    return _cpu.get_mmio_base();
+  }
+
   void pmr(unsigned prio)
   {
     _cpu.write<Unsigned32>(prio, GICC_PMR);
