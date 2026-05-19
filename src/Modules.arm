@@ -144,7 +144,6 @@ VPATH		+= jdb/arm/$(BITS) jdb/arm jdb
 PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
 INTERFACES_KERNEL += 	mem_op \
-			bootstrap                  \
 
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc \
@@ -185,10 +184,9 @@ CXXSRC_KERNEL-$(CONFIG_ARM_CACHE_L2CXX0) += outer_cache-l2cxx0.cc
 
 INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
 
-
-bootstrap_IMPL		:= bootstrap bootstrap-arm-$(BITS)
+CXXSRC_KERNEL += bootstrap.cc
 CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if $(CONFIG_BIT64),-mcmodel=large)
-CXXFLAGS_bootstrap-arm-$(BITS) := $(CXXFLAGS_bootstrap)
+
 clock_IMPL              := clock
 cpu_IMPL	  	:= cpu cpu-arm cpu-arm-hyp cpu-arm-$(BITS)
 cpu_lock_IMPL  	  	:= cpu_lock cpu_lock-generic

@@ -1,13 +1,19 @@
-INTERFACE [arm]:
+#pragma once
 
-#include "mem_layout.h"
-#include "mmio_register_block.h"
-#include "paging.h"
-#include "config.h"
-#include "kip.h"
+#include <bootstrap-arm-types.h>
+#include <globalconfig.h>
+#include <paging.h>
+#include <mem.h>
+#include <mem_layout.h>
+#include <cpu.h>
+#include <kip.h>
+#include <config.h>
+#include <mmio_register_block.h>
+#include <infinite_loop.h>
 
-EXTENSION class Bootstrap
+namespace Bootstrap
 {
+
   struct Bs_mem_map
   {
     static Address phys_to_pmem(Address a)
@@ -44,14 +50,11 @@ EXTENSION class Bootstrap
     Address _p;
     Mword &_free_map;
   };
-};
 
-IMPLEMENTATION [arm]:
-
-PRIVATE static inline void
-Bootstrap::map_ram_range(Kpdir *kd, Bs_alloc &alloc,
-                         unsigned long pstart, unsigned long pend,
-                         long va_offset)
+inline void
+map_ram_range(Kpdir *kd, Bs_alloc &alloc,
+              unsigned long pstart, unsigned long pend,
+              long va_offset)
 {
   typedef Ptab::Level<K_ptab_traits> L;
   enum
@@ -103,8 +106,8 @@ Bootstrap::map_ram_range(Kpdir *kd, Bs_alloc &alloc,
     }
 }
 
-PRIVATE static inline NEEDS["kip.h"] void
-Bootstrap::map_ram(Kpdir *kd, Bs_alloc &alloc)
+inline void
+map_ram(Kpdir *kd, Bs_alloc &alloc)
 {
   Kip *kip = reinterpret_cast<Kip*>(kern_to_boot(bs_info.kip));
   for (auto const &md: kip->mem_descs_a())
@@ -123,11 +126,9 @@ Bootstrap::map_ram(Kpdir *kd, Bs_alloc &alloc)
   }
 }
 
+#if defined(CONFIG_ARM_GIC) && !defined(CONFIG_HAVE_ARM_GICV3)
 
-IMPLEMENTATION [arm && pic_gic && !have_arm_gicv3]:
-
-PUBLIC static void
-Bootstrap::config_gic_ns()
+static void config_gic_ns()
 {
   Mmio_register_block dist(Mem_layout::Gic_dist_phys_base);
   Mmio_register_block cpu(Mem_layout::Gic_cpu_phys_base);
@@ -141,23 +142,118 @@ Bootstrap::config_gic_ns()
   Mmu<Bootstrap::Cache_flush_area, true>::flush_cache();
 }
 
-IMPLEMENTATION [arm && (!pic_gic || have_arm_gicv3)]:
+#endif
+#if !defined (CONFIG_ARM_GIC) || defined (CONFIG_HAVE_ARM_GICV3)
+inline void config_gic_ns() {}
+#endif
 
-PUBLIC static inline void
-Bootstrap::config_gic_ns() {}
+#ifdef CONFIG_CPU_VIRT
 
-IMPLEMENTATION [arm && !cpu_virt]:
+inline void enable_paging(Mword)
+{
+  unsigned long control = Cpu::Sctlr_generic;
 
-#include "cpu.h"
+  Mem::dsb();
+  asm volatile("tlbi alle2is");
+  asm volatile("tlbi alle1is");
+  Mem::dsb();
+  asm volatile("msr SCTLR_EL2, %[control]" : : [control] "r" (control));
+  Mem::isb();
+  asm volatile ("ic iallu; dsb nsh; isb");
+}
+
+inline void set_mair0(Mword v)
+{
+  asm volatile ("msr MAIR_EL2, %0" : : "r"(v));
+}
+
+static void leave_el3()
+{
+  Mword cel;
+  asm volatile ("mrs %0, CurrentEL" : "=r"(cel));
+  cel >>= 2;
+  cel &= 3;
+
+  if (cel != 3)
+    return; // not on EL3 so do nothing
+
+  config_gic_ns();
+
+  Mword pfr0;
+  asm volatile ("mrs %0, id_aa64pfr0_el1" : "=r"(pfr0));
+  if (((pfr0 >> 8) & 0xf) == 0)
+    {
+      // EL2 not supported, crash
+      L4::infinite_loop();
+    }
+
+  asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
+
+  // flush all E2 TLBs
+  asm volatile ("tlbi alle2is");
+
+  // setup SCR (disable monitor completely)
+  asm volatile ("msr scr_el3, %0"
+                : :
+                "r"(Cpu::Scr_default_bits));
+
+  Mword sctlr_el3;
+  Mword sctlr;
+  asm volatile ("mrs %0, sctlr_el3" : "=r"(sctlr_el3));
+  sctlr = Cpu::Sctlr_generic & ~Cpu::Sctlr_m;
+  sctlr |= sctlr_el3 & Cpu::Sctlr_ee;
+  asm volatile ("dsb sy" : : : "memory");
+  // drain the data and instruction caches as we might switch from
+  // secure to non-secure mode and only secure mode can clear
+  // caches for secure memory.
+  Mmu<Bootstrap::Cache_flush_area, true>::flush_cache();
+
+  asm volatile ("msr sctlr_el2, %0" : : "r"(sctlr) : "memory");
+
+  Mword tmp;
+  // monitor mode .. switch to el2
+  asm volatile (
+      "   msr spsr_el3, %[psr] \n"
+      "   adr x4, 1f           \n"
+      "   msr elr_el3, x4      \n"
+      "   mov %[tmp], sp       \n"
+      "   eret                 \n"
+      "1: mov sp, %[tmp]       \n"
+      : [tmp]"=&r"(tmp)
+      : [psr]"r"((0xfUL << 6) | 9)
+      : "cc", "x4");
+}
+
+static Phys_addr init_paging()
+{
+  leave_el3();
+
+  Kpdir *d = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_dir));
+  set_mair0(Page::Mair0_prrr_bits);
+
+  Bs_alloc alloc(kern_to_boot(bs_info.pi.scratch), bs_info.pi.free_map);
+  d->walk(::Virt_addr(Mem_layout::Registers_map_start), 2, false, alloc, Bs_mem_map());
+  map_ram(d, alloc);
+
+  asm volatile (
+      "msr tcr_el2, %1   \n"
+      "dsb sy            \n"
+      "msr ttbr0_el2, %0 \n"
+      "isb               \n"
+      : :
+      "r"(d), "r"((Mword)Page::Ttbcr_bits));
+
+  return Phys_addr(0);
+}
+
+#else // CONFIG_CPU_VIRT
 
 enum : Unsigned64
 {
   Hcr_default_bits = Cpu::Hcr_hcd | Cpu::Hcr_rw,
 };
 
-PUBLIC static inline NEEDS["cpu.h"]
-void
-Bootstrap::enable_paging(Mword)
+inline void enable_paging(Mword)
 {
   unsigned long control = Cpu::Sctlr_generic;
 
@@ -169,11 +265,12 @@ Bootstrap::enable_paging(Mword)
   asm volatile ("ic iallu; dsb nsh; isb");
 }
 
-static inline void
-Bootstrap::set_mair0(Mword v)
-{ asm volatile ("msr MAIR_EL1, %0" : : "r"(v)); }
+inline void set_mair0(Mword v)
+{
+  asm volatile ("msr MAIR_EL1, %0" : : "r"(v));
+}
 
-static inline void
+inline void
 switch_from_el3_to_el1()
 {
   Bootstrap::config_gic_ns();
@@ -223,8 +320,7 @@ switch_from_el3_to_el1()
       : "cc", "x4");
 }
 
-static void
-Bootstrap::leave_hyp_mode()
+static void leave_hyp_mode()
 {
   Mword cel;
   asm volatile ("mrs %0, CurrentEL" : "=r"(cel));
@@ -259,8 +355,7 @@ Bootstrap::leave_hyp_mode()
     }
 }
 
-PUBLIC static Bootstrap::Phys_addr
-Bootstrap::init_paging()
+static Phys_addr init_paging()
 {
   leave_hyp_mode();
   Pdir  *ud = reinterpret_cast<Pdir *>(kern_to_boot(bs_info.pi.l0_dir));
@@ -290,17 +385,9 @@ Bootstrap::init_paging()
   return Phys_addr(0);
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
+#endif // CONFIG_CPU_VIRT
 
-static inline
-Bootstrap::Order
-Bootstrap::map_page_order()
-{ return Order(30); }
-
-PUBLIC static inline void
-Bootstrap::add_initial_pmem()
-{}
+}
 
 asm
 (
@@ -319,108 +406,3 @@ asm
 ".previous                             \n"
 );
 
-// -----------------------------------------------------------------
-IMPLEMENTATION [arm && cpu_virt]:
-
-#include "infinite_loop.h"
-#include "cpu.h"
-
-PUBLIC static inline NEEDS["cpu.h"]
-void
-Bootstrap::enable_paging(Mword)
-{
-  unsigned long control = Cpu::Sctlr_generic;
-
-  Mem::dsb();
-  asm volatile("tlbi alle2is");
-  asm volatile("tlbi alle1is");
-  Mem::dsb();
-  asm volatile("msr SCTLR_EL2, %[control]" : : [control] "r" (control));
-  Mem::isb();
-  asm volatile ("ic iallu; dsb nsh; isb");
-}
-
-static inline void
-Bootstrap::set_mair0(Mword v)
-{ asm volatile ("msr MAIR_EL2, %0" : : "r"(v)); }
-
-static void
-Bootstrap::leave_el3()
-{
-  Mword cel;
-  asm volatile ("mrs %0, CurrentEL" : "=r"(cel));
-  cel >>= 2;
-  cel &= 3;
-
-  if (cel != 3)
-    return; // not on EL3 so do nothing
-
-  Bootstrap::config_gic_ns();
-
-  Mword pfr0;
-  asm volatile ("mrs %0, id_aa64pfr0_el1" : "=r"(pfr0));
-  if (((pfr0 >> 8) & 0xf) == 0)
-    {
-      // EL2 not supported, crash
-      L4::infinite_loop();
-    }
-
-  asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
-
-  // flush all E2 TLBs
-  asm volatile ("tlbi alle2is");
-
-  // setup SCR (disable monitor completely)
-  asm volatile ("msr scr_el3, %0"
-                : :
-                "r"(Cpu::Scr_default_bits));
-
-  Mword sctlr_el3;
-  Mword sctlr;
-  asm volatile ("mrs %0, sctlr_el3" : "=r"(sctlr_el3));
-  sctlr = Cpu::Sctlr_generic & ~Cpu::Sctlr_m;
-  sctlr |= sctlr_el3 & Cpu::Sctlr_ee;
-  asm volatile ("dsb sy" : : : "memory");
-  // drain the data and instruction caches as we might switch from
-  // secure to non-secure mode and only secure mode can clear
-  // caches for secure memory.
-  Mmu<Bootstrap::Cache_flush_area, true>::flush_cache();
-
-  asm volatile ("msr sctlr_el2, %0" : : "r"(sctlr) : "memory");
-
-  Mword tmp;
-  // monitor mode .. switch to el2
-  asm volatile (
-      "   msr spsr_el3, %[psr] \n"
-      "   adr x4, 1f           \n"
-      "   msr elr_el3, x4      \n"
-      "   mov %[tmp], sp       \n"
-      "   eret                 \n"
-      "1: mov sp, %[tmp]       \n"
-      : [tmp]"=&r"(tmp)
-      : [psr]"r"((0xfUL << 6) | 9)
-      : "cc", "x4");
-}
-
-PUBLIC static Bootstrap::Phys_addr
-Bootstrap::init_paging()
-{
-  leave_el3();
-
-  Kpdir *d = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_dir));
-  set_mair0(Page::Mair0_prrr_bits);
-
-  Bs_alloc alloc(kern_to_boot(bs_info.pi.scratch), bs_info.pi.free_map);
-  d->walk(::Virt_addr(Mem_layout::Registers_map_start), 2, false, alloc, Bs_mem_map());
-  map_ram(d, alloc);
-
-  asm volatile (
-      "msr tcr_el2, %1   \n"
-      "dsb sy            \n"
-      "msr ttbr0_el2, %0 \n"
-      "isb               \n"
-      : :
-      "r"(d), "r"((Mword)Page::Ttbcr_bits));
-
-  return Phys_addr(0);
-}
