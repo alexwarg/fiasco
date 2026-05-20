@@ -8,5 +8,4 @@ RAM_PHYS_BASE         := 0x80000000
 
 CXXSRC_KERNEL         += pfc-arm-lx2160.cc pic-arm-lx2160.cc pic-gic-init.cc
 
-mem_layout_IMPL       += mem_layout-arm-lx2160
 clock_IMPL            += clock-generic

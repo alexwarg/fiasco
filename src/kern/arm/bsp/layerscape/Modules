@@ -8,5 +8,4 @@ LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 
 CXXSRC_KERNEL         += pfc-arm-layerscape.cc pic-arm-layerscape.cc pic-gic-init.cc
 
-mem_layout_IMPL       += mem_layout-arm-layerscape
 clock_IMPL            += clock-generic

@@ -118,8 +118,6 @@ public:
   enum Phys_layout_realview_vexpress_a9 : Address {
     Devices1_phys_base   = 0x1e000000,
     Mp_scu_phys_base      = Devices1_phys_base,
-    Gic_cpu_phys_base     = Devices1_phys_base + 0x00000100,
-    Gic_dist_phys_base    = Devices1_phys_base + 0x00001000,
     L2cxx0_phys_base      = Devices1_phys_base + 0x00002000,
   };
 };
@@ -143,10 +141,6 @@ public:
 
     Devices2_phys_base   = 0x2c000000,
     Mp_scu_phys_base      = Devices2_phys_base,
-    Gic_cpu_phys_base     = Devices2_phys_base + 0x00002000,
-    Gic_dist_phys_base    = Devices2_phys_base + 0x00001000,
-    Gic_h_phys_base       = Devices2_phys_base + 0x4000,
-    Gic_v_phys_base       = Devices2_phys_base + 0x6000,
 
 
     L2cxx0_phys_base      = Devices2_phys_base + 0x00003000,

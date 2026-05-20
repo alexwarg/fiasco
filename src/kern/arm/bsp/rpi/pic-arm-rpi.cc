@@ -97,27 +97,26 @@ Pic::set_pending_irq(unsigned group32num, Unsigned32 val)
 #include <gic_v2.h>
 #include <irq_mgr_multi_chip.h>
 #include <kmem.h>
+#include <pic-gic-helper.h>
 
 #ifdef CONFIG_BIT32
 #include <arm_control.h>
 #endif
 
+Pic_gic::Gic_info const Pic_gic::primary_gic_info =
+{
+  .version = 2, .primary = true, .offset = 0,
+  .dist_phys  = 0xff841000, .dist_size = 0x1000,
+  .cpu_phys   = 0xff842000, .cpu_size = 0x100,
+  .cpu_h_phys = 0xff844000, .cpu_h_size = 0x1000,
+  .cpu_v_phys = 0xff846000, .cpu_v_size = 0x1000,
+};
+
 FIASCO_INIT
 void
 Pic::init()
 {
-  typedef Irq_mgr_multi_chip<8> M;
-
-  M *m = new Boot_object<M>(1);
-
-  Gic_v2 *g
-    = new Boot_object<Gic_v2>(Kmem::mmio_remap(Mem_layout::Gic_cpu_phys_base,
-                                               Gic_cpu_v2::Size),
-                              Kmem::mmio_remap(Mem_layout::Gic_dist_phys_base,
-                                               Gic_dist::Size));
-  m->add_chip(0, g, g->nr_irqs());
-  g->set_as_primary_irq_handler();
-  Irq_mgr::mgr = m;
+  Pic_gic::add_gic(Pic_gic::primary_gic_info);
 #ifdef CONFIG_BIT32
   Arm_control::init();
 #endif

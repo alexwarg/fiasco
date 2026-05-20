@@ -2,6 +2,15 @@
 # PFDESCR: TI OMAP
 # PFDEPENDS: ARM
 
+config PF_OMAP3
+	bool
+
+config PF_OMAP4
+	bool
+
+config PF_OMAP5
+	bool
+
 choice
 	prompt "OMAP Platform"
 	depends on PF_OMAP
@@ -10,18 +19,21 @@ choice
 config PF_OMAP3_OMAP35XEVM
 	bool "TI OMAP35xEVM"
 	select CAN_ARM_CPU_CORTEX_A8
+	select PF_OMAP3
 	help
 	  Choose for OMAP35xEVM platform.
 
 config PF_OMAP3_BEAGLEBOARD
 	bool "Beagle Board"
 	select CAN_ARM_CPU_CORTEX_A8
+	select PF_OMAP3
 	help
 	  Choose for Beagleboard.
 
 config PF_OMAP3_AM33XX
 	bool "TI AM33xx"
 	select CAN_ARM_CPU_CORTEX_A8
+	select PF_OMAP3
 	help
 	  Choose for AM33xx platforms (e.g. Beaglebone).
 
@@ -32,6 +44,7 @@ config PF_OMAP4_PANDABOARD
 	select CAN_ARM_CACHE_L2CXX0
 	select ARM_GIC
 	select HAVE_ARM_GICV2
+	select PF_OMAP4
 	help
 	  Choose for Pandaboard.
 
@@ -42,6 +55,7 @@ config PF_OMAP5_5432EVM
 	select ARM_GIC
         select ARM_GENERIC_TIMER
 	select HAVE_ARM_GICV2
+	select PF_OMAP5
         help
           Choose for OMAP5432EVM.
 

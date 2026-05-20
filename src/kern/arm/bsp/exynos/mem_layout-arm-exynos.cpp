@@ -76,10 +76,6 @@ public:
     Mct_phys_base          = 0x101c0000,
     Watchdog_phys_base     = 0x101d0000,
     Irq_combiner_phys_base = 0x10440000,
-    Gic_dist_phys_base     = 0x10481000,
-    Gic_cpu_phys_base      = 0x10482000,
-    Gic_h_phys_base        = 0x10484000,
-    Gic_v_phys_base        = 0x10486000,
 
     Mp_scu_phys_base       = 0x10500000,
     Gpio1_phys_base        = 0x11400000,

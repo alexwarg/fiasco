@@ -10,6 +10,8 @@
 #include <config.h>
 #include <mmio_register_block.h>
 #include <infinite_loop.h>
+#include <pic-gic-helper.h>
+
 
 namespace Bootstrap
 {
@@ -130,8 +132,8 @@ map_ram(Kpdir *kd, Bs_alloc &alloc)
 
 static void config_gic_ns()
 {
-  Mmio_register_block dist(Mem_layout::Gic_dist_phys_base);
-  Mmio_register_block cpu(Mem_layout::Gic_cpu_phys_base);
+  Mmio_register_block dist(Pic_gic::primary_gic_info.dist_phys);
+  Mmio_register_block cpu(Pic_gic::primary_gic_info.cpu_phys);
   unsigned n = ((dist.read<Unsigned32>(4 /*GICD_TYPER*/) & 0x1f) + 1) * 32;
   dist.write<Unsigned32>(0, 0 /*Gic::GICD_CTRL*/);
 

@@ -128,9 +128,6 @@ EXTENSION class Mem_layout
 {
 public:
   enum Phys_layout_imx8m : Address {
-    Gic_dist_phys_base   = 0x38800000,
-    Gic_redist_phys_base = 0x38880000,
-    Gic_redist_size      = 0x000c0000,
     /*dummy*/ Watchdog_phys_base   = ~0UL
   };
 };

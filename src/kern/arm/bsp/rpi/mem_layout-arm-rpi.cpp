@@ -41,9 +41,5 @@ public:
     Bcm2711_base       = 0xfe000000,
     Local_intc         = 0xff800000,
     Watchdog_phys_base = Bcm2711_base + 0x00100000,
-    Gic_cpu_phys_base  = 0xff842000,
-    Gic_dist_phys_base = 0xff841000,
-    Gic_h_phys_base    = 0xff844000,
-    Gic_v_phys_base    = 0xff846000,
   };
 };

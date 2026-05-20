@@ -39,8 +39,6 @@ EXTENSION class Mem_layout
 public:
   enum Phys_layout_omap4_pandaboard : Address {
     Mp_scu_phys_base        = 0x48240000,
-    Gic_cpu_phys_base       = 0x48240100,
-    Gic_dist_phys_base      = 0x48241000,
     L2cxx0_phys_base        = 0x48242000,
 
     __Timer                 = 0x48240600,
@@ -55,11 +53,6 @@ EXTENSION class Mem_layout
 {
 public:
   enum Phys_layout_omap5 : Address {
-    Gic_dist_phys_base      = 0x48211000,
-    Gic_cpu_phys_base       = 0x48212000,
-    Gic_h_phys_base         = 0x48214000,
-    Gic_v_phys_base         = 0x48216000,
-
     Prm_phys_base           = 0x4ae06000,
   };
 };

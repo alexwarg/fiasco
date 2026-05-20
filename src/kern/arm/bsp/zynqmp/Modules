@@ -8,5 +8,4 @@ RAM_PHYS_BASE         := 0x0
 
 CXXSRC_KERNEL         += pfc-arm-zynqmp.cc pic-arm-zynqmp.cc pic-gic-init.cc
 
-mem_layout_IMPL       += mem_layout-arm-zynqmp
 clock_IMPL            += clock-generic

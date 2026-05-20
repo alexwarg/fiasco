@@ -8,5 +8,4 @@ RAM_PHYS_BASE           := 0x40000000
 
 CXXSRC_KERNEL += pfc-arm-virt.cc pic-gic-init.cc pic-arm-virt.cc
 
-mem_layout_IMPL       += mem_layout-arm-virt
 clock_IMPL            += clock-generic

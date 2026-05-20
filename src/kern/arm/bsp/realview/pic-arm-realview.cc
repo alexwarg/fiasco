@@ -90,10 +90,15 @@ static Pic_gic::Gic_info const gics[] =
 {
     {
       .version = 2, .primary = true, .offset = 0,
-      .dist_phys = Mem_layout::Gic_dist_phys_base,
-      .dist_size = 0x1000,
-      .cpu_phys  = Mem_layout::Gic_cpu_phys_base,
-      .cpu_size  = 0x100,
+#ifdef CONFIG_PF_REALVIEW_VEXPRESS_A9
+      .dist_phys  = 0x1e001000, .dist_size  = 0x1000,
+      .cpu_phys   = 0x1e000100, .cpu_size   = 0x100,
+#else
+      .dist_phys  = 0x2c001000, .dist_size  = 0x1000,
+      .cpu_phys   = 0x2c002000, .cpu_size   = 0x100,
+      .cpu_h_phys = 0x2c004000, .cpu_h_size = 0x1000,
+      .cpu_v_phys = 0x2c006000, .cpu_v_size = 0x1000,
+#endif
     }
 };
 

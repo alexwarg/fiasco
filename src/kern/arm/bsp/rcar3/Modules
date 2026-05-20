@@ -7,6 +7,6 @@ PREPROCESS_PARTS      += generic_tickless_idle \
 RAM_PHYS_BASE         := 0x48000000
 
 CXXSRC_KERNEL         += pfc-arm-rcar3.cc pic-arm-rcar3.cc pic-gic-init.cc
+BOOTSTRAP_EXTRA       += pic-arm-rcar3.o
 
-mem_layout_IMPL       += mem_layout-arm-rcar3
 clock_IMPL            += clock-generic
