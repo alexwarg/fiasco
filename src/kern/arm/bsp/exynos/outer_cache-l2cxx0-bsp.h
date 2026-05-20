@@ -3,10 +3,11 @@
 #include <cpu.h>
 #include <platform.h>
 #include <exynos_smc.h>
+#include <kmem.h>
 
 namespace Outer_cache
 {
-  static Mword platform_init(Mword auxc)
+  static Mword platform_init()
   {
     using namespace Priv;
     unsigned tag_lat = 0x110;
@@ -25,6 +26,9 @@ namespace Outer_cache
                       | (1 << 29)  // insn prefetch enable
                       | (1 << 30)  // early BRESP enable
                       ;
+
+    l2cxx0.construct(Kmem::mmio_remap(0x10502000, 0x1000));
+    Mword auxc = l2cxx0->read<Mword>(L2cxx0::AUX_CONTROL);
 
     if (!Platform::running_ns())
       {

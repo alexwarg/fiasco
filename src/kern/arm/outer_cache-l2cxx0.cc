@@ -49,11 +49,9 @@ namespace Outer_cache
 
     static void initialize(bool v = true)
     {
-      l2cxx0.construct(Kmem::mmio_remap(Mem_layout::L2cxx0_phys_base,
-                                        Config::PAGE_SIZE));
       need_sync = true;
 
-      Mword aux = platform_init(l2cxx0->read<Mword>(L2cxx0::AUX_CONTROL));
+      Mword aux = platform_init();
       Mword cache_id = l2cxx0->read<Mword>(L2cxx0::CACHE_ID);
       unsigned ways = 8;
 

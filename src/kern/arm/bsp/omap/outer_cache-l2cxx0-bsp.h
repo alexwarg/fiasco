@@ -1,5 +1,7 @@
 #pragma once
 
+#include <kmem.h>
+
 namespace Outer_cache
 {
   enum
@@ -30,8 +32,9 @@ namespace Outer_cache
     }
   } // namespace Priv
 
-  inline Mword platform_init(Mword aux_control)
+  inline Mword platform_init()
   {
+    Mword
     aux_control =   (1 << 16) // 16-way associativity
                   | (3 << 17) // 64k waysize
                   | (1 << 22) // shared attrib override
@@ -42,6 +45,7 @@ namespace Outer_cache
                   | (1 << 29) // insn prefetch
                   | (1 << 30) // early BRESP enable
                  ;
+    Priv::l2cxx0.construct(Kmem::mmio_remap(0x48242000, 0x1000));
 
     Priv::smc(Omap_l2cache_aux_reg, aux_control);
     Priv::smc(Omap_l2cache_enable, 1);
