@@ -6,6 +6,8 @@ struct Platform_if
 {
   virtual Address scu_phys() { return 0; }
   virtual void init() {}
+  virtual void init_irqs() = 0;
+  virtual void init_irqs_ap(Cpu_number cpu, bool resume) = 0;
 
   static Platform_if *pf;
 };

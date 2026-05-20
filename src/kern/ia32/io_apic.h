@@ -147,6 +147,24 @@ public:
 
   static unsigned legacy_override(unsigned i);
   static Io_apic *find_apic(unsigned irqnum);
+  struct iterator
+  {
+    Io_apic *c = nullptr;
+    Io_apic *operator -> () const noexcept { return c; }
+    Io_apic *operator * () const noexcept { return c; }
+    iterator operator ++ (int) noexcept { iterator res = *this; c = c->_next; return res; }
+    iterator operator ++ () noexcept { c = c->_next; return *this; }
+    bool operator == (iterator const &o) const noexcept { return c == o.c; }
+    bool operator != (iterator const &o) const noexcept { return c != o.c; }
+  };
+
+  struct it_range
+  {
+    iterator begin() noexcept { return iterator{Io_apic::_first}; }
+    iterator end() noexcept { return iterator{nullptr}; }
+  };
+
+  static it_range all() { return it_range{}; }
 
   static bool active()
   {
@@ -246,5 +264,6 @@ public:
 
   void pm_on_suspend(Cpu_number cpu) override;
   void pm_on_resume(Cpu_number cpu) override;
+  void init_ap(Cpu_number cpu, bool resume) override;
 };
 

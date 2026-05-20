@@ -93,6 +93,32 @@ public:
     return 0;
   }
 
+  void init_ap(Cpu_number cpu, bool resume) override
+  {
+    Irq_chip_icu *done[MAX_CHIPS];
+    unsigned done_num = 0;
+
+    for (auto const *e = _chips; e != _chips + _used; ++e)
+      {
+        if (!e->chip)
+          continue;
+
+        bool found = false;
+        for (auto const *d = done; d != done + done_num; ++d)
+          if (*d == e->chip)
+            {
+              found = true;
+              break;
+            }
+
+        if (found)
+          continue;
+
+        e->chip->init_ap(cpu, resume);
+        done[done_num++] = e->chip;
+      }
+  }
+
   void print_infos();
 
 private:
@@ -128,4 +154,3 @@ Irq_mgr_flex<MAX_CHIPS>::print_infos()
 }
 
 #endif // ! CONFIG_JDB
-

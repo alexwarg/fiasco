@@ -64,6 +64,13 @@ Io_apic_mgr::pm_on_resume(Cpu_number cpu)
   Io_apic::restore_state(true);
 }
 
+void
+Io_apic_mgr::init_ap(Cpu_number cpu, bool resume)
+{
+  for (auto a: Io_apic::all())
+    a->init_ap(cpu, resume);
+}
+
 Io_apic::Io_apic(Unsigned64 phys, unsigned gsi_base)
 : Irq_chip_ia32(0), _l(Spin_lock<>::Unlocked),
   _offset(gsi_base), _next(0)

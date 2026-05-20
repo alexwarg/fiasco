@@ -1,6 +1,8 @@
 #pragma once
 
 #include <globalconfig.h>
+#include <kmem.h>
+#include <rv_platforms.h>
 
 namespace Outer_cache
 {
@@ -8,9 +10,12 @@ namespace Outer_cache
   {
   }
 
-  static Mword platform_init(Mword aux_control)
+  static Mword platform_init()
   {
     using namespace Priv;
+    l2cxx0.construct(Kmem::mmio_remap(rv_current_platform()->l2cxx0, 0x1000));
+
+    Mword aux_control = l2cxx0->read<Unsigned32>(L2cxx0::AUX_CONTROL);
 #ifdef CONFIG_ARM_CORTEX_A9
     l2cxx0->write<Mword>(0, L2cxx0::TAG_RAM_CONTROL);
     l2cxx0->write<Mword>(0, L2cxx0::DATA_RAM_CONTROL);

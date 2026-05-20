@@ -8,7 +8,7 @@ OBJECTS_LIBUART         += uart_16550.o uart_16550_dw.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550_dw)
 
 CXXSRC_KERNEL += timer_arm_sunxi.cc pfc-arm-sunxi.cc \
-		 pic-arm-sunxi.cc pic-gic-init.cc sunxi_pf.cc
+		 pic-arm-sunxi.cc sunxi_pf.cc
 
 mem_layout_IMPL       += mem_layout-arm-sunxi
 clock_IMPL            += clock-generic

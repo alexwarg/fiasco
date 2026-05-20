@@ -6,6 +6,6 @@ PREPROCESS_PARTS      += generic_tickless_idle \
                          arm_generic_timer pic_gic psci
 RAM_PHYS_BASE         := 0x80000000
 
-CXXSRC_KERNEL         += pfc-arm-ls1046.cc pic-arm-ls1046.cc pic-gic-init.cc
+CXXSRC_KERNEL         += pfc-arm-ls1046.cc pic-arm-ls1046.cc ls1046_pf.cc
 BOOTSTRAP_EXTRA       += pic-arm-ls1046.o
 clock_IMPL            += clock-generic

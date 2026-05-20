@@ -1,6 +1,5 @@
 
 #include <pic-gic-helper.h>
-#include <mem_layout.h>
 
 Pic_gic::Gic_info const Pic_gic::primary_gic_info =
 {
@@ -14,4 +13,3 @@ Pic_gic::Gic_info const Pic_gic::primary_gic_info =
   // GICv3 redistributor, if we have a GICv3
   .redist_phys = 0x080A0000, .redist_size = 0x00F60000,
 };
-

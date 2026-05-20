@@ -113,6 +113,7 @@ public:
     return i.chip->irq(i.pin);
   }
 
+  virtual void init_ap(Cpu_number cpu, bool resume) = 0;
 };
 
 class Irq_mgr_dyn : public Irq_mgr
@@ -145,6 +146,7 @@ public:
   unsigned nr_irqs() const override { return c.nr_irqs(); }
   unsigned nr_msis() const override { return 0; }
   mutable CHIP c;
+  void init_ap(Cpu_number cpu, bool resume) override { c.init_ap(cpu, resume); }
 };
 
 inline Irq_mgr::~Irq_mgr() {}

@@ -30,6 +30,9 @@ public:
   static bool gic_ext() { return gic_type() == Ext_gic; }
   static bool gic_int() { return gic_type() == Int_gic; }
 
+  static Soc_type soc_type()
+  { type(); return _soc; }
+
 private:
   static Soc_type _soc;
   static unsigned _uart;
@@ -58,7 +61,6 @@ public:
 IMPLEMENTATION [arm && pf_exynos]:
 
 #include "io.h"
-#include "mem_layout.h"
 
 // ------------------------------------------------------------------------
 IMPLEMENTATION [arm && pf_exynos && exynos_extgic]:
@@ -94,8 +96,7 @@ PRIVATE static
 void
 Platform::process_pkg_ids()
 {
-  Mword pkg_id = Io::read<Mword>(Kmem::mmio_remap(Mem_layout::Chip_id_phys_base + 4,
-                                                  sizeof(Mword)));
+  Mword pkg_id = Io::read<Mword>(Kmem::mmio_remap(0x10000000 + 4, sizeof(Mword)));
   for  (unsigned i = 0; i < sizeof(__pkg_ids) / sizeof(__pkg_ids[0]); ++i)
     if ((pkg_id & __pkg_ids[i].mask) == __pkg_ids[i].val)
       {

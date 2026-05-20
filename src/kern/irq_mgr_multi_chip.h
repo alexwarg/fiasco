@@ -66,6 +66,17 @@ public:
     return 0;
   }
 
+  void init_ap(Cpu_number cpu, bool resume) override
+  {
+    Irq_chip_icu *last = nullptr;
+    for (auto const &c: cxx::static_vector<Chip>(_chips, _nchips))
+      if (c.chip && c.chip != last)
+        {
+          c.chip->init_ap(cpu, resume);
+          last = c.chip;
+        }
+  }
+
 private:
   struct Chip
   {

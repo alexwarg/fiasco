@@ -6,7 +6,7 @@ PREPROCESS_PARTS        += generic_tickless_idle mptimer pic_gic
 RAM_PHYS_BASE           := 0x0
 MPCORE_PHYS_BASE        := 0xf8f00000
 
-CXXSRC_KERNEL         += pfc-arm-zynq.cc pic-arm-zynq.cc pic-gic-init.cc
+CXXSRC_KERNEL         += pfc-arm-zynq.cc pic-arm-zynq.cc zynq_pf.cc
 
 mem_layout_IMPL       += mem_layout-arm-zynq
 clock_IMPL            += clock-generic

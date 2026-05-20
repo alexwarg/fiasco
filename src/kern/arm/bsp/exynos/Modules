@@ -17,7 +17,7 @@ PREPROCESS_PARTS += $(if $(filter-out "",$(CONFIG_PF_EXYNOS_PKG_IDS)),pkg_id_fil
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_MP) += timer_exynos_mptimer.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_MCT) += timer_exynos_mct.cc timer_tick-exynos-mct.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TIMER_PWM) += timer_arm_s3c2410.cc
-CXXSRC_KERNEL += timer_mct.cc pfc-arm-exynos.cc irqs_arm_exynos.cc  exynos_pf.cc
+CXXSRC_KERNEL += timer_mct.cc pfc-arm-exynos.cc exynos_pf.cc
 CXXSRC_KERNEL-$(CONFIG_PF_EXYNOS_TICKLESS_IDLE) += exynos_tickless_idle.cc cpu_tickless_idle.cc
 
 INTERFACES_KERNEL       += platform

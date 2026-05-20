@@ -107,6 +107,9 @@ public:
 
   static void init();
 
+  void init_ap(Cpu_number cpu, bool resume) override
+  { _orig->init_ap(cpu, resume); }
+
 private:
   mutable Irq_chip_msi _chip;
   Irq_mgr *_orig;

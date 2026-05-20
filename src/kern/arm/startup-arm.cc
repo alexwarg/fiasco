@@ -10,7 +10,6 @@
 #include <kmem_space.h>
 #include <per_cpu_data.h>
 #include <per_cpu_data_alloc.h>
-#include <pic.h>
 #include <psci.h>
 #include <processor.h>
 #include <static_init.h>
@@ -76,7 +75,7 @@ static void stage2()
   Kernel_task::init();
   Mem_space::kernel_space(Kernel_task::kernel_task());
   Cpu::cpus.cpu(boot_cpu).init(false, true);
-  Pic::init();
+  Platform_if::pf->init_irqs();
   Arm_ipis::init_per_cpu(boot_cpu, false);
 
   Fpu::init(boot_cpu, false);

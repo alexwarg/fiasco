@@ -9,7 +9,7 @@
 #include "ipi.h"
 #include "per_cpu_data_alloc.h"
 #include "perf_cnt.h"
-#include <pic.h>
+#include <platform_iface.h>
 #include <pfc.h>
 #include "spin_lock.h"
 #include <timer.h>
@@ -45,7 +45,7 @@ int boot_ap_cpu()
     Per_cpu_data::run_ctors(_cpu);
 
   Cpu::cpus.cpu(_cpu).init(!cpu_is_new, false);
-  Pic::init_ap(_cpu, !cpu_is_new);
+  Platform_if::pf->init_irqs_ap(_cpu, !cpu_is_new);
   Arm_ipis::init_per_cpu(_cpu, !cpu_is_new);
   Pfc::get()->init(_cpu);
   Ipi::init(_cpu);

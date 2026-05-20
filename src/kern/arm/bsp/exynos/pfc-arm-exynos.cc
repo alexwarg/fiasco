@@ -10,7 +10,6 @@
 #include <kmem.h>
 #include <infinite_loop.h>
 #include <platform.h>
-#include <irqs-arm-exynos.h>
 
 #include <scheduler_iface.h>
 #include <sched.h>
@@ -190,7 +189,7 @@ protected:
 
     // todo: the timer irq needs a proper cpu setting here too
     // (save + restore state)
-    Irqs_arm_exynos::reinit(cpu);
+    /*Irqs_arm_exynos::reinit(cpu);*/
 
     do_print_cpu_info(phys_cpu);
 

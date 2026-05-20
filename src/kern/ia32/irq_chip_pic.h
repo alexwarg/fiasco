@@ -27,6 +27,8 @@ public:
   unsigned nr_irqs() const override;
   unsigned nr_msis() const override;
 
+  void init_ap(Cpu_number, bool /*resume*/) override
+  { /* PIC is UP only */ }
 private:
   enum { Base_vector = 0x20 };
 
