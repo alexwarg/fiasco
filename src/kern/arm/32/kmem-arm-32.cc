@@ -1,6 +1,10 @@
-IMPLEMENTATION [!noncont_mem]:
 
-PUBLIC static
+#include <globalconfig.h>
+#include <kmem.h>
+#include <cassert>
+
+#ifndef CONFIG_NONCONT_MEM
+
 Address
 Kmem::mmio_remap(Address phys, Address size)
 {
@@ -31,3 +35,4 @@ Kmem::mmio_remap(Address phys, Address size)
   return phys;
 }
 
+#endif

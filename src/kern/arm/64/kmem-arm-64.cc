@@ -1,14 +1,18 @@
-IMPLEMENTATION [!noncont_mem]:
 
-PRIVATE static
-bool
-Kmem::cont_mapped(Address phys_beg, Address phys_end, Address virt)
+#include <globalconfig.h>
+#include <kmem.h>
+#include <cassert>
+
+#ifndef CONFIG_NONCONT_MEM
+
+static
+bool cont_mapped(Address phys_beg, Address phys_end, Address virt)
 {
   for (Address p = phys_beg, v = virt;
        p < phys_end && v < Mem_layout::Registers_map_end;
        p += Config::SUPERPAGE_SIZE, v += Config::SUPERPAGE_SIZE)
     {
-      auto e = kdir->walk(Virt_addr(v), K_pte_ptr::Super_level);
+      auto e = Kmem::kdir->walk(Virt_addr(v), K_pte_ptr::Super_level);
       if (!e.is_valid() || p != e.page_addr())
         return false;
     }
@@ -16,7 +20,6 @@ Kmem::cont_mapped(Address phys_beg, Address phys_end, Address virt)
   return true;
 }
 
-PUBLIC static
 Address
 Kmem::mmio_remap(Address phys, Address size)
 {
@@ -54,3 +57,5 @@ Kmem::mmio_remap(Address phys, Address size)
 
   return (phys & ~Config::SUPERPAGE_MASK) | (map_addr & Config::SUPERPAGE_MASK);
 }
+
+#endif

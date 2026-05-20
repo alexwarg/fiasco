@@ -1,45 +1,10 @@
-INTERFACE [arm]:
 
-#include "kip.h"
-#include "mem_layout.h"
-#include "paging.h"
-
-class Kmem : public Mem_layout
-{
-public:
-
-  static Mword is_kmem_page_fault(Mword pfa, Mword error);
-  static Mword is_ipc_page_fault(Mword pfa, Mword error);
-  static Mword is_io_bitmap_page_fault(Mword pfa);
-};
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
-
-#include "config.h"
-#include "mem_unit.h"
-#include "paging.h"
+#include <globalconfig.h>
+#include <kmem.h>
 #include <cassert>
-#include <std_macros.h>
 
-IMPLEMENT inline NEEDS[<std_macros.h>]
-Mword Kmem::is_kmem_page_fault(Mword pfa, Mword error_code)
-{
-  if (IS_ENABLED(CONFIG_CPU_VIRT) && !PF::is_usermode_error(error_code))
-    return true;
+#ifdef CONFIG_NONCONT_MEM
 
-  return in_kernel(pfa);
-}
-
-IMPLEMENT inline
-Mword Kmem::is_io_bitmap_page_fault(Mword)
-{
-  return 0;
-}
-
-IMPLEMENTATION [noncont_mem]:
-
-PUBLIC static
 Address
 Kmem::mmio_remap(Address phys, Address size)
 {
@@ -82,4 +47,6 @@ Kmem::mmio_remap(Address phys, Address size)
 
   return phys_to_pmem(phys);
 }
+
+#endif
 

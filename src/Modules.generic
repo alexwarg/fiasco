@@ -20,7 +20,7 @@ CXXSRC_ABI += $(CXXSRC_ABI-y)
 PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
 INTERFACES_KERNEL	:= \
-			   kmem mem_layout        \
+			   mem_layout        \
 			   mem_unit \
 			   cpu               \
 			   perf_cnt   \
@@ -51,6 +51,7 @@ CXXSRC_KERNEL += \
 	kip_init.cc \
 	kmem_alloc.cc \
 	kmem_slab.cc \
+	kmem.cc \
 	kobject.cc \
 	kobject_helper.cc \
 	kobject_iface.cc \
