@@ -1,14 +1,15 @@
 IMPLEMENTATION [arm && bsp_cpu && arm_cache_l2cxx0]:
 
-#include "platform.h"
-#include "exynos_smc.h"
+#include <globalconfig.h>
+#include <std_macros.h>
+#include <exynos_smc.h>
 
 PRIVATE static
 void
 Cpu::do_cache_foz(unsigned en)
 {
   Mword b = 1 << 3;
-  if (Platform::running_ns())
+  if (IS_ENABLED(CONFIG_ARM_EM_NS))
     {
       Mword r;
       asm volatile("mrc p15, 0, %0, c1, c0, 1" : "=r" (r));
