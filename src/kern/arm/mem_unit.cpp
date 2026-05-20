@@ -69,7 +69,7 @@ public:
 //---------------------------------------------------------------------------
 IMPLEMENTATION [arm]:
 
-IMPLEMENT_DEFAULT inline NEEDS[Mem_unit::tlb_flush]
+IMPLEMENT_DEFAULT inline
 void Mem_unit::kernel_tlb_flush()
 { tlb_flush(); }
 
