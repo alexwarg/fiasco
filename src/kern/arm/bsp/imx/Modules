@@ -56,7 +56,7 @@ CXXSRC_KERNEL-$(CONFIG_PF_IMX_6)   += pic-arm-imx-gic.cc pic-gic-init.cc
 CXXSRC_KERNEL-$(CONFIG_PF_IMX_6UL) += pic-arm-imx-gic.cc pic-gic-init.cc
 CXXSRC_KERNEL-$(CONFIG_PF_IMX_7)   += pic-arm-imx-gic.cc pic-gic-init.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_V8)     += pic-arm-imx-gic.cc pic-gic-init.cc
-CXXSRC_KERNEL                      += pfc-arm-imx.cc
+CXXSRC_KERNEL                      += pfc-arm-imx.cc imx_pf.cc
 
 mem_layout_IMPL       += mem_layout-arm-imx
 reset_IMPL            += reset-arm-imx

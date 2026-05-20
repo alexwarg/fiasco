@@ -40,10 +40,10 @@ Timer_arm_imx6_mptimer::init(Cpu_number)
   t.write<Mword>(0, GPT_PR);
 
   t.modify<Mword>(GPT_CR_EN, 0, GPT_CR);
-  Mword vc = start_as_counter();
+  Mword vc = mptimer().start_as_counter();
   while (t.read<Mword>(GPT_CNT) < Gpt_ticks)
     ;
-  Mword interval = (vc - stop_counter()) / Ticks;
+  Mword interval = (vc - mptimer().stop_counter()) / Ticks;
   t.write<Mword>(0, GPT_CR);
 
   Timer_arm_mptimer::init(interval);

@@ -7,6 +7,11 @@ INTERFACE [arm]:
 #include "per_cpu_data.h"
 #include "processor.h"
 
+INTERFACE [arm && (arm_mpcore || arm_cortex_a9 || arm_cortex_a5)]:
+#include <scu.h>
+
+INTERFACE [arm]:
+
 EXTENSION
 class Cpu
 {
@@ -72,6 +77,10 @@ public:
   };
 
   unsigned copro_dbg_model() const { return _cpu_id._dfr0 & 0xf; }
+
+#if defined (CONFIG_ARM_MPCORE) || defined (CONFIG_ARM_CORTEX_A9) || defined (CONFIG_ARM_CORTEX_A5)
+  static Scu scu;
+#endif
 
 private:
   void init_supervisor_mode(bool is_boot_cpu);
@@ -302,49 +311,15 @@ Cpu::disable_smp()
 }
 
 //---------------------------------------------------------------------------
-INTERFACE [arm && (arm_mpcore || arm_cortex_a9)]:
+IMPLEMENTATION [arm && (arm_mpcore || arm_cortex_a9 || arm_cortex_a5)]:
 
-#include "scu.h"
-
-EXTENSION class Cpu
-{
-public:
- static Static_object<Scu> scu;
-};
+[[gnu::init_priority(EARLY_INIT_PRIO)]]
+Scu Cpu::scu;
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [arm && (arm_mpcore || arm_cortex_a9)]:
+IMPLEMENTATION [arm_mpcore || arm_v7 || arm_v8]:
 
-#include "kmem.h"
-
-Static_object<Scu> Cpu::scu;
-
-PRIVATE static
-void
-Cpu::init_scu()
-{
-  scu.construct(Kmem::mmio_remap(Mem_layout::Mp_scu_phys_base,
-                                 Config::PAGE_SIZE));
-
-  scu->reset();
-  scu->enable(Scu::Bsp_enable_bits);
-}
-
-IMPLEMENT_OVERRIDE inline NEEDS[Cpu::init_scu]
-void
-Cpu::early_init_platform()
-{
-  init_scu();
-  Mem_unit::clean_dcache();
-  enable_smp();
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [(arm_v7 || arm_v8) && !arm_cortex_a9]:
-
-#include "kmem.h"
-
-IMPLEMENT_OVERRIDE inline NEEDS["kmem.h"]
+IMPLEMENT_OVERRIDE
 void
 Cpu::early_init_platform()
 {

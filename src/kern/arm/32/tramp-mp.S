@@ -98,7 +98,7 @@ _tramp_mp_entry:
 	// enable SMP
 #ifndef CONFIG_ARM_EM_NS
 #if defined(CONFIG_ARM_MPCORE) || defined(CONFIG_ARM_CORTEX_A9) || defined(CONFIG_ARM_CORTEX_A5)
-	adr   r0, .Lmpcore_phys_base
+	adr   r0, .LC_tramp_mp_scu_phys
 	ldr   r0, [r0]
 	ldr   r1, [r0]
 	orr   r1, #1
@@ -221,8 +221,7 @@ _tramp_mp_entry:
 	.long .LC_tramp_mp_virt
 
 #if defined(CONFIG_ARM_MPCORE) || defined(CONFIG_ARM_CORTEX_A9) || defined(CONFIG_ARM_CORTEX_A5)
-.Lmpcore_phys_base:
-	.long MPCORE_PHYS_BASE
+defvar _tramp_mp_scu_phys
 #endif
 
 .Lactrl_cpuid:

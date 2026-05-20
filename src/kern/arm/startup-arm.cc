@@ -18,6 +18,8 @@
 #include <timer.h>
 #include <utcb_init.h>
 #include <arm_ipis.h>
+#include <platform_iface.h>
+#include <scu_init.h>
 
 #include <cstdlib>
 #include <cstdio>
@@ -43,6 +45,9 @@ static void stage1()
 {
   Kernel_uart::init(Kernel_uart::Init_after_mmu);
   Proc::cli();
+  if (Platform_if::pf)
+    if (Address scu_phys = Platform_if::pf->scu_phys())
+      setup_arm_scu(scu_phys);
   Cpu::early_init();
   Config::init();
 }
@@ -58,6 +63,9 @@ static void stage2()
 
   Kip_init::init();
   Kmem_alloc::init();
+
+  if (Platform_if::pf)
+    Platform_if::pf->init();
 
   // Initialize cpu-local data management and run constructors for CPU 0
   Per_cpu_data::init_ctors();

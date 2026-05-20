@@ -7,7 +7,7 @@ RAM_PHYS_BASE         := 0x0
 MPCORE_PHYS_BASE      := 0xf100c000
 TRAMP_MP_ASM_INCLUDE  := $(BSP_SRC_DIR)/tramp-mp-asm.h
 
-CXXSRC_KERNEL         += pfc-arm-armada38x.cc pic-arm-armada38x.cc pic-gic-init.cc
+CXXSRC_KERNEL         += pfc-arm-armada38x.cc pic-arm-armada38x.cc pic-gic-init.cc armada38x_pf.cc
 clock_IMPL            += clock-generic
 mem_layout_IMPL       += mem_layout-arm-armada38x
 outer_cache_IMPL      += outer_cache-arm-armada38x

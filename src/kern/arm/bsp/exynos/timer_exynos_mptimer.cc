@@ -20,15 +20,15 @@ Timer::init(Cpu_number)
 
   mct.write<Mword>(0, Mct_timer::Reg::Cnt_u);
   mct.write<Mword>(timer_start, Mct_timer::Reg::Cnt_l);
-  Mword vc = start_as_counter();
+  Mword vc = mptimer().start_as_counter();
   while (sp_c > mct.read<Mword>(Mct_timer::Reg::Cnt_l))
     ;
-  Mword interval = (vc - stop_counter()) >> factor;
+  Mword interval = (vc - mptimer().stop_counter()) >> factor;
 
   mct.write<Mword>(0, Mct_timer::Reg::Tcon);
 
   if (0)
     printf("MP-Timer-Interval: %ld\n", interval);
 
-  Timer_arm_mptimer::init(interval);
+  mptimer().init_periodic(interval);
 }

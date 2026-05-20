@@ -19,10 +19,11 @@ Timer_realview_mptimer::init(Cpu_number cpu)
   timer.reload_value(timer_start);
   timer.enable(Timer_sp804::Ctrl_periodic);
 
-  Mword vc = start_as_counter();
+  Mword vc = mptimer().start_as_counter();
   while (sp_c < timer.counter())
     ;
-  Mword interval = (vc - stop_counter()) >> factor;
+  Mword ec = mptimer().stop_counter();
+  Mword interval = (vc - ec) >> factor;
   timer.disable();
   Timer_arm_mptimer::init(interval);
 }

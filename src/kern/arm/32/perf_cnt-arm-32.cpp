@@ -98,12 +98,12 @@ char const *Perf_cnt::perf_type_str = "MP-C";
 PRIVATE static
 void
 Perf_cnt::set_event_type(int counter_nr, int event)
-{ Cpu::scu->write<unsigned char>(event, mon_event_type_addr(counter_nr)); }
+{ Cpu::scu.r.r<8>(mon_event_type_addr(counter_nr)) = event; }
 
 PUBLIC static
 unsigned long
 Perf_cnt::read_counter(int counter_nr)
-{ return Cpu::scu->read<Mword>(mon_counter(counter_nr)); }
+{ return Cpu::scu.r[mon_counter(counter_nr)]; }
 
 PUBLIC static FIASCO_INIT_CPU
 void
@@ -111,9 +111,8 @@ Perf_cnt::init_cpu()
 {
   static_assert(Scu::Available, "No SCU available in this configuration");
 
-  Cpu::scu->write<Mword>(0xff << 16 // clear overflow flags
-                        | MON_CONTROL_RESET | MON_CONTROL_ENABLE,
-                        MON_CONTROL);
+  Cpu::scu.r[MON_CONTROL] = 0xff << 16 // clear overflow flags
+      | MON_CONTROL_RESET | MON_CONTROL_ENABLE;
 
   // static config for now...
   set_event_type(7, EVENT_CYCLE_COUNT);
@@ -143,5 +142,5 @@ Perf_cnt::read_cycle_cnt()
 PUBLIC static
 unsigned
 Perf_cnt::mon_event_type(int nr)
-{ return Cpu::scu->read<unsigned char>(mon_event_type_addr(nr)); }
+{ return Cpu::scu.r.r<8>(mon_event_type_addr(nr)); }
 
