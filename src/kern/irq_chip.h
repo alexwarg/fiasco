@@ -37,6 +37,7 @@ class Kobject_iface;
 class Irq_chip
 {
 public:
+  typedef void (*Hit_func)(Irq_base *, Upstream_irq const *);
   struct Mode
   {
     Mode() = default;
@@ -101,6 +102,12 @@ public:
    * \pre `irq->irq_lock()` must be held
    */
   virtual void unbind(Irq_base *irq);
+  virtual void init_ap(Cpu_number cpu, bool resume)
+  { (void) cpu; (void) resume; }
+
+  virtual Hit_func get_cascade_hit()
+  { return nullptr; }
+
   virtual ~Irq_chip() = 0;
 
 #if defined (CONFIG_JDB)

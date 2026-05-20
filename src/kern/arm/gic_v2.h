@@ -61,6 +61,11 @@ public:
     _dist.set_cpu(pin, _sgi_template[cpu] >> 16, Version());
   }
 
+  Hit_func get_cascade_hit() override
+  {
+    return &cascade_hit;
+  }
+
 #if defined (CONFIG_JDB)
   void irq_prio_bootcpu(unsigned irq, unsigned prio) override
   {
