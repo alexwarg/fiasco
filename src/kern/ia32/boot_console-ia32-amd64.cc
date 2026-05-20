@@ -1,31 +1,21 @@
-INTERFACE[ia32,amd64]:
-
-class Console;
-
-class Boot_console
-{
-public:
-  static void init();
-};
-
-IMPLEMENTATION[ia32,amd64]:
+#include <boot_console.h>
 
 #include <cstring>
 #include <cstdio>
 
-#include "kernel_console.h"
-#include "keyb.h"
-#include "mux_console.h"
-#include "initcalls.h"
-#include "koptions.h"
-#include "static_init.h"
-#include "vga_console.h"
-#include "mem_layout.h"
+#include <kernel_console.h>
+#include <keyb.h>
+#include <mux_console.h>
+#include <initcalls.h>
+#include <koptions.h>
+#include <static_init.h>
+#include <vga_console.h>
+#include <mem_layout.h>
 
 static Static_object<Vga_console> vga;
 static Static_object<Keyb> keyb;
 
-IMPLEMENT FIASCO_INIT
+FIASCO_INIT
 void Boot_console::init()
 {
   keyb.construct();

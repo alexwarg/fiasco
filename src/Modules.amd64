@@ -87,8 +87,6 @@ KERNEL			:= fiasco.image
 VPATH			+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 
-INTERFACES_KERNEL	+= \
-			   boot_console \
 
 CXXSRC_KERNEL-$(CONFIG_IOMMU)    += dmar_space.cc
 
@@ -128,6 +126,7 @@ CXXSRC_KERNEL              += \
 	checksum.cc \
 	__main.cc \
 	boot_info.cc \
+	boot_console-ia32-amd64.cc \
 	vmem_alloc-ia32.cc \
 	startup-ia32.cc
 
@@ -135,7 +134,6 @@ CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 
-boot_console_IMPL	:= boot_console-ia32-amd64
 clock_IMPL              := clock clock-ia32
 cpu_IMPL		:= cpu cpu-ia32 cpu-64
 dirq_IMPL		:= dirq-ia32
