@@ -11,6 +11,7 @@ namespace Pic_gic
     unsigned short version;
     unsigned short primary;
     unsigned offset;
+    int parent_irq = -1;
 
     Address dist_phys;
     Address dist_size;
@@ -30,7 +31,7 @@ namespace Pic_gic
     Address its_size = 0;
   };
 
-  extern Gic_info const primary_gic_info;
+  [[gnu::weak]] extern Gic_info const primary_gic_info;
 
   constexpr Gic_info
   gic_v2_info(Address dist_phys, Address cpu_phys)

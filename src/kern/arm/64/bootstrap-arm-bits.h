@@ -132,6 +132,9 @@ map_ram(Kpdir *kd, Bs_alloc &alloc)
 
 static void config_gic_ns()
 {
+  if (! &Pic_gic::primary_gic_info)
+    return;
+
   Mmio_register_block dist(Pic_gic::primary_gic_info.dist_phys);
   Mmio_register_block cpu(Pic_gic::primary_gic_info.cpu_phys);
   unsigned n = ((dist.read<Unsigned32>(4 /*GICD_TYPER*/) & 0x1f) + 1) * 32;
