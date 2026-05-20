@@ -59,7 +59,6 @@ VPATH			+= drivers/$(CONFIG_XARCH)/$(BITS) drivers/$(CONFIG_XARCH) drivers
 PRIVATE_INCDIR		+= drivers/$(CONFIG_XARCH)/$(BITS) drivers/$(CONFIG_XARCH) drivers
 INTERFACES_DRIVERS 	:=  \
 			   mem mmu processor
-io_IMPL			:= io io-arm
 mmu_IMPL		:= mmu mmu-arm mmu-arm-$(BITS)
 mem_IMPL		:= mem mem-arm
 processor_IMPL		:= processor processor-arm-$(BITS) processor-arm
@@ -130,10 +129,6 @@ ABI 		:= libabi.a
 VPATH 		+= abi/$(CONFIG_XARCH)/$(BITS) abi/$(CONFIG_XARCH) abi
 
 
-# x0!=32Bit UIDs
-kip_IMPL	:= kip kip-debug kip-arm
-
-
 #
 # KERNEL subsystem
 #
@@ -186,36 +181,12 @@ INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
 CXXSRC_KERNEL += bootstrap.cc
 CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if $(CONFIG_BIT64),-mcmodel=large)
 
-clock_IMPL              := clock
 cpu_IMPL	  	:= cpu cpu-arm cpu-arm-hyp cpu-arm-$(BITS)
-cpu_lock_IMPL  	  	:= cpu_lock cpu_lock-generic
-fpu_IMPL		:= fpu fpu-arm
-gic_IMPL		:= gic
-gic_cpu_v3_IMPL		:= gic_cpu_v3 gic_cpu_v3-$(BITS)
-gic_dist_IMPL		:= gic_dist
-hyp_vm_state_IMPL	:= hyp_vm_state hyp_vm_state-$(BITS)
-ipi_IMPL		:= ipi ipi-arm
-kdb_ke_IMPL		+= kdb_ke-arm
-kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-arm \
-			   kernel_thread-arm-$(BITS)
-map_util_IMPL		:= map_util map_util-mem map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-arm-$(BITS) \
 			   mem_layout-arm mem_layout-noncont
 mem_op_IMPL		:= mem_op mem_op-arm-$(BITS)
-mem_space_IMPL		:= mem_space mem_space-arm mem_space-arm-$(BITS)
 mem_unit_IMPL		:= mem_unit mem_unit-arm-$(BITS)
-kmem_IMPL		:= kmem kmem-arm-$(BITS)
-kmem_alloc_IMPL		:= kmem_alloc kmem_alloc-arm
 perf_cnt_IMPL		:= perf_cnt perf_cnt-arm perf_cnt-arm-$(BITS)
-pic_IMPL		:= pic
-sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
-			   sched_context-fp_wfq sched_context
-task_IMPL		:= task task-arm
-thread_IMPL	  	:= thread
-timer_IMPL		:= timer timer-arm
-utcb_init_IMPL		:= utcb_init utcb_init-arm
-utcb_support_IMPL       := utcb_support utcb_support-arm
-tb_entry_IMPL		:= tb_entry tb_entry-arm
 
 
 ifeq ("$(CONFIG_JDB)","y")

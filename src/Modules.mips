@@ -110,8 +110,6 @@ PRIVATE_INCDIR	+= abi/$(CONFIG_XARCH) abi
 ABI 		:= libabi.a
 VPATH 		+= abi/mips/$(BITS) abi/mips abi
 
-kip_IMPL	:= kip kip-debug kip-mips
-
 #
 # KERNEL subsystem
 #
@@ -149,32 +147,10 @@ CXXSRC_KERNEL += timer.cc pfc-mips.cc
 INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 
 
-bitmap_linux_IMPL	:= bitmap_linux
-clock_IMPL		:= clock
-cp0_status_IMPL         := cp0_status
 cpu_IMPL		:= cpu cpu-mips
-cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
-fpu_IMPL		:= fpu fpu-mips
-ipi_IMPL		:= ipi ipi-mips
-kdb_ke_IMPL		+= kdb_ke-mips
-kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-mips
-map_util_IMPL		:= map_util map_util-mem map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
 mem_unit_IMPL		:= mem_unit-mips
-mem_space_IMPL		:= mem_space mem_space-mips
-obj_space_IMPL		:= obj_space obj_space-phys
 perf_cnt_IMPL		:= perf_cnt perf_cnt-mips
-cm_IMPL			:= cm
-cpc_IMPL		:= cpc
-pic_IMPL		:= pic
-sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
-			   sched_context-fp_wfq sched_context
-space_IMPL		:= space
-sys_call_page_IMPL	:= sys_call_page
-thread_IMPL		:= thread
-vmem_alloc_IMPL		:= vmem_alloc
-tb_entry_IMPL		:= tb_entry tb_entry-mips
-
 
 ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o

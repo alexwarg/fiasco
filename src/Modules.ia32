@@ -44,8 +44,6 @@ ABI			:= libabi.a
 VPATH			+= abi/$(CONFIG_XARCH) abi
 CXXSRC_ABI		+= kip_arch_dbg.cc
 
-kip_IMPL		:= kip kip-debug kip-ia32 kip-ia32-debug
-virt_IMPL		:= virt-ia32-amd64
 
 #
 # JABI Subsystem
@@ -136,29 +134,11 @@ CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 
-clock_IMPL              := clock clock-ia32
 cpu_IMPL		:= cpu cpu-ia32 cpu-32
-dirq_IMPL		:= dirq-ia32
-fpu_IMPL		:= fpu fpu-ia32
-ipi_IMPL		:= ipi ipi-ia32
-kdb_ke_IMPL		+= kdb_ke-ia32
-kernel_thread_IMPL	:= kernel_thread kernel_thread-std kernel_thread-ia32
-kmem_IMPL		:= kmem-ia32 kmem-ia32-32
-map_util_IMPL		:= map_util map_util-mem map_util-io map_util-objs
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-32
-mem_space_IMPL		:= mem_space mem_space-ia32
 mem_unit_IMPL		:= mem_unit-ia32
 perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
-pmem_alloc_IMPL		:= pmem_alloc pmem_alloc-ia32
-sched_context_IMPL	:= sched_context-wfq sched_context-fixed_prio \
-			   sched_context-fp_wfq sched_context
-sigma0_task_IMPL	:= sigma0_task sigma0_task-io
-tb_entry_IMPL		:= tb_entry tb_entry-ia32-32
-timer_IMPL		:= timer timer-ia32-amd64
-utcb_init_IMPL		:= utcb_init utcb_init-ia32
 
-
-cpu_lock_IMPL		:= cpu_lock cpu_lock-generic
 
 CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc timer_tick-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc timer_tick-ia32.cc
