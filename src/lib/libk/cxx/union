@@ -31,21 +31,23 @@ class Union
   Union &operator = (Union const &) = delete;
 
 public:
-  Union() { construct<BASE>(); }
+  explicit Union(bool)noexcept  {}
+  Union() noexcept(noexcept(construct<BASE>()))
+  { construct<BASE>(); }
 
-  BASE *get()
+  BASE *get() noexcept
   { return reinterpret_cast<BASE*>(_d); }
 
-  BASE const *get() const
+  BASE const *get() const noexcept
   { return reinterpret_cast<BASE const*>(_d); }
 
-  BASE *operator -> () { return get(); }
-  BASE &operator * () { return *get(); }
-  BASE const *operator -> () const { return get(); }
-  BASE const &operator * () const { return *get(); }
+  BASE *operator -> () noexcept { return get(); }
+  BASE &operator * () noexcept { return *get(); }
+  BASE const *operator -> () const noexcept { return get(); }
+  BASE const &operator * () const noexcept { return *get(); }
 
   template< typename T >
-  T *construct()
+  T *construct() noexcept(noexcept(T()))
   {
     BASE *test = reinterpret_cast<T*>(10); (void)test;
     static_assert(sizeof(T) <= sizeof(_d), "dynamic type of union too big");
@@ -53,7 +55,7 @@ public:
   }
 
   template< typename T, typename ...ARGS >
-  T *construct(ARGS ...args)
+  T *construct(ARGS ...args) noexcept(noexcept(T(cxx::forward<ARGS>(args)...)))
   {
     BASE *test = reinterpret_cast<T*>(10); (void)test;
     static_assert(sizeof(T) <= sizeof(_d), "dynamic type of union too big");
@@ -79,10 +81,11 @@ private:
   enum
   {
     Size = Max<sizeof(BASE), sizeof(IMPLS)...>::value,
+    Align = Max<alignof(BASE), alignof(IMPLS)...>::value,
     Words = (Size + sizeof(unsigned long) - 1) / sizeof(unsigned long)
   };
 
-  unsigned long _d[Words];
+  unsigned long _d[Words] alignas(Align);
 };
 
 }
