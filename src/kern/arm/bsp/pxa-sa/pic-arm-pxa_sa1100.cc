@@ -40,9 +40,12 @@ public:
 IMPLEMENTATION [arm && (pf_xscale || pf_sa1100)]:
 
 #include "assert.h"
+#include "boot_alloc.h"
 #include "config.h"
+#include "irq_entry.h"
 #include "irq_chip_generic.h"
 #include "irq_mgr.h"
+#include "irqs_pxa_sa.h"
 #include "mmio_register_block.h"
 
 class Chip : public Irq_chip_gen, private Mmio_register_block
@@ -110,23 +113,32 @@ Chip::restore_all(Mword s)
 }
 
 
-static Static_object<Irq_mgr_single_chip<Chip> > mgr;
+using Irq_mgr_pxa_sa = Irq_mgr_single_chip<Chip>;
 
-PUBLIC static FIASCO_INIT
-void Pic::init()
+extern "C" void irq_handler();
+
+Irq_mgr *
+Arm_pxa_sa::create_irq_mgr(bool)
 {
-  Irq_mgr::mgr = mgr.construct();
+  auto m = new Boot_object<Irq_mgr_pxa_sa>();
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(irq_handler);
+  return m;
 }
 
 // for JDB only
 PUBLIC
 Pic::Status Pic::disable_all_save()
-{ return mgr->c.disable_all_save(); }
+{
+  auto mgr = nonull_static_cast<Irq_mgr_pxa_sa *>(Irq_mgr::mgr);
+  return mgr->c.disable_all_save();
+}
 
 PUBLIC
 void
 Pic::restore_all(Status s)
 {
+  auto mgr = nonull_static_cast<Irq_mgr_pxa_sa *>(Irq_mgr::mgr);
   mgr->c.restore_all(s);
 }
 
@@ -136,9 +148,9 @@ Unsigned32 Chip::pending()
   return read<Unsigned32>(Pic::ICIP);
 }
 
-extern "C"
 void irq_handler()
 {
+  auto mgr = nonull_static_cast<Irq_mgr_pxa_sa *>(Irq_mgr::mgr);
   Unsigned32 i = mgr->c.pending();
   if (i)
     mgr->c.handle_irq<Chip>(i, 0);

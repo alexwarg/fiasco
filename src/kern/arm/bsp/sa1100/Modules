@@ -7,7 +7,7 @@ OBJECTS_LIBUART         += uart_sa1000.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, sa1000)
 
 PRIVATE_INCDIR := kern/arm/bsp/pxa-sa $(PRIVATE_INCDIR)
-CXXSRC_KERNEL += timer_arm_pxa_sa.cc
+CXXSRC_KERNEL += timer_arm_pxa_sa.cc pxa_sa_pf.cc
 
 mem_layout_IMPL       += mem_layout-arm-sa1100
 pic_IMPL              += pic-arm-pxa_sa1100

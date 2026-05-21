@@ -1,6 +1,7 @@
 
-#include <pic.h>
-#include <initcalls.h>
+#include <irqs_kirkwood.h>
+#include <boot_alloc.h>
+#include <irq_entry.h>
 
 #include <cassert.h>
 #include <config.h>
@@ -90,19 +91,21 @@ public:
 
 };
 
-static Static_object<Irq_mgr_single_chip<Irq_chip_kirkwood> > mgr;
+using Irq_mgr_kirkwood = Irq_mgr_single_chip<Irq_chip_kirkwood>;
 
-FIASCO_INIT
-void Pic::init()
+static void kirkwood_irq_handler()
 {
-  Irq_mgr::mgr = mgr.construct();
-}
-
-extern "C" void irq_handler();
-void irq_handler()
-{
+  auto mgr = nonull_static_cast<Irq_mgr_kirkwood *>(Irq_mgr::mgr);
   Unsigned32 i;
   while ((i = mgr->c.pending()) < 64)
     mgr->c.handle_irq<Irq_chip_kirkwood>(i, 0);
 }
 
+Irq_mgr *
+Arm_kirkwood::create_irq_mgr(bool)
+{
+  auto m = new Boot_object<Irq_mgr_kirkwood>();
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(kirkwood_irq_handler);
+  return m;
+}

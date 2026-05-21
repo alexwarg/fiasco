@@ -5,7 +5,7 @@ RAM_PHYS_BASE           := 0x0
 OBJECTS_LIBUART         += uart_16550.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 
-CXXSRC_KERNEL += timer_arm_kirkwood.cc pic-arm-kirkwood.cc
+CXXSRC_KERNEL += timer_arm_kirkwood.cc pic-arm-kirkwood.cc kirkwood_pf.cc
 
 mem_layout_IMPL       += mem_layout-arm-kirkwood
 clock_IMPL            += clock-generic

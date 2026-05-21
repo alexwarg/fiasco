@@ -1,5 +1,5 @@
 
-#include <pic.h>
+#include <irqs_imx.h>
 #include <pic-gic-helper.h>
 #include <platform_generic.h>
 #include <static_init.h>
@@ -26,7 +26,11 @@ struct Bsp_pf : Platform_base
     || defined(CONFIG_PF_IMX_7) || defined(CONFIG_ARM_V8)
     Pic_gic::add_gic(Pic_gic::primary_gic_info);
 #else
-    Pic::init();
+# if defined(CONFIG_PF_IMX_28)
+    Arm_imx_icoll::create_irq_mgr(true);
+# else
+    Arm_imx::create_irq_mgr(true);
+# endif
 #endif
   }
 };

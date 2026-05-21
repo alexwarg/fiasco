@@ -1,5 +1,6 @@
-#include <pic.h>
-#include <initcalls.h>
+#include <irqs_integrator.h>
+#include <boot_alloc.h>
+#include <irq_entry.h>
 
 #include <cassert>
 #include <irq_chip_generic.h>
@@ -64,18 +65,22 @@ public:
   }
 };
 
-static Static_object<Irq_mgr_single_chip<Irq_chip_arm_integr> > mgr;
+using Irq_mgr_integrator = Irq_mgr_single_chip<Irq_chip_arm_integr>;
 
-FIASCO_INIT
-void Pic::init()
+static void integrator_irq_handler()
 {
-  Irq_mgr::mgr = mgr.construct();
+  auto mgr = nonull_static_cast<Irq_mgr_integrator *>(Irq_mgr::mgr);
+  mgr->c.handle_multi_pending<Irq_chip_arm_integr>(0);
 }
 
-extern "C" void irq_handler();
-void irq_handler()
-{ mgr->c.handle_multi_pending<Irq_chip_arm_integr>(0); }
-
+Irq_mgr *
+Arm_integrator::create_irq_mgr(bool)
+{
+  auto m = new Boot_object<Irq_mgr_integrator>();
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(integrator_irq_handler);
+  return m;
+}
 
 #if 0 // for ARM_EM_TZ + TZ_VM
 
@@ -88,4 +93,3 @@ Pic::set_pending_irq(unsigned group32num, Unsigned32 val)
   printf("%s(%d, %x): Not implemented\n", __func__, group32num, val);
 }
 #endif
-

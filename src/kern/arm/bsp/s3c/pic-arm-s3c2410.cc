@@ -1,6 +1,7 @@
 
-#include <pic.h>
-#include <initcalls.h>
+#include <irqs_s3c2410.h>
+#include <boot_alloc.h>
+#include <irq_entry.h>
 #include <kmem.h>
 
 #include <cassert>
@@ -209,20 +210,22 @@ public:
   }
 };
 
-static Static_object<Irq_mgr_single_chip<S3c_chip> > mgr;
+using Irq_mgr_s3c2410 = Irq_mgr_single_chip<S3c_chip>;
 
-FIASCO_INIT
-void Pic::init()
+static void s3c2410_irq_handler()
 {
-  Irq_mgr::mgr = mgr.construct();
-}
-
-extern "C" void irq_handler();
-void irq_handler()
-{
+  auto mgr = nonull_static_cast<Irq_mgr_s3c2410 *>(Irq_mgr::mgr);
   Unsigned32 i = mgr->c.pending();
   if (i != 32)
     mgr->c.handle_irq<S3c_chip>(i, 0);
 }
 
+Irq_mgr *
+Arm_s3c2410::create_irq_mgr(bool)
+{
+  auto m = new Boot_object<Irq_mgr_s3c2410>();
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(s3c2410_irq_handler);
+  return m;
+}
 

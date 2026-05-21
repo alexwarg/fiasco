@@ -1,6 +1,7 @@
-#include <pic.h>
+#include <irqs_imx.h>
 
-#include <initcalls.h>
+#include <boot_alloc.h>
+#include <irq_entry.h>
 #include <kmem.h>
 #include <globalconfig.h>
 
@@ -97,15 +98,19 @@ public:
   }
 };
 
-static Static_object<Irq_mgr_single_chip<Irq_chip_arm_imx> > mgr;
+using Irq_mgr_imx = Irq_mgr_single_chip<Irq_chip_arm_imx>;
 
-FIASCO_INIT
-void Pic::init()
+static void imx_irq_handler()
 {
-  Irq_mgr::mgr = mgr.construct();
+  auto mgr = nonull_static_cast<Irq_mgr_imx *>(Irq_mgr::mgr);
+  mgr->c.irq_handler();
 }
 
-
-extern "C" void irq_handler();
-void irq_handler()
-{ mgr->c.irq_handler(); }
+Irq_mgr *
+Arm_imx::create_irq_mgr(bool)
+{
+  auto m = new Boot_object<Irq_mgr_imx>();
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(imx_irq_handler);
+  return m;
+}
