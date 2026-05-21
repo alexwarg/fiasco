@@ -1,5 +1,6 @@
 
-#include <pic.h>
+#include <irqs_omap3.h>
+#include <irq_entry.h>
 
 #include <initcalls.h>
 #include <kmem.h>
@@ -10,6 +11,7 @@
 #include <irq_chip_generic.h>
 #include <irq_mgr.h>
 #include <mmio_register_block.h>
+#include <boot_alloc.h>
 
 #include <cstdio>
 
@@ -111,21 +113,24 @@ public:
   }
 };
 
-static Static_object<Irq_mgr_single_chip<Irq_chip_arm_omap3> > mgr;
 
-FIASCO_INIT
-void Pic::init()
-{
-  Irq_mgr::mgr = mgr.construct();
-}
+using Irq_mgr_om3 = Irq_mgr_single_chip<Irq_chip_arm_omap3>;
 
-extern "C" void irq_handler();
-
-void irq_handler()
+static void omap3_irq_handler()
 {
   Unsigned32 i;
+  auto mgr = nonull_static_cast<Irq_mgr_om3 *>(Irq_mgr::mgr);
   while ((i = mgr->c.pending()))
     mgr->c.handle_irq<Irq_chip_arm_omap3>(i, 0);
+}
+
+
+Irq_mgr *Arm_omap3::create_irq_mgr(bool)
+{
+  auto m = new Boot_object<Irq_mgr_om3>();
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(omap3_irq_handler);
+  return m;
 }
 
 #if 0 // ARM_EM_TZ + TZ_VM

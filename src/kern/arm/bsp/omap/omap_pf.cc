@@ -1,5 +1,5 @@
 
-#include <pic.h>
+#include <irqs_omap3.h>
 #include <pic-gic-helper.h>
 #include <platform_generic.h>
 #include <static_init.h>
@@ -19,7 +19,7 @@ struct Omap_pf : Platform_base
 #if defined(CONFIG_ARM_GIC)
     Pic_gic::add_gic(Pic_gic::primary_gic_info);
 #else
-    Pic::init();
+    Arm_omap3::create_irq_mgr(true);
 #endif
   }
 };

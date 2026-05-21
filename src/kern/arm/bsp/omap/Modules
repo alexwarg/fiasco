@@ -13,9 +13,9 @@ MPCORE_PHYS_BASE        := 0x48240000
 TRAMP_MP_ASM_INCLUDE    := $(BSP_SRC_DIR)/tramp-mp-asm.h
 
 CXXSRC_KERNEL += pfc-omap.cc omap_pf.cc
-CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_OMAP35XEVM) += timer_omap3.cc timer_omap_1mstimer.cc pic-arm-omap3.cc
-CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_BEAGLEBOARD) += timer_omap3.cc timer_omap_1mstimer.cc pic-arm-omap3.cc
-CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_AM33XX) += timer_omap3.cc timer_omap_gentimer.cc timer_omap_1mstimer.cc pic-arm-omap3.cc
+CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_OMAP35XEVM) += timer_omap3.cc timer_omap_1mstimer.cc irqs_omap3.cc
+CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_BEAGLEBOARD) += timer_omap3.cc timer_omap_1mstimer.cc irqs_omap3.cc
+CXXSRC_KERNEL-$(CONFIG_PF_OMAP3_AM33XX) += timer_omap3.cc timer_omap_gentimer.cc timer_omap_1mstimer.cc irqs_omap3.cc
 CXXSRC_KERNEL-$(CONFIG_PF_OMAP4_PANDABOARD) += pic-arm-gic-omap4.cc
 CXXSRC_KERNEL-$(CONFIG_PF_OMAP5_5432EVM) += pic-arm-gic-omap4.cc
 
