@@ -230,7 +230,14 @@ public:
   static bool transfer_msg_items(L4_msg_tag const &tag, Thread* snd, Utcb *snd_utcb,
                                  Thread *rcv, Utcb *rcv_utcb,
                                  L4_fpage::Rights rights);
-  void do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
+
+  void set_ipc_from_spec(Mword from_spec, bool do_set = true)
+  {
+    if (do_set)
+      _from_spec = from_spec;
+  }
+
+  void do_ipc(L4_msg_tag const &tag, Thread *partner,
               bool have_receive, Sender *sender, L4_timeout_pair t,
               Syscall_frame *regs, L4_fpage::Rights rights);
 
@@ -930,7 +937,7 @@ Thread_ipc<T>::remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
  */
 template<typename T>
 void
-Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
+Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
                       bool have_receive, Sender *sender, L4_timeout_pair t,
                       Syscall_frame *regs, L4_fpage::Rights rights)
 {
@@ -956,7 +963,6 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Mword from_spec, Thread *partner,
       Check_sender result;
 
       set_ipc_send_rights(rights);
-      _from_spec = from_spec;
 
       if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
         result = handshake_receiver(partner, t.snd);

@@ -341,9 +341,9 @@ Ipc_gate::invoke(L4_obj_ref, L4_fpage::Rights rights,
     f->tag(commit_error(utcb, L4_error::Not_existent));
   else
     {
-      Mword const from_spec = Ipc_gate_obj::from_poly(this)->_id.load()
-                            | cxx::int_value<L4_fpage::Rights>(rights);
-      ct->do_ipc(f->tag(), from_spec, partner, have_rcv, sender, f->timeout(), f, rights);
+      ct->set_ipc_from_spec(Ipc_gate_obj::from_poly(this)->_id.load()
+                            | cxx::int_value<L4_fpage::Rights>(rights), partner);
+      ct->do_ipc(f->tag(), partner, have_rcv, sender, f->timeout(), f, rights);
     }
 }
 
