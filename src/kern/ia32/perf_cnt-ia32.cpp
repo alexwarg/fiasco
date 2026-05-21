@@ -10,9 +10,6 @@ public:
   { P5, P6, P4, };
 
   static Perf_read_fn read_pmc[Max_slot];
-  virtual void init_loadcnt() = 0;
-  virtual void start_pmc(Mword) = 0;
-
   static Perf_cnt_arch *pcnt;
 
 private:
@@ -26,19 +23,49 @@ class Perf_cnt_arch
 {
 public:
   // basic initialization
-  virtual int  init() = 0;
+  virtual int  init() { return 0; }
 
   // set event the counter should count
-  virtual void set_pmc_event(Mword slot) = 0;
+  virtual void set_pmc_event(Mword slot) { (void)slot; }
 
-  inline void touch_watchdog()
+  virtual void init_watchdog() {} // no watchdog per default
+  virtual void init_loadcnt();
+
+  // start watchdog (enable generation of overflow interrupt)
+  virtual void start_watchdog() {} // no watchdog per default
+
+  // stop watchdog (disable generation of overflow interrupt)
+  virtual void stop_watchdog() {} // no watchdog per default
+
+  virtual void start_pmc(Mword /*reg_nr*/) {}
+
+  void touch_watchdog()
   { Cpu::wrmsr(hold_watchdog, _ctr_reg0 + pmc_watchdog); }
 
+  Perf_cnt_arch() = default;
+  virtual ~Perf_cnt_arch() = default;
+
+  Mword watchdog_allocated() noexcept
+  { return (pmc_watchdog != (Mword)-1); }
+
+  Mword loadcnt_allocated() noexcept
+  { return (pmc_loadcnt != (Mword)-1); }
+
+  void setup_loadcnt() noexcept
+  {
+    alloc_loadcnt();
+    if (loadcnt_allocated())
+      {
+        init_loadcnt();
+        start_pmc(pmc_loadcnt);
+      }
+  }
+
 protected:
-  Mword _nr_regs;
+  Mword _nr_regs = 0;
   Mword _sel_reg0;
   Mword _ctr_reg0;
-  Mword _watchdog;
+  Mword _watchdog = 0;
 
   struct Event
   {
@@ -50,11 +77,11 @@ protected:
     Mword evnt;		// event selector
   };
 
-  static Mword    pmc_watchdog;                   // # perfcounter of watchdog
-  static Mword    pmc_loadcnt;                    // # perfcounter of loadcnt
-  static Signed64 hold_watchdog;
-  static Event    pmc_event[Perf_cnt::Max_slot];  // index is slot number
-  static char     pmc_alloc[Perf_cnt::Max_pmc];   // index is # of perfcounter
+  Mword    pmc_watchdog = -1;                   // # perfcounter of watchdog
+  Mword    pmc_loadcnt = -1;                    // # perfcounter of loadcnt
+  Signed64 hold_watchdog;
+  Event    pmc_event[Perf_cnt::Max_slot];  // index is slot number
+  char     pmc_alloc[Perf_cnt::Max_pmc];   // index is # of perfcounter
 };
 
 class Perf_cnt_p5 : public Perf_cnt_arch {};
@@ -73,6 +100,8 @@ IMPLEMENTATION [{ia32,amd64}-perf_cnt]:
 #include "static_init.h"
 #include "tb_entry.h"
 
+#include <cxx/union>
+
 Perf_cnt::Perf_read_fn Perf_cnt::read_pmc[Perf_cnt::Max_slot] =
 { dummy_read_pmc, dummy_read_pmc };
 Perf_cnt::Perf_read_fn Perf_cnt::read_pmc_fn[Perf_cnt::Max_slot] =
@@ -83,17 +112,9 @@ Perf_cnt::Perf_event_type Perf_cnt::perf_event_type;
 Perf_cnt_arch *Perf_cnt::pcnt;
 char const *Perf_cnt::perf_type_str = "n/a";
 
-Mword Perf_cnt_arch::pmc_watchdog = (Mword)-1;
-Mword Perf_cnt_arch::pmc_loadcnt  = (Mword)-1;
-Signed64 Perf_cnt_arch::hold_watchdog;
-Perf_cnt_arch::Event Perf_cnt_arch::pmc_event[Perf_cnt::Max_slot];
-char  Perf_cnt_arch::pmc_alloc[Perf_cnt::Max_pmc];
 
-static Perf_cnt_p5 perf_cnt_p5 INIT_PRIORITY(PERF_CNT_INIT_PRIO);
-static Perf_cnt_p6 perf_cnt_p6 INIT_PRIORITY(PERF_CNT_INIT_PRIO);
-static Perf_cnt_k7 perf_cnt_k7 INIT_PRIORITY(PERF_CNT_INIT_PRIO);
-static Perf_cnt_p4 perf_cnt_p4 INIT_PRIORITY(PERF_CNT_INIT_PRIO);
-static Perf_cnt_ap perf_cnt_ap INIT_PRIORITY(PERF_CNT_INIT_PRIO);
+static cxx::Union<Perf_cnt_arch, Perf_cnt_p5, Perf_cnt_p6, Perf_cnt_k7, Perf_cnt_p4, Perf_cnt_ap>
+  perf_cnt(true);
 
 enum
 {
@@ -653,16 +674,6 @@ Perf_cnt_arch::Perf_cnt_arch(Mword sel_reg0, Mword ctr_reg0,
     }
 }
 
-PUBLIC inline
-Mword
-Perf_cnt_arch::watchdog_allocated()
-{ return (pmc_watchdog != (Mword)-1); }
-
-PUBLIC inline
-Mword
-Perf_cnt_arch::loadcnt_allocated()
-{ return (pmc_loadcnt != (Mword)-1); }
-
 void
 Perf_cnt_arch::alloc_watchdog()
 {
@@ -787,18 +798,15 @@ Perf_cnt_arch::setup_pmc(Mword slot, Mword bitmask,
     }
 }
 
-PUBLIC virtual
-void
-Perf_cnt_arch::start_pmc(Mword /*reg_nr*/)
-{
-  // nothing to do per default
-}
 
 // watchdog supported by performance counter architecture?
 PUBLIC inline
 int
 Perf_cnt_arch::have_watchdog()
 { return _watchdog; }
+
+IMPLEMENT void Perf_cnt_arch::init_loadcnt()
+{ panic("Cannot initialize load counter"); }
 
 PUBLIC
 void
@@ -822,39 +830,6 @@ Perf_cnt_arch::setup_watchdog(Mword timeout)
     }
 }
 
-PUBLIC
-void
-Perf_cnt_arch::setup_loadcnt()
-{
-  alloc_loadcnt();
-  if (loadcnt_allocated())
-    {
-      init_loadcnt();
-      start_pmc(pmc_loadcnt);
-    }
-}
-
-PUBLIC virtual
-void
-Perf_cnt_arch::init_watchdog()
-{} // no watchdog per default
-
-PUBLIC virtual
-void
-Perf_cnt_arch::init_loadcnt()
-{ panic("Cannot initialize load counter"); }
-
-// start watchdog (enable generation of overflow interrupt)
-PUBLIC virtual
-void
-Perf_cnt_arch::start_watchdog()
-{} // no watchdog per default
-
-// stop watchdog (disable generation of overflow interrupt)
-PUBLIC virtual
-void
-Perf_cnt_arch::stop_watchdog()
-{} // no watchdog per default
 
 //--------------------------------------------------------------------
 
@@ -880,9 +855,9 @@ Perf_cnt::init()
           perfctr_type  = Perfctr_x86_arch_perfmon;
           perf_type_str = "PA";
           read_pmc_fns  = p6_read_pmc_fns;
-          pcnt          = &perf_cnt_ap;
+          pcnt          = perf_cnt.construct<Perf_cnt_ap>();
         }
-      if (perfctr_type == Perfctr_x86_generic)
+      else if (perfctr_type == Perfctr_x86_generic)
         {
           if (cpu.vendor() == cpu.Vendor_intel)
             {
@@ -903,7 +878,7 @@ Perf_cnt::init()
                     perf_type_str = "P5";
                     read_pmc_fns  = p5_read_pmc_fns;
                   }
-                pcnt = &perf_cnt_p5;
+                pcnt = perf_cnt.construct<Perf_cnt_p5>();
                 break;
 
                 case 6:
@@ -929,7 +904,7 @@ Perf_cnt::init()
                       perf_type_str = "PPro";
                     }
                   read_pmc_fns = p6_read_pmc_fns;
-                  pcnt = &perf_cnt_p6;
+                  pcnt = perf_cnt.construct<Perf_cnt_p6>();
                   break;
 
                 case 15:
@@ -950,7 +925,9 @@ Perf_cnt::init()
                       perf_type_str = "P4";
                     }
                   read_pmc_fns = p4_read_pmc_fns;
-                  pcnt = &perf_cnt_p4;
+                  pcnt = perf_cnt.construct<Perf_cnt_p4>();
+                  break;
+                default:
                   break;
                 }
             }
@@ -974,7 +951,9 @@ Perf_cnt::init()
                     }
                   perf_event_type = P6;
                   read_pmc_fns    = k7_read_pmc_fns;
-                  pcnt            = &perf_cnt_k7;
+                  pcnt            = perf_cnt.construct<Perf_cnt_k7>();
+                  break;
+                default:
                   break;
                 }
             }
@@ -984,18 +963,20 @@ Perf_cnt::init()
       // counters in usermode. PMC were introduced in Pentium MMX and
       // PPro processors.
       if (cpu.local_features() & Cpu::Lf_rdpmc)
-        cpu.enable_rdpmc();
+        cpu.enable_rdpmc(); printf("RDPMC enabled\n");
     }
 
   if (pcnt && !pcnt->init())
     {
       perfctr_type = Perfctr_x86_generic;
+      perf_cnt.destroy();
       pcnt         = 0;  // init failed, no performance counters available
     }
 
   if (perfctr_cpu_event_set != 0 && perfctr_cpu_event_set(perfctr_type) == 0)
     {
       perfctr_type = Perfctr_x86_generic;
+      perf_cnt.destroy();
       pcnt         = 0;  // init failed, no performance counters available
     }
 
