@@ -6,7 +6,7 @@
 #include <irq_combiner.h>
 #include <pic-gic-helper.h>
 #include <exynos_irq_mgr.h>
-#include <platform.h>
+#include "platform_arm_exynos.h"
 #include <globalconfig.h>
 
 namespace {

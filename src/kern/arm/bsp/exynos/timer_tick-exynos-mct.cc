@@ -1,6 +1,6 @@
 #include <timer_tick-exynos-mct.h>
 #include <globalconfig.h>
-#include <platform.h>
+#include "platform_arm_exynos.h"
 #include <irq_mgr.h>
 
 

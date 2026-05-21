@@ -9,7 +9,7 @@
 #include <outer_cache.h>
 #include <kmem.h>
 #include <infinite_loop.h>
-#include <platform.h>
+#include "platform_arm_exynos.h"
 
 #include <scheduler_iface.h>
 #include <sched.h>

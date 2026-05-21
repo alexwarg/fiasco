@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cpu.h>
-#include <platform.h>
+#include "platform_arm_exynos.h"
 #include <exynos_smc.h>
 #include <kmem.h>
 
@@ -30,7 +30,7 @@ namespace Outer_cache
     l2cxx0.construct(Kmem::mmio_remap(0x10502000, 0x1000));
     Mword auxc = l2cxx0->read<Mword>(L2cxx0::AUX_CONTROL);
 
-    if (!Platform::running_ns())
+    if (!IS_ENABLED(CONFIG_ARM_EM_NS))
       {
         l2cxx0->write<Mword>(tag_lat, L2cxx0::TAG_RAM_CONTROL);
         l2cxx0->write<Mword>(data_lat, L2cxx0::DATA_RAM_CONTROL);
