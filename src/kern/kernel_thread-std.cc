@@ -96,7 +96,7 @@ Kernel_thread::init_workload()
   check (boot_thread->bind(boot_task, User<Utcb>::Ptr((Utcb*)Mem_layout::Utcb_addr)));
   check (boot_thread->ex_regs(Kip::k()->root_ip, 0));
 
-  Ipc_gate *s0_b_gate = Ipc_gate::create(Ram_quota::root, sigma0_thread, 4 << 4);
+  auto *s0_b_gate = Ipc_gate::create(Ram_quota::root, sigma0_thread, 4 << 4);
 
   check (s0_b_gate);
   check (map(s0_b_gate, boot_task, boot_task, C_pager, 0));

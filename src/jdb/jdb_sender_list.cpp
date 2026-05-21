@@ -90,7 +90,7 @@ Jdb_sender_list::show_obj(Kobject *o, int printnone)
       show_sender_list(t->sender_list(), 0, printnone, "Thread", t->dbg_id());
       return true;
     }
-  else if (Ipc_gate *g = cxx::dyn_cast<Ipc_gate_obj *>(o))
+  else if (Ipc_gate_obj *g = cxx::dyn_cast<Ipc_gate_obj *>(o))
     {
       show_sender_list(&g->_wait_q, 0, printnone, "Ipc_gate", g->dbg_id());
       return true;
@@ -125,7 +125,7 @@ Jdb_sender_list::handle_key(Kobject_common *o, int keycode) override
 
   if (Thread *t = cxx::dyn_cast<Thread *>(o))
     show_sender_list(t->sender_list(), 1, 1, "Thread", t->dbg_id());
-  else if (Ipc_gate *g = cxx::dyn_cast<Ipc_gate_obj *>(o))
+  else if (Ipc_gate_obj *g = cxx::dyn_cast<Ipc_gate_obj *>(o))
     show_sender_list(&g->_wait_q, 1, 1, "Ipc_gate", g->dbg_id());
   else
     return false;

@@ -12,17 +12,17 @@ static Kmem_slab_t<Ipc_gate_obj> _ipc_gate_allocator("Ipc_gate");
 
 
 Kobject_iface *
-Ipc_gate_ctl::downgrade(unsigned long attr)
+Ipc_gate_obj::downgrade(unsigned long attr)
 {
   if (attr & L4_msg_item::C_obj_right_1)
-    return static_cast<Ipc_gate*>(static_cast<Ipc_gate_obj*>(this));
+    return poly();
   else
     return this;
 }
 
 inline
 L4_msg_tag
-Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
+Ipc_gate_obj::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
                           Syscall_frame *f, Utcb const *in, Utcb *)
 {
   if (EXPECT_FALSE(!(rights & L4_fpage::Rights::CS())))
@@ -34,24 +34,28 @@ Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
     return commit_result(-L4_err::EMsgtooshort);
 
   L4_fpage::Rights t_rights(0);
-  Thread *t = Ko::deref<Thread>(&tag, in, &t_rights);
+  auto *t = Ko::deref<Thread>(&tag, in, &t_rights);
   if (!t)
     return tag;
 
   if (!(t_rights & L4_fpage::Rights::CS()))
     return commit_result(-L4_err::EPerm);
 
-  Ipc_gate_obj *g = static_cast<Ipc_gate_obj*>(this);
-  g->_id.store(in->values[1]);
+  Poly_ipc_gate x;
+  x.construct<Ipc_gate>();
   t->inc_ref();
 
-  Thread *old = g->_thread.load(cxx::memory_order_relaxed);
-  while (!g->_thread.compare_exchange_strong(old, t))
+  _id.store(in->values[1]);
+  auto *old = _tgt.load(cxx::memory_order_relaxed);
+  while (!_tgt.compare_exchange_strong(old, t))
     ;
+
+  if (!old)
+    poly() = x;
 
   Kobject::Reap_list r;
   if (old)
-    old->put_n_reap(r.list());
+    poly()->del(old, r.list());
 
   if (EXPECT_FALSE(!r.empty()))
     {
@@ -59,9 +63,9 @@ Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
       r.del_1();
     }
 
-  g->unblock_all();
+  unblock_all();
   current()->rcu_wait();
-  g->unblock_all();
+  unblock_all();
 
   if (EXPECT_FALSE(!r.empty()))
     {
@@ -74,11 +78,10 @@ Ipc_gate_ctl::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
 
 inline
 L4_msg_tag
-Ipc_gate_ctl::get_infos(L4_obj_ref, L4_fpage::Rights,
+Ipc_gate_obj::get_infos(L4_obj_ref, L4_fpage::Rights,
                         Syscall_frame *, Utcb const *, Utcb *out)
   {
-    Ipc_gate_obj *g = static_cast<Ipc_gate_obj*>(this);
-    out->values[0] = g->id();
+    out->values[0] = id();
     return commit_result(0, 1);
   }
 
@@ -105,9 +108,7 @@ Ipc_gate_obj::unblock_all()
 void
 Ipc_gate_obj::initiate_deletion(Kobject ***r)
 {
-  if (Thread *t = _thread.load(cxx::memory_order_acquire))
-    t->ipc_gate_deleted(id());
-
+  poly()->del_notify();
   Kobject::initiate_deletion(r);
 }
 
@@ -115,12 +116,13 @@ void
 Ipc_gate_obj::destroy(Kobject ***r)
 {
   Kobject::destroy(r);
-  Thread *tmp = _thread.load(cxx::memory_order_acquire);
+  auto *tmp = _tgt.load(cxx::memory_order_acquire);
   if (tmp)
     {
-      _thread.store(0, cxx::memory_order_release);
+      _tgt.store(nullptr, cxx::memory_order_release);
       unblock_all();
-      tmp->put_n_reap(r);
+      poly()->del(tmp, r);
+      poly().construct<Ipc_gate_unbound>();
     }
 }
 
@@ -157,18 +159,18 @@ void Ipc_gate_obj::operator delete (void *_f) noexcept
 
 
 void
-Ipc_gate_ctl::invoke(L4_obj_ref self, L4_fpage::Rights rights,
+Ipc_gate_obj::invoke(L4_obj_ref self, L4_fpage::Rights rights,
                      Syscall_frame *f, Utcb *utcb)
 {
   if (f->tag().proto() == L4_msg_tag::Label_kobject
       && (f->ref().op() & L4_obj_ref::Ipc_send))
-    Kobject_h<Ipc_gate_ctl, Kobject_iface>::invoke(self, rights, f, utcb);
+    Kobject_h<Ipc_gate_obj, Kobject>::invoke(self, rights, f, utcb);
   else
-    static_cast<Ipc_gate_obj*>(this)->Ipc_gate::invoke(self, rights, f, utcb);
+    poly()->invoke(self, rights, f, utcb);
 }
 
 L4_msg_tag
-Ipc_gate_ctl::kinvoke(L4_obj_ref self, L4_fpage::Rights rights,
+Ipc_gate_obj::kinvoke(L4_obj_ref self, L4_fpage::Rights rights,
                       Syscall_frame *f, Utcb const *in, Utcb *out)
 {
   L4_msg_tag tag = f->tag();
@@ -186,13 +188,22 @@ Ipc_gate_ctl::kinvoke(L4_obj_ref self, L4_fpage::Rights rights,
     case Op_get_info:
       return get_infos(self, rights, f, in, out);
     default:
-      return static_cast<Ipc_gate_obj*>(this)->kobject_invoke(self, rights, f, in, out);
+      return kobject_invoke(self, rights, f, in, out);
     }
 }
 
+
+void
+Ipc_gate_unbound::initiate_deletion(Kobject ***rl)
+{ Ipc_gate_obj::from_poly(this)->initiate_deletion(rl); }
+
+Kobject_mappable *
+Ipc_gate_unbound::map_root()
+{ return Ipc_gate_obj::from_poly(this)->map_root(); }
+
 inline
 L4_error
-Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
+Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
 {
   Unsigned64 t = 0;
   if (!to.is_never())
@@ -203,9 +214,9 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
     }
 
     {
-      auto g = lock_guard(_wait_q.lock());
-      ct->set_wait_queue(&_wait_q);
-      ct->sender_enqueue(&_wait_q, ct->sched_context()->prio());
+      auto g = lock_guard(Ipc_gate_obj::from_poly(this)->_wait_q.lock());
+      ct->set_wait_queue(&Ipc_gate_obj::from_poly(this)->_wait_q);
+      ct->sender_enqueue(&Ipc_gate_obj::from_poly(this)->_wait_q, ct->sched_context()->prio());
     }
   ct->state.change_dirty(~Thread_ready, Thread_send_wait);
 
@@ -223,11 +234,11 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
 
   if (EXPECT_FALSE(ct->in_sender_list()))
     {
-      auto g = lock_guard(_wait_q.lock());
+      auto g = lock_guard(Ipc_gate_obj::from_poly(this)->_wait_q.lock());
       // Recheck under lock whether thread is still in waiting queue.
       if (ct->in_sender_list())
         {
-          ct->sender_dequeue(&_wait_q);
+          ct->sender_dequeue(&Ipc_gate_obj::from_poly(this)->_wait_q);
 
           if (state & Thread_timeout)
             return L4_error::Timeout;
@@ -241,7 +252,67 @@ Ipc_gate::block(Thread *ct, L4_timeout const &to, Utcb *u)
 }
 
 void
-Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
+Ipc_gate_unbound::invoke(L4_obj_ref self, L4_fpage::Rights rights,
+                         Syscall_frame *f, Utcb *utcb)
+{
+  //LOG_MSG_3VAL(current(), "gIPC", Mword(_thread), _id, f->obj_2_flags());
+
+  Thread *ct = current_thread();
+
+  L4_error e = block(ct, f->timeout().snd, utcb);
+  if (!e.ok())
+    {
+      f->tag(commit_error(utcb, e));
+      return;
+    }
+
+  __builtin_launder(Ipc_gate_obj::from_poly(this)->poly().get())->invoke(self, rights, f, utcb);
+}
+
+
+Ipc_gate::Ipc_gate(Thread *t, Mword id)
+{
+  t->inc_ref();
+  Ipc_gate_obj::from_poly(this)->_id.store(id);
+  Ipc_gate_obj::from_poly(this)->_tgt.store(t);
+}
+
+bool
+Ipc_gate::is_local(Space *s) const
+{
+  return Ipc_gate_obj::target_thread(this)->space() == s;
+}
+
+Mword
+Ipc_gate::obj_id() const
+{ return Ipc_gate_obj::from_poly(this)->obj_id(); }
+
+void
+Ipc_gate::initiate_deletion(Kobject ***rl)
+{ Ipc_gate_obj::from_poly(this)->initiate_deletion(rl); }
+
+Kobject_mappable *
+Ipc_gate::map_root()
+{ return Ipc_gate_obj::from_poly(this)->map_root(); }
+
+Kobject_iface *
+Ipc_gate::downgrade(long unsigned int)
+{ return this; }
+
+void
+Ipc_gate::del(Kobject_iface *o, Kobject ***rl)
+{
+  nonull_static_cast<Thread *>(o)->put_n_reap(rl);
+}
+
+void
+Ipc_gate::del_notify()
+{
+  Ipc_gate_obj::target_thread(this)->ipc_gate_deleted(Ipc_gate_obj::from_poly(this)->id());
+}
+
+void
+Ipc_gate::invoke(L4_obj_ref, L4_fpage::Rights rights,
                  Syscall_frame *f, Utcb *utcb)
 {
   //LOG_MSG_3VAL(current(), "gIPC", Mword(_thread), _id, f->obj_2_flags());
@@ -251,37 +322,26 @@ Ipc_gate::invoke(L4_obj_ref /*self*/, L4_fpage::Rights rights,
   Thread *partner = 0;
   bool have_rcv = false;
 
-  Thread *t = _thread.load(cxx::memory_order_acquire);
+  Thread *t = Ipc_gate_obj::target_thread(this);
   if (EXPECT_FALSE(!t))
     {
-      L4_error e = block(ct, f->timeout().snd, utcb);
-      if (!e.ok())
-        {
-          f->tag(commit_error(utcb, e));
-          return;
-        }
-
-      t = _thread.load(cxx::memory_order_acquire);
-      if (EXPECT_FALSE(!t))
-        {
-          f->tag(commit_error(utcb, L4_error::Not_existent));
-          return;
-        }
+      f->tag(commit_error(utcb, L4_error::Not_existent));
+      return;
     }
 
   bool ipc = t->check_sys_ipc(f->ref().op(), &partner, &sender, &have_rcv);
 
-  LOG_TRACE("IPC Gate invoke", "gate", current(), Log_ipc_gate_invoke,
-      l->gate_dbg_id = dbg_id();
+  LOG_TRACE("IPC Gate invoke", "gate", current(), Ipc_gate_obj::Log_ipc_gate_invoke,
+      l->gate_dbg_id = Ipc_gate_obj::from_poly(this)->dbg_id();
       l->thread_dbg_id = t->dbg_id();
-      l->label = _id.load(cxx::memory_order_relaxed) | cxx::int_value<L4_fpage::Rights>(rights);
+      l->label = Ipc_gate_obj::from_poly(this)->_id.load(cxx::memory_order_relaxed) | cxx::int_value<L4_fpage::Rights>(rights);
   );
 
   if (EXPECT_FALSE(!ipc))
     f->tag(commit_error(utcb, L4_error::Not_existent));
   else
     {
-      Mword const from_spec = _id.load()
+      Mword const from_spec = Ipc_gate_obj::from_poly(this)->_id.load()
                             | cxx::int_value<L4_fpage::Rights>(rights);
       ct->do_ipc(f->tag(), from_spec, partner, have_rcv, sender, f->timeout(), f, rights);
     }
@@ -318,7 +378,7 @@ ipc_gate_factory(Ram_quota *q, Space *space,
     }
 
   *err = L4_err::ENomem;
-  return static_cast<Ipc_gate_ctl*>(Ipc_gate::create(q, thread, utcb->values[2]));
+  return Ipc_gate::create(q, thread, utcb->values[2]);
 }
 
 static inline void __attribute__((constructor)) FIASCO_INIT
@@ -333,8 +393,16 @@ register_factory()
 
 #include "string_buffer.h"
 
+Kobject_dbg *
+Ipc_gate::dbg_info() const
+{ return Ipc_gate_obj::from_poly(this)->dbg_info(); }
+
+Kobject_dbg *
+Ipc_gate_unbound::dbg_info() const
+{ return Ipc_gate_obj::from_poly(this)->dbg_info(); }
+
 void
-Ipc_gate::Log_ipc_gate_invoke::print(String_buffer *buf) const
+Ipc_gate_obj::Log_ipc_gate_invoke::print(String_buffer *buf) const
 {
   buf->printf("D-gate=%lx D-thread=%lx L=%lx",
               gate_dbg_id, thread_dbg_id, label);
