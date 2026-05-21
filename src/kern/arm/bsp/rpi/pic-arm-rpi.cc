@@ -1,6 +1,7 @@
 
-#include <pic.h>
-#include <initcalls.h>
+#include <irqs_rpi.h>
+#include <boot_alloc.h>
+#include <irq_entry.h>
 #include <globalconfig.h>
 #include <kmem.h>
 #include <irq_mgr.h>
@@ -8,18 +9,24 @@
 #ifndef CONFIG_ARM_GIC
 #include <irq_chip_bcm.h>
 
-static Static_object<Irq_mgr_single_chip<Irq_chip_bcm> > mgr;
-extern "C" void irq_handler();
+using Irq_mgr_rpi = Irq_mgr_single_chip<Irq_chip_bcm>;
 
 #if defined(CONFIG_PF_RPI_RPI1) || defined (CONFIG_PF_RPI_RPIZW)
-FIASCO_INIT
-void Pic::init()
+
+static void bcm_irq_handler()
 {
-  Irq_mgr::mgr = mgr.construct(96, Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100));
+  auto mgr = nonull_static_cast<Irq_mgr_rpi *>(Irq_mgr::mgr);
+  mgr->c.irq_handler();
 }
 
-void irq_handler()
-{ mgr->c.irq_handler(); }
+Irq_mgr *
+Arm_rpi::create_irq_mgr_bcm(bool)
+{
+  auto m = new Boot_object<Irq_mgr_rpi>(96, Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100));
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(bcm_irq_handler);
+  return m;
+}
 
 #endif
 
@@ -53,15 +60,9 @@ inline void handle_ipis()
 #endif
 
 
-FIASCO_INIT
-void Pic::init()
+static void bcm2836_irq_handler()
 {
-  Irq_mgr::mgr = mgr.construct(96, Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100));
-  Arm_control::init();
-}
-
-void irq_handler()
-{
+  auto mgr = nonull_static_cast<Irq_mgr_rpi *>(Irq_mgr::mgr);
   while (Unsigned32 pending = Arm_control::o()->irqs_pending())
     {
       if (pending & (1 << 4)) // mailbox 0
@@ -75,11 +76,17 @@ void irq_handler()
     }
 }
 
-#endif
+Irq_mgr *
+Arm_rpi::create_irq_mgr_bcm2836(bool)
+{
+  auto m = new Boot_object<Irq_mgr_rpi>(96, Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100));
+  Irq_mgr::mgr = m;
+  Arm_irqs::set_irq_handler(bcm2836_irq_handler);
+  Arm_control::init();
+  return m;
+}
 
-void
-Pic::init_ap(Cpu_number, bool)
-{}
+#endif
 
 #if 0 // ARM_EM_TZ + TZ_VM
 #include <cstdio>
@@ -112,20 +119,14 @@ Pic_gic::Gic_info const Pic_gic::primary_gic_info =
   .cpu_v_phys = 0xff846000, .cpu_v_size = 0x1000,
 };
 
-FIASCO_INIT
-void
-Pic::init()
+Irq_mgr *
+Arm_rpi::create_irq_mgr_gic(bool)
 {
   Pic_gic::add_gic(Pic_gic::primary_gic_info);
 #ifdef CONFIG_BIT32
   Arm_control::init();
 #endif
-}
-
-void Pic::init_ap(Cpu_number cpu, bool resume)
-{
-  Gic::primary->init_ap(cpu, resume);
+  return Irq_mgr::mgr;
 }
 
 #endif // CONFIG_ARM_GIC
-
