@@ -6,6 +6,7 @@
 #include <irq_chip_generic.h>
 #include <gic_dist.h>
 #include <gic_iface.h>
+#include <irq_entry.h>
 #include <globalconfig.h>
 
 #include <cassert>
@@ -96,7 +97,7 @@ public:
   void set_as_primary_irq_handler()
   {
     primary = self();
-    Gic::set_irq_handler(_glbl_irq_handler);
+    Arm_irqs::set_irq_handler(_glbl_irq_handler);
   }
 
   void init_ap(Cpu_number cpu, bool resume) override

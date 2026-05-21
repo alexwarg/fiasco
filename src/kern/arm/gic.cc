@@ -7,11 +7,6 @@
 
 Gic *Gic::primary;
 
-extern "C" void irq_handler();
-
-void irq_handler()
-{ panic("INVALID IRQ HANDLER"); }
-
 #if defined(CONFIG_ARM_EM_TZ)
 
 bool

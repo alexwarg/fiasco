@@ -155,7 +155,8 @@ CXXSRC_KERNEL += main_arm.cc \
 	kernel_thread-arm.cc \
 	pfc-arm.cc \
 	vmem_alloc-arm.cc \
-	startup-arm.cc
+	startup-arm.cc \
+	irq_entry_$(BITS).cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
@@ -169,7 +170,7 @@ CXXSRC_KERNEL-$(CONFIG_MP) += \
 	arm_ipis.cc
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc
-CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc gic_$(BITS).cc pic-gic-helper.cc
+CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc pic-gic-helper.cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc sys_call_page.cc kmem-arm-32.cc
 CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc kmem-arm-64.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc

@@ -4,6 +4,7 @@
 #include <exynos_gpio_chip.h>
 #include <exynos_ext_gic.h>
 #include <irq_combiner.h>
+#include <irq_entry.h>
 #include <boot_alloc.h>
 #include <kmem.h>
 #include <pic-gic-helper.h>
@@ -104,7 +105,7 @@ public:
             Kmem::mmio_remap(info->gic.cpu_phys, info->gic.cpu_size),
             Kmem::mmio_remap(info->gic.dist_phys, info->gic.dist_size),
             info->gic_offset);
-        Gic::set_irq_handler(&ext_gic_handler);
+        Arm_irqs::set_irq_handler(&ext_gic_handler);
       }
     else
       Pic_gic::create_gicv2(this, info->gic);

@@ -8,8 +8,6 @@ class Gic : public Irq_chip_gen
 public:
   static Gic *primary;
 
-  static void set_irq_handler(void (*irq_handler)());
-
   virtual void softint_cpu(Cpu_number target, unsigned m) = 0;
 
   // init / pm only functions (rarely used)
