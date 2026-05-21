@@ -3,6 +3,7 @@
 #include <irq_mgr.h>
 #include <boot_alloc.h>
 #include <l4_types.h>
+#include <cxx/static_vector>
 
 #include <cassert>
 #include <cstring>
