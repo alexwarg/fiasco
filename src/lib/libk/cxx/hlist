@@ -73,6 +73,24 @@ public:
   explicit H_list(bool x) : Base(x) {}
   H_list() : Base() {}
 
+  H_list(H_list &&o) : Base(o)
+  {
+    if (this->_f)
+      this->_f->_pn = &(this->_f);
+  }
+
+  H_list &operator = (H_list &&o)
+  {
+    if (&o == this)
+      return *this;
+
+    this->_f = o._f;
+    if (this->_f)
+      this->_f->_pn = &(this->_f);
+    o.clear();
+    return *this;
+  }
+
   static Iterator iter(T *c) { return Base::__iter(c->Item::_pn); }
 
   static bool in_list(T const *e) { return e->Item::_pn; }
