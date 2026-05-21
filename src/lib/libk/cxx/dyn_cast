@@ -226,6 +226,11 @@ Type_info const Dyn_castable<SELF, BASE, BASES...>::_cxx_dyn_static_type =
 };
 
 /// Dynamic cast operator
+template<typename TO> inline
+TO dyn_cast(TO p)
+{ return p; }
+
+/// Dynamic cast operator
 template<typename TO, typename FROM> inline
 TO dyn_cast(FROM *p)
 {
