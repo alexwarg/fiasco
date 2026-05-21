@@ -18,10 +18,6 @@ public:
   }; };
 
   void start_free_running();
-
-
-
-
 };
 
 class Mct_core_timer : public Mmio_register_block
