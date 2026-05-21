@@ -4,7 +4,7 @@
 #else
 
 #include <io.h>
-#include <platform.h>
+#include "platform_arm_realview.h"
 
 class Clock_impl
 {

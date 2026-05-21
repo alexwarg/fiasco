@@ -8,7 +8,7 @@
 #include <cascade_irq.h>
 #include <irq_mgr_multi_chip.h>
 #include <pic-gic-helper.h>
-#include <platform.h>
+#include "platform_arm_realview.h"
 
 namespace {
 

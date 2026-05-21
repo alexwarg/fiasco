@@ -57,7 +57,7 @@ IMPLEMENTATION [arm && pf_realview]:
 #include "io.h"
 #include "static_init.h"
 #include "processor.h"
-#include "platform.h"
+#include "platform_arm_realview.h"
 
 #include <cstdio>
 

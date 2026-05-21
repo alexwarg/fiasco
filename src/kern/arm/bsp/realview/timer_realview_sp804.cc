@@ -1,7 +1,7 @@
 
 #include <timer_realview_sp804.h>
 #include <kmem.h>
-#include <platform.h>
+#include "platform_arm_realview.h"
 
 Static_object<Timer_sp804> Timer_realview_sp804::sp804;
 

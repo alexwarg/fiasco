@@ -1,5 +1,5 @@
 #include <timer_realview_mptimer.h>
-#include <platform.h>
+#include "platform_arm_realview.h"
 #include <timer_sp804.h>
 #include <kmem.h>
 #include <rv_platforms.h>

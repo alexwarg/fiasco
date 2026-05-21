@@ -1,6 +1,6 @@
 
 #include <pfc-arm.h>
-#include <platform.h>
+#include "platform_arm_realview.h"
 #include <types.h>
 #include <ipi.h>
 #include <globalconfig.h>

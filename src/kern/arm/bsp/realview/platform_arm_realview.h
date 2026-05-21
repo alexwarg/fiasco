@@ -1,4 +1,4 @@
-INTERFACE[arm && pf_realview]:
+#pragma once
 
 #include "mem_layout.h"
 #include "mmio_register_block.h"
@@ -41,26 +41,3 @@ public:
   static Static_object<Sys> sys;
   static Static_object<System_control> system_control;
 };
-
-
-IMPLEMENTATION[arm && pf_realview]:
-
-#include <kmem.h>
-#include <static_init.h>
-#include <rv_platforms.h>
-
-
-Static_object<Platform::Sys> Platform::sys;
-// hmmm
-Static_object<Platform::System_control> Platform::system_control;
-static void platform_init()
-{
-  if (Platform::sys->get_mmio_base())
-    return;
-
-  auto p = rv_current_platform();
-  Platform::sys.construct(Kmem::mmio_remap(p->sys_r, 0x1000));
-  Platform::system_control.construct(Kmem::mmio_remap(p->sys_c, 0x1000));
-}
-
-STATIC_INITIALIZER_P(platform_init, ROOT_FACTORY_INIT_PRIO);
