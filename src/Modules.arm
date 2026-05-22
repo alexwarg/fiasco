@@ -175,10 +175,8 @@ CXXSRC_KERNEL-$(CONFIG_ARM_EM_TZ) += vm.cc
 CXXSRC_KERNEL += bootstrap.cc
 CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if $(CONFIG_BIT64),-mcmodel=large)
 
-CXXSRC_KERNEL		+= cpu-arm.cc cpu-arm-hyp.cc
+CXXSRC_KERNEL		+= cpu-arm.cc cpu-arm-hyp.cc mem_layout-arm-$(BITS).cc mem_layout-noncont.cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += cpu-arm-32.cc
-mem_layout_IMPL		:= mem_layout mem_layout-arm-$(BITS) \
-			   mem_layout-arm mem_layout-noncont
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arm_v7plus.cc perf_cnt_arm.cc
 
 

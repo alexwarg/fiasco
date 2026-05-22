@@ -1,6 +1,9 @@
-INTERFACE [arm && pf_integrator]: //---------------------------------------
+#pragma once
 
-EXTENSION class Mem_layout
+#include <globalconfig.h>
+#include "types.h"
+
+class Mem_layout_arm_bsp
 {
 public:
   enum Phys_layout_integrator : Address {
@@ -9,4 +12,3 @@ public:
     Pic_phys_base        = 0x14000000,
   };
 };
-

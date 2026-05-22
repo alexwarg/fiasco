@@ -1,6 +1,9 @@
-INTERFACE [arm && pf_xscale]: //------------------------------------------------------
+#pragma once
 
-EXTENSION class Mem_layout
+#include <globalconfig.h>
+#include "types.h"
+
+class Mem_layout_arm_bsp
 {
 public:
   enum Phys_layout_pxa : Address {
@@ -9,4 +12,3 @@ public:
     Flush_area_phys_base = 0xe0000000,
   };
 };
-

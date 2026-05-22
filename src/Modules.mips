@@ -142,8 +142,7 @@ CXXSRC_KERNEL += timer.cc pfc-mips.cc
 INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 
 
-CXXSRC_KERNEL		+= cpu-mips.cc mem_unit-mips.cc
-mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
+CXXSRC_KERNEL		+= cpu-mips.cc mem_unit-mips.cc mem_layout-mips$(BITS).cc
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc
 
 ifeq ("$(CONFIG_JDB)","y")

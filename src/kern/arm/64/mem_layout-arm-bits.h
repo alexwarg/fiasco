@@ -1,0 +1,56 @@
+#pragma once
+
+#include <globalconfig.h>
+#include "config.h"
+#include "template_math.h"
+#include "types.h"
+
+class Mem_layout_arm_bits
+{
+public:
+#if defined(CONFIG_CPU_VIRT) && !defined(CONFIG_ARM_PT48)
+  enum Virt_layout_kern_user_max : Address {
+    User_max             = 0x0000007fffffffff,
+  };
+#elif defined(CONFIG_CPU_VIRT) && defined(CONFIG_ARM_PT48)
+  enum Virt_layout_kern_user_max : Address {
+    User_max             = 0x0000ffffffffffff,
+  };
+#endif
+
+#ifdef CONFIG_CPU_VIRT
+  enum Virt_layout_kern : Address {
+    Utcb_addr            = User_max + 1 - 0x10000,
+    Map_base             = RAM_PHYS_BASE,
+    Vmap_base            = (Map_base > 0x800000000000) ? 0x40000000 : 0x800000000000,
+    Jdb_tmp_map_area     = Vmap_base,
+    Tbuf_status_page     = Vmap_base + 0x200000,
+    Tbuf_buffer_area     = Vmap_base + 0x400000,
+    Tbuf_buffer_size     = 0x2000000,
+
+    Registers_map_start  = Vmap_base + 0x40000000,
+    Registers_map_end    = Registers_map_start + 0x40000000,
+
+    Cache_flush_area     = 0x0,
+  };
+#else // !CONFIG_CPU_VIRT
+  enum Virt_layout_kern : Address {
+    User_max             = 0x0000ff7fffffffff,
+    Utcb_addr            = User_max + 1 - 0x10000,
+    Service_page         = 0xffff1000eac00000,
+    Tbuf_status_page     = Service_page + 0x5000,
+    Tbuf_buffer_area     = Service_page + 0x200000,
+    Tbuf_buffer_size     = 0x200000,
+    Jdb_tmp_map_area     = Service_page + 0x400000,
+    Registers_map_start  = 0xffff000000000000,
+    Registers_map_end    = 0xffff000040000000,
+    Cache_flush_area     = 0x0,
+    Map_base             = 0xffff000040000000
+                              + (RAM_PHYS_BASE & ((1 << 30) - 1)),
+
+    Caps_start           = 0xff8005000000,
+    Caps_end             = 0xff800d000000,
+    utcb_ptr_align       = Tl_math::Ld<sizeof(void*)>::Res,
+  };
+#endif
+};

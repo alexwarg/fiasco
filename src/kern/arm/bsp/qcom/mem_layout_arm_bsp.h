@@ -3,12 +3,15 @@
  * Copyright (C) 2021-2022 Stephan Gerhold <stephan@gerhold.net>
  * Copyright (C) 2022-2023 Kernkonzept GmbH.
  */
+#pragma once
 
-INTERFACE [arm && (pf_qcom_msm8226 || pf_qcom_msm8974)]:
+#include <globalconfig.h>
+#include "types.h"
 
-EXTENSION class Mem_layout
+class Mem_layout_arm_bsp
 {
 public:
+#if defined(CONFIG_PF_QCOM_MSM8226) || defined(CONFIG_PF_QCOM_MSM8974)
   enum Phys_layout_qcom : Address
   {
     Gic_dist_phys_base = 0xf9000000,
@@ -17,14 +20,9 @@ public:
     Gic_v_phys_base    = 0xf9004000,
     Mpm_ps_hold        = 0xfc4ab000,
   };
-};
+#endif
 
-// ------------------------------------------------------------------------
-INTERFACE [arm && (pf_qcom_msm8909 || pf_qcom_msm8916 || pf_qcom_msm8939)]:
-
-EXTENSION class Mem_layout
-{
-public:
+#if defined(CONFIG_PF_QCOM_MSM8909) || defined(CONFIG_PF_QCOM_MSM8916) || defined(CONFIG_PF_QCOM_MSM8939)
   enum Phys_layout_qcom : Address
   {
     Gic_dist_phys_base = 0x0b000000,
@@ -33,14 +31,9 @@ public:
     Gic_v_phys_base    = 0x0b004000,
     Mpm_ps_hold        = 0x004ab000,
   };
-};
+#endif
 
-// ------------------------------------------------------------------------
-INTERFACE [arm && pf_qcom_sm8150]:
-
-EXTENSION class Mem_layout
-{
-public:
+#ifdef CONFIG_PF_QCOM_SM8150
   enum Phys_layout_qcom : Address
   {
     Gic_dist_phys_base   = 0x17a00000,
@@ -49,4 +42,5 @@ public:
     Gic_its_phys_base    = 0x17a40000,
     Gic_its_size         =    0x20000,
   };
+#endif
 };

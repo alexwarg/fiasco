@@ -1,16 +1,17 @@
-INTERFACE [ia32]:
+#pragma once
 
 #include "types.h"
 #include "config.h"
 #include "linking.h"
 #include "template_math.h"
 
-EXTENSION class Mem_layout
+#include <cassert>
+
+class Mem_layout_ia32_bits
 {
 public:
   enum Flags
   {
-    /// Is the adapter memory in the kernel image super page?
     Adap_in_kernel_image = FIASCO_IMAGE_PHYS_START < Config::SUPERPAGE_SIZE,
   };
 
@@ -33,16 +34,14 @@ public:
     Tbuf_buffer_area  = Service_page + 0x200000, ///< % 2MB
     Tbuf_buffer_size  = 0x200000,
     Tbuf_ubuffer_area = Tbuf_buffer_area,
-    // 0xeb800000-0xec000000 (8MB) free
     Io_map_area_start = 0xec000000,
     Io_map_area_end   = 0xec800000,
     __free_4          = 0xec880000,    ///< % 4MB
-    // 0xee000000-0xef800000 (24MB) free
     Kstatic           = 0xef800000,    ///< Io_bitmap - 4MB
     Io_bitmap         = 0xefc00000,    ///< % 4MB
     Vmem_end          = 0xf0000000,
 
-    Kernel_image        = FIASCO_IMAGE_VIRT_START, // usually 0xf0000000
+    Kernel_image        = FIASCO_IMAGE_VIRT_START,
     Kernel_image_size   = FIASCO_IMAGE_VIRT_SIZE,
     Kernel_image_end    = Kernel_image + Kernel_image_size,
 
@@ -73,63 +72,35 @@ public:
     Adap_image_phys   = 0,
   };
 
-  template < typename T > static T* boot_data (T const *addr);
+  template<typename T> static T* boot_data(T const *addr);
 
   static Address pmem_size;
 private:
   static Address physmem_offs asm ("PHYSMEM_OFFS");
+
+public:
+  static inline void kphys_base(Address base)
+  { physmem_offs = (Address)Physmem - base; }
+
+  static inline Address pmem_to_phys(Address addr)
+  {
+    assert(in_pmem(addr));
+    return addr - physmem_offs;
+  }
+
+  static inline Address pmem_to_phys(const void *ptr)
+  {
+    Address addr = reinterpret_cast<Address>(ptr);
+    assert(in_pmem(addr));
+    return addr - physmem_offs;
+  }
+
+  static inline Address phys_to_pmem(Address addr)
+  { return addr + physmem_offs; }
+
+  static inline Mword in_kernel_image(Address addr)
+  { return addr >= Kernel_image && addr < Kernel_image_end; }
+
+  static inline Mword in_pmem(Address addr)
+  { return addr >= Physmem; }
 };
-
-IMPLEMENTATION [ia32]:
-
-#include <cassert>
-
-Address Mem_layout::physmem_offs;
-Address Mem_layout::pmem_size;
-
-
-PUBLIC static inline
-void
-Mem_layout::kphys_base(Address base)
-{
-  physmem_offs = (Address)Physmem - base;
-}
-
-PUBLIC static inline NEEDS[<cassert>]
-Address
-Mem_layout::pmem_to_phys(Address addr)
-{
-  assert (in_pmem(addr));
-  return addr - physmem_offs;
-}
-
-PUBLIC static inline NEEDS[<cassert>]
-Address
-Mem_layout::pmem_to_phys(const void *ptr)
-{
-  Address addr = reinterpret_cast<Address>(ptr);
-
-  assert (in_pmem(addr));
-  return addr - physmem_offs;
-}
-
-PUBLIC static inline
-Address
-Mem_layout::phys_to_pmem(Address addr)
-{
-  return addr + physmem_offs;
-}
-
-PUBLIC static inline
-Mword
-Mem_layout::in_kernel_image(Address addr)
-{
-  return addr >= Kernel_image && addr < Kernel_image_end;
-}
-
-PUBLIC static inline
-Mword
-Mem_layout::in_pmem(Address addr)
-{
-  return addr >= Physmem;
-}

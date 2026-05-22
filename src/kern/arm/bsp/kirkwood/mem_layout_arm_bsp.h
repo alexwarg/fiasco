@@ -1,9 +1,12 @@
-INTERFACE [arm && pf_kirkwood]:
+#pragma once
 
-EXTENSION class Mem_layout
+#include <globalconfig.h>
+#include "types.h"
+
+class Mem_layout_arm_bsp
 {
 public:
-  enum Phys_layout_kirkwood: Address
+  enum Phys_layout_kirkwood : Address
   {
     Reset_phys_base   = 0xf1020000,
     Timer_phys_base   = 0xf1020000,

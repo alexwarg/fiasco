@@ -1,10 +1,12 @@
-INTERFACE [arm && pf_exynos4]:
+#pragma once
 
-#include <config.h>
+#include <globalconfig.h>
+#include "types.h"
 
-EXTENSION class Mem_layout
+class Mem_layout_arm_bsp
 {
 public:
+#ifdef CONFIG_PF_EXYNOS4
   enum Phys_layout_exynos : Address {
     Sysram_phys_base     = 0x02020000,
     Gpio3_phys_base      = 0x03860000,
@@ -19,7 +21,7 @@ public:
     Irq_combiner_int_phys_base   = 0x10448000,
 
     Gic_cpu_ext_cpu0_phys_base   = 0x10480000,
-    Gic_cpu_ext_cpu1_phys_base   = 0x10488000, // cpu 1 is + 8000
+    Gic_cpu_ext_cpu1_phys_base   = 0x10488000,
     Gic_dist_ext_cpu0_phys_base  = 0x10490000,
     Gic_dist_ext_cpu1_phys_base  = 0x10498000,
 
@@ -34,38 +36,25 @@ public:
     Sromc_phys_base      = 0x12570000,
     Pwm_phys_base        = 0x139d0000,
   };
-};
+#endif
 
-INTERFACE [arm && pf_exynos4 && exynos_extgic]:
-
-EXTENSION class Mem_layout
-{
-public:
+#if defined(CONFIG_PF_EXYNOS4) && defined(CONFIG_PF_EXYNOS_EXTGIC)
   enum Phys_layout_exynos_extgic : Address {
     Gic_cpu_phys_base            = Gic_cpu_ext_cpu0_phys_base,
     Gic_dist_phys_base           = Gic_dist_ext_cpu0_phys_base,
     Irq_combiner_phys_base       = Irq_combiner_ext_phys_base,
   };
-};
+#endif
 
-INTERFACE [arm && pf_exynos4 && !exynos_extgic]:
-
-EXTENSION class Mem_layout
-{
-public:
+#if defined(CONFIG_PF_EXYNOS4) && !defined(CONFIG_PF_EXYNOS_EXTGIC)
   enum Phys_layout_exynos_intgic : Address {
-
     Gic_cpu_phys_base            = Gic_cpu_int_phys_base,
     Gic_dist_phys_base           = Gic_dist_int_phys_base,
     Irq_combiner_phys_base       = Irq_combiner_int_phys_base,
   };
-};
+#endif
 
-INTERFACE [arm && pf_exynos5]:
-
-EXTENSION class Mem_layout
-{
-public:
+#ifdef CONFIG_PF_EXYNOS5
   enum Phys_layout_exynos : Address {
     Sysram_phys_base       = 0x02020000,
     Gpio3_phys_base        = 0x10d10000,
@@ -83,4 +72,5 @@ public:
     Pwm_phys_base          = 0x12dd0000,
     Gpio2_phys_base        = 0x13400000,
   };
+#endif
 };

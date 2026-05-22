@@ -13,6 +13,7 @@ config PF_IMX_21
 	bool "i.MX21"
 	depends on PF_IMX
 	select CAN_ARM_CPU_926
+	select KERN_START_0XD
 	help
 	  Choose for i.MX21.
 

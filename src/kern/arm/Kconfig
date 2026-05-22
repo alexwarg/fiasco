@@ -119,6 +119,9 @@ config HAS_ARM_GENERIC_TIMER
 config VCACHE
 	bool
 
+config KERN_START_0XD
+	bool
+
 config ARM_V5
 	def_bool y if ARM_926 || ARM_920T || ARM_PXA || ARM_SA
 	select VCACHE

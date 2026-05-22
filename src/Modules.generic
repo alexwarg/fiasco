@@ -19,9 +19,6 @@ CXXSRC_ABI += $(CXXSRC_ABI-y)
 
 PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 
-INTERFACES_KERNEL	:= \
-			   mem_layout        \
-
 CXXSRC_KERNEL += \
 	cpu_generic.cc \
 	banner.cc \

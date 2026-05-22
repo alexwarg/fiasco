@@ -1,16 +1,18 @@
-INTERFACE [amd64]:
+#pragma once
 
+#include <globalconfig.h>
 #include "types.h"
 #include "config.h"
 #include "linking.h"
 #include "template_math.h"
 
-EXTENSION class Mem_layout
+#include <cassert>
+
+class Mem_layout_ia32_bits
 {
 public:
   enum Flags
   {
-    /// Is the adapter memory in the kernel image super page?
     Adap_in_kernel_image = FIASCO_IMAGE_PHYS_START < Config::SUPERPAGE_SIZE,
   };
 
@@ -39,12 +41,10 @@ public:
     Tbuf_buffer_area  = Service_page + 0x200000, ///< % 2MB
     Tbuf_buffer_size  = 0x200000,
     Tbuf_ubuffer_area = Tbuf_buffer_area,
-    // 0xffffffffeb800000-0xfffffffffec000000 (8MB) free
     Io_map_area_start = Kglobal_area + 0xc000000UL,
     Io_map_area_end   = Kglobal_area + 0xc800000UL,
     ___free_3         = Kglobal_area + 0xc800000UL, ///< % 4MB
     ___free_4         = Kglobal_area + 0xc880000UL, ///< % 4MB
-    // 0xffffffffee000000-0xffffffffef800000 (24MB) free
     Kstatic           = 0xffffffffef800000UL,    ///< % 4MB Io_bitmap
     Vmem_end          = 0xfffffffff0000000UL,
 
@@ -61,7 +61,6 @@ public:
     Adap_vram_cga_beg = Adap_image + 0xb8000, ///< % 8KB video RAM CGA memory
     Adap_vram_cga_end = Adap_image + 0xc0000,
 
-    // used for CPU_LOCAL_MAP only
     Kentry_cpu_pdir   = 0xfffffffff0800000UL,
 
     Physmem           = 0xffffffff10000000UL,    ///< % 4MB   kernel memory
@@ -80,89 +79,48 @@ public:
     Adap_image_phys   = 0,
   };
 
-  template < typename T > static T* boot_data (T const *addr);
-
-  static Address pmem_size;
-private:
-  static Address physmem_offs asm ("PHYSMEM_OFFS");
-};
-
-//-----------------------------------------------------------
-INTERFACE [amd64 && !kernel_isolation]:
-
-EXTENSION class Mem_layout
-{
-public:
+#ifndef CONFIG_KERNEL_ISOLATION
   enum : Mword
   {
     Idt = Service_page + 0xfe000
   };
-};
-
-//-----------------------------------------------------------
-INTERFACE [amd64 && kernel_isolation]:
-
-EXTENSION class Mem_layout
-{
-public:
+#else
   enum : Mword
   {
     Idt = 0xffff817fffffa000UL,                  ///< IDT in Kentry area
     Kentry_cpu_syscall_entry = Kentry_cpu_page + 0x30
   };
+#endif
+
+  template<typename T> static T* boot_data(T const *addr);
+
+  static Address pmem_size;
+private:
+  static Address physmem_offs asm ("PHYSMEM_OFFS");
+
+public:
+  static inline void kphys_base(Address base)
+  { physmem_offs = (Address)Physmem - base; }
+
+  static inline Address pmem_to_phys(Address addr)
+  {
+    assert(in_pmem(addr));
+    return addr - physmem_offs;
+  }
+
+  static inline Address pmem_to_phys(const void *ptr)
+  {
+    Address addr = reinterpret_cast<Address>(ptr);
+    assert(in_pmem(addr));
+    return addr - physmem_offs;
+  }
+
+  static inline Address phys_to_pmem(Address addr)
+  { return addr + physmem_offs; }
+
+  static inline Mword in_kernel_image(Address addr)
+  { return addr >= Kernel_image && addr < Kernel_image_end; }
+
+  static inline Mword in_pmem(Address addr)
+  { return addr >= Physmem && addr < Physmem_end; }
 };
-
-//-----------------------------------------------------------
-IMPLEMENTATION [amd64]:
-
-#include <cassert>
-
-Address Mem_layout::physmem_offs;
-Address Mem_layout::pmem_size;
-
-
-PUBLIC static inline
-void
-Mem_layout::kphys_base (Address base)
-{
-  physmem_offs = (Address)Physmem - base;
-}
-
-PUBLIC static inline NEEDS[<cassert>]
-Address
-Mem_layout::pmem_to_phys (Address addr)
-{
-  assert (in_pmem(addr));
-  return addr - physmem_offs;
-}
-
-PUBLIC static inline NEEDS[<cassert>]
-Address
-Mem_layout::pmem_to_phys (const void *ptr)
-{
-  Address addr = reinterpret_cast<Address>(ptr);
-
-  assert (in_pmem(addr));
-  return addr - physmem_offs;
-}
-
-PUBLIC static inline
-Address
-Mem_layout::phys_to_pmem(Address addr)
-{
-  return addr + physmem_offs;
-}
-
-PUBLIC static inline
-Mword
-Mem_layout::in_kernel_image(Address addr)
-{
-  return addr >= Kernel_image && addr < Kernel_image_end;
-}
-
-PUBLIC static inline
-Mword
-Mem_layout::in_pmem(Address addr)
-{
-  return addr >= Physmem && addr < Physmem_end;
-}
