@@ -57,9 +57,6 @@ PRIVATE_INCDIR += lib/uart
 DRIVERS 		:= libdrivers.a libgluedriverslibc.a
 VPATH			+= drivers/$(CONFIG_XARCH)/$(BITS) drivers/$(CONFIG_XARCH) drivers
 PRIVATE_INCDIR		+= drivers/$(CONFIG_XARCH)/$(BITS) drivers/$(CONFIG_XARCH) drivers
-INTERFACES_DRIVERS 	:=  \
-			   processor
-processor_IMPL		:= processor processor-arm-$(BITS) processor-arm
 CXXSRC_DRIVERS		:= glue_libc.cc console.cc filter_console.cc mux_console.cc \
 	delayloop.cc
 
