@@ -143,13 +143,11 @@ CXXSRC_KERNEL += timer.cc pfc-mips.cc
 
 #missing: jdb_extensions
 
-
 INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 
 
-CXXSRC_KERNEL		+= cpu-mips.cc
+CXXSRC_KERNEL		+= cpu-mips.cc mem_unit-mips.cc
 mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
-mem_unit_IMPL		:= mem_unit-mips
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc
 
 ifeq ("$(CONFIG_JDB)","y")

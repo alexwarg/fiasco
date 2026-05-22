@@ -1,15 +1,39 @@
-IMPLEMENTATION [arm && !cpu_virt]:
+#pragma once
 
-IMPLEMENT inline
-void Mem_unit::tlb_flush()
+#include "globalconfig.h"
+#include "mem.h"
+#include "mem_layout.h"
+#include "mmu.h"
+#include "types.h"
+
+// Mixin providing all ARM 64-bit TLB and cache-coherency operations for
+// Mem_unit.  Inherits btc_flush()/btc_inv() and cache-line query helpers from
+// the Mmu template base.
+
+class Mem_unit_tlb : public Mmu<Mem_layout::Cache_flush_area>
+{
+public:
+  static void tlb_flush();
+  static void tlb_flush(unsigned long asid);
+  static void tlb_flush(void *va, unsigned long asid);
+  static void kernel_tlb_flush();
+  static void dtlb_flush(void *va);
+  static void make_coherent_to_pou(void const *start, size_t size);
+};
+
+// ---------------------------------------------------------------------------
+#ifndef CONFIG_CPU_VIRT
+
+inline void
+Mem_unit_tlb::tlb_flush()
 {
   Mem::dsbst();
   asm volatile("tlbi vmalle1" : : : "memory");
   Mem::dsb();
 }
 
-IMPLEMENT inline
-void Mem_unit::dtlb_flush(void *va)
+inline void
+Mem_unit_tlb::dtlb_flush(void *va)
 {
   Mem::dsbst();
   asm volatile("tlbi vaae1, %0"
@@ -18,10 +42,10 @@ void Mem_unit::dtlb_flush(void *va)
   Mem::dsb();
 }
 
-IMPLEMENT inline
-void Mem_unit::tlb_flush(void *va, unsigned long asid)
+inline void
+Mem_unit_tlb::tlb_flush(void *va, unsigned long asid)
 {
-  if (asid == Asid_invalid)
+  if (asid == ~0UL)
     return;
 
   Mem::dsbst();
@@ -31,8 +55,8 @@ void Mem_unit::tlb_flush(void *va, unsigned long asid)
   Mem::dsb();
 }
 
-IMPLEMENT inline
-void Mem_unit::tlb_flush(unsigned long asid)
+inline void
+Mem_unit_tlb::tlb_flush(unsigned long asid)
 {
   Mem::dsbst();
   asm volatile("tlbi aside1, %0" // TLBIASID
@@ -40,27 +64,31 @@ void Mem_unit::tlb_flush(unsigned long asid)
   Mem::dsb();
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && cpu_virt]:
+inline void
+Mem_unit_tlb::kernel_tlb_flush()
+{ tlb_flush(); }
 
-IMPLEMENT_OVERRIDE inline
-void Mem_unit::kernel_tlb_flush()
+// ---------------------------------------------------------------------------
+#else // CONFIG_CPU_VIRT
+
+inline void
+Mem_unit_tlb::kernel_tlb_flush()
 {
   Mem::dsbst();
   asm volatile("tlbi alle2" : : : "memory");
   Mem::dsb();
 }
 
-IMPLEMENT inline
-void Mem_unit::tlb_flush()
+inline void
+Mem_unit_tlb::tlb_flush()
 {
   Mem::dsbst();
   asm volatile("tlbi alle1" : : : "memory");
   Mem::dsb();
 }
 
-IMPLEMENT inline
-void Mem_unit::dtlb_flush(void *va)
+inline void
+Mem_unit_tlb::dtlb_flush(void *va)
 {
   Mem::dsbst();
   asm volatile("tlbi vae2, %0"
@@ -69,11 +97,10 @@ void Mem_unit::dtlb_flush(void *va)
   Mem::dsb();
 }
 
-
-IMPLEMENT inline
-void Mem_unit::tlb_flush(void *va, unsigned long asid)
+inline void
+Mem_unit_tlb::tlb_flush(void *va, unsigned long asid)
 {
-  if (asid == Asid_invalid)
+  if (asid == ~0UL)
     return;
 
   Mword vttbr;
@@ -98,8 +125,8 @@ void Mem_unit::tlb_flush(void *va, unsigned long asid)
       "memory");
 }
 
-IMPLEMENT inline
-void Mem_unit::tlb_flush(unsigned long asid)
+inline void
+Mem_unit_tlb::tlb_flush(unsigned long asid)
 {
   Mword vttbr;
   // FIXME: could do a compare for the current VMID before loading
@@ -120,12 +147,13 @@ void Mem_unit::tlb_flush(unsigned long asid)
       "memory");
 }
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_v8plus]:
+#endif // CONFIG_CPU_VIRT
 
-PUBLIC static inline
-void
-Mem_unit::make_coherent_to_pou(void const *start, size_t size)
+// ---------------------------------------------------------------------------
+// make_coherent_to_pou: cache-line-granular D+I maintenance to PoU (ARMv8)
+
+inline void
+Mem_unit_tlb::make_coherent_to_pou(void const *start, size_t size)
 {
   unsigned long end = (unsigned long)start + size;
   unsigned long is = icache_line_size(), ds = dcache_line_size();

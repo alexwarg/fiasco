@@ -1,89 +1,4 @@
-INTERFACE:
-
-#include "types.h"
-#include "processor.h"
-
-class Mem_unit
-{
-public:
-  enum : unsigned short
-  {
-    Asid_invalid = 0xffff,
-    Asid_mask    = 0x3ff,
-  };
-
-  enum : Mword
-  {
-    Entry_hi_EHINV = 1U << 10
-  };
-
-  static void index_reg(Signed32 v)
-  { Mips::mtc0_32(v, Mips::Cp0_index); }
-
-  static Signed32 index_reg()
-  { return Mips::mfc0_32(Mips::Cp0_index); }
-
-  static void entry_lo0(Mword v)
-  { Mips::mtc0(v, Mips::Cp0_entry_lo1); }
-
-  static void entry_lo1(Mword v)
-  { Mips::mtc0(v, Mips::Cp0_entry_lo2); }
-
-  static Mword entry_lo0()
-  { return Mips::mfc0(Mips::Cp0_entry_lo1); }
-
-  static Mword entry_lo1()
-  { return Mips::mfc0(Mips::Cp0_entry_lo2); }
-
-  static void page_mask(Mword v)
-  { Mips::mtc0_32(v, Mips::Cp0_page_mask); }
-
-  static void page_grain(Unsigned32 v)
-  { Mips::mtc0_32(v, Mips::Cp0_page_grain); }
-
-  static void pw_base(Mword v)
-  { Mips::mtc0(v, Mips::Cp0_pw_base); }
-
-  static void pw_field(Mword v)
-  { Mips::mtc0(v, Mips::Cp0_pw_field); }
-
-  static void pw_size(Mword v)
-  { Mips::mtc0(v, Mips::Cp0_pw_size); }
-
-  static void wired(Unsigned32 v)
-  { Mips::mtc0_32(v, Mips::Cp0_wired); }
-
-  static Unsigned32 wired()
-  { return Mips::mfc0_32(Mips::Cp0_wired); }
-
-  static void pw_ctl(Unsigned32 v)
-  { Mips::mtc0_32(v, Mips::Cp0_pw_ctl); }
-
-  static Unsigned32 pw_ctl()
-  { return Mips::mfc0_32(Mips::Cp0_pw_ctl); }
-
-  static void entry_hi(Mword v)
-  { Mips::mtc0(v, Mips::Cp0_entry_hi); }
-
-  static Mword entry_hi()
-  { return Mips::mfc0(Mips::Cp0_entry_hi); }
-
-  static void make_coherent_to_pou(void const *start, size_t size)
-  {
-    // Unfortunately 'synci_step' is not available on certain processors
-    for (Unsigned8 const *m = (Unsigned8 const*)start;
-         m < (Unsigned8 const *)start + size; m += sizeof(Mword))
-      Mips::synci(m);
-  }
-
-private:
-  static void (*_tlb_flush)(long asid, unsigned guest_id);
-  static void (*_tlb_flush_full)();
-  static void (*_vz_guest_tlb_flush)(unsigned guest_id);
-};
-
-IMPLEMENTATION:
-
+#include "mem_unit.h"
 #include "cpu.h"
 #include "cpu_lock.h"
 #include "lock_guard.h"
@@ -99,27 +14,11 @@ void (*Mem_unit::_tlb_flush_full)();
 
 void (*Mem_unit::_vz_guest_tlb_flush)(unsigned guest_id);
 
-PUBLIC static inline
-void
-Mem_unit::tlb_flush(long asid, unsigned guest_id)
-{ _tlb_flush(asid, guest_id); }
-
-PUBLIC static inline
-void
-Mem_unit::tlb_flush()
-{ _tlb_flush_full(); }
-
-PUBLIC static inline
-void
-Mem_unit::vz_guest_tlb_flush(unsigned guest_id)
-{ _vz_guest_tlb_flush(guest_id); }
-
 static unsigned _l1_i_line;
 static unsigned _l1_d_line;
 static unsigned _l2_line;
 static unsigned _l3_line;
 
-PUBLIC static
 void
 Mem_unit::cache_detect(unsigned cm_l2_cache_line)
 {
@@ -145,7 +44,6 @@ Mem_unit::cache_detect(unsigned cm_l2_cache_line)
     _l3_line = 2U << c2.tl();
 }
 
-PUBLIC static
 void
 Mem_unit::dcache_flush(Address start, Address end)
 {
@@ -174,7 +72,6 @@ Mem_unit::dcache_flush(Address start, Address end)
     }
 }
 
-PUBLIC static
 void
 Mem_unit::dcache_inv(Address start, Address end)
 {
@@ -203,7 +100,6 @@ Mem_unit::dcache_inv(Address start, Address end)
     }
 }
 
-PUBLIC static
 void
 Mem_unit::dcache_clean(Address start, Address end)
 {
@@ -232,7 +128,6 @@ Mem_unit::dcache_clean(Address start, Address end)
     }
 }
 
-PUBLIC static
 Signed32
 Mem_unit::tlb_probe()
 {
@@ -255,7 +150,6 @@ Mem_unit::tlb_probe()
  * \pre If other CP0 registers such as `GuestCtl1` are needed for`TLBWI`
  *      those must be setup before calling this function.
  */
-PRIVATE static inline NOEXPORT
 void
 Mem_unit::tlb_write(Mword v_entry_hi, Mword v_entry_lo0,
                     Mword v_entry_lo1, Mword v_page_mask)
@@ -275,7 +169,6 @@ Mem_unit::tlb_write(Mword v_entry_hi, Mword v_entry_lo0,
  * \pre `index` must be a valid index.
  * \pre The `TLBR` instruction must be supported.
  */
-PRIVATE static inline NOEXPORT
 Mword
 Mem_unit::tlb_read(Unsigned32 index)
 {
@@ -305,7 +198,6 @@ Mem_unit::tlb_read(Unsigned32 index)
  * \remark This implementation might overwrite wired entries.
  * \remark Assumes no global entries in the TLB.
  */
-PRIVATE static
 void
 Mem_unit::_plain_tlb_flush(long asid, unsigned guest_id)
 {
@@ -334,7 +226,6 @@ Mem_unit::_plain_tlb_flush(long asid, unsigned guest_id)
 /**
  * JTLB full flush for non-VZ CPUs without TLBINV instruction.
  */
-PRIVATE static
 void
 Mem_unit::_plain_tlb_flush_full()
 {
@@ -345,23 +236,6 @@ Mem_unit::_plain_tlb_flush_full()
       tlb_write(unique_hi(idx, 0), 0, 0, 0);
     }
   entry_hi(saved_hi);
-}
-
-PUBLIC static inline
-Mword
-Mem_unit::vz_guest_ctl1()
-{ return Mips::mfc0_32(Mips::Cp0_guest_ctl_1); }
-
-PRIVATE static inline
-void
-Mem_unit::set_vz_guest_ctl1(Mword ctl1)
-{ Mips::mtc0_32(ctl1, Mips::Cp0_guest_ctl_1); }
-
-PUBLIC static inline NEEDS[Mem_unit::set_vz_guest_ctl1]
-void
-Mem_unit::set_vz_guest_rid(Mword ctl1_orig, Mword guest_id)
-{
-  set_vz_guest_ctl1((ctl1_orig & ~0x00ff0000UL) | ((guest_id & 0x00ff) << 16));
 }
 
 /**
@@ -391,7 +265,6 @@ Mem_unit::set_vz_guest_rid(Mword ctl1_orig, Mword guest_id)
  *         containing guest TLB entries return `EntryHi.EHINV = 1`. Otherwise
  *         it might also affect guest wired entries (could break guest OS).
  */
-PRIVATE static
 void
 Mem_unit::_vz_tlb_flush(long asid, unsigned guest_id)
 {
@@ -426,7 +299,6 @@ Mem_unit::_vz_tlb_flush(long asid, unsigned guest_id)
  *
  * \remark Assumes EntryHi.EHINV support.
  */
-PRIVATE static
 void
 Mem_unit::_vz_guest_tlb_flush_impl(unsigned guest_id)
 {
@@ -477,7 +349,6 @@ Mem_unit::_vz_guest_tlb_flush_impl(unsigned guest_id)
  *         containing guest TLB entries return `EntryHi.EHINV = 1`. Otherwise
  *         it might also affect guest wired entries (could break guest OS).
  */
-PRIVATE static
 void
 Mem_unit::_vz_tlb_flush_full()
 {
@@ -522,7 +393,6 @@ Mem_unit::_vz_tlb_flush_full()
  *         in a shared root / guest TLB setup. Otherwise wired guest entries
  *         could be affected.
  */
-PRIVATE static
 void
 Mem_unit::_vz_tlbinv_tlb_flush(long asid, unsigned guest_id)
 {
@@ -550,7 +420,6 @@ Mem_unit::_vz_tlbinv_tlb_flush(long asid, unsigned guest_id)
 /**
  * Flush Guest TLB for given guest ID with tlbinv support.
  */
-PRIVATE static
 void
 Mem_unit::_vz_guest_tlbinv_tlb_flush_impl(unsigned guest_id)
 {
@@ -564,7 +433,6 @@ Mem_unit::_vz_guest_tlbinv_tlb_flush_impl(unsigned guest_id)
  *
  * \note only the root TLB and guest ID are affected.
  */
-PRIVATE static
 void
 Mem_unit::_vz_tlbinv_tlb_flush_full()
 {
@@ -597,7 +465,6 @@ Mem_unit::_vz_tlbinv_tlb_flush_full()
  *         in a shared root / guest TLB setup. Otherwise wired guest entries
  *         could be affected.
  */
-PRIVATE static
 void
 Mem_unit::_vz_tlbinv_ftlb_flush_loop(long asid, unsigned guest_id)
 {
@@ -639,7 +506,6 @@ Mem_unit::_vz_tlbinv_ftlb_flush_loop(long asid, unsigned guest_id)
  *
  * \note only the root TLB and guest ID are affected.
  */
-PRIVATE static
 void
 Mem_unit::_vz_tlbinv_ftlb_flush_loop_full()
 {
@@ -671,7 +537,6 @@ Mem_unit::_vz_tlbinv_ftlb_flush_loop_full()
  *
  * \remark This implementation might overwrite wired root entries.
  */
-PRIVATE static
 void
 Mem_unit::_tlbinv_ftlb_flush_loop(long asid, unsigned guest_id)
 {
@@ -698,7 +563,6 @@ Mem_unit::_tlbinv_ftlb_flush_loop(long asid, unsigned guest_id)
 /**
  * VTLB/FTLB full flush for non-VZ CPUs with TLBINV instructions.
  */
-PRIVATE static
 void
 Mem_unit::_tlbinv_ftlb_flush_loop_full()
 {
@@ -730,7 +594,6 @@ Mem_unit::_tlbinv_ftlb_flush_loop_full()
  *
  * \remark This implementation might overwrite wired root entries.
  */
-PRIVATE static
 void
 Mem_unit::_tlbinv_tlb_flush(long asid, unsigned guest_id)
 {
@@ -748,14 +611,12 @@ Mem_unit::_tlbinv_tlb_flush(long asid, unsigned guest_id)
 /**
  * JTLB full flush for non-VZ CPUs with TLBINV instructions.
  */
-PRIVATE static
 void
 Mem_unit::_tlbinv_tlb_flush_full()
 {
   Mips::tlbinvf();
 }
 
-PUBLIC static
 void
 Mem_unit::init_tlb()
 {
@@ -824,32 +685,3 @@ Mem_unit::init_tlb()
         }
     }
 }
-
-PUBLIC static inline
-void Mem_unit::set_current_asid(unsigned long asid)
-{ entry_hi(asid); }
-
-
-/**
- * Create a unique VA for the given TLB index and asid.
- *
- * We use 0xa0000000 for that because 0x80000000 is used
- * in the TLB init and we want to be sure that we do never collide with
- * these entries.
- */
-PUBLIC static inline
-Mword
-Mem_unit::unique_hi(Mword idx, Mword asid)
-{
-  return (idx << 13) | 0xa0000000 | asid;
-}
-
-PUBLIC static inline
-bool
-Mem_unit::is_unique_hi(Mword entry_hi)
-{
-  entry_hi >>= 13;
-  return    entry_hi >= (0xa0000000 >> 13)
-         && entry_hi < (0xc0000000 >> 13);
-}
-

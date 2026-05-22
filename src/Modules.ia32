@@ -86,7 +86,6 @@ KERNEL			:= fiasco.image
 VPATH			+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/32 kern/ia32 kern
 
-
 CXXSRC_KERNEL-$(CONFIG_IOMMU)    += dmar_space.cc
 
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
@@ -136,7 +135,6 @@ CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 
 CXXSRC_KERNEL		+= cpu-ia32.cc cpu-ia32-32.cc
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-32
-mem_unit_IMPL		:= mem_unit-ia32
 
 
 CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc timer_tick-ia32.cc
