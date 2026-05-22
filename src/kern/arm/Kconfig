@@ -116,8 +116,12 @@ config ARM_MPTIMER
 config HAS_ARM_GENERIC_TIMER
 	bool
 
+config VCACHE
+	bool
+
 config ARM_V5
 	def_bool y if ARM_926 || ARM_920T || ARM_PXA || ARM_SA
+	select VCACHE
 
 config ARM_V6
 	def_bool y if ARM_1136 || ARM_1176 || ARM_MPCORE
