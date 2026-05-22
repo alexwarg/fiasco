@@ -23,7 +23,6 @@ INTERFACES_KERNEL	:= \
 			   mem_layout        \
 			   mem_unit \
 			   cpu               \
-			   perf_cnt   \
 
 CXXSRC_KERNEL += \
 	banner.cc \
@@ -92,6 +91,7 @@ CXXSRC_KERNEL-$(CONFIG_MP) += per_cpu_data_mp.cc per_cpu_data_alloc.cc \
 
 CXXSRC_KERNEL-$(CONFIG_SERIAL) += kernel_uart.cc vkey_serial.cc
 CXXSRC_KERNEL-a$(CONFIG_SERIAL) += vkey_noserial.cc
+CXXSRC_KERNEL-y$(CONFIG_PERF_CNT) += perf_cnt_dummy.cc
 
 CXXFLAGS_kernel_uart = $(LIBUART_UART_FLAGS)
 

@@ -150,7 +150,7 @@ INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 cpu_IMPL		:= cpu cpu-mips
 mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
 mem_unit_IMPL		:= mem_unit-mips
-perf_cnt_IMPL		:= perf_cnt perf_cnt-mips
+CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc
 
 ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o

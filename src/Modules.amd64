@@ -22,7 +22,6 @@ PREPROCESS_PARTS-$(CONFIG_SCHED_RTC)         += rtc_timer
 PREPROCESS_PARTS-$(CONFIG_SCHED_APIC)        += apic_timer
 PREPROCESS_PARTS-$(CONFIG_SCHED_HPET)        += hpet_timer
 PREPROCESS_PARTS-$(CONFIG_SERIAL)            += serial
-PREPROCESS_PARTS-$(CONFIG_PERF_CNT)          += perf_cnt
 PREPROCESS_PARTS-$(CONFIG_CPU_VIRT)          += svm vmx virtual_space_iface
 PREPROCESS_PARTS-$(CONFIG_SCHED_FIXED_PRIO)  += sched_fixed_prio
 PREPROCESS_PARTS-$(CONFIG_SCHED_WFQ)         += sched_wfq
@@ -135,8 +134,8 @@ CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 cpu_IMPL		:= cpu cpu-ia32 cpu-64
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-64
 mem_unit_IMPL		:= mem_unit-ia32
-perf_cnt_IMPL		:= perf_cnt perf_cnt-ia32
 
+CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc
 
 CXXSRC_KERNEL-$(CONFIG_SCHED_PIT) += timer_pit.cc timer_tick-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SCHED_HPET) += timer_hpet.cc hpet.cc timer_tick-ia32.cc
@@ -185,7 +184,7 @@ ASSRC_KERNEL                            += $(ASSRC_KERNEL-y)
 NOOPT			+= $(filter jdb%,\
 			     $(foreach in,$(INTERFACES_KERNEL), \
 			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in))))
-NOOPT			+= tb_entry_output $(tb_entry_IMPL) $(perf_cnt_IMPL)  \
+NOOPT			+= tb_entry_output $(tb_entry_IMPL) perf_cnt perf_cnt_arch  \
 			   kern_cnt loadcnt $(watchdog_IMPL) kdb \
 			   $(kernel_uart_IMPL) push_console thread-dbf   \
 			   trap_state
