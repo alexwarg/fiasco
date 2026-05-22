@@ -7,5 +7,3 @@ RAM_PHYS_BASE           := 0x30000000
 
 CXXSRC_KERNEL += timer_arm_s3c2410.cc pic-arm-s3c2410.cc s3c2410_pf.cc
 
-mem_layout_IMPL       += mem_layout-arm-s3c2410
-clock_IMPL            += clock-generic

@@ -9,5 +9,4 @@ LIBUART_UART_FLAGS		+= $(call LIBUART_UART, 16550)
 
 CXXSRC_KERNEL      += gic.cc pfc-mips-malta.cc mips_bsp_irqs-malta.cc
 
-clock_IMPL		+= clock-generic
 

@@ -8,5 +8,3 @@ RAM_PHYS_BASE           := 0x00000000
 
 CXXSRC_KERNEL += timer_integrator.cc pic-arm-integrator.cc integrator_pf.cc
 
-mem_layout_IMPL       += mem_layout-arm-integrator
-clock_IMPL            += clock-generic

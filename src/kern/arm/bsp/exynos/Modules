@@ -24,10 +24,4 @@ VPATH                   += kern/arm/bsp/s3c
 RAM_PHYS_BASE           := $(if $(CONFIG_ARM_EM_TZ),0xb0000000,0x40000000)
 MPCORE_PHYS_BASE        := 0x10500000
 
-
-mem_layout_IMPL       += mem_layout-arm-exynos
-clock_IMPL            += clock-generic
-outer_cache_IMPL      += outer_cache-arm-exynos
-watchdog_IMPL         += watchdog-arm-exynos
-
 PREPROCESS_PARTS-$(CONFIG_CPU_SUSPEND)  += cpu_suspend

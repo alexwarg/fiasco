@@ -6,4 +6,3 @@ OBJECTS_LIBUART    += uart_16550.o uart_16550_dw.o
 LIBUART_UART_FLAGS += $(call LIBUART_UART, 16550_dw)
 CXXSRC_KERNEL      += gic.cc pfc-mips-boston.cc mips_bsp_irqs-boston.cc
 
-clock_IMPL         += clock-generic

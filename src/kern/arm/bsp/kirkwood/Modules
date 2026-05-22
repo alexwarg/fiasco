@@ -7,5 +7,3 @@ LIBUART_UART_FLAGS      += $(call LIBUART_UART, 16550)
 
 CXXSRC_KERNEL += timer_arm_kirkwood.cc pic-arm-kirkwood.cc kirkwood_pf.cc
 
-mem_layout_IMPL       += mem_layout-arm-kirkwood
-clock_IMPL            += clock-generic

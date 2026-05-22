@@ -9,5 +9,3 @@ PREPROCESS_PARTS      += generic_tickless_idle arm_generic_timer pic_gic
 RAM_PHYS_BASE         := $(CONFIG_PF_QCOM_RAM_PHYS_BASE)
 
 CXXSRC_KERNEL         += pfc-arm-qcom.cc pic-arm-qcom.cc qcom_pf.cc
-mem_layout_IMPL       += mem_layout-arm-qcom
-clock_IMPL            += clock-generic

@@ -6,4 +6,3 @@ OBJECTS_LIBUART    += uart_16550.o
 LIBUART_UART_FLAGS += $(call LIBUART_UART, 16550)
 CXXSRC_KERNEL      += gic.cc pfc-mips-sead3.cc mips_bsp_irqs-sead3.cc
 
-clock_IMPL         += clock-generic

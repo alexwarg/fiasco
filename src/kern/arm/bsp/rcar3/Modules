@@ -9,4 +9,3 @@ RAM_PHYS_BASE         := 0x48000000
 CXXSRC_KERNEL         += pfc-arm-rcar3.cc pic-arm-rcar3.cc rcar3_pf.cc
 BOOTSTRAP_EXTRA       += pic-arm-rcar3.o
 
-clock_IMPL            += clock-generic

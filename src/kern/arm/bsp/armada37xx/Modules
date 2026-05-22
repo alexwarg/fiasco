@@ -7,4 +7,3 @@ RAM_PHYS_BASE         := 0x0
 
 CXXSRC_KERNEL         += pfc-arm-armada37xx.cc pic-arm-armada37xx.cc armada37xx_pf.cc
 
-clock_IMPL            += clock-generic

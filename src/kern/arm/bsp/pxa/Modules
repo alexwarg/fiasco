@@ -10,9 +10,3 @@ LIBUART_UART_FLAGS      += -DUART_16550_INIT_IER=0x40
 PRIVATE_INCDIR := kern/arm/bsp/pxa-sa $(PRIVATE_INCDIR)
 CXXSRC_KERNEL += timer_arm_pxa_sa.cc pxa_sa_pf.cc
 
-mem_layout_IMPL       += mem_layout-arm-pxa
-pic_IMPL              += pic-arm-pxa_sa1100
-bootstrap_IMPL        += bootstrap-arm-pxa
-reset_IMPL            += reset-arm-pxa
-timestamp_IMPL        += timestamp-generic
-clock_IMPL            += clock-generic

@@ -7,4 +7,3 @@ RAM_PHYS_BASE         := 0x80000000
 
 CXXSRC_KERNEL         += pfc-arm-fvp_base.cc pic-arm-fvp_base.cc fvp_base_pf.cc
 
-clock_IMPL            += clock-generic
