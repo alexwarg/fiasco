@@ -282,7 +282,7 @@ public:
     return (v >> ((pin & 15) * 2)) & 2;
   }
 
-  void setup_pin(Mword pin)
+  void setup_tz_pin(Mword pin)
   {
     unsigned shift = (pin & 3) * 8;
     auto guard = lock_guard(_lock);

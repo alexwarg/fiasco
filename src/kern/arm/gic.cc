@@ -16,7 +16,7 @@ Gic_x::alloc(Irq_base *irq, Mword pin, bool init)
       || Irq_chip_gen::alloc(irq, pin, init))
     {
       printf("GIC: Switching IRQ %ld to secure\n", pin);
-      setup_tz_pin(pin);
+      _dist.setup_tz_pin(pin);
       return true;
     }
   return false;

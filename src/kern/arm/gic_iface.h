@@ -14,6 +14,7 @@ public:
   virtual void softint_bcast(unsigned m) = 0;
   virtual void softint_phys(unsigned m, Unsigned64 target) = 0;
   virtual unsigned gic_version() const = 0;
+  virtual void set_pending_irq(unsigned, Unsigned32)  = 0;
 
   // empty default for JDB
   virtual void irq_prio_bootcpu(unsigned, unsigned) {}

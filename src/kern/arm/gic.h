@@ -38,7 +38,7 @@ public:
   void enable_locked(unsigned irq)
   { _dist.enable_irq(irq); }
 
-  void set_pending_irq(unsigned idx, Unsigned32 val)
+  void set_pending_irq(unsigned idx, Unsigned32 val) override
   {
     _dist.set_pending_irq(idx, val);
   }
