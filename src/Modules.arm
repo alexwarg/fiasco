@@ -138,8 +138,6 @@ VPATH 		+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 VPATH		+= jdb/arm/$(BITS) jdb/arm jdb
 PRIVATE_INCDIR 	+= kern/$(CONFIG_XARCH)/$(BITS) kern/$(CONFIG_XARCH) kern
 
-INTERFACES_KERNEL += 	mem_op \
-
 CXXSRC_KERNEL += main_arm.cc \
 	task_vcpu_resume.cc \
 	platform_iface.cc \
@@ -156,7 +154,8 @@ CXXSRC_KERNEL += main_arm.cc \
 	pfc-arm.cc \
 	vmem_alloc-arm.cc \
 	startup-arm.cc \
-	irq_entry_$(BITS).cc
+	irq_entry_$(BITS).cc \
+	mem_op.cc mem_op-arm-$(BITS).cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
@@ -186,7 +185,6 @@ CXXSRC_KERNEL		+= cpu-arm.cc cpu-arm-hyp.cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += cpu-arm-32.cc
 mem_layout_IMPL		:= mem_layout mem_layout-arm-$(BITS) \
 			   mem_layout-arm mem_layout-noncont
-mem_op_IMPL		:= mem_op mem_op-arm-$(BITS)
 mem_unit_IMPL		:= mem_unit mem_unit-arm-$(BITS)
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arm_v7plus.cc perf_cnt_arm.cc
 
