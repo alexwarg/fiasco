@@ -1,6 +1,13 @@
-INTERFACE [arm && pf_realview]:
+#include <types.h>
+#include <initcalls.h>
 
-#include "types.h"
+#include <kmem.h>
+#include <io.h>
+#include <static_init.h>
+#include <processor.h>
+#include <platform_arm_realview.h>
+
+#include <cstdio>
 
 class Board_check
 {
@@ -16,57 +23,38 @@ private:
   static id_pair ids[];
 };
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pf_realview]:
-
-#include "initcalls.h"
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pf_realview_eb]:
-
+#ifdef CONFIG_PF_REALVIEW_EB // ------------------------------------------
 Board_check::id_pair Board_check::ids[] FIASCO_INITDATA = {
   { 0x1ffffe00, 0x01400400 },
 };
+#endif
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pf_realview_pb11mp]:
-
+#ifdef CONFIG_PF_REALVIEW_PB11MP // --------------------------------------
 Board_check::id_pair Board_check::ids[] FIASCO_INITDATA = {
   { 0x0fffff00, 0x0159f500 },
 };
+#endif
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pf_realview_pbx]:
-
+#ifdef CONFIG_PF_REALVIEW_PBX // -----------------------------------------
 Board_check::id_pair Board_check::ids[] FIASCO_INITDATA = {
   { 0xffffff00, 0x1182f500 }, // board
   { 0xffffff00, 0x01780500 }, // qemu
 };
+#endif
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pf_realview_vexpress]:
-
+#ifdef CONFIG_PF_REALVIEW_VEXPRESS // ------------------------------------
 Board_check::id_pair Board_check::ids[] FIASCO_INITDATA = {
   { 0xcfffff00, 0x0190f500 },
 };
+#endif
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pf_realview]:
 
-#include "kmem.h"
-#include "io.h"
-#include "static_init.h"
-#include "processor.h"
-#include "platform_arm_realview.h"
-
-#include <cstdio>
-
-IMPLEMENT static FIASCO_INIT
+FIASCO_INIT
 Mword
 Board_check::read_board_id()
 { return Platform::sys->read<Mword>(Platform::Sys::Id); }
 
-IMPLEMENT static FIASCO_INIT
+FIASCO_INIT
 void
 Board_check::check_board()
 {
