@@ -1,100 +1,5 @@
-INTERFACE [arm_em_tz]:
 
-#include "task.h"
-
-class Vm : public cxx::Dyn_castable<Vm, Task>
-{
-public:
-  explicit Vm(Ram_quota *q)
-    : Dyn_castable_class(q, Caps::mem() | Caps::obj()) {}
-
-  struct Vm_state_mode
-  {
-    Mword sp;
-    Mword lr;
-    Mword spsr;
-  };
-
-  enum
-  {
-    Max_num_inject_irqs = 32 * 8,
-    Nr_irq_fields = (Max_num_inject_irqs + (sizeof(Unsigned32) * 8 - 1))
-                    / (sizeof(Unsigned32) * 8),
-  };
-
-  struct Vm_state_irq_inject
-  {
-    Unsigned32 group;
-    Unsigned32 irqs[Nr_irq_fields];
-  };
-
-  struct Vm_state
-  {
-    Mword r[13];
-
-    Mword sp_usr;
-    Mword lr_usr;
-
-    Vm_state_mode irq;
-    Mword r_fiq[5]; // r8 - r12
-    Vm_state_mode fiq;
-    Vm_state_mode abt;
-    Vm_state_mode und;
-    Vm_state_mode svc;
-
-    Mword pc;
-    Mword cpsr;
-
-    Mword pending_events;
-    Unsigned32 cpacr;
-    Mword cp10_fpexc;
-
-    Mword pfs;
-    Mword pfa;
-    Mword exit_reason;
-
-    Vm_state_irq_inject irq_inject;
-  };
-
-private:
-  Vm_state *state_for_dbg;
-
-  enum Exit_reasons
-  {
-    ER_none       = 0,
-    ER_vmm_call   = 1,
-    ER_inst_abort = 2,
-    ER_data_abort = 3,
-    ER_irq        = 4,
-    ER_fiq        = 5,
-    ER_undef      = 6,
-  };
-
-};
-
-//-----------------------------------------------------------------------------
-INTERFACE [debug && arm_em_tz]:
-
-#include "tb_entry.h"
-
-EXTENSION class Vm
-{
-public:
-  struct Vm_log : public Tb_entry
-  {
-    bool is_entry;
-    Mword pc;
-    Mword cpsr;
-    Mword exit_reason;
-    Mword pending_events;
-    Mword r0;
-    Mword r1;
-    void print(String_buffer *buf) const;
- };
-};
-
-//-----------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
+#include "vm.h"
 
 #include "cpu.h"
 #include "cpu_lock.h"
@@ -105,24 +10,22 @@ IMPLEMENTATION [arm]:
 #include "thread_state.h"
 #include "timer.h"
 #include "kmem_slab.h"
+#include "gic.h"
+#include "thread.h"
+#include <entry.h>
+#include <task_factory_impl.h>
+
 
 JDB_DEFINE_TYPENAME(Vm, "\033[33;1mVm\033[m");
 
-PUBLIC inline virtual
-Page_number
-Vm::map_max_address() const
-{ return Page_number(1UL << (MWORD_BITS - Mem_space::Page_shift)); }
-
-PUBLIC inline
 void *
-Vm::operator new(size_t size, void *p) throw()
+Vm::operator new(size_t size, void *p) noexcept
 {
   (void)size;
   assert (size == sizeof(Vm));
   return p;
 }
 
-PUBLIC
 void
 Vm::operator delete(void *ptr)
 {
@@ -130,14 +33,6 @@ Vm::operator delete(void *ptr)
   Kmem_slab_t<Vm>::q_free(t->ram_quota(), ptr);
 }
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_em_tz]:
-
-#include "pic.h"
-#include "thread.h"
-#include <entry.h>
-
-PUBLIC
 int
 Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 {
@@ -146,7 +41,7 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 
   assert(cpu_lock.test());
 
-  if (EXPECT_FALSE(!(ctxt->state(true) & Thread_ext_vcpu_enabled)))
+  if (EXPECT_FALSE(!ctxt->state.has(Thread_ext_vcpu_enabled)))
     {
       ctxt->arch_load_vcpu_kern_state(vcpu, true);
       return -L4_err::EInval;
@@ -162,7 +57,7 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
       for (unsigned i = 1; i < Nr_irq_fields; ++i)
         if ((1 << i) & g)
           {
-            Pic::set_pending_irq(i, state->irq_inject.irqs[i]);
+            Gic::primary->set_pending_irq(i, state->irq_inject.irqs[i]);
             state->irq_inject.irqs[i] = 0;
           }
 
@@ -171,8 +66,8 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
 
   while (true)
     {
-      if (   !(vcpu->_saved_state & Vcpu_state::F_irqs)
-          && (vcpu->sticky_flags & Vcpu_state::Sf_irq_pending))
+      if (   !vcpu->saved_irqs_enabled()
+          && vcpu->pending_irqs())
         {
           state->exit_reason = ER_irq;
           ctxt->arch_load_vcpu_kern_state(vcpu, true);
@@ -216,8 +111,8 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
       if (t->continuation_test_and_restore())
         {
           ctxt->arch_load_vcpu_kern_state(vcpu, true);
-          Entry::vcpu_return_to_kernel(t, vcpu->_entry_ip, vcpu->_entry_sp,
-                                       t->vcpu_state().usr().get());
+          ::Entry::vcpu_return_to_kernel(t, vcpu->_entry_ip, vcpu->_entry_sp,
+                                         t->vcpu_state().usr().get());
         }
     }
 }
@@ -238,10 +133,8 @@ register_factory()
 }
 }
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_em_tz && fpu]:
+#ifdef CONFIG_FPU
 
-PUBLIC
 bool
 Vm::get_fpu()
 {
@@ -256,21 +149,19 @@ Vm::get_fpu()
   return true;
 }
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION [arm && arm_em_tz && !fpu]:
+#else
 
-PUBLIC
 bool
 Vm::get_fpu()
 { return true; }
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION [debug && arm_em_tz]:
+#endif // CONFIG_FPU
+
+#ifdef CONFIG_JDB
 
 #include "jdb.h"
 #include "string_buffer.h"
 
-PRIVATE
 Mword
 Vm::jdb_get(Mword *state_ptr)
 {
@@ -279,7 +170,6 @@ Vm::jdb_get(Mword *state_ptr)
   return v;
 }
 
-PUBLIC
 void
 Vm::dump_vm_state()
 {
@@ -311,14 +201,12 @@ Vm::dump_vm_state()
          jdb_get(&s->svc.sp), jdb_get(&s->svc.lr), jdb_get(&s->svc.spsr));
 }
 
-PUBLIC
 void
 Vm::show_short(String_buffer *buf)
 {
   buf->printf(" utcb:%lx pc:%lx ", (Mword)state_for_dbg, (Mword)jdb_get(&state_for_dbg->pc));
 }
 
-IMPLEMENT
 void
 Vm::Vm_log::print(String_buffer *buf) const
 {
@@ -327,7 +215,6 @@ Vm::Vm_log::print(String_buffer *buf) const
               pc, pending_events, cpsr, exit_reason, r0, r1);
 }
 
-PUBLIC static inline
 void
 Vm::log_vm(Vm_state *state, bool is_entry)
 {
@@ -342,10 +229,5 @@ Vm::log_vm(Vm_state *state, bool is_entry)
   );
 }
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION [!debug && arm_em_tz]:
+#endif // CONFIG_JDB
 
-PUBLIC static inline
-void
-Vm::log_vm(Vm_state *, bool)
-{}

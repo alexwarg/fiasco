@@ -177,7 +177,7 @@ CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_PSCI) += psci.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_CACHE_L2CXX0) += outer_cache-l2cxx0.cc
 
-INTERFACES_KERNEL-$(CONFIG_ARM_EM_TZ) += vm
+CXXSRC_KERNEL-$(CONFIG_ARM_EM_TZ) += vm.cc
 
 CXXSRC_KERNEL += bootstrap.cc
 CXXFLAGS_bootstrap      := -O3 -fno-implement-inlines -fvisibility=internal $(if $(CONFIG_BIT64),-mcmodel=large)
