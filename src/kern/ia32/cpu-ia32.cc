@@ -1,355 +1,5 @@
-INTERFACE[ia32,amd64]:
+#include "cpu.h"
 
-#include "types.h"
-#include "initcalls.h"
-#include "regdefs.h"
-#include "per_cpu_data.h"
-
-#define FIASCO_IA32_LOAD_SEG_SAFE(seg, val) \
-  asm volatile ("mov %0, %%" #seg : : "rm"(val))
-
-#define FIASCO_IA32_LOAD_SEG(seg, val) \
-  asm volatile (                              \
-    "1: mov %0, %%" #seg "\n\t"               \
-    ".pushsection \".fixup.%=\", \"ax?\"\n\t" \
-    "2: movw  $0, %0                    \n\t" \
-    "   jmp 1b                          \n\t" \
-    ".popsection                        \n\t" \
-    ASM_KEX(1b, 2b)                           \
-    : : "rm" (val))
-
-EXTENSION
-class Cpu
-{
-  friend class Kip_test;
-
-public:
-
-  enum Vendor
-  {
-    Vendor_unknown = 0,
-    Vendor_intel,
-    Vendor_amd,
-    Vendor_cyrix,
-    Vendor_via,
-    Vendor_umc,
-    Vendor_nexgen,
-    Vendor_rise,
-    Vendor_transmeta,
-    Vendor_sis,
-    Vendor_nsc
-  };
-
-  enum CacheTLB
-  {
-    Cache_unknown = 0,
-    Cache_l1_data,
-    Cache_l1_inst,
-    Cache_l1_trace,
-    Cache_l2,
-    Cache_l3,
-    Tlb_data_4k,
-    Tlb_inst_4k,
-    Tlb_data_4M,
-    Tlb_inst_4M,
-    Tlb_data_4k_4M,
-    Tlb_inst_4k_4M,
-    Tlb_data_2M_4M,
-  };
-
-  enum
-  {
-    Ldt_entry_size = 8,
-  };
-
-  enum Local_features
-  {
-    Lf_rdpmc		= 0x00000001,
-    Lf_rdpmc32		= 0x00000002,
-  };
-
-  Unsigned64 time_us() const;
-  int can_wrmsr() const;
-
-private:
-  void init();
-  Unsigned64 _frequency;
-  Unsigned32 _version;
-  Unsigned32 _brand;
-  Unsigned32 _features;
-  Unsigned32 _ext_features;
-  Unsigned32 _ext_07_ebx;
-  Unsigned32 _ext_07_edx;
-  Unsigned32 _ext_8000_0001_ecx;
-  Unsigned32 _ext_8000_0001_edx;
-  Unsigned32 _local_features;
-  Unsigned64 _arch_capabilities;
-
-  Unsigned16 _inst_tlb_4k_entries;
-  Unsigned16 _data_tlb_4k_entries;
-  Unsigned16 _inst_tlb_4m_entries;
-  Unsigned16 _data_tlb_4m_entries;
-  Unsigned16 _inst_tlb_4k_4m_entries;
-  Unsigned16 _data_tlb_4k_4m_entries;
-  Unsigned16 _l2_inst_tlb_4k_entries;
-  Unsigned16 _l2_data_tlb_4k_entries;
-  Unsigned16 _l2_inst_tlb_4m_entries;
-  Unsigned16 _l2_data_tlb_4m_entries;
-
-  Unsigned16 _l1_trace_cache_size;
-  Unsigned16 _l1_trace_cache_asso;
-
-  Unsigned16 _l1_data_cache_size;
-  Unsigned16 _l1_data_cache_asso;
-  Unsigned16 _l1_data_cache_line_size;
-
-  Unsigned16 _l1_inst_cache_size;
-  Unsigned16 _l1_inst_cache_asso;
-  Unsigned16 _l1_inst_cache_line_size;
-
-  Unsigned16 _l2_cache_size;
-  Unsigned16 _l2_cache_asso;
-  Unsigned16 _l2_cache_line_size;
-
-  Unsigned32 _l3_cache_size;
-  Unsigned16 _l3_cache_asso;
-  Unsigned16 _l3_cache_line_size;
-
-  Unsigned8 _phys_bits;
-  Unsigned8 _virt_bits;
-
-  Vendor _vendor;
-  char _model_str[52];
-
-  Unsigned32 _arch_perfmon_info_eax;
-  Unsigned32 _arch_perfmon_info_ebx;
-  Unsigned32 _arch_perfmon_info_ecx;
-
-  Unsigned32 _monitor_mwait_eax;
-  Unsigned32 _monitor_mwait_ebx;
-  Unsigned32 _monitor_mwait_ecx;
-  Unsigned32 _monitor_mwait_edx;
-
-  Unsigned32 _thermal_and_pm_eax;
-
-  static Unsigned32 scaler_tsc_to_ns;
-  static Unsigned32 scaler_tsc_to_us;
-  static Unsigned32 scaler_ns_to_tsc;
-
-public:
-
-  void disable(Cpu_number cpu, char const *reason);
-
-  char const *model_str() const { return _model_str; }
-  Vendor vendor() const { return _vendor; }
-
-  unsigned family() const
-  { return (_version >> 8 & 0xf) + (_version >> 20 & 0xff); }
-
-  char const *vendor_str() const
-  { return _vendor == Vendor_unknown ? "Unknown" : vendor_ident[_vendor]; }
-
-  unsigned model() const
-  { return (_version >> 4 & 0xf) + (_version >> 12 & 0xf0); }
-
-  unsigned stepping() const { return _version & 0xF; }
-  unsigned type() const { return (_version >> 12) & 0x3; }
-  Unsigned64 frequency() const { return _frequency; }
-  unsigned brand() const { return _brand & 0xFF; }
-  unsigned features() const { return _features; }
-  unsigned ext_features() const { return _ext_features; }
-  bool has_monitor_mwait() const { return _ext_features & FEATX_MONITOR; }
-  bool has_monitor_mwait_irq() const { return _monitor_mwait_ecx & 3; }
-  bool has_pcid() const { return _ext_features & FEATX_PCID; }
-
-  bool __attribute__((const)) has_smep() const
-  { return _ext_07_ebx & FEATX_SMEP; }
-
-  bool __attribute__((const)) has_invpcid() const
-  { return _ext_07_ebx & FEATX_INVPCID; }
-
-  bool __attribute__((const)) has_l1d_flush() const
-  { return (_ext_07_edx & FEATX_L1D_FLUSH); }
-
-  bool __attribute__((const)) has_arch_capabilities() const
-  { return (_ext_07_edx & FEATX_IA32_ARCH_CAPABILITIES); }
-
-  bool __attribute ((const)) skip_l1dfl_vmentry() const
-  { return (_arch_capabilities & (1UL << 3)); }
-
-  unsigned ext_8000_0001_ecx() const { return _ext_8000_0001_ecx; }
-  unsigned ext_8000_0001_edx() const { return _ext_8000_0001_edx; }
-  unsigned local_features() const { return _local_features; }
-  bool superpages() const { return features() & FEAT_PSE; }
-  bool tsc() const { return features() & FEAT_TSC; }
-  bool sysenter() const { return features() & FEAT_SEP; }
-  bool syscall() const { return ext_8000_0001_edx() & FEATA_SYSCALL; }
-  bool vmx() { return boot_cpu()->ext_features() & FEATX_VMX; }
-  bool svm() { return boot_cpu()->ext_8000_0001_ecx() & FEATA_SVM; }
-  bool has_amd_osvw() { return  boot_cpu()->ext_8000_0001_ecx() & (1<<9); }
-  unsigned virt_bits() const { return _virt_bits; }
-  unsigned phys_bits() const { return _phys_bits; }
-  Unsigned32 get_scaler_tsc_to_ns() const { return scaler_tsc_to_ns; }
-  Unsigned32 get_scaler_tsc_to_us() const { return scaler_tsc_to_us; }
-  Unsigned32 get_scaler_ns_to_tsc() const { return scaler_ns_to_tsc; }
-
-  Address volatile &kernel_sp() const;
-
-public:
-  static Per_cpu<Cpu> cpus;
-  static Cpu *boot_cpu() { return _boot_cpu; }
-
-  static bool have_superpages() { return boot_cpu()->superpages(); }
-  static bool have_sysenter() { return boot_cpu()->sysenter(); }
-  static bool have_syscall() { return boot_cpu()->syscall(); }
-  static bool have_fxsr() { return boot_cpu()->features() & FEAT_FXSR; }
-  static bool have_pge() { return boot_cpu()->features() & FEAT_PGE; }
-  static bool have_xsave() { return boot_cpu()->ext_features() & FEATX_XSAVE; }
-
-  bool has_xsave() const { return ext_features() & FEATX_XSAVE; }
-
-private:
-
-  static Cpu *_boot_cpu;
-
-  struct Vendor_table {
-    Unsigned32 vendor_mask;
-    Unsigned32 vendor_code;
-    Unsigned16 l2_cache;
-    char       vendor_string[32];
-  } __attribute__((packed));
-
-  struct Cache_table {
-    Unsigned8  desc;
-    Unsigned8  level;
-    Unsigned16 size;
-    Unsigned8  asso;
-    Unsigned8  line_size;
-  };
-
-  static Vendor_table const intel_table[];
-  static Vendor_table const amd_table[];
-  static Vendor_table const cyrix_table[];
-  static Vendor_table const via_table[];
-  static Vendor_table const umc_table[];
-  static Vendor_table const nexgen_table[];
-  static Vendor_table const rise_table[];
-  static Vendor_table const transmeta_table[];
-  static Vendor_table const sis_table[];
-  static Vendor_table const nsc_table[];
-
-  static Cache_table const intel_cache_table[];
-
-  static char const * const vendor_ident[];
-  static Vendor_table const * const vendor_table[];
-
-  static char const * const exception_strings[];
-};
-
-
-//-----------------------------------------------------------------------------
-/*
- * Fiasco ia32-native
- * Architecture specific cpu init code
- */
-INTERFACE [ia32, amd64]:
-
-#include "l4_types.h"
-#include "initcalls.h"
-#include "per_cpu_data.h"
-#include "gdt.h"
-
-class Gdt;
-class Tss;
-
-
-EXTENSION class Cpu
-{
-public:
-  enum Lbr
-  {
-    Lbr_uninitialized = 0,
-    Lbr_unsupported,
-    Lbr_pentium_6,
-    Lbr_pentium_4,
-    Lbr_pentium_4_ext,
-  };
-
-  enum Bts
-  {
-    Bts_uninitialized = 0,
-    Bts_unsupported,
-    Bts_pentium_m,
-    Bts_pentium_4,
-  };
-
-private:
-  /** Flags if lbr or bts facilities are activated, used by double-fault
-   *  handler to reset the debugging facilities
-   */
-  Unsigned32 debugctl_busy;
-
-  /** debugctl value for activating lbr or bts */
-  Unsigned32 debugctl_set;
-
-  /** debugctl value to reset activated lr/bts facilities in the double-fault
-   *  handler
-   */
-  Unsigned32 debugctl_reset;
-
-  /** supported lbr type */
-  Lbr _lbr;
-
-  /** supported bts type */
-  Bts _bts;
-
-  /** is lbr active ? */
-  char lbr_active;
-
-  /** is btf active ? */
-  char btf_active;
-
-  /** is bts active ? */
-  char bts_active;
-
-  Gdt *gdt;
-  Tss *tss;
-  Tss *tss_dbf;
-
-public:
-  Lbr lbr_type() const { return _lbr; }
-  Bts bts_type() const { return _bts; }
-  bool lbr_status() const { return lbr_active; }
-  bool bts_status() const { return bts_active; }
-  bool btf_status() const { return btf_active; }
-
-  Gdt* get_gdt() const { return gdt; }
-  Tss* get_tss() const { return tss; }
-  void set_gdt() const
-  {
-    Pseudo_descriptor desc((Address)gdt, Gdt::gdt_max-1);
-    Gdt::set (&desc);
-  }
-
-  static void set_tss() { set_tr(Gdt::gdt_tss); }
-
-  /// Return the CPU's microcode revision
-  static Unsigned32 ucode_revision()
-  {
-    Unsigned32 a, b, c, d;
-    Cpu::wrmsr(0, 0x8b); // IA32_BIOS_SIGN_ID
-    Cpu::cpuid(1, &a, &b, &c, &d);
-    return Cpu::rdmsr(0x8b) >> 32;
-  }
-
-private:
-  void init_lbr_type();
-  void init_bts_type();
-
-};
-
-//-----------------------------------------------------------------------------
-IMPLEMENTATION[ia32,amd64]:
 
 #include <cstdio>
 #include <cstring>
@@ -563,11 +213,11 @@ struct Ia32_intel_microcode
 DEFINE_PER_CPU_P(0) Per_cpu<Cpu> Cpu::cpus(Per_cpu_data::Cpu_num);
 Cpu *Cpu::_boot_cpu;
 
-Unsigned32 Cpu::scaler_tsc_to_ns;
-Unsigned32 Cpu::scaler_tsc_to_us;
-Unsigned32 Cpu::scaler_ns_to_tsc;
+Unsigned32 Cpu_ia32::scaler_tsc_to_ns;
+Unsigned32 Cpu_ia32::scaler_tsc_to_us;
+Unsigned32 Cpu_ia32::scaler_ns_to_tsc;
 
-Cpu::Vendor_table const Cpu::intel_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::intel_table[] FIASCO_INITDATA_CPU =
 {
   { 0xf0fF0, 0x00400, 0xFFFF, "i486 DX-25/33"                   },
   { 0xf0fF0, 0x00410, 0xFFFF, "i486 DX-50"                      },
@@ -628,7 +278,7 @@ Cpu::Vendor_table const Cpu::intel_table[] FIASCO_INITDATA_CPU =
   { 0x0,     0x0,     0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::amd_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::amd_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x430, 0xFFFF, "Am486DX2-WT"                     },
   { 0xFF0, 0x470, 0xFFFF, "Am486DX2-WB"                     },
@@ -683,7 +333,7 @@ Cpu::Vendor_table const Cpu::amd_table[] FIASCO_INITDATA_CPU =
   { 0x0,        0x0,        0,      ""                             }
 };
 
-Cpu::Vendor_table const Cpu::cyrix_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::cyrix_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x440, 0xFFFF, "Gx86 (Media GX)"                 },
   { 0xFF0, 0x490, 0xFFFF, "5x86"                            },
@@ -693,7 +343,7 @@ Cpu::Vendor_table const Cpu::cyrix_table[] FIASCO_INITDATA_CPU =
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::via_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::via_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x540, 0xFFFF, "IDT Winchip C6"                  },
   { 0xFF0, 0x580, 0xFFFF, "IDT Winchip 2A/B"                },
@@ -708,20 +358,20 @@ Cpu::Vendor_table const Cpu::via_table[] FIASCO_INITDATA_CPU =
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::umc_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::umc_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x410, 0xFFFF, "U5D"                             },
   { 0xFF0, 0x420, 0xFFFF, "U5S"                             },
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::nexgen_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::nexgen_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x500, 0xFFFF, "Nx586"                           },
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::rise_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::rise_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x500, 0xFFFF, "mP6 (iDragon)"                   },
   { 0xFF0, 0x520, 0xFFFF, "mP6 (iDragon)"                   },
@@ -730,7 +380,7 @@ Cpu::Vendor_table const Cpu::rise_table[] FIASCO_INITDATA_CPU =
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::transmeta_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::transmeta_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFFF, 0x542, 0xFFFF, "TM3x00 (Crusoe)"                 },
   { 0xFFF, 0x543, 0xFFFF, "TM5x00 (Crusoe)"                 },
@@ -738,13 +388,13 @@ Cpu::Vendor_table const Cpu::transmeta_table[] FIASCO_INITDATA_CPU =
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::sis_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::sis_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x500, 0xFFFF, "55x"                             },
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Vendor_table const Cpu::nsc_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Vendor_table const Cpu_ia32::nsc_table[] FIASCO_INITDATA_CPU =
 {
   { 0xFF0, 0x540, 0xFFFF, "Geode GX1"                       },
   { 0xFF0, 0x550, 0xFFFF, "Geode GX2"                       },
@@ -752,7 +402,7 @@ Cpu::Vendor_table const Cpu::nsc_table[] FIASCO_INITDATA_CPU =
   { 0x0,   0x0,   0xFFFF, ""                                }
 };
 
-Cpu::Cache_table const Cpu::intel_cache_table[] FIASCO_INITDATA_CPU =
+Cpu_ia32::Cache_table const Cpu_ia32::intel_cache_table[] FIASCO_INITDATA_CPU =
 {
   { 0x01, Tlb_inst_4k,        32,   4,    0 },
   { 0x02, Tlb_inst_4M,         2,   4,    0 },
@@ -850,7 +500,7 @@ Cpu::Cache_table const Cpu::intel_cache_table[] FIASCO_INITDATA_CPU =
   { 0x0,  Cache_unknown,       0,   0,    0 }
 };
 
-char const * const Cpu::vendor_ident[] =
+char const * const Cpu_ia32::vendor_ident[] =
 {
    0,
   "GenuineIntel",
@@ -865,7 +515,7 @@ char const * const Cpu::vendor_ident[] =
   "Geode by NSC"
 };
 
-Cpu::Vendor_table const * const Cpu::vendor_table[] =
+Cpu_ia32::Vendor_table const * const Cpu_ia32::vendor_table[] =
 {
   0,
   intel_table,
@@ -880,7 +530,21 @@ Cpu::Vendor_table const * const Cpu::vendor_table[] =
   nsc_table
 };
 
-char const * const Cpu::exception_strings[] =
+FIASCO_INIT_CPU
+Cpu::Cpu(Cpu_number cpu)
+{
+  set_id(cpu);
+  if (cpu == Cpu_number::boot_cpu())
+    {
+      _boot_cpu = this;
+      set_present(1);
+      set_online(1);
+    }
+
+  init();
+}
+
+char const * const Cpu_ia32::exception_strings[] =
 {
   /*  0 */ "Divide Error",
   /*  1 */ "Debug",
@@ -916,70 +580,16 @@ char const * const Cpu::exception_strings[] =
   /* 31 */ "Reserved"
 };
 
-PUBLIC explicit FIASCO_INIT_CPU
-Cpu::Cpu(Cpu_number cpu)
-{
-  set_id(cpu);
-  if (cpu == Cpu_number::boot_cpu())
-    {
-      _boot_cpu = this;
-      set_present(1);
-      set_online(1);
-    }
-
-  init();
-}
-
-
-PUBLIC static
-void
-Cpu::init_global_features()
-{}
-
-PUBLIC static
 char const *
-Cpu::exception_string(Mword trapno)
+Cpu_ia32::exception_string(Mword trapno)
 {
   if (trapno > 31)
     return "Maskable Interrupt";
   return exception_strings[trapno];
 }
 
-PUBLIC static inline FIASCO_INIT_CPU
 void
-Cpu::cpuid(Unsigned32 mode, Unsigned32 ecx_val,
-           Unsigned32 *eax, Unsigned32 *ebx, Unsigned32 *ecx, Unsigned32 *edx)
-{ Proc::cpuid(mode, ecx_val, eax, ebx, ecx, edx); }
-
-PUBLIC static inline FIASCO_INIT_CPU_AND_PM
-void
-Cpu::cpuid(Unsigned32 mode,
-           Unsigned32 *eax, Unsigned32 *ebx, Unsigned32 *ecx, Unsigned32 *edx)
-{ Proc::cpuid(mode, 0, eax, ebx, ecx, edx); }
-
-PUBLIC static inline FIASCO_INIT_CPU_AND_PM
-Unsigned32
-Cpu::cpuid_eax(Unsigned32 mode)
-{ return Proc::cpuid_eax(mode); }
-
-PUBLIC static inline FIASCO_INIT_CPU_AND_PM
-Unsigned32
-Cpu::cpuid_ebx(Unsigned32 mode)
-{ return Proc::cpuid_ebx(mode); }
-
-PUBLIC static inline FIASCO_INIT_CPU_AND_PM
-Unsigned32
-Cpu::cpuid_ecx(Unsigned32 mode)
-{ return Proc::cpuid_ecx(mode); }
-
-PUBLIC static inline FIASCO_INIT_CPU_AND_PM
-Unsigned32
-Cpu::cpuid_edx(Unsigned32 mode)
-{ return Proc::cpuid_edx(mode); }
-
-PUBLIC
-void
-Cpu::update_features_info()
+Cpu_ia32::update_features_info()
 {
   cpuid(1, &_version, &_brand, &_ext_features, &_features);
 
@@ -987,9 +597,8 @@ Cpu::update_features_info()
     _ext_features &= ~FEATX_MONITOR;
 }
 
-PRIVATE FIASCO_INIT_CPU
-void
-Cpu::cache_tlb_intel()
+void FIASCO_INIT_CPU
+Cpu_ia32::cache_tlb_intel()
 {
   Unsigned8 desc[16];
   unsigned i, count = 0;
@@ -1067,9 +676,9 @@ Cpu::cache_tlb_intel()
   while (++count < *desc);
 }
 
-PRIVATE FIASCO_INIT_CPU
+FIASCO_INIT_CPU
 void
-Cpu::cache_tlb_l1()
+Cpu_ia32::cache_tlb_l1()
 {
   Unsigned32 eax, ebx, ecx, edx;
   cpuid(0x80000005, &eax, &ebx, &ecx, &edx);
@@ -1088,9 +697,9 @@ Cpu::cache_tlb_l1()
   _inst_tlb_4m_entries     =  eax        & 0xFF;
 }
 
-PRIVATE FIASCO_INIT_CPU
+FIASCO_INIT_CPU
 void
-Cpu::cache_tlb_l2_l3()
+Cpu_ia32::cache_tlb_l2_l3()
 {
   Unsigned32 eax, ebx, ecx, edx;
   cpuid(0x80000006, &eax, &ebx, &ecx, &edx);
@@ -1117,9 +726,9 @@ Cpu::cache_tlb_l2_l3()
   _l3_cache_line_size = edx & 0xFF;
 }
 
-PRIVATE FIASCO_INIT_CPU
+FIASCO_INIT_CPU
 void
-Cpu::addr_size_info()
+Cpu_ia32::addr_size_info()
 {
   Unsigned32 eax = cpuid_eax(0x80000008);
 
@@ -1127,9 +736,8 @@ Cpu::addr_size_info()
   _virt_bits = (eax & 0xff00) >> 8;
 }
 
-PUBLIC static
 unsigned
-Cpu::amd_cpuid_mnc()
+Cpu_ia32::amd_cpuid_mnc()
 {
   Unsigned32 ecx = cpuid_ecx(0x80000008);
 
@@ -1139,9 +747,9 @@ Cpu::amd_cpuid_mnc()
   return 1 << apicidcoreidsize;
 }
 
-PRIVATE FIASCO_INIT_CPU
+FIASCO_INIT_CPU
 void
-Cpu::set_model_str()
+Cpu_ia32::set_model_str()
 {
   Vendor_table const *table;
 
@@ -1160,16 +768,6 @@ Cpu::set_model_str()
   snprintf(_model_str, sizeof (_model_str), "Unknown CPU");
 }
 
-PUBLIC inline FIASCO_INIT_CPU
-void
-Cpu::arch_perfmon_info(Unsigned32 *eax, Unsigned32 *ebx, Unsigned32 *ecx) const
-{
-  *eax = _arch_perfmon_info_eax;
-  *ebx = _arch_perfmon_info_ebx;
-  *ecx = _arch_perfmon_info_ecx;
-}
-
-PUBLIC static
 unsigned long
 Cpu::get_features()
 {
@@ -1197,8 +795,7 @@ Cpu::get_features()
     may change the processor features. Therefore, this function has to
     be called again after the Local APIC was enabled.
  */
-PUBLIC FIASCO_INIT_CPU
-void
+void FIASCO_INIT_CPU
 Cpu::identify()
 {
   Unsigned32 eflags = get_flags();
@@ -1367,17 +964,6 @@ Cpu::identify()
   set_flags(eflags);
 }
 
-PUBLIC inline NEEDS["processor.h"]
-void
-Cpu::busy_wait_ns(Unsigned64 ns)
-{
-  Unsigned64 stop = rdtsc () + ns_to_tsc(ns);
-
-  while (rdtsc() < stop)
-    Proc::pause();
-}
-
-PUBLIC
 bool
 Cpu::if_show_infos() const
 {
@@ -1389,7 +975,6 @@ Cpu::if_show_infos() const
          || brand()     != boot_cpu()->brand();
 }
 
-PUBLIC
 void
 Cpu::show_cache_tlb_info(const char *indent) const
 {
@@ -1450,86 +1035,13 @@ Cpu::show_cache_tlb_info(const char *indent) const
            indent, _l3_cache_size, _l3_cache_asso, _l3_cache_line_size);
 }
 
-IMPLEMENT
 void
-Cpu::disable(Cpu_number cpu, char const *reason)
+Cpu_ia32::disable(Cpu_number cpu, char const *reason)
 {
   printf("CPU%u: is disabled: %s\n", cxx::int_value<Cpu_number>(cpu), reason);
 }
 
-// Function used for calculating apic scaler
-PUBLIC static inline
-Unsigned32
-Cpu::muldiv(Unsigned32 val, Unsigned32 mul, Unsigned32 div)
-{
-  Unsigned32 dummy;
-
-  asm volatile ("mull %3 ; divl %4\n\t"
-               :"=a" (val), "=d" (dummy)
-               : "0" (val),  "d" (mul),  "c" (div));
-  return val;
-}
-
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_cs()
-{
-  Unsigned16 val;
-  asm volatile ("mov %%cs, %0" : "=rm" (val));
-  return val;
-}
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_ds()
-{
-  Unsigned16 val;
-  asm volatile ("mov %%ds, %0" : "=rm" (val));
-  return val;
-}
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_es()
-{
-  Unsigned16 val;
-  asm volatile ("mov %%es, %0" : "=rm" (val));
-  return val;
-}
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_ss()
-{
-  Unsigned16 val;
-  asm volatile ("mov %%ss, %0" : "=rm" (val));
-  return val;
-}
-
-PUBLIC static inline NEEDS["asm.h"]
-void
-Cpu::set_ds(Unsigned16 val)
-{
-  if (__builtin_constant_p(val))
-    FIASCO_IA32_LOAD_SEG_SAFE(ds, val);
-  else
-    FIASCO_IA32_LOAD_SEG(ds, val);
-}
-
-PUBLIC static inline NEEDS["asm.h"]
-void
-Cpu::set_es(Unsigned16 val)
-{
-  if (__builtin_constant_p(val))
-    FIASCO_IA32_LOAD_SEG_SAFE(es, val);
-  else
-    FIASCO_IA32_LOAD_SEG(es, val);
-}
-
-
 //----------------------------------------------------------------------------
-IMPLEMENTATION[ia32, amd64]:
 
 #include "asm.h"
 #include "config.h"
@@ -1543,14 +1055,8 @@ IMPLEMENTATION[ia32, amd64]:
 #include "regdefs.h"
 #include "tss.h"
 
-EXTENSION class Cpu
-{
-private:
-  Unsigned64 _suspend_tsc;
-};
 
-PUBLIC FIASCO_INIT_AND_PM
-void
+void FIASCO_INIT_AND_PM
 Cpu::pm_suspend()
 {
   Gdt_entry tss_entry = (*gdt)[Gdt::gdt_tss / 8];
@@ -1560,8 +1066,7 @@ Cpu::pm_suspend()
   _suspend_tsc = rdtsc();
 }
 
-PUBLIC FIASCO_INIT_AND_PM
-void
+void FIASCO_INIT_AND_PM
 Cpu::pm_resume()
 {
   if (id() != Cpu_number::boot_cpu())
@@ -1590,126 +1095,9 @@ Cpu::pm_resume()
   try_enable_hw_performance_states(true);
 }
 
-PUBLIC static inline
-void
-Cpu::set_cr0(unsigned long val)
-{ asm volatile ("mov %0, %%cr0" : : "r" (val)); }
 
-PUBLIC static inline
-void
-Cpu::set_pdbr(unsigned long addr)
-{ asm volatile ("mov %0, %%cr3" : : "r" (addr)); }
-
-PUBLIC static inline
-void
-Cpu::set_cr4(unsigned long val)
-{ asm volatile ("mov %0, %%cr4" : : "r" (val)); }
-
-PUBLIC static inline
-void
-Cpu::set_ldt(Unsigned16 val)
-{ asm volatile ("lldt %0" : : "rm" (val)); }
-
-
-PUBLIC static inline
-void
-Cpu::set_ss(Unsigned16 val)
-{ asm volatile ("mov %0, %%ss" : : "r" (val)); }
-
-PUBLIC static inline
-void
-Cpu::set_tr(Unsigned16 val)
-{ asm volatile ("ltr %0" : : "rm" (val)); }
-
-PUBLIC static inline
-void
-Cpu::xsetbv(Unsigned64 val, Unsigned32 xcr)
-{
-  asm volatile ("xsetbv" : : "a" ((Mword)val),
-                             "d" ((Mword)(val >> 32)),
-                             "c" (xcr));
-}
-
-PUBLIC static inline
-Unsigned64
-Cpu::xgetbv(Unsigned32 xcr)
-{
-  Unsigned32 eax, edx;
-  asm volatile("xgetbv"
-               : "=a" (eax),
-                 "=d" (edx)
-               : "c" (xcr));
-  return eax | ((Unsigned64)edx << 32);
-}
-
-PUBLIC static inline
-Mword
-Cpu::get_cr0()
-{
-  Mword val;
-  asm volatile ("mov %%cr0, %0" : "=r" (val));
-  return val;
-}
-
-PUBLIC static inline
-Address
-Cpu::get_pdbr()
-{ Address addr; asm volatile ("mov %%cr3, %0" : "=r" (addr)); return addr; }
-
-PUBLIC static inline
-Mword
-Cpu::get_cr4()
-{ Mword val; asm volatile ("mov %%cr4, %0" : "=r" (val)); return val; }
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_ldt()
-{ Unsigned16 val; asm volatile ("sldt %0" : "=rm" (val)); return val; }
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_tr()
-{ Unsigned16 val; asm volatile ("str %0" : "=rm" (val)); return val; }
-
-IMPLEMENT inline
-int
-Cpu::can_wrmsr() const
-{ return features() & FEAT_MSR; }
-
-PUBLIC static inline
-Unsigned64
-Cpu::rdmsr(Unsigned32 reg)
-{ return Proc::rdmsr(reg); }
-
-PUBLIC static inline
-Unsigned64
-Cpu::rdpmc(Unsigned32 idx, Unsigned32)
-{
-  Unsigned32 l,h;
-
-  asm volatile ("rdpmc" : "=a" (l), "=d" (h) : "c" (idx));
-  return ((Unsigned64)h << 32) + (Unsigned64)l;
-}
-
-PUBLIC static inline
-void
-Cpu::wrmsr(Unsigned32 low, Unsigned32 high, Unsigned32 reg)
-{ Proc::wrmsr(((Unsigned64)high << 32) | low, reg); }
-
-PUBLIC static inline
-void
-Cpu::wrmsr(Unsigned64 msr, Unsigned32 reg)
-{ Proc::wrmsr(msr, reg); }
-
-PUBLIC static inline
-void
-Cpu::enable_rdpmc()
-{ set_cr4(get_cr4() | CR4_PCE); }
-
-
-IMPLEMENT FIASCO_INIT_CPU
-void
-Cpu::init_lbr_type()
+void FIASCO_INIT_CPU
+Cpu_ia32::init_lbr_type()
 {
   _lbr = Lbr_unsupported;
 
@@ -1732,9 +1120,9 @@ Cpu::init_lbr_type()
 }
 
 
-IMPLEMENT FIASCO_INIT_CPU
+FIASCO_INIT_CPU
 void
-Cpu::init_bts_type()
+Cpu_ia32::init_bts_type()
 {
   _bts = Bts_unsupported;
 
@@ -1751,105 +1139,10 @@ Cpu::init_bts_type()
 }
 
 
-PUBLIC inline
-void
-Cpu::lbr_enable(bool on)
-{
-  if (lbr_type() != Lbr_unsupported)
-    {
-      if (on)
-	{
-	  lbr_active    = true;
-	  debugctl_set |= 1;
-	  debugctl_busy = true;
-	}
-      else
-	{
-	  lbr_active    = false;
-	  debugctl_set &= ~1;
-	  debugctl_busy = lbr_active || bts_active;
-	  wrmsr(debugctl_reset, MSR_DEBUGCTLA);
-	}
-    }
-}
-
-
-PUBLIC inline
-void
-Cpu::btf_enable(bool on)
-{
-  if (lbr_type() != Lbr_unsupported)
-    {
-      if (on)
-	{
-	  btf_active      = true;
-	  debugctl_set   |= 2;
-	  debugctl_reset |= 2; /* don't disable bit in kernel */
-	  wrmsr(2, MSR_DEBUGCTLA);     /* activate _now_ */
-	}
-      else
-	{
-	  btf_active    = false;
-	  debugctl_set &= ~2;
-	  debugctl_busy = lbr_active || bts_active;
-	  wrmsr(debugctl_reset, MSR_DEBUGCTLA);
-	}
-    }
-}
-
-
-PUBLIC
-void
-Cpu::bts_enable(bool on)
-{
-  if (bts_type() != Bts_unsupported)
-    {
-      if (on)
-	{
-	  switch (bts_type())
-	    {
-	    case Bts_pentium_4: bts_active = true; debugctl_set |= 0x0c; break;
-	    case Bts_pentium_m: bts_active = true; debugctl_set |= 0xc0; break;
-	    default:;
-	    }
-	  debugctl_busy = lbr_active || bts_active;
-	}
-      else
-	{
-	  bts_active = false;
-	  switch (bts_type())
-	    {
-	    case Bts_pentium_4: debugctl_set &= ~0x0c; break;
-	    case Bts_pentium_m: debugctl_set &= ~0xc0; break;
-	    default:;
-	    }
-	  debugctl_busy = lbr_active || bts_active;
-	  wrmsr(debugctl_reset, MSR_DEBUGCTLA);
-	}
-    }
-}
-
-PUBLIC inline
-void
-Cpu::debugctl_enable()
-{
-  if (debugctl_busy)
-    wrmsr(debugctl_set, MSR_DEBUGCTLA);
-}
-
-PUBLIC inline
-void
-Cpu::debugctl_disable()
-{
-  if (debugctl_busy)
-    wrmsr(debugctl_reset, MSR_DEBUGCTLA);
-}
-
 /*
  * AMD OS-Visible Workaround Information
  * print a warning if a CPU is affected by any known erratum
  */
-PUBLIC
 void
 Cpu::print_errata()
 {
@@ -1885,9 +1178,9 @@ Cpu::print_errata()
  *
  * See Intel Manual Volume 3 Chapter 14.4 for details.
  */
-PRIVATE FIASCO_INIT_CPU_AND_PM
+FIASCO_INIT_CPU_AND_PM
 void
-Cpu::try_enable_hw_performance_states(bool resume)
+Cpu_ia32::try_enable_hw_performance_states(bool resume)
 {
   enum
   {
@@ -1920,8 +1213,7 @@ Cpu::try_enable_hw_performance_states(bool resume)
     printf("HWP: enabled\n");
 }
 
-IMPLEMENT FIASCO_INIT_CPU
-void
+void FIASCO_INIT_CPU
 Cpu::init()
 {
   identify();
@@ -1977,7 +1269,6 @@ Cpu::init()
   print_errata();
 }
 
-PUBLIC
 void
 Cpu::print_infos() const
 {
@@ -2082,9 +1373,8 @@ bad_ctc:
  * using the number of ticks in 50ms, this function uses the frequency (ticks
  * per second).
  */
-PRIVATE
 void
-Cpu::set_frequency_and_scalers(Unsigned64 freq)
+Cpu_ia32::set_frequency_and_scalers(Unsigned64 freq)
 {
   if (freq >= 4ULL << 32)
     panic("Frequency too high -- adapt Cpu::set_frequency_and_scalers");
@@ -2112,9 +1402,8 @@ Cpu::set_frequency_and_scalers(Unsigned64 freq)
  * Calibrating the TSC delivers results which are still more accurate than the
  * rounded information from CPUID_16 and MSR_PLATFORM_INFO, even on QEMU.
  */
-PRIVATE
 bool
-Cpu::tsc_frequency_from_cpuid_15h(bool check_only = false)
+Cpu_ia32::tsc_frequency_from_cpuid_15h(bool check_only)
 {
   if (_vendor != Vendor_intel || cpuid_eax(0) < 0x15 || family() != 6)
     return false;
@@ -2150,82 +1439,22 @@ Cpu::tsc_frequency_from_cpuid_15h(bool check_only = false)
   return true;
 }
 
-PUBLIC inline
-bool
-Cpu::tsc_frequency_accurate()
-{
-  return tsc_frequency_from_cpuid_15h(true);
-}
-
-IMPLEMENT inline
-Unsigned64
-Cpu::time_us() const
-{
-  return tsc_to_us (rdtsc());
-}
-
-
-PUBLIC inline
-void
-Cpu::enable_ldt(Address addr, int size)
-{
-  if (!size)
-    {
-      get_gdt()->clear_entry(Gdt::gdt_ldt / 8);
-      set_ldt(0);
-    }
-  else
-    {
-      get_gdt()->set_entry_ldt(Gdt::gdt_ldt / 8, addr, size - 1);
-      set_ldt(Gdt::gdt_ldt);
-    }
-}
-
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_fs()
-{ Unsigned16 val; asm volatile ("mov %%fs, %0" : "=rm" (val)); return val; }
-
-PUBLIC static inline
-Unsigned16
-Cpu::get_gs()
-{ Unsigned16 val; asm volatile ("mov %%gs, %0" : "=rm" (val)); return val; }
-
-PUBLIC static inline NEEDS["asm.h"]
-void
-Cpu::set_fs(Unsigned16 val)
-{
-  if (__builtin_constant_p(val))
-    FIASCO_IA32_LOAD_SEG_SAFE(fs, val);
-  else
-    FIASCO_IA32_LOAD_SEG(fs, val);
-}
-
-PUBLIC static inline NEEDS["asm.h"]
-void
-Cpu::set_gs(Unsigned16 val)
-{
-  if (__builtin_constant_p(val))
-    FIASCO_IA32_LOAD_SEG_SAFE(gs, val);
-  else
-    FIASCO_IA32_LOAD_SEG(gs, val);
-}
-
 //----------------------------------------------------------------------------
-IMPLEMENTATION[(ia32 || amd64 || ux) && !intel_ia32_branch_barriers]:
 
-PRIVATE inline FIASCO_INIT_CPU_AND_PM
+#ifndef CONFIG_INTEL_IA32_BRANCH_BARRIERS
+
+FIASCO_INIT_CPU_AND_PM
 void
-Cpu::init_indirect_branch_mitigation()
+Cpu_ia32::init_indirect_branch_mitigation()
 {}
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION[(ia32 || amd64) && intel_ia32_branch_barriers]:
 
-PRIVATE FIASCO_INIT_CPU_AND_PM
+#else // CONFIG_INTEL_IA32_BRANCH_BARRIERS
+
+FIASCO_INIT_CPU_AND_PM
 void
-Cpu::init_indirect_branch_mitigation()
+Cpu_ia32::init_indirect_branch_mitigation()
 {
   if (_vendor == Vendor_intel)
     {
@@ -2245,3 +1474,4 @@ Cpu::init_indirect_branch_mitigation()
   else
     panic("Kernel compiled with IBRS / IBPB, but not supported on non-Intel CPUs\n");
 }
+#endif // CONFIG_INTEL_IA32_BRANCH_BARRIERS

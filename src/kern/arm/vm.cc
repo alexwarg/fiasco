@@ -1,7 +1,6 @@
 
 #include "vm.h"
 
-#include "cpu.h"
 #include "cpu_lock.h"
 #include "entry_frame.h"
 #include "ipc_timeout.h"
@@ -14,6 +13,34 @@
 #include "thread.h"
 #include <entry.h>
 #include <task_factory_impl.h>
+
+
+static void tz_switch_to_ns(Mword *nonsecure_state)
+{
+  extern char go_nonsecure[];
+
+  register Mword r0 asm("r0") = (Mword)nonsecure_state;
+  register Mword r1 asm("r1") = (Mword)go_nonsecure;
+
+  asm volatile("push   {r11}      \n"
+               "stmdb sp!, {r0}   \n"
+               "mov    r2, sp     \n" // copy sp_svc to sp_mon
+               "cps    #0x16      \n" // switch to monitor mode
+               "mov    sp, r2     \n"
+               "adr    r3, 1f     \n" // save return eip
+               "mrs    r4, cpsr   \n" // save return psr
+               "mov    pc, r1     \n" // go nonsecure!
+               "1:                \n"
+               "mov    r0, sp     \n" // copy sp_mon to sp_svc
+               "cps    #0x13      \n" // switch to svc mode
+               "mov    sp, r0     \n"
+               "ldmia  sp!, {r0}  \n"
+               "pop    {r11}      \n"
+               : : "r" (r0), "r" (r1)
+               : "r2", "r3", "r4", "r5", "r6", "r7",
+                 "r8", "r9", "r10", "r12", "r14", "memory");
+}
+
 
 
 JDB_DEFINE_TYPENAME(Vm, "\033[33;1mVm\033[m");
@@ -82,7 +109,7 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, bool user_mode)
           return -L4_err::EInval;
         }
 
-      Cpu::cpus.current().tz_switch_to_ns((Mword *)state);
+      tz_switch_to_ns((Mword *)state);
 
       assert(cpu_lock.test());
 

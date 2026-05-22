@@ -131,7 +131,7 @@ CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += vmx.cc svm.cc vm_vmx.cc vm_vmx_ept.cc vm_svm
 CXXSRC_KERNEL-$(CONFIG_NO_LDT)y += task_ia32_ldt.cc
 CXXSRC_KERNEL-$(CONFIG_SYNC_CLOCK) += arch_time_source.cc
 
-cpu_IMPL		:= cpu cpu-ia32 cpu-64
+CXXSRC_KERNEL		+= cpu-ia32.cc cpu-ia32-64.cc
 mem_layout_IMPL		:= mem_layout mem_layout-ia32 mem_layout-ia32-64
 mem_unit_IMPL		:= mem_unit-ia32
 

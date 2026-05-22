@@ -147,7 +147,7 @@ CXXSRC_KERNEL += timer.cc pfc-mips.cc
 INTERFACES_KERNEL += $(INTERFACES_KERNEL-y)
 
 
-cpu_IMPL		:= cpu cpu-mips
+CXXSRC_KERNEL		+= cpu-mips.cc
 mem_layout_IMPL		:= mem_layout mem_layout-mips$(BITS)
 mem_unit_IMPL		:= mem_unit-mips
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc

@@ -22,9 +22,9 @@ PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
 INTERFACES_KERNEL	:= \
 			   mem_layout        \
 			   mem_unit \
-			   cpu               \
 
 CXXSRC_KERNEL += \
+	cpu_generic.cc \
 	banner.cc \
 	pfc.cc \
 	boot_alloc.cc \

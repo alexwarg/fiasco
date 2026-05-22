@@ -5,7 +5,7 @@ OBJECTS_LIBUART         += $(OBJECTS_LIBUART-y)
 LIBUART_UART_FLAGS-$(CONFIG_PF_EXYNOS_UART_NATIVE) += $(call LIBUART_UART, s3c2410, s5pv210)
 LIBUART_UART_FLAGS   += $(LIBUART_UART_FLAGS-y)
 
-PREPROCESS_PARTS        += pic_gic watchdog bsp_cpu
+PREPROCESS_PARTS        += pic_gic watchdog
 #PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TICKLESS_IDLE) += tickless_idle
 PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TIMER_MCT) += exynos_mct
 PREPROCESS_PARTS-$(CONFIG_PF_EXYNOS_TIMER_MP)  += mptimer
@@ -25,7 +25,6 @@ RAM_PHYS_BASE           := $(if $(CONFIG_ARM_EM_TZ),0xb0000000,0x40000000)
 MPCORE_PHYS_BASE        := 0x10500000
 
 
-cpu_IMPL              += cpu-arm-exynos
 mem_layout_IMPL       += mem_layout-arm-exynos
 clock_IMPL            += clock-generic
 outer_cache_IMPL      += outer_cache-arm-exynos
