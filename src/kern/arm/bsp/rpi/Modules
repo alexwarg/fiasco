@@ -19,14 +19,10 @@ PREPROCESS_PARTS-$(CONFIG_PF_RPI_RPI3)  += arm_single_ipi_irq
 PREPROCESS_PARTS-$(CONFIG_PF_RPI_RPIZW) += arm_single_ipi_irq
 PREPROCESS_PARTS-$(CONFIG_ARM_GIC)          += pic_gic
 
-INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPI2)  += arm_control
-INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPI3)  += arm_control
-INTERFACES_KERNEL-$(CONFIG_PF_RPI_RPI4)  += $(if $(CONFIG_BIT64),,arm_control)
+CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI2)  += arm_control.cc
+CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI3)  += arm_control.cc
+CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI4)  += $(if $(CONFIG_BIT64),,arm_control.cc)
 
 CXXSRC_KERNEL += $(if $(CONFIG_PF_RPI_RPI1)$(CONFIG_PF_RPI_RPIZW), timer_arm_rpi.cc)
 CXXSRC_KERNEL += pfc-arm-rpi.cc pic-arm-rpi.cc rpi_pf.cc
 
-arm_control_IMPL      += arm_control-arm-rpi
-mem_layout_IMPL       += mem_layout-arm-rpi
-clock_IMPL            += clock-generic
-ipi_IMPL              += ipi-arm-rpi
