@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 
@@ -22,6 +21,10 @@ class Jdb_mem_dump
   : public Jdb_module
 {
 public:
+  Action_code action( int cmd, void *&, char const *&, int & ) override
+  int const num_cmds() const override;
+  Cmd const *const cmds() const override;
+
 private:
   char subcmd;
   void *address;
@@ -29,7 +32,6 @@ private:
 
 static Jdb_mem_dump jdb_mem_dump INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
-PUBLIC
 Jdb_module::Action_code Jdb_mem_dump::action( int cmd, void *&, char const *&, int & )
 {
   if(cmd!=0)
@@ -40,13 +42,11 @@ Jdb_module::Action_code Jdb_mem_dump::action( int cmd, void *&, char const *&, i
   return NOTHING;
 }
 
-PUBLIC
 int const Jdb_mem_dump::num_cmds() const
-{ 
+{
   return 1;
 }
 
-PUBLIC
 Jdb_module::Cmd const *const Jdb_mem_dump::cmds() const
 {
   static Cmd cs[] =
