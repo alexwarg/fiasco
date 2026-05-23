@@ -123,7 +123,7 @@ INTERFACES_JDB += \
 	jdb_kobject jdb_kobject_names jdb_prompt_module                    \
 	jdb_obj_space jdb_screen jdb_space jdb_table jdb_tcb               \
 	jdb_thread jdb_thread_list jdb_counters      \
-	jdb_regex jdb_disasm jdb_tbuf_output jdb_input_task jdb_tbuf_show  \
+	jdb_disasm jdb_tbuf_output jdb_input_task jdb_tbuf_show  \
 	jdb_report jdb_dump jdb_mapdb jdb_kern_info_kmem_alloc \
 	jdb_kern_info_kip jdb_kern_info jdb_kern_info_data jdb_utcb        \
 	jdb_trap_state jdb_rcupdate jdb_sender_list                        \
@@ -136,6 +136,7 @@ jdb_tcb_IMPL	+= jdb_tcb
 CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_list.cc jdb_timeout.cc \
 	      jdb_module.cc
 CXXSRC_JDB-$(CONFIG_MP) += jdb_cpu_call.cc
+CXXSRC_JDB-$(CONFIG_JDB_REGEX) += jdb_regex.cc
 
 CXXSRC_JDB += $(CXXSRC_JDB-y) $(CXXSRC_JDB-yy) $(CXXSRC_JDB-y-y)
 
