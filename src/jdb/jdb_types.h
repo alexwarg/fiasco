@@ -1,6 +1,7 @@
-INTERFACE[debug]:
+#pragma once
 
 #include "types.h"
+#include "kernel_task.h"
 
 class Space;
 
@@ -71,6 +72,12 @@ public:
 
   bool operator == (Jdb_address const &o) const
   { return (space() == o.space()) && (addr() == o.addr()); }
+
+private:
+  bool is_kernel_task() const
+  {
+    return _space == Kernel_task::kernel_task();
+  }
 };
 
 
@@ -117,10 +124,6 @@ public:
 };
 
 
-IMPLEMENTATION[debug]:
-
-#include "kernel_task.h"
-
 inline
 Jdb_address operator + (Jdb_address const &a, long diff)
 {
@@ -145,9 +148,3 @@ Jdb_addr<T> operator - (Jdb_addr<T> const &a, long diff)
   return Jdb_addr<T>(a.virt() - diff, a.space());
 }
 
-PRIVATE
-bool
-Jdb_address::is_kernel_task() const
-{
-  return _space == Kernel_task::kernel_task();
-}

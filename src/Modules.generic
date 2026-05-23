@@ -117,7 +117,6 @@ VPATH_JDB += jdb
 PRIVATE_INCDIR += jdb
 
 INTERFACES_JDB += \
-	jdb_types                                                          \
 	jdb jdb_util jdb_core jdb_module jdb_prompt_ext            \
 	jdb_handler_queue jdb_attach_irq jdb_entry_frame                   \
 	jdb_exit_module jdb_bp jdb_factory jdb_input jdb_ipc_gate          \
