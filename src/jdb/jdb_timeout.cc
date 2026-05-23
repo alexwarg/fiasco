@@ -1,5 +1,5 @@
-IMPLEMENTATION:
 
+#include <stddef.h>
 #include <cstdio>
 #include <cstring>
 
@@ -25,12 +25,24 @@ class Jdb_list_timeouts : public Jdb_module
 {
 public:
   Jdb_list_timeouts() FIASCO_INIT;
+
+  Action_code action(int cmd, void *&, char const *&, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
+
 private:
   enum
   {
     Timeout_timeslice = 1,
     Timeout_sc        = 2,
   };
+
+  static int get_type(Timeout *t);
+  static Thread *get_owner(Timeout *t);
+  static void show_header();
+  static void list_timeouts_show_timeout(Timeout *t);
+  static void complete_show();
+  static void list();
 };
 
 
@@ -187,7 +199,6 @@ extern int jdb_show_tcb(Thread *thread, int level) __attribute__((weak));
 
 // use implicit knowledge to determine the type of a timeout because we
 // cannot use dynamic_cast (we compile with -fno-rtti)
-static
 int
 Jdb_list_timeouts::get_type(Timeout *t)
 {
@@ -201,7 +212,6 @@ Jdb_list_timeouts::get_type(Timeout *t)
   return 0;
 }
 
-static
 Thread*
 Jdb_list_timeouts::get_owner(Timeout *t)
 {
@@ -219,7 +229,6 @@ Jdb_list_timeouts::get_owner(Timeout *t)
     }
 }
 
-static
 void
 Jdb_list_timeouts::show_header()
 {
@@ -227,7 +236,6 @@ Jdb_list_timeouts::show_header()
          Jdb::esc_emph);
 }
 
-static
 void
 Jdb_list_timeouts::list_timeouts_show_timeout(Timeout *t)
 {
@@ -274,12 +282,10 @@ Jdb_list_timeouts::list_timeouts_show_timeout(Timeout *t)
   printf(" %s  %s\033[K\n", ownerstr, nx ? nx->name() : "");
 }
 
-IMPLEMENT
 Jdb_list_timeouts::Jdb_list_timeouts()
   : Jdb_module("INFO")
 {}
 
-static
 void
 Jdb_list_timeouts::complete_show()
 {
@@ -293,7 +299,6 @@ Jdb_list_timeouts::complete_show()
     list_timeouts_show_timeout(i);
 }
 
-static
 void
 Jdb_list_timeouts::list()
 {
@@ -416,9 +421,8 @@ Jdb_list_timeouts::list()
     }
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_list_timeouts::action(int cmd, void *&, char const *&, int &) override
+Jdb_list_timeouts::action(int cmd, void *&, char const *&, int &)
 {
   if (cmd == 0)
     list();
@@ -428,9 +432,8 @@ Jdb_list_timeouts::action(int cmd, void *&, char const *&, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_list_timeouts::cmds() const override
+Jdb_list_timeouts::cmds() const
 {
   static Cmd cs[] =
     {
@@ -441,9 +444,8 @@ Jdb_list_timeouts::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_list_timeouts::num_cmds() const override
+Jdb_list_timeouts::num_cmds() const
 {
   return 2;
 }
