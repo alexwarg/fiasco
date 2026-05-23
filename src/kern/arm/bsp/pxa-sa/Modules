@@ -1,3 +1,3 @@
 # vim:set ft=make:
 
-INTERFACES_JDB += jdb_pic
+CXXSRC_JDB += jdb_pic.cc
