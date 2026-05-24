@@ -1,5 +1,3 @@
-IMPLEMENTATION:
-
 #include <climits>
 #include <cstring>
 #include <cstdio>
@@ -20,14 +18,161 @@ IMPLEMENTATION:
 #include "thread_state.h"
 #include "static_init.h"
 
+#include <ready_queue_wfq.h>
+#include <ready_queue_fp.h>
+
 class Jdb_thread_list : public Jdb_module
 {
 public:
   Jdb_thread_list() FIASCO_INIT;
+  static void init(char pr, Thread *t_head)
+  {
+    _pr = pr;
+    _t_head = t_head;
+  }
+
+  // return string describing current sorting mode of list
+  static const char *get_mode_str()
+  {
+    static const char * const mode_str[] =
+      { "(unsorted)", "(prio-sorted)", "(tid-sorted)", "(space-sorted)" };
+
+    return mode_str[_mode];
+  }
+
+  // switch to next sorting mode
+  static void switch_mode()
+  {
+    if (++_mode >= LIST_SORT_END)
+      _mode = LIST_UNSORTED;
+  }
+
+  // set _t_start element of list
+  static void set_start(Thread *t_start)
+  {
+    _t_start = t_start;
+    iter(+Jdb_screen::height()-3, &_t_start);
+    iter(-Jdb_screen::height()+3, &_t_start);
+  }
+
+  // _t_start-- if possible
+  static int line_back()
+  {
+    return iter(-1, &_t_start);
+  }
+
+  // _t_start++ if possible
+  static int line_forw()
+  {
+    Thread *t = _t_start;
+    iter(+Jdb_screen::height()-2, &_t_start);
+    iter(-Jdb_screen::height()+3, &_t_start);
+    return t != _t_start;
+  }
+
+  // _t_start -= 24 if possible
+  static int page_back()
+  {
+    return iter(-Jdb_screen::height()+2, &_t_start);
+  }
+
+  // _t_start += 24 if possible
+  static int page_forw()
+  {
+    Thread *t = _t_start;
+    iter(+Jdb_screen::height()*2-5, &_t_start);
+    iter(-Jdb_screen::height()  +3, &_t_start);
+    return t != _t_start;
+  }
+
+  // _t_start = first element of list
+  static int goto_home()
+  {
+    return iter(-9999, &_t_start);
+  }
+
+  // _t_start = last element of list
+  static int goto_end()
+  {
+    Thread *t = _t_start;
+    iter(+9999, &_t_start);
+    iter(-Jdb_screen::height()+2, &_t_start);
+    return t != _t_start;
+  }
+
+  // search index of t_search starting from _t_start
+  static int lookup(Thread *t_search)
+  {
+    unsigned i;
+    Thread *t;
+
+    for (i=0, t=_t_start; i<Jdb_screen::height()-3; i++)
+      {
+        if (t == t_search)
+          break;
+        iter(+1, &t);
+      }
+
+    return i;
+  }
+
+  // get y'th element of thread list starting from _t_start
+  static Thread *index(int y)
+  {
+    Thread *t = _t_start;
+
+    iter(y, &t);
+    return t;
+  }
+
+  // helper function for iter() -- use priority as sorting key
+  static long get_prio(Thread *t)
+  {
+    return t->sched()->prio();
+  }
+
+  // helper function for iter() -- use thread id as sorting key
+  static long get_tid(Thread *t)
+  {
+    return t->dbg_info()->dbg_id();
+  }
+
+  // helper function for iter() -- use space as sorting key
+  static long get_space_dbgid(Thread *t)
+  {
+    return Kobject_dbg::pointer_to_id(t->space());
+  }
+
+  // show complete page using show callback function
+  static int page_show(void (*show)(Thread *t))
+  {
+    Thread *t = _t_start;
+
+    iter(Jdb_screen::height()-3, &t, show);
+    return _count;
+  }
+
+  // show complete list using show callback function
+  static int complete_show(void (*show)(Thread *t))
+  {
+    Thread *t = _t_start;
+
+    iter(9999, &t, show);
+    return _count;
+  }
+
+
+  Action_code action(int cmd, void *&argbuf, char const *&fmt, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
+
 private:
   static char subcmd;
   static char long_output;
   static Cpu_number cpu;
+
+  static bool iter(int count, Thread **t_start,
+                   void (*iter)(Thread *t)=0);
 
 private:
   static int _mode;
@@ -39,6 +184,162 @@ private:
 
   enum { LIST_UNSORTED, LIST_SORT_PRIO, LIST_SORT_TID, LIST_SORT_SPACE,
          LIST_SORT_END };
+
+  // --- WFQ ready queue handling
+  template<typename Sc,
+           typename = cxx::enable_if_t<cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_wfq<Sc>>::value>>
+  static Sched_context *sc_x_iter_prev(Sc *t, Ready_queue_wfq<Sc> &rq)
+  {
+    Sched_context **rl = t->_ready_link;
+    if (!rl || rl == &rq.idle)
+      return rq._cnt ? rq._heap[rq._cnt - 1] : rq.idle;
+
+    if (rl == rq._heap)
+      return rq.idle;
+
+    return *(rl - 1);
+  }
+
+  template<typename Sc,
+           typename = cxx::enable_if_t<cxx::is_convertible< typename Sc::Ready_queue, Ready_queue_wfq<Sc>>::value>>
+  static Sched_context *sc_x_iter_next(Sc *t, Ready_queue_wfq<Sc> &rq)
+  {
+    Sched_context **rl = t->_ready_link;
+    if (!rl || rl == &rq.idle)
+      return rq._cnt ? rq._heap[0] : rq.idle;
+
+    if ((unsigned)(rl - rq._heap) >= rq._cnt)
+      return rq.idle;
+
+    return *(rl + 1);
+  }
+
+  // --- Fixed Prio ready queue handling
+  template<typename Sc,
+           typename = cxx::enable_if_t<cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_fp<Sc>>::value>>
+  static Sched_context *sc_x_iter_prev(Sc *t, Ready_queue_fp<Sc> &rq)
+  {
+    unsigned prio = t->prio();
+    using Rq = typename Sc::Ready_queue;
+
+    if (t != rq.prio_next[prio].front())
+      return *--Rq::List::iter(t);
+
+    for (;;)
+      {
+        if (++prio > rq.prio_highest)
+          prio = 0;
+        if (rq.prio_next[prio].front())
+          return *--Rq::List::iter(rq.prio_next[prio].front());
+      }
+  }
+
+  template<typename Sc,
+           typename = cxx::enable_if_t<cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_fp<Sc>>::value>>
+  static Sched_context *sc_x_iter_next(Sc *t, Ready_queue_fp<Sc> &rq)
+  {
+    unsigned prio = t->prio();
+    using Rq = typename Sc::Ready_queue;
+
+    if (*++Rq::List::iter(t) != rq.prio_next[prio].front())
+      return *++Rq::List::iter(t);
+
+    for (;;)
+      {
+        if (--prio > rq.prio_highest) // prio is unsigned
+          prio = rq.prio_highest;
+        if (rq.prio_next[prio].front())
+          return rq.prio_next[prio].front();
+      }
+  }
+
+  // --- fall-back mixed queue handling
+  template<typename Sc, typename R,
+           typename = cxx::enable_if_t< (!(cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_fp<Sc>>::value
+                                          || cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_wfq<Sc>>::value))>>
+  static Sched_context *sc_x_iter_prev(Sc *, R &)
+  {
+    return 0;
+  }
+
+  template<typename Sc, typename R,
+           typename = cxx::enable_if_t< (!(cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_fp<Sc>>::value
+                                          || cxx::is_convertible<typename Sc::Ready_queue, Ready_queue_wfq<Sc>>::value))>>
+  static Sched_context *sc_x_iter_next(Sc *, R &)
+  {
+    return 0;
+  }
+
+  static Sched_context *sc_iter_prev(Sched_context *t)
+  {
+    return sc_x_iter_prev(t, Sched_context::rq.cpu(cpu));
+  }
+
+  static Sched_context *sc_iter_next(Sched_context *t)
+  {
+    return sc_x_iter_next(t, Sched_context::rq.cpu(cpu));
+  }
+
+  static Thread *iter_prev(Thread *t)
+  {
+    if (_pr == 'p')
+      {
+        Kobject_dbg::Iterator o = Kobject_dbg::Kobject_list::iter(t->dbg_info());
+        do
+          {
+            --o;
+            if (o == Kobject_dbg::end())
+              --o;
+          }
+        while (!cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o)));
+        return cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o));
+      }
+    else
+      return static_cast<Thread*>(sc_iter_prev(t->sched())->context());
+  }
+
+
+  static Thread *iter_next(Thread *t)
+  {
+    if (_pr == 'p')
+      {
+        Kobject_dbg::Iterator o = Kobject_dbg::Kobject_list::iter(t->dbg_info());
+        do
+          {
+            ++o;
+            if (o == Kobject_dbg::end())
+              ++o;
+          }
+        while (!cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o)));
+        return cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o));
+      }
+    else
+      return static_cast<Thread*>(sc_iter_next(t->sched())->context());
+  }
+
+  static void print_thread_name(Kobject_common const * o, int len)
+  {
+    Jdb_kobject_name *nx = Jdb_kobject_extension::find_extension<Jdb_kobject_name>(o);
+
+    if (nx)
+      {
+        len = min((int)nx->max_len(), len);
+        printf("%-*.*s", len, len, nx->name());
+      }
+    else
+      printf("%-*.*s", len, len, "-----");
+  }
+
+  static void list_threads_show_thread(Thread *t);
+  static void list_threads(Thread *t_start, char pr);
+
+  static void show_header()
+  {
+    Jdb::cursor();
+    printf("%s   id  cpu    name             pr     sp  wait    to%s state\033[m\033[K",
+           Jdb::esc_emph, Config::Stack_depth ? "  stack" : "");
+  }
+
 
 };
 
@@ -58,373 +359,17 @@ int  Jdb_thread_list::_count;
 Thread *Jdb_thread_list::_t_head;
 Thread *Jdb_thread_list::_t_start;
 
-PUBLIC static
-void
-Jdb_thread_list::init(char pr, Thread *t_head)
-{
-  _pr = pr;
-  _t_head = t_head;
-}
-
-// return string describing current sorting mode of list
-PUBLIC static inline NOEXPORT
-const char*
-Jdb_thread_list::get_mode_str(void)
-{
-  static const char * const mode_str[] =
-    { "(unsorted)", "(prio-sorted)", "(tid-sorted)", "(space-sorted)" };
-
-  return mode_str[_mode];
-}
-
-// switch to next sorting mode
-PUBLIC static
-void
-Jdb_thread_list::switch_mode(void)
-{
-  if (++_mode >= LIST_SORT_END)
-    _mode = LIST_UNSORTED;
-}
-
-// set _t_start element of list
-PUBLIC static
-void
-Jdb_thread_list::set_start(Thread *t_start)
-{
-  _t_start = t_start;
-  iter(+Jdb_screen::height()-3, &_t_start);
-  iter(-Jdb_screen::height()+3, &_t_start);
-}
-
-// _t_start-- if possible
-PUBLIC static
-int
-Jdb_thread_list::line_back(void)
-{
-  return iter(-1, &_t_start);
-}
-
-// _t_start++ if possible
-PUBLIC static
-int
-Jdb_thread_list::line_forw(void)
-{
-  Thread *t = _t_start;
-  iter(+Jdb_screen::height()-2, &_t_start);
-  iter(-Jdb_screen::height()+3, &_t_start);
-  return t != _t_start;
-}
-
-// _t_start -= 24 if possible
-PUBLIC static
-int
-Jdb_thread_list::page_back(void)
-{
-  return iter(-Jdb_screen::height()+2, &_t_start);
-}
-
-// _t_start += 24 if possible
-PUBLIC static
-int
-Jdb_thread_list::page_forw(void)
-{
-  Thread *t = _t_start;
-  iter(+Jdb_screen::height()*2-5, &_t_start);
-  iter(-Jdb_screen::height()  +3, &_t_start);
-  return t != _t_start;
-}
-
-// _t_start = first element of list
-PUBLIC static
-int
-Jdb_thread_list::goto_home(void)
-{
-  return iter(-9999, &_t_start);
-}
-
-// _t_start = last element of list
-PUBLIC static
-int
-Jdb_thread_list::goto_end(void)
-{
-  Thread *t = _t_start;
-  iter(+9999, &_t_start);
-  iter(-Jdb_screen::height()+2, &_t_start);
-  return t != _t_start;
-}
-
-// search index of t_search starting from _t_start
-PUBLIC static
-int
-Jdb_thread_list::lookup(Thread *t_search)
-{
-  unsigned i;
-  Thread *t;
-
-  for (i=0, t=_t_start; i<Jdb_screen::height()-3; i++)
-    {
-      if (t == t_search)
-	break;
-      iter(+1, &t);
-    }
-
-  return i;
-}
-
-// get y'th element of thread list starting from _t_start
-PUBLIC static
-Thread*
-Jdb_thread_list::index(int y)
-{
-  Thread *t = _t_start;
-
-  iter(y, &t);
-  return t;
-}
-
-// helper function for iter() -- use priority as sorting key
-static
-long
-Jdb_thread_list::get_prio(Thread *t)
-{
-  return t->sched()->prio();
-}
-
-// helper function for iter() -- use thread id as sorting key
-static
-long
-Jdb_thread_list::get_tid(Thread *t)
-{
-  return t->dbg_info()->dbg_id();
-}
-
-// helper function for iter() -- use space as sorting key
-static
-long
-Jdb_thread_list::get_space_dbgid(Thread *t)
-{
-  return Kobject_dbg::pointer_to_id(t->space());
-}
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_wfq || sched_fp_wfq]:
-
 template<typename T> class Jdb_thread_list_policy;
 
-template<typename RQP>
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_wfq_iter_prev(Sched_context *t)
-{
-  Sched_context::Ready_queue &rq = Sched_context::rq.cpu(cpu);
-  Sched_context **rl = RQP::link(t);
-  if (!rl || rl == RQP::idle(rq))
-    return RQP::cnt(rq) ? RQP::heap(rq)[RQP::cnt(rq) - 1] : *RQP::idle(rq);
-
-  if (rl == RQP::heap(rq))
-    return *RQP::idle(rq);
-
-  return *(rl - 1);
-}
-
-template<typename RQP>
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_wfq_iter_next(Sched_context *t)
-{
-  Sched_context::Ready_queue &rq = Sched_context::rq.cpu(cpu);
-  Sched_context **rl = RQP::link(t);
-  if (!rl || rl == RQP::idle(rq))
-    return RQP::cnt(rq) ? RQP::heap(rq)[0] : *RQP::idle(rq);
-
-  if ((unsigned)(rl - RQP::heap(rq)) >= RQP::cnt(rq))
-    return *RQP::idle(rq);
-
-  return *(rl + 1);
-}
 
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_fixed_prio || sched_fp_wfq]:
-
-template<typename T> struct Jdb_thread_list_policy;
-
-template<typename RQP>
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_fp_iter_prev(Sched_context *t)
-{
-  unsigned prio = RQP::prio(t);
-  Sched_context::Ready_queue &rq = Sched_context::rq.cpu(cpu);
-
-  if (t != RQP::prio_next(rq, prio))
-    return RQP::prev(t);
-
-  for (;;)
-    {
-      if (++prio > RQP::prio_highest(rq))
-	prio = 0;
-      if (RQP::prio_next(rq, prio))
-	return RQP::prev(RQP::prio_next(rq, prio));
-    }
-}
-
-template<typename RQP>
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_fp_iter_next(Sched_context *t)
-{
-  unsigned prio = RQP::prio(t);
-  Sched_context::Ready_queue &rq = Sched_context::rq.cpu(cpu);
-
-  if (RQP::next(t) != RQP::prio_next(rq, prio))
-    return RQP::next(t);
-
-  for (;;)
-    {
-      if (--prio > RQP::prio_highest(rq)) // prio is unsigned
-	prio = RQP::prio_highest(rq);
-      if (RQP::prio_next(rq, prio))
-	return RQP::prio_next(rq, prio);
-    }
-}
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_fixed_prio]:
-
-template<>
-struct Jdb_thread_list_policy<Ready_queue_fp<Sched_context> >
-{
-  typedef Ready_queue_fp<Sched_context> Rq;
-
-  static unsigned prio(Sched_context *t)
-  { return t->prio(); }
-
-  static Sched_context *prio_next(Sched_context::Ready_queue &rq, unsigned prio)
-  { return rq.prio_next[prio].front(); }
-
-  static unsigned prio_highest(Sched_context::Ready_queue &rq)
-  { return rq.prio_highest; }
-
-  static Sched_context *prev(Sched_context *t)
-  { return *--Rq::List::iter(t); }
-
-  static Sched_context *next(Sched_context *t)
-  { return *++Rq::List::iter(t); }
-};
-
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_iter_prev(Sched_context *t)
-{ return sc_fp_iter_prev<Jdb_thread_list_policy<Ready_queue_fp<Sched_context> > >(t); }
-
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_iter_next(Sched_context *t)
-{ return sc_fp_iter_next<Jdb_thread_list_policy<Ready_queue_fp<Sched_context> > >(t); }
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_wfq]:
-
-template<>
-class Jdb_thread_list_policy<Ready_queue_wfq<Sched_context> >
-{
-public:
-  static Sched_context **link(Sched_context *t)
-  { return t->_ready_link; }
-
-  static Sched_context **heap(Sched_context::Ready_queue &rq)
-  { return rq._heap; }
-
-  static Sched_context **idle(Sched_context::Ready_queue &rq)
-  { return &rq.idle; }
-
-  static unsigned cnt(Sched_context::Ready_queue &rq)
-  { return rq._cnt; }
-};
-
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_iter_prev(Sched_context *t)
-{ return sc_wfq_iter_prev<Jdb_thread_list_policy<Ready_queue_wfq<Sched_context> > >(t); }
-
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_iter_next(Sched_context *t)
-{ return sc_wfq_iter_next<Jdb_thread_list_policy<Ready_queue_wfq<Sched_context> > >(t); }
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION [sched_fp_wfq]:
-
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_iter_prev(Sched_context *)
-{
-  return 0;
-}
-
-static inline NOEXPORT
-Sched_context *
-Jdb_thread_list::sc_iter_next(Sched_context *)
-{
-  return 0;
-}
-
-
-// --------------------------------------------------------------------------
-IMPLEMENTATION:
-
-
-static inline NOEXPORT
-Thread*
-Jdb_thread_list::iter_prev(Thread *t)
-{
-  if (_pr == 'p')
-    {
-      Kobject_dbg::Iterator o = Kobject_dbg::Kobject_list::iter(t->dbg_info());
-      do
-	{
-	  --o;
-	  if (o == Kobject_dbg::end())
-	    --o;
-	}
-      while (!cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o)));
-      return cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o));
-    }
-  else
-    return static_cast<Thread*>(sc_iter_prev(t->sched())->context());
-}
-
-
-static inline NOEXPORT
-Thread*
-Jdb_thread_list::iter_next(Thread *t)
-{
-  if (_pr == 'p')
-    {
-      Kobject_dbg::Iterator o = Kobject_dbg::Kobject_list::iter(t->dbg_info());
-      do
-	{
-	  ++o;
-	  if (o == Kobject_dbg::end())
-	    ++o;
-	}
-      while (!cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o)));
-      return cxx::dyn_cast<Thread*>(Kobject::from_dbg(*o));
-    }
-  else
-    return static_cast<Thread*>(sc_iter_next(t->sched())->context());
-}
 
 // walk though list <count> times
 // abort walking if no more elements
 // do iter if iter != 0
-static
 bool
 Jdb_thread_list::iter(int count, Thread **t_start,
-		      void (*iter)(Thread *t)=0)
+		      void (*iter)(Thread *t))
 {
   int i = 0;
   int forw = (count >= 0);
@@ -528,37 +473,12 @@ Jdb_thread_list::iter(int count, Thread **t_start,
 
   return changed;
 }
-
-// show complete page using show callback function
-PUBLIC static
-int
-Jdb_thread_list::page_show(void (*show)(Thread *t))
-{
-  Thread *t = _t_start;
-
-  iter(Jdb_screen::height()-3, &t, show);
-  return _count;
-}
-
-// show complete list using show callback function
-PUBLIC static
-int
-Jdb_thread_list::complete_show(void (*show)(Thread *t))
-{
-  Thread *t = _t_start;
-
-  iter(9999, &t, show);
-  return _count;
-}
-
-IMPLEMENT
 Jdb_thread_list::Jdb_thread_list()
   : Jdb_module("INFO")
 {}
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_thread_list::action(int cmd, void *&argbuf, char const *&fmt, int &) override
+Jdb_thread_list::action(int cmd, void *&argbuf, char const *&fmt, int &)
 {
   static char const *const cpu_fmt = " cpu=%i\n";
   static char const *const nfmt = "";
@@ -617,22 +537,7 @@ Jdb_thread_list::action(int cmd, void *&argbuf, char const *&fmt, int &) overrid
   return NOTHING;
 }
 
-PRIVATE static inline
 void
-Jdb_thread_list::print_thread_name(Kobject_common const * o, int len)
-{
-  Jdb_kobject_name *nx = Jdb_kobject_extension::find_extension<Jdb_kobject_name>(o);
-
-  if (nx)
-    {
-      len = min((int)nx->max_len(), len);
-      printf("%-*.*s", len, len, nx->name());
-    }
-  else
-    printf("%-*.*s", len, len, "-----");
-}
-
-static void
 Jdb_thread_list::list_threads_show_thread(Thread *t)
 {
   char to[24];
@@ -730,15 +635,8 @@ Jdb_thread_list::list_threads_show_thread(Thread *t)
     }
 }
 
-static void
-Jdb_thread_list::show_header()
-{
-  Jdb::cursor();
-  printf("%s   id  cpu    name             pr     sp  wait    to%s state\033[m\033[K",
-         Jdb::esc_emph, Config::Stack_depth ? "  stack" : "");
-}
 
-static void
+void
 Jdb_thread_list::list_threads(Thread *t_start, char pr)
 {
   unsigned y, y_max;
@@ -862,10 +760,8 @@ Jdb_thread_list::list_threads(Thread *t_start, char pr)
     }
 }
 
-
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_thread_list::cmds() const override
+Jdb_thread_list::cmds() const
 {
   static Cmd cs[] =
     {
@@ -876,9 +772,8 @@ Jdb_thread_list::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_thread_list::num_cmds() const override
+Jdb_thread_list::num_cmds() const
 {
   return 2;
 }
