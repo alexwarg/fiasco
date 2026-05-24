@@ -119,7 +119,7 @@ PRIVATE_INCDIR += jdb
 INTERFACES_JDB += \
 	jdb jdb_util jdb_core jdb_prompt_ext            \
 	jdb_handler_queue jdb_attach_irq jdb_entry_frame                   \
-	jdb_exit_module jdb_bp jdb_factory jdb_input           \
+	jdb_exit_module jdb_bp jdb_factory        \
 	jdb_kobject jdb_kobject_names jdb_prompt_module                    \
 	jdb_obj_space jdb_screen jdb_space jdb_table jdb_tcb               \
 	jdb_thread jdb_thread_list jdb_counters      \
@@ -134,7 +134,7 @@ jdb_tbuf_IMPL	+= jdb_tbuf jdb_tbuf-$(CONFIG_XARCH)
 jdb_tcb_IMPL	+= jdb_tcb
 
 CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_list.cc jdb_timeout.cc \
-	      jdb_module.cc jdb_ipc_gate.cc
+	      jdb_module.cc jdb_ipc_gate.cc jdb_input.cc
 CXXSRC_JDB-$(CONFIG_MP) += jdb_cpu_call.cc
 CXXSRC_JDB-$(CONFIG_JDB_REGEX) += jdb_regex.cc
 

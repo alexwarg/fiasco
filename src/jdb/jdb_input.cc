@@ -1,14 +1,5 @@
-INTERFACE:
 
-#include "types.h"
-#include "l4_types.h"
-
-class Jdb_input
-{
-};
-
-IMPLEMENTATION:
-
+#include <jdb_input.h>
 #include <cctype>
 #include <cstring>
 #include <cstdio>
@@ -16,9 +7,8 @@ IMPLEMENTATION:
 #include "jdb.h"
 #include "simpleio.h"
 
-PUBLIC static
 int
-Jdb_input::get_mword(Mword *mword, int digits, int base, int first_char = 0)
+Jdb_input::get_mword(Mword *mword, int digits, int base, int first_char)
 {
   Mword val = 0;
 
@@ -87,7 +77,6 @@ Jdb_input::get_mword(Mword *mword, int digits, int base, int first_char = 0)
   return 1;
 }
 
-PUBLIC static
 int
 Jdb_input::get_string(char *string, unsigned size)
 {
