@@ -14,6 +14,7 @@ IMPLEMENTATION:
 #include "thread_state.h"
 
 #include <cstdio>
+#include <simpleio.h>
 
 PRIVATE static
 unsigned
