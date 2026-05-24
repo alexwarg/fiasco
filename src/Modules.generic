@@ -121,7 +121,7 @@ VPATH_JDB += jdb
 PRIVATE_INCDIR += jdb/$(CONFIG_NARCH)/$(BITS) jdb/$(CONFIG_XARCH) jdb
 
 INTERFACES_JDB += \
-	jdb jdb_util jdb_core jdb_prompt_ext            \
+	jdb jdb_util jdb_prompt_ext            \
 	jdb_handler_queue jdb_attach_irq jdb_entry_frame                   \
 	jdb_exit_module jdb_bp jdb_factory        \
 	jdb_kobject_names jdb_prompt_module                    \
@@ -136,7 +136,7 @@ INTERFACES_JDB += \
 jdb_IMPL	+= jdb jdb-ansi jdb-thread
 jdb_tcb_IMPL	+= jdb_tcb
 
-CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_list.cc jdb_timeout.cc \
+CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_core.cc jdb_list.cc jdb_timeout.cc \
 	      jdb_module.cc jdb_ipc_gate.cc jdb_input.cc jdb_input_task.cc \
 	      jdb_kobject.cc jdb_utcb.cc jdb_thread.cc jdb_thread_list.cc \
 	      jdb_tbuf_show.cc jdb_tbuf_output.cc jdb_tbuf_init.cc jdb_tbuf.cc \
