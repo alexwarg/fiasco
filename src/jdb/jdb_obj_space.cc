@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 
@@ -26,6 +25,47 @@ public:
     End_mode
   };
 
+  Jdb_obj_space(Address base = 0, int level = 0)
+  : Jdb_table(1),
+    _base(base),
+    _task(0),
+    _mode(Name)
+  {
+    (void)level;
+    Jdb_kobject::module()->register_handler(this);
+  }
+
+  unsigned col_width(unsigned column) const override
+  { return (column == 0) ? 6 : 16; }
+
+  unsigned long cols() const override
+  { return Jdb_screen::cols(col_width(0), col_width(1)); }
+
+  unsigned long rows() const override
+  { return Obj_space::Map_max_address / (cols() - 1); }
+
+  void print_statline(unsigned long row, unsigned long col) override;
+  void print_entry(Cap_index entry);
+  void draw_entry(unsigned long row, unsigned long col) override;
+
+  unsigned key_pressed(int c, unsigned long &row,
+                       unsigned long &col) override;
+  bool handle_key(Kobject_common *o, int code) override;
+  char const *help_text(Kobject_common *o) const override;
+
+  Kobject_iface *item(Cap_index entry, unsigned *rights)
+  {
+    Obj_space::Entry *c = _task->jdb_lookup_cap(entry);
+
+    if (!c)
+      return 0;
+
+    Kobject_iface *o = c->obj();
+    *rights = cxx::int_value<Obj::Attr>(c->rights());
+
+    return o;
+  }
+
 private:
   Address _base;
   Space  *_task;
@@ -35,6 +75,14 @@ private:
   {
     return false;
   }
+
+  Cap_index index(unsigned long row, unsigned long col)
+  {
+    Mword e = (col - 1) + (row * (cols() - 1));
+    return Cap_index(_base + e);
+  }
+
+  bool handle_user_keys(int c, Kobject_iface *o);
 };
 
 static inline
@@ -50,36 +98,8 @@ operator ++ (Jdb_obj_space::Mode &m)
 
   return m;
 }
-
-PUBLIC
-Jdb_obj_space::Jdb_obj_space(Address base = 0, int level = 0)
-: Jdb_table(1),
-  _base(base),
-  _task(0),
-  _mode(Name)
-{
-  (void)level;
-  Jdb_kobject::module()->register_handler(this);
-}
-
-PUBLIC
-unsigned
-Jdb_obj_space::col_width(unsigned column) const override
-{ return (column == 0) ? 6 : 16; }
-
-PUBLIC
-unsigned long
-Jdb_obj_space::cols() const override
-{ return Jdb_screen::cols(col_width(0), col_width(1)); }
-
-PUBLIC
-unsigned long
-Jdb_obj_space::rows() const override
-{ return Obj_space::Map_max_address / (cols() - 1); }
-
-PUBLIC
 void
-Jdb_obj_space::print_statline(unsigned long row, unsigned long col) override
+Jdb_obj_space::print_statline(unsigned long row, unsigned long col)
 {
   static String_buf<128> buf;
   static String_buf<80> help;
@@ -106,7 +126,6 @@ Jdb_obj_space::print_statline(unsigned long row, unsigned long col) override
                        rights, buf.length(), buf.begin());
 }
 
-PUBLIC
 void
 Jdb_obj_space::print_entry(Cap_index entry)
 {
@@ -135,9 +154,8 @@ Jdb_obj_space::print_entry(Cap_index entry)
     }
 }
 
-PUBLIC
 void
-Jdb_obj_space::draw_entry(unsigned long row, unsigned long col) override
+Jdb_obj_space::draw_entry(unsigned long row, unsigned long col)
 {
   if (col == 0)
     printf("%06lx", cxx::int_value<Cap_index>(index(row, 1)));
@@ -145,15 +163,6 @@ Jdb_obj_space::draw_entry(unsigned long row, unsigned long col) override
     print_entry(index(row, col));
 }
 
-PRIVATE
-Cap_index
-Jdb_obj_space::index(unsigned long row, unsigned long col)
-{
-  Mword e = (col - 1) + (row * (cols() - 1));
-  return Cap_index(_base + e);
-}
-
-PRIVATE
 bool
 Jdb_obj_space::handle_user_keys(int c, Kobject_iface *o)
 {
@@ -174,10 +183,9 @@ Jdb_obj_space::handle_user_keys(int c, Kobject_iface *o)
   return handled;
 }
 
-PUBLIC
 unsigned
 Jdb_obj_space::key_pressed(int c, unsigned long &row,
-                           unsigned long &col) override
+                           unsigned long &col)
 {
   switch (c)
     {
@@ -198,9 +206,8 @@ Jdb_obj_space::key_pressed(int c, unsigned long &row,
     }
 }
 
-PUBLIC
 bool
-Jdb_obj_space::handle_key(Kobject_common *o, int code) override
+Jdb_obj_space::handle_key(Kobject_common *o, int code)
 {
   if (code != 'o')
     return false;
@@ -221,9 +228,8 @@ Jdb_obj_space::handle_key(Kobject_common *o, int code) override
   return true;
 }
 
-PUBLIC
 char const *
-Jdb_obj_space::help_text(Kobject_common *o) const override
+Jdb_obj_space::help_text(Kobject_common *o) const
 {
   Thread *t;
   if (cxx::dyn_cast<Task*>(o) || ((t = cxx::dyn_cast<Thread *>(o)) && t->space()))
@@ -234,17 +240,3 @@ Jdb_obj_space::help_text(Kobject_common *o) const override
 
 static Jdb_obj_space jdb_obj_space INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
-PUBLIC
-Kobject_iface *
-Jdb_obj_space::item(Cap_index entry, unsigned *rights)
-{
-  Obj_space::Entry *c = _task->jdb_lookup_cap(entry);
-
-  if (!c)
-    return 0;
-
-  Kobject_iface *o = c->obj();
-  *rights = cxx::int_value<Obj::Attr>(c->rights());
-
-  return o;
-}
