@@ -17,6 +17,7 @@ include $(objbase)/globalconfig.out
 
 # use patsubst here to prevent confusion of syntax highlighting editors :-)
 CONFIG_XARCH	:= $(patsubst "%",%,$(CONFIG_XARCH))
+CONFIG_NARCH	:= $(subst amd64,ia32,$(CONFIG_XARCH))
 CONFIG_ABI	:= $(patsubst "%",%,$(CONFIG_ABI))
 
 SYSTEM		:= $(shell uname)
