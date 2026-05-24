@@ -1,4 +1,7 @@
-INTERFACE [ia32 && jdb_logging]:
+
+#pragma once
+
+#include <tb_entry_generic.h>
 
 #define BEGIN_LOG_EVENT(name, sc, fmt)				\
   do								\

@@ -1,6 +1,10 @@
 # -*- makefile -*-
 # vi:se ft=make:
 
+BITS-$(CONFIG_BIT32) = 32
+BITS-$(CONFIG_BIT64) = 64
+BITS = $(BITS-y)
+
 # Include for unit tests, enable by including UTEST in SUBSYSTEMS.
 include $(srcdir)/test/utest/Modules.utest
 #
@@ -114,7 +118,7 @@ PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
 PREPROCESS_PARTS += obj_space_$(OBJ_SPACE_TYPE)
 
 VPATH_JDB += jdb
-PRIVATE_INCDIR += jdb
+PRIVATE_INCDIR += jdb/$(CONFIG_NARCH)/$(BITS) jdb/$(CONFIG_XARCH) jdb
 
 INTERFACES_JDB += \
 	jdb jdb_util jdb_core jdb_prompt_ext            \
@@ -123,19 +127,19 @@ INTERFACES_JDB += \
 	jdb_kobject_names jdb_prompt_module                    \
 	jdb_obj_space jdb_screen jdb_space jdb_table jdb_tcb               \
 	jdb_thread jdb_counters      \
-	jdb_disasm jdb_tbuf_output jdb_tbuf_show  \
+	jdb_disasm \
 	jdb_report jdb_dump jdb_mapdb jdb_kern_info_kmem_alloc \
 	jdb_kern_info_kip jdb_kern_info jdb_kern_info_data       \
 	jdb_trap_state jdb_rcupdate jdb_sender_list                        \
 	jdb_ipi
 
 jdb_IMPL	+= jdb jdb-ansi jdb-thread
-jdb_tbuf_IMPL	+= jdb_tbuf jdb_tbuf-$(CONFIG_XARCH)
 jdb_tcb_IMPL	+= jdb_tcb
 
 CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_list.cc jdb_timeout.cc \
 	      jdb_module.cc jdb_ipc_gate.cc jdb_input.cc jdb_input_task.cc \
-	      jdb_kobject.cc jdb_utcb.cc jdb_thread_list.cc
+	      jdb_kobject.cc jdb_utcb.cc jdb_thread_list.cc \
+	      jdb_tbuf_show.cc jdb_tbuf_output.cc jdb_tbuf_init.cc jdb_tbuf.cc
 CXXSRC_JDB-$(CONFIG_MP) += jdb_cpu_call.cc
 CXXSRC_JDB-$(CONFIG_JDB_REGEX) += jdb_regex.cc
 
@@ -144,7 +148,7 @@ CXXSRC_JDB += $(CXXSRC_JDB-y) $(CXXSRC_JDB-yy) $(CXXSRC_JDB-y-y)
 
 ifeq ("$(CONFIG_JDB)","y")
 INTERFACES_KERNEL += \
-	jdb_tbuf jdb_tbuf_init jdb_trace
+	jdb_trace
 endif
 
 # - do not profile all of MINILIBC, because it is used in the BOOT subsystem

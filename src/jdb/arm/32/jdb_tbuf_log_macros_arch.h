@@ -1,4 +1,7 @@
-INTERFACE [arm && jdb_logging]:
+
+#pragma once
+
+#include <tb_entry_generic.h>
 
 // Clang < 9 does not accept the "c" (constant) modifier.
 // https://bugs.llvm.org/show_bug.cgi?id=40959
@@ -41,3 +44,4 @@ INTERFACE [arm && jdb_logging]:
       if (EXPECT_FALSE( __do_log__ ))				\
 	{
 #endif
+

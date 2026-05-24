@@ -1,27 +1,10 @@
-INTERFACE:
-
-#include "initcalls.h"
-#include "l4_types.h"
-#include "thread.h"
-
-class Tb_entry;
-class String_buffer;
-
-class Jdb_tbuf_output
-{
-private:
-  typedef void (Format_entry_fn)(String_buffer *, Tb_entry *tb, const char *tidstr,
-                                 int tidlen);
-  static Format_entry_fn *_format_entry_fn[];
-  static bool show_names;
-};
-
-IMPLEMENTATION:
 
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+
+#include <jdb_tbuf_output.h>
 
 #include "config.h"
 #include "initcalls.h"
@@ -73,7 +56,6 @@ console_log_entry(Tb_entry *e, const char *)
   Watchdog::enable();
 }
 
-PRIVATE static
 void
 Jdb_tbuf_output::dummy_format_entry(String_buffer *buf, Tb_entry *tb, const char *, int)
 {
@@ -82,7 +64,6 @@ Jdb_tbuf_output::dummy_format_entry(String_buffer *buf, Tb_entry *tb, const char
 
 STATIC_INITIALIZE(Jdb_tbuf_output);
 
-PUBLIC static
 void FIASCO_INIT
 Jdb_tbuf_output::init()
 {
@@ -94,7 +75,6 @@ Jdb_tbuf_output::init()
       _format_entry_fn[i] = dummy_format_entry;
 }
 
-PUBLIC static
 void
 Jdb_tbuf_output::register_ff(Unsigned8 type, Format_entry_fn format_entry_fn)
 {
@@ -108,7 +88,6 @@ Jdb_tbuf_output::register_ff(Unsigned8 type, Format_entry_fn format_entry_fn)
 }
 
 // return thread+ip of entry <e_nr>
-PUBLIC static
 int
 Jdb_tbuf_output::thread_ip(int e_nr, Thread const **th, Mword *ip)
 {
@@ -122,13 +101,6 @@ Jdb_tbuf_output::thread_ip(int e_nr, Thread const **th, Mword *ip)
   *ip = e->ip();
 
   return true;
-}
-
-PUBLIC static
-void
-Jdb_tbuf_output::toggle_names()
-{
-  show_names = !show_names;
 }
 
 static
@@ -157,7 +129,6 @@ formatter_default(String_buffer *buf, Tb_entry *tb, const char *tidstr, int tidl
   fmt->print(buf, tb);
 }
 
-PUBLIC static
 void
 Jdb_tbuf_output::print_entry(String_buffer *buf, int e_nr)
 {
@@ -167,7 +138,6 @@ Jdb_tbuf_output::print_entry(String_buffer *buf, int e_nr)
     print_entry(buf, tb);
 }
 
-PUBLIC static
 void
 Jdb_tbuf_output::print_entry(String_buffer *buf, Tb_entry *tb)
 {
@@ -202,7 +172,6 @@ Jdb_tbuf_output::print_entry(String_buffer *buf, Tb_entry *tb)
   buf->terminate();
 }
 
-PUBLIC static
 bool
 Jdb_tbuf_output::set_filter(const char *filter_str, Mword *entries)
 {

@@ -1,4 +1,9 @@
-INTERFACE [mips32 && jdb_logging]:
+
+#pragma once
+
+#include <tb_entry_generic.h>
+
+#ifdef CONFIG_BIT32
 
 // Setup Tb_log_table_entry name, patch, fmt.  Must be done such that patching
 // the byte at instruction 'patch' can set the value of __do_log__.
@@ -20,7 +25,9 @@ INTERFACE [mips32 && jdb_logging]:
       if (EXPECT_FALSE( __do_log__ ))				\
 	{
 
-INTERFACE [mips64 && jdb_logging]:
+#endif
+
+#ifdef CONFIG_BIT64
 
 // Setup Tb_log_table_entry name, patch, fmt.  Must be done such that patching
 // the byte at instruction 'patch' can set the value of __do_log__.
@@ -41,3 +48,5 @@ INTERFACE [mips64 && jdb_logging]:
                     : [xfmt] "i" (&Tb_entry_formatter_t<fmt>::singleton));  \
       if (EXPECT_FALSE( __do_log__ ))				\
 	{
+
+#endif

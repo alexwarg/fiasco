@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 #include <cstring>
@@ -60,6 +59,10 @@ class Jdb_tbuf_show : public Jdb_module
 {
 public:
   Jdb_tbuf_show() FIASCO_INIT;
+  Action_code action(int cmd, void *&, char const *&, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
+
 
 private:
   static char  _search_str[40];
@@ -102,6 +105,20 @@ private:
   {
     Nil               = (Mword)-1,
   };
+
+  static void error(const char * const msg);
+  static void show_perf_event_unit_mask_entry(Mword nr, Mword idx,
+                                              Mword unit_mask, int exclusive);
+  static void show_perf_event(Mword nr);
+  static Mword select_perf_event_unit_mask(Mword nr, Mword unit_mask);
+  static Mword select_perf_event(Mword event);
+  static void show_events(Mword n, Mword ref, Mword count, Unsigned8 mode,
+                          Unsigned8 time_mode, int long_output);
+  static Mword search(Mword start, Mword entries, const char *str,
+                      Unsigned8 direction);
+  static void find_group(Entry_group *g, Tb_entry const *e,
+                         bool older, unsigned lines, unsigned depth);
+  static void show();
 };
 
 char  Jdb_tbuf_show::_search_str[40];
@@ -116,14 +133,14 @@ Mword Jdb_tbuf_show::_nr_pos[10] = { Nil, Nil, Nil, Nil, Nil,
 
 Mword Jdb_tbuf_show::y_offset = 0;
 
-static void
+void
 Jdb_tbuf_show::error(const char * const msg)
 {
   Jdb::printf_statline("tbuf", 0, "\033[31;1m=== %s! ===\033[m", msg);
   _status_type = Status_error;
 }
 
-static void
+void
 Jdb_tbuf_show::show_perf_event_unit_mask_entry(Mword nr, Mword idx,
                                                Mword unit_mask, int exclusive)
 {
@@ -139,7 +156,7 @@ Jdb_tbuf_show::show_perf_event_unit_mask_entry(Mword nr, Mword idx,
          value, desc);
 }
 
-static void
+void
 Jdb_tbuf_show::show_perf_event(Mword nr)
 {
   const char *name = nullptr, *desc = nullptr;
@@ -162,7 +179,7 @@ Jdb_tbuf_show::show_perf_event(Mword nr)
   printf("%02x %-26.26s %.49s\033[K", evntsel, name, desc);
 }
 
-static Mword
+Mword
 Jdb_tbuf_show::select_perf_event_unit_mask(Mword nr, Mword unit_mask)
 {
   Mword absy     = 0;
@@ -258,7 +275,7 @@ Jdb_tbuf_show::select_perf_event_unit_mask(Mword nr, Mword unit_mask)
     }
 }
 
-static Mword
+Mword
 Jdb_tbuf_show::select_perf_event(Mword event)
 {
   Mword absy     = 0;
@@ -356,7 +373,7 @@ Jdb_tbuf_show::select_perf_event(Mword event)
 }
 
 
-static void
+void
 Jdb_tbuf_show::show_events(Mword n, Mword ref, Mword count, Unsigned8 mode,
                            Unsigned8 time_mode, int long_output)
 {
@@ -507,7 +524,7 @@ Jdb_tbuf_show::show_events(Mword n, Mword ref, Mword count, Unsigned8 mode,
 }
 
 // search in tracebuffer
-static Mword
+Mword
 Jdb_tbuf_show::search(Mword start, Mword entries, const char *str,
                       Unsigned8 direction)
 {
@@ -574,7 +591,7 @@ Jdb_tbuf_show::search(Mword start, Mword entries, const char *str,
 }
 
 
-static void
+void
 Jdb_tbuf_show::find_group(Entry_group *g, Tb_entry const *e, bool older, unsigned lines,
                           unsigned depth)
 {
@@ -629,7 +646,7 @@ Jdb_tbuf_show::find_group(Entry_group *g, Tb_entry const *e, bool older, unsigne
     }
 }
 
-static void
+void
 Jdb_tbuf_show::show()
 {
   static Unsigned8 mode      = Index_mode;
@@ -1077,9 +1094,8 @@ restart:
   _nr_cur = (e = Jdb_tbuf::lookup(_absy+addy)) ? e->number() : 0;
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_tbuf_show::action(int cmd, void *&, char const *&, int &) override
+Jdb_tbuf_show::action(int cmd, void *&, char const *&, int &)
 {
   switch (cmd)
     {
@@ -1106,9 +1122,8 @@ Jdb_tbuf_show::action(int cmd, void *&, char const *&, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_tbuf_show::cmds() const override
+Jdb_tbuf_show::cmds() const
 {
   static Cmd cs[] =
     {
@@ -1122,14 +1137,12 @@ Jdb_tbuf_show::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_tbuf_show::num_cmds() const override
+Jdb_tbuf_show::num_cmds() const
 {
   return 3;
 }
 
-IMPLEMENT
 Jdb_tbuf_show::Jdb_tbuf_show()
     : Jdb_module("MONITORING")
 {}

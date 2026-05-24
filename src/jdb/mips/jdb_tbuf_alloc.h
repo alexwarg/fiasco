@@ -1,21 +1,15 @@
-IMPLEMENTATION [mips]:
 
-#include <cassert>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
+#pragma once
 
 #include "kmem_alloc.h"
 #include "config.h"
 #include "cpu.h"
-#include "jdb_ktrace.h"
 
-IMPLEMENT_OVERRIDE FIASCO_INIT
-unsigned
+inline ALWAYS_INLINE unsigned
 Jdb_tbuf_init::max_size()
 { return 2 << 20; }
 
-IMPLEMENT_OVERRIDE FIASCO_INIT
+FIASCO_INIT
 unsigned
 Jdb_tbuf_init::allocate(unsigned size)
 {
