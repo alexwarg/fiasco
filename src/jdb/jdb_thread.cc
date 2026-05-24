@@ -1,12 +1,4 @@
-INTERFACE:
-
-#include "thread.h"
-
-class Jdb_thread
-{
-};
-
-IMPLEMENTATION:
+#include "jdb_thread.h"
 
 #include "irq.h"
 #include "jdb_kobject.h"
@@ -16,7 +8,6 @@ IMPLEMENTATION:
 #include <cstdio>
 #include <simpleio.h>
 
-PRIVATE static
 unsigned
 Jdb_thread::print_state_bits(Mword bits, unsigned max_size)
 {
@@ -60,9 +51,8 @@ Jdb_thread::print_state_bits(Mword bits, unsigned max_size)
   return chars < max_size ? max_size - chars : 0;
 }
 
-PUBLIC static
 void
-Jdb_thread::print_state_long(Thread *t, unsigned max_size = 119)
+Jdb_thread::print_state_long(Thread *t, unsigned max_size)
 {
   max_size = print_state_bits(t->state(), max_size);
   if (!t->_remote_state_change.pending())
@@ -82,23 +72,8 @@ Jdb_thread::print_state_long(Thread *t, unsigned max_size = 119)
     putchar(']');
 }
 
-PUBLIC static
-bool
-Jdb_thread::has_partner(Thread *t)
-{
-  return (t->state() & Thread_ipc_mask) == Thread_receive_wait;
-}
-
-PUBLIC static
-bool
-Jdb_thread::has_snd_partner(Thread *t)
-{
-  return t->state() & Thread_send_wait;
-}
-
-PUBLIC static
 void
-Jdb_thread::print_snd_partner(Thread *t, int task_format = 0)
+Jdb_thread::print_snd_partner(Thread *t, int task_format)
 {
   if (has_snd_partner(t))
     Jdb_kobject::print_uid(Kobject::from_dbg(Kobject_dbg::pointer_to_obj(t->wait_queue())), task_format);
@@ -107,9 +82,8 @@ Jdb_thread::print_snd_partner(Thread *t, int task_format = 0)
     putstr("   ");
 }
 
-PUBLIC static
 void
-Jdb_thread::print_partner(Thread *t, int task_format = 0)
+Jdb_thread::print_partner(Thread *t, int task_format)
 {
   void const *p = t->_partner;
 
