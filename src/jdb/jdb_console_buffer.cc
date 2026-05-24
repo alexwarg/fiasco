@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 #include <cstring>
@@ -21,7 +20,76 @@ IMPLEMENTATION:
  */
 class Console_buffer : public Console
 {
+public:
+  Console_buffer();
+  ~Console_buffer()
+  {
+    if(out_buf)
+      Kmem_alloc::allocator()->free(Bytes(out_buf_size), out_buf);
+    out_buf = 0;
+  }
+
+  /**
+   * Allocates a buffer of the given size.
+   * @param size the buffer size in bytes.
+   */
+  static void alloc(size_t size);
+
+  int write( char const *str, size_t len) override;
+
+  int getchar(bool) override
+  { return -1; }
+
+  Mword get_attributes() const override
+  { return BUFFER | OUT; }
+
+
+  static void init();
+
+  /**
+   * Prints the buffer to the standard I/O.
+   * @param lines the number of lines to skip.
+   * This method prints the buffer contents to the normal I/O.
+   * Before doing this the buffer is disabled, that no recursion 
+   * appers even if the buffer is part of the muxed I/O.
+   */
+  static int print_buffer(unsigned lines);
+
+  /**
+   * Prints the buffer to the standard I/O.
+   * @param str the string the output should be filtered for
+   * This method prints the buffer contents to the normal I/O.
+   * Before doing this the buffer is disabled, that no recursion
+   * appers even if the buffer is part of the muxed I/O.
+   */
+  static int print_buffer(const char *str);
+
 private:
+  static int strncmp(char *start, const char *search, size_t len);
+
+  static void at_jdb_enter()
+  {
+    _enabled = false;
+  }
+
+  static void at_jdb_leave()
+  {
+    _enabled = true;
+  }
+
+  static void inc_ptr(char **c)
+  {
+    if (++*c >= out_buf + out_buf_size)
+      *c = out_buf;
+  }
+
+  static void dec_out_ptr(char **c)
+  {
+    if (--*c < out_buf)
+      *c += out_buf_size;
+  }
+
+
   static bool _enabled;
   static size_t out_buf_size;
   static size_t out_buf_len;
@@ -35,21 +103,7 @@ size_t Console_buffer::out_buf_len;
 char*  Console_buffer::out_buf;
 char*  Console_buffer::out_buf_w;
 
-PRIVATE static
-void
-Console_buffer::at_jdb_enter()
-{
-  _enabled = false;
-}
 
-PRIVATE static
-void
-Console_buffer::at_jdb_leave()
-{
-  _enabled = true;
-}
-
-PUBLIC
 Console_buffer::Console_buffer() : Console(ENABLED)
 {
   static Jdb_handler enter(at_jdb_enter);
@@ -66,11 +120,6 @@ Console_buffer::Console_buffer() : Console(ENABLED)
   alloc(len);
 }
 
-/**
- * Allocates a buffer of the given size.
- * @param size the buffer size in bytes.
- */
-PUBLIC static
 void
 Console_buffer::alloc(size_t size)
 {
@@ -87,17 +136,9 @@ Console_buffer::alloc(size_t size)
     }
 }
 
-PUBLIC
-Console_buffer::~Console_buffer()
-{
-  if(out_buf)
-    Kmem_alloc::allocator()->free(Bytes(out_buf_size), out_buf);
-  out_buf = 0;
-}
 
-PUBLIC
 int
-Console_buffer::write( char const *str, size_t len) override
+Console_buffer::write( char const *str, size_t len)
 {
   if (_enabled && out_buf)
     {
@@ -121,37 +162,6 @@ Console_buffer::write( char const *str, size_t len) override
   return len;
 }
 
-PRIVATE static inline
-void
-Console_buffer::inc_ptr(char **c)
-{
-  if (++*c >= out_buf + out_buf_size)
-    *c = out_buf;
-}
-
-PRIVATE static inline
-void
-Console_buffer::dec_out_ptr(char **c)
-{
-  if (--*c < out_buf)
-    *c += out_buf_size;
-}
-
-PUBLIC
-int
-Console_buffer::getchar(bool) override
-{
-  return -1;
-}
-
-/**
- * Prints the buffer to the standard I/O.
- * @param lines the number of lines to skip.
- * This method prints the buffer contents to the normal I/O.
- * Before doing this the buffer is disabled, that no recursion 
- * appers even if the buffer is part of the muxed I/O.
- */
-PUBLIC static
 int
 Console_buffer::print_buffer(unsigned lines)
 {
@@ -228,7 +238,6 @@ Console_buffer::print_buffer(unsigned lines)
 }
 
 
-PRIVATE static
 int
 Console_buffer::strncmp(char *start, const char *search, size_t len)
 {
@@ -242,14 +251,6 @@ Console_buffer::strncmp(char *start, const char *search, size_t len)
   return *search == '\0';
 }
 
-/**
- * Prints the buffer to the standard I/O.
- * @param str the string the output should be filtered for
- * This method prints the buffer contents to the normal I/O.
- * Before doing this the buffer is disabled, that no recursion
- * appers even if the buffer is part of the muxed I/O.
- */
-PUBLIC static
 int
 Console_buffer::print_buffer(const char *str)
 {
@@ -328,14 +329,8 @@ next_line:
   return 0;
 }
 
-PUBLIC
-Mword Console_buffer::get_attributes() const override
-{
-  return BUFFER | OUT;
-}
 
-
-PUBLIC static FIASCO_INIT
+FIASCO_INIT
 void
 Console_buffer::init()
 {
@@ -353,6 +348,60 @@ class Jdb_cb : public Jdb_module
 {
 public:
   Jdb_cb() FIASCO_INIT;
+
+  Action_code action(int cmd, void *&args, char const *&fmt, int &next_char) override
+  {
+    if (cmd != 0)
+      return NOTHING;
+
+    if (args == &first_char)
+      {
+        if (first_char == '/')
+          {
+            putchar(first_char);
+            fmt  = "%30s";
+            args = search_str;
+            return EXTRA_INPUT;
+          }
+        output_lines = 0;
+        if (first_char != ' ' && first_char != KEY_RETURN
+            && first_char != KEY_RETURN_2)
+          {
+            next_char = first_char;
+            args = &output_lines;
+            fmt  = "%4d";
+            return EXTRA_INPUT_WITH_NEXTCHAR;
+          }
+      }
+    else if (args == search_str)
+      {
+        putchar('\n');
+        Console_buffer::print_buffer(search_str);
+        return NOTHING;
+      }
+
+    putchar('\n');
+    Console_buffer::print_buffer(output_lines);
+
+    return NOTHING;
+  }
+
+  Cmd const *cmds() const override
+  {
+    static const Cmd cs[] =
+      {
+          { 0, "B", "consolebuffer", "%C",
+            "B[<lines>|/<str>]\tshow (last n lines of) console buffer/search",
+            &first_char },
+      };
+    return cs;
+  }
+
+  int num_cmds() const override
+  {
+    return 1;
+  }
+
 private:
   static char  first_char;
   static char  search_str[30];
@@ -363,66 +412,6 @@ char  Jdb_cb::first_char;
 char  Jdb_cb::search_str[30];
 Mword Jdb_cb::output_lines;
 
-PUBLIC
-Jdb_module::Action_code
-Jdb_cb::action(int cmd, void *&args, char const *&fmt, int &next_char) override
-{
-  if (cmd != 0)
-    return NOTHING;
-
-  if (args == &first_char)
-    {
-      if (first_char == '/')
-	{
-	  putchar(first_char);
-	  fmt  = "%30s";
-	  args = search_str;
-	  return EXTRA_INPUT;
-	}
-      output_lines = 0;
-      if (first_char != ' ' && first_char != KEY_RETURN
-          && first_char != KEY_RETURN_2)
-	{
-	  next_char = first_char;
-	  args = &output_lines;
-	  fmt  = "%4d";
-	  return EXTRA_INPUT_WITH_NEXTCHAR;
-	}
-    }
-  else if (args == search_str)
-    {
-      putchar('\n');
-      Console_buffer::print_buffer(search_str);
-      return NOTHING;
-    }
-
-  putchar('\n');
-  Console_buffer::print_buffer(output_lines);
-
-  return NOTHING;
-}
-
-PUBLIC
-Jdb_module::Cmd const *
-Jdb_cb::cmds() const override
-{
-  static const Cmd cs[] =
-    {
-	{ 0, "B", "consolebuffer", "%C",
-	  "B[<lines>|/<str>]\tshow (last n lines of) console buffer/search",
-	  &first_char },
-    };
-  return cs;
-}
-
-PUBLIC
-int
-Jdb_cb::num_cmds() const override
-{
-  return 1;
-}
-
-IMPLEMENT
 Jdb_cb::Jdb_cb()
   : Jdb_module("GENERAL")
 {

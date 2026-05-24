@@ -158,8 +158,7 @@ jdb_trace_set_IMPL	+= jdb_trace_set jdb_trace_set-mips
 jdb_kern_info_IMPL	:= jdb_kern_info
 jdb_tbuf_init_IMPL	:= jdb_tbuf_init jdb_tbuf_init-mips
 jdb_ptab_IMPL		:= jdb_ptab jdb_ptab-mips
-INTERFACES_JDB		+= jdb_trace_set jdb_ptab jdb_mips_tlb \
-			   jdb_console_buffer
+INTERFACES_JDB		+= jdb_trace_set jdb_ptab jdb_mips_tlb
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
 

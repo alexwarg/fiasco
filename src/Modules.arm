@@ -184,7 +184,7 @@ ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o
 SUBSYSTEMS		+= JDB
 INTERFACES_JDB		+= jdb_ptab jdb_trace_set jdb_perf \
-			   jdb_console_buffer jdb_idle_stats
+			   jdb_idle_stats
 
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc
 
