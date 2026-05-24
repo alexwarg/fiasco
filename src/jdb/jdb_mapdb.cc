@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 
@@ -15,6 +14,7 @@ IMPLEMENTATION:
 #include "task.h"
 #include "jdb_kobject.h"
 #include "jdb_kobject_names.h"
+#include "dbg_page_info.h"
 
 // access to private mapdb instances from map_util...
 extern Static_object<Mapdb> mapdb_mem;
@@ -25,7 +25,58 @@ class Jdb_mapdb : public Jdb_module
   friend class Jdb_kobject_mapdb_hdl;
 public:
   Jdb_mapdb() FIASCO_INIT;
+
+  Action_code action(int cmd, void *&args, char const *&fmt, int &next_char) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
+
 private:
+  static const char *size_str(Mword size)
+  {
+    static char scratchbuf[6];
+    unsigned mult = 0;
+    while (size >= 1024)
+      {
+        size >>= 10;
+        mult++;
+      }
+    snprintf(scratchbuf, 6, "%hu%c", (unsigned short)size, "BKMGTPX"[mult]);
+    return scratchbuf;
+  }
+
+  static unsigned long long val(Mdb_types::Pfn p, Mdb_types::Order base_size)
+  {
+    return cxx::int_value<Mdb_types::Pfn>(p << base_size);
+  }
+
+  /**
+   * Print ID of given space and the debug name of its task when available.
+   */
+  static void show_space(Space* space)
+  {
+    printf("%lx", Kobject_dbg::pointer_to_id(space));
+
+    Jdb_kobject_name *ex
+      = Jdb_kobject_extension::find_extension<Jdb_kobject_name>(
+          static_cast<Task*>(space));
+
+    if (ex)
+      printf(" {%.*s}", ex->max_len(), ex->name());
+  }
+
+  static Address end_address (Mapdb* mapdb)
+  {
+    return cxx::int_value<Mdb_types::Pfn>(mapdb->dbg_treemap()->end_addr());
+  }
+
+  static bool show_tree(Treemap* pages, Mapping::Pcnt offset, Mdb_types::Order base_size,
+                        unsigned &screenline, unsigned indent = 1);
+
+  static void show(Mapping::Pfn page, char which_mapdb);
+  static void dump_all_obj_mappings(char const *arg);
+  static bool show_simple_tree(Kobject_common *f, unsigned indent = 1);
+  static void print_obj_mapping(Obj::Mapping *m);
+
   static Mword pagenum;
   static char  subcmd;
   static char  dump_tag[21];
@@ -35,51 +86,10 @@ Mword Jdb_mapdb::pagenum;
 char  Jdb_mapdb::subcmd;
 char  Jdb_mapdb::dump_tag[21];
 
-static
-const char*
-size_str (Mword size)
-{
-  static char scratchbuf[6];
-  unsigned mult = 0;
-  while (size >= 1024)
-    {
-      size >>= 10;
-      mult++;
-    }
-  snprintf(scratchbuf, 6, "%hu%c", (unsigned short)size, "BKMGTPX"[mult]);
-  return scratchbuf;
-}
 
-static
-unsigned long long
-Jdb_mapdb::val(Mdb_types::Pfn p, Mdb_types::Order base_size)
-{
-  return cxx::int_value<Mdb_types::Pfn>(p << base_size);
-}
-
-
-/**
- * Print ID of given space and the debug name of its task when available.
- */
-static
-void
-Jdb_mapdb::show_space(Space* space)
-{
-  printf("%lx", Kobject_dbg::pointer_to_id(space));
-
-  Jdb_kobject_name *ex
-    = Jdb_kobject_extension::find_extension<Jdb_kobject_name>(
-        static_cast<Task*>(space));
-
-  if (ex)
-    printf(" {%.*s}", ex->max_len(), ex->name());
-}
-
-
-static
 bool
 Jdb_mapdb::show_tree(Treemap* pages, Mapping::Pcnt offset, Mdb_types::Order base_size,
-                     unsigned &screenline, unsigned indent = 1)
+                     unsigned &screenline, unsigned indent)
 {
   typedef Treemap::Page Page;
 
@@ -166,14 +176,6 @@ Jdb_mapdb::show_tree(Treemap* pages, Mapping::Pcnt offset, Mdb_types::Order base
   return true;
 }
 
-static
-Address
-Jdb_mapdb::end_address (Mapdb* mapdb)
-{
-  return cxx::int_value<Mdb_types::Pfn>(mapdb->dbg_treemap()->end_addr());
-}
-
-static
 void
 Jdb_mapdb::show(Mapping::Pfn page, char which_mapdb)
 {
@@ -284,9 +286,8 @@ Jdb_mapdb::show(Mapping::Pfn page, char which_mapdb)
     }
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_mapdb::action(int cmd, void *&args, char const *&fmt, int &next_char) override
+Jdb_mapdb::action(int cmd, void *&args, char const *&fmt, int &next_char)
 {
   static char which_mapdb = 'm';
 
@@ -346,9 +347,8 @@ Jdb_mapdb::action(int cmd, void *&args, char const *&fmt, int &next_char) overri
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_mapdb::cmds() const override
+Jdb_mapdb::cmds() const
 {
   static Cmd cs[] =
     {
@@ -361,14 +361,12 @@ Jdb_mapdb::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_mapdb::num_cmds() const override
+Jdb_mapdb::num_cmds() const
 {
   return 2;
 }
 
-IMPLEMENT
 Jdb_mapdb::Jdb_mapdb()
   : Jdb_module("INFO")
 {}
@@ -381,13 +379,30 @@ static Jdb_mapdb jdb_mapdb INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 class Jdb_kobject_mapdb_hdl : public Jdb_kobject_handler
 {
 public:
+  static FIASCO_INIT void init();
+
   bool show_kobject(Kobject_common *, int) override
   { return true; }
 
-  virtual ~Jdb_kobject_mapdb_hdl() {}
+  bool handle_key(Kobject_common *o, int keycode) override
+  {
+    if (keycode == 'm')
+      {
+        Jdb_mapdb::show_simple_tree(o);
+        Jdb::getchar();
+        return true;
+      }
+    else
+      return false;
+  }
+
+  char const *help_text(Kobject_common *) const override
+  {
+    return "m=mappings";
+  }
 };
 
-PUBLIC static FIASCO_INIT
+FIASCO_INIT
 void
 Jdb_kobject_mapdb_hdl::init()
 {
@@ -395,36 +410,11 @@ Jdb_kobject_mapdb_hdl::init()
   Jdb_kobject::module()->register_handler(&hdl);
 }
 
-PUBLIC
-bool
-Jdb_kobject_mapdb_hdl::handle_key(Kobject_common *o, int keycode) override
-{
-  if (keycode == 'm')
-    {
-      Jdb_mapdb::show_simple_tree(o);
-      Jdb::getchar();
-      return true;
-    }
-  else
-    return false;
-}
-
-PUBLIC
-char const *
-Jdb_kobject_mapdb_hdl::help_text(Kobject_common *) const override
-{
-  return "m=mappings";
-}
-
 
 STATIC_INITIALIZE(Jdb_kobject_mapdb_hdl);
 
-// --------------------------------------------------------------------------
-IMPLEMENTATION:
 
-#include "dbg_page_info.h"
 
-static
 void
 Jdb_mapdb::print_obj_mapping(Obj::Mapping *m)
 {
@@ -453,9 +443,8 @@ Jdb_mapdb::print_obj_mapping(Obj::Mapping *m)
          (unsigned long)e->_flags, e->obj());
 }
 
-static
 bool
-Jdb_mapdb::show_simple_tree(Kobject_common *f, unsigned indent = 1)
+Jdb_mapdb::show_simple_tree(Kobject_common *f, unsigned indent)
 {
   (void)indent;
   (void)f;
@@ -508,7 +497,6 @@ Jdb_mapdb::show_simple_tree(Kobject_common *f, unsigned indent = 1)
   return true;
 }
 
-static
 void
 Jdb_mapdb::dump_all_obj_mappings(char const *arg)
 {
