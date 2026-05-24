@@ -1,28 +1,3 @@
-INTERFACE:
-
-#include "jdb_module.h"
-#include "jdb_types.h"
-#include "types.h"
-#include "l4_types.h"
-
-
-class Task;
-class Space;
-class Kobject;
-
-class Jdb_input_task_addr
-{
-public:
-  static char     first_char;
-  static char     first_char_have_task;
-private:
-  static Kobject *_task;
-  static Space   *_space;
-  static Address  _addr;
-};
-
-
-IMPLEMENTATION:
 
 #include <cctype>
 #include <cstring>
@@ -32,6 +7,7 @@ IMPLEMENTATION:
 #include "jdb.h"
 #include "jdb_kobject.h"
 #include "task.h"
+#include <jdb_input_task.h>
 
 char     Jdb_input_task_addr::first_char;
 char     Jdb_input_task_addr::first_char_have_task;
@@ -40,22 +16,6 @@ Space   *Jdb_input_task_addr::_space;
 Address  Jdb_input_task_addr::_addr;
 
 
-PUBLIC static
-Task *
-Jdb_input_task_addr::task()
-{ return cxx::dyn_cast<Task *>(_task); }
-
-PUBLIC static
-Space *
-Jdb_input_task_addr::space()
-{ return _space; }
-
-PUBLIC static
-Address
-Jdb_input_task_addr::addr()
-{ return _addr; }
-
-PUBLIC static
 Jdb_address
 Jdb_input_task_addr::address()
 {
@@ -72,7 +32,6 @@ Jdb_input_task_addr::address()
   return Jdb_address::kmem_addr(_addr);
 }
 
-PUBLIC static
 Jdb_module::Action_code
 Jdb_input_task_addr::action(void *&args, char const *&fmt, int &next_char)
 {
