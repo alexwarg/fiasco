@@ -100,7 +100,7 @@ CXXSRC_KERNEL-$(CONFIG_JDB) += \
 	dbg_page_info.cc kobject_dbg.cc assertion-dbg.cc jdb_object.cc \
 	tb_entry_generic.cc \
 	drq_log.cc vcpu_log.cc context_dbg.cc exregs_log.cc \
-	dbg_stack.cc
+	dbg_stack.cc jdb_trace.cc
 
 #CXXSRC_KERNEL-y$(CONFIG_JDB) += assertion.cc
 CXXSRC_KERNEL += $(CXXSRC_KERNEL-y)
@@ -148,10 +148,6 @@ CXXSRC_JDB-$(CONFIG_JDB_REGEX) += jdb_regex.cc
 CXXSRC_JDB += $(CXXSRC_JDB-y) $(CXXSRC_JDB-yy) $(CXXSRC_JDB-y-y)
 
 
-ifeq ("$(CONFIG_JDB)","y")
-INTERFACES_KERNEL += \
-	jdb_trace
-endif
 
 # - do not profile all of MINILIBC, because it is used in the BOOT subsystem
 # - save some space for debugger, disassembler, ...
