@@ -122,7 +122,7 @@ PRIVATE_INCDIR += jdb/$(CONFIG_NARCH)/$(BITS) jdb/$(CONFIG_XARCH) jdb
 
 INTERFACES_JDB += \
 	jdb jdb_prompt_ext            \
-	jdb_handler_queue jdb_attach_irq jdb_entry_frame                   \
+	jdb_attach_irq jdb_entry_frame                   \
 	jdb_exit_module jdb_bp jdb_factory        \
 	jdb_kobject_names                    \
 	jdb_screen jdb_tcb               \
