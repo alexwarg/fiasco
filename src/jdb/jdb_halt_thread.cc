@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 #include "entry_frame.h"
@@ -13,6 +12,11 @@ class Jdb_halt_thread : public Jdb_module
 {
 public:
   Jdb_halt_thread() FIASCO_INIT;
+
+  Action_code action(int cmd, void *&, char const *&, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
+
 private:
   static Kobject *threadid;
 };
@@ -28,9 +32,8 @@ static void halt_current_thread_helper()
     }
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_halt_thread::action(int cmd, void *&, char const *&, int &) override
+Jdb_halt_thread::action(int cmd, void *&, char const *&, int &)
 {
   if (cmd != 0)
     return NOTHING;
@@ -48,9 +51,8 @@ Jdb_halt_thread::action(int cmd, void *&, char const *&, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_halt_thread::cmds() const override
+Jdb_halt_thread::cmds() const
 {
   static Cmd cs[] =
     {
@@ -61,14 +63,12 @@ Jdb_halt_thread::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_halt_thread::num_cmds() const override
+Jdb_halt_thread::num_cmds() const
 {
   return 1;
 }
 
-IMPLEMENT
 Jdb_halt_thread::Jdb_halt_thread()
   : Jdb_module("MISC")
 {}
