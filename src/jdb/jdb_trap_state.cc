@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 #include "simpleio.h"
@@ -19,6 +18,13 @@ class Jdb_trap_state_module : public Jdb_module
 {
 public:
   Jdb_trap_state_module() FIASCO_INIT;
+
+  Action_code action(int cmd, void *&argbuf, char const *&fmt, int &next) override;
+  int num_cmds() const;
+  Cmd const *cmds() const override;
+
+private:
+  static void print_trap_state(Cpu_number cpu);
 };
 
 static Jdb_trap_state_module jdb_trap_state_module INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
@@ -34,7 +40,6 @@ static Jdb_trap_state_module jdb_trap_state_module INIT_PRIORITY(JDB_MODULE_INIT
 
 #endif
 
-PRIVATE static
 void
 Jdb_trap_state_module::print_trap_state(Cpu_number cpu)
 {
@@ -55,9 +60,8 @@ Jdb_trap_state_module::print_trap_state(Cpu_number cpu)
     }
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_trap_state_module::action(int cmd, void *&argbuf, char const *&fmt, int &next) override
+Jdb_trap_state_module::action(int cmd, void *&argbuf, char const *&fmt, int &next)
 {
   char const *c = (char const *)argbuf;
   static Cpu_number cpu;
@@ -81,16 +85,14 @@ Jdb_trap_state_module::action(int cmd, void *&argbuf, char const *&fmt, int &nex
   return NOTHING;
 }
 
-PUBLIC
 int
-Jdb_trap_state_module::num_cmds() const override
+Jdb_trap_state_module::num_cmds() const
 {
   return 1;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_trap_state_module::cmds() const override
+Jdb_trap_state_module::cmds() const
 {
   static char c;
   static Cmd cs[] =
@@ -99,7 +101,6 @@ Jdb_trap_state_module::cmds() const override
   return cs;
 }
 
-IMPLEMENT
 Jdb_trap_state_module::Jdb_trap_state_module()
   : Jdb_module("INFO")
 {}
