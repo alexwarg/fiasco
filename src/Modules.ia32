@@ -50,7 +50,6 @@ CXXSRC_ABI		+= kip_arch_dbg.cc
 #
 JABI			:= libjabi.a
 VPATH			+= jabi/$(CONFIG_XARCH) jabi
-INTERFACES_JABI		:= jdb_ktrace
 
 VPATH_LIBUART  := $(srcdir)/lib/uart
 PRIVATE_INCDIR += lib/uart
