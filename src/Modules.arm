@@ -292,7 +292,6 @@ ifneq ($(CONFIG_JDB_GZIP),)
  ifneq ($(wildcard $(srcdir)/lib/gzip),)
   SUBSYSTEMS		+= LIBGZIP
   KERNEL_EXTRA_LIBS	+= $(LIBGZIP)
-  INTERFACES_KERNEL	+= jdb_gzip
  endif
 endif
 
