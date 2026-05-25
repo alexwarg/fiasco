@@ -1,9 +1,11 @@
-IMPLEMENTATION:
+#include "jdb_trace_set.h"
+#include "jdb_trace_set-arm-bits.h"
+#include "jdb_trace.h"
 
 extern "C" void sys_ipc_wrapper (void);
 extern "C" void sys_ipc_log_wrapper (void);
 
-IMPLEMENT void
+void
 Jdb_set_trace::ipc_tracing(Mode mode)
 {
   switch (mode)

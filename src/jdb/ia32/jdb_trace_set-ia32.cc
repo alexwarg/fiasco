@@ -1,21 +1,47 @@
-IMPLEMENTATION[ia32]:
 
-static
-void
-set_fast_entry(Cpu_number cpu, void (*fast_entry)(void))
+#include <globalconfig.h>
+#include <cpu.h>
+#include <jdb_trace_set.h>
+#include <jdb_trace.h>
+
+//---------------------------------------------------------------------
+#ifdef CONFIG_IA32
+
+#include "idt.h"
+
+extern "C" void entry_sys_ipc_log (void);
+extern "C" void entry_sys_ipc_c (void);
+
+static void set_ipc_vector_int()
+{
+  void (*int30_entry)(void);
+
+  if (Jdb_ipc_trace::_slow_ipc || Jdb_ipc_trace::_log)
+    int30_entry = entry_sys_ipc_log;
+  else
+    int30_entry = entry_sys_ipc_c;
+
+  Idt::set_entry(0x30, (Address) int30_entry, true);
+}
+
+static void set_fast_entry(Cpu_number cpu, void (*fast_entry)(void))
 {
   Cpu::cpus.cpu(cpu).set_fast_entry(fast_entry);
 }
+#endif
 
 //---------------------------------------------------------------------
-IMPLEMENTATION[amd64 && kernel_isolation]:
+#ifdef CONFIG_AMD64
+
+static void set_ipc_vector_int() {}
+
+#  ifdef CONFIG_KERNEL_ISOLATION
+//---------------------------------------------------------------------
 
 #include "jdb.h"
 #include "jdb_types.h"
 
-static
-void
-set_fast_entry(Cpu_number, void (*func)())
+static void set_fast_entry(Cpu_number, void (*func)())
 {
   extern char const syscall_entry_code[];
   extern char const syscall_entry_reloc[];
@@ -26,8 +52,8 @@ set_fast_entry(Cpu_number, void (*func)())
   check(Jdb::poke(Jdb_addr<Signed32>::kmem_addr(reloc), (Signed32)(Signed64)func));
 }
 
+#  else
 //---------------------------------------------------------------------
-IMPLEMENTATION[amd64 && !kernel_isolation]:
 
 #include "jdb.h"
 #include "jdb_types.h"
@@ -44,11 +70,14 @@ set_fast_entry(Cpu_number cpu, void (*func)())
   check(Jdb::poke(Jdb_addr<Signed32>::kmem_addr((Signed32 *) reloc), ofs));
 }
 
+#  endif
+#endif
+
 //---------------------------------------------------------------------
-IMPLEMENTATION:
 
 #include "jdb.h"
 #include "pm.h"
+#include "jdb_trace.h"
 
 extern "C" void sys_ipc_wrapper (void);
 extern "C" void sys_ipc_log_wrapper (void);
@@ -57,9 +86,7 @@ extern "C" void entry_sys_fast_ipc_log (void);
 extern "C" void entry_sys_fast_ipc_c (void);
 extern void (*syscall_table[])();
 
-static
-void
-Jdb_set_trace::set_ipc_vector()
+static void set_ipc_vector()
 {
   void (*fast_entry)(void);
 
@@ -80,7 +107,7 @@ Jdb_set_trace::set_ipc_vector()
     syscall_table[0] = sys_ipc_wrapper;
 }
 
-IMPLEMENT void
+void
 Jdb_set_trace::ipc_tracing(Mode mode)
 {
   switch (mode)
@@ -129,32 +156,4 @@ DEFINE_PER_CPU static Per_cpu<Jdb_ipc_log_pm> _pm(Per_cpu_data::Cpu_num);
 
 }
 
-//--------------------------------------------------------------------------
-IMPLEMENTATION [ia32]:
 
-#include "idt.h"
-
-extern "C" void entry_sys_ipc_log (void);
-extern "C" void entry_sys_ipc_c (void);
-
-static
-void
-Jdb_set_trace::set_ipc_vector_int()
-{
-  void (*int30_entry)(void);
-
-  if (Jdb_ipc_trace::_slow_ipc || Jdb_ipc_trace::_log)
-    int30_entry = entry_sys_ipc_log;
-  else
-    int30_entry = entry_sys_ipc_c;
-
-  Idt::set_entry(0x30, (Address) int30_entry, true);
-}
-
-IMPLEMENTATION [amd64]:
-
-static
-void
-Jdb_set_trace::set_ipc_vector_int()
-{
-}

@@ -1,5 +1,6 @@
-IMPLEMENTATION:
 
+#include <jdb_trace_set.h>
+#include <jdb_trace.h>
 #include "mem_unit.h"
 
 extern "C" void sys_ipc_wrapper();
@@ -19,7 +20,7 @@ static inline void set_ipc(Sys_call c)
   Mips::synci(&sys_ipc_call_patch);
 }
 
-IMPLEMENT void
+void
 Jdb_set_trace::ipc_tracing(Mode mode)
 {
   switch (mode)

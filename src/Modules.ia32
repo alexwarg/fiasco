@@ -140,11 +140,12 @@ ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o
 SUBSYSTEMS		+= JDB
 VPATH			+= jdb/ia32/32 jdb/ia32 jdb
-INTERFACES_JDB		+= jdb_io_ports jdb_ptab jdb_trace_set \
+INTERFACES_JDB		+= jdb_io_ports jdb_ptab \
 			   jdb_bt jdb_iomap jdb_misc \
 			   jdb_halt_thread
 
-CXXSRC_JDB += tb_entry_output.cc loadcnt.cc jdb_log.cc jdb_io_apic.cc
+CXXSRC_JDB += tb_entry_output.cc loadcnt.cc jdb_log.cc jdb_io_apic.cc \
+	      jdb_trace_set.cc jdb_trace_set-ia32.cc
 
 jdb_IMPL		+= jdb-ia32-amd64 jdb-ia32
 jdb_bp_IMPL		:= jdb_bp-ia32 jdb_bp-ia32-amd64 jdb_bp-ia32-32
@@ -159,7 +160,6 @@ jdb_misc_IMPL		:= jdb_misc-ia32-amd64
 jdb_ptab_IMPL		:= jdb_ptab jdb_ptab-ia32-arm
 jdb_screen_IMPL		:= jdb_screen jdb_screen-ia32
 jdb_tcb_IMPL		+= jdb_tcb-ia32
-jdb_trace_set_IMPL	:= jdb_trace_set jdb_trace_set-ia32
 
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif

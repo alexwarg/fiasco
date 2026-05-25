@@ -1,6 +1,7 @@
-IMPLEMENTATION:
 
 #include <cstdio>
+
+#include "jdb_trace_set.h"
 
 #include "config.h"
 #include "cpu.h"
@@ -11,30 +12,12 @@ IMPLEMENTATION:
 #include "simpleio.h"
 #include "static_init.h"
 
-class Jdb_set_trace : public Jdb_module
-{
-public:
-  enum Mode { Off, Log, Log_to_buf, Use_slow_path };
-
-  Jdb_set_trace() FIASCO_INIT;
-  void ipc_tracing(Mode mode);
-
-private:
-  static char first_char;
-  static char second_char;
-};
-
 char Jdb_set_trace::first_char;
 char Jdb_set_trace::second_char;
 
-IMPLEMENTATION[!{ia32,amd64}]:
 
-
-IMPLEMENTATION:
-
-PUBLIC
 Jdb_module::Action_code
-Jdb_set_trace::action(int cmd, void *&args, char const *&fmt, int &) override
+Jdb_set_trace::action(int cmd, void *&args, char const *&fmt, int &)
 {
   switch (cmd)
     {
@@ -209,9 +192,8 @@ Jdb_set_trace::action(int cmd, void *&args, char const *&fmt, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_set_trace::cmds() const override
+Jdb_set_trace::cmds() const
 {
   static Cmd cs[] =
     {
@@ -231,14 +213,12 @@ Jdb_set_trace::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_set_trace::num_cmds() const override
+Jdb_set_trace::num_cmds() const
 {
   return 2;
 }
 
-IMPLEMENT
 Jdb_set_trace::Jdb_set_trace()
   : Jdb_module("MONITORING")
 {
