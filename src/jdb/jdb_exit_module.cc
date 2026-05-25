@@ -1,4 +1,3 @@
-IMPLEMENTATION:
 
 #include <cstdio>
 #include "simpleio.h"
@@ -21,56 +20,52 @@ class Jdb_exit_module : public Jdb_module
 {
 public:
   Jdb_exit_module() FIASCO_INIT;
+
+  Action_code action(int cmd, void *&, char const *&, int &) override
+  {
+    if (cmd != 0)
+      return NOTHING;
+
+    // re-enable output of all consoles but GZIP and DEBUG
+    Kconsole::console()->change_state(0, Console::GZIP | Console::DEBUG,
+                                      ~0UL, Console::OUTENABLED);
+    // re-enable input of all consoles but PUSH and DEBUG
+    Kconsole::console()->change_state(0, Console::PUSH | Console::DEBUG,
+                                      ~0UL, Console::INENABLED);
+
+    Jdb::screen_scroll(1, 127);
+    Jdb::blink_cursor(Jdb_screen::height(), 1);
+    Jdb::cursor(127, 1);
+    vmx_off();
+    terminate(1);
+    return LEAVE;
+  }
+
+  int num_cmds() const override
+  {
+    return 1;
+  }
+
+  Cmd const *cmds() const override
+  {
+    static Cmd cs[] =
+      { { 0, "^", "exit", "", "^\treboot the system", 0 } };
+
+    return cs;
+  }
+
+private:
+  void vmx_off() const;
 };
 
 static Jdb_exit_module jdb_exit_module INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
-PUBLIC
-Jdb_module::Action_code
-Jdb_exit_module::action (int cmd, void *&, char const *&, int &) override
-{
-  if (cmd != 0)
-    return NOTHING;
-
-  // re-enable output of all consoles but GZIP and DEBUG
-  Kconsole::console()->change_state(0, Console::GZIP | Console::DEBUG,
-				    ~0UL, Console::OUTENABLED);
-  // re-enable input of all consoles but PUSH and DEBUG
-  Kconsole::console()->change_state(0, Console::PUSH | Console::DEBUG,
-				    ~0UL, Console::INENABLED);
-
-  Jdb::screen_scroll(1, 127);
-  Jdb::blink_cursor(Jdb_screen::height(), 1);
-  Jdb::cursor(127, 1);
-  vmx_off();
-  terminate(1);
-  return LEAVE;
-}
-
-PUBLIC
-int
-Jdb_exit_module::num_cmds() const override
-{
-  return 1;
-}
-
-PUBLIC
-Jdb_module::Cmd const *
-Jdb_exit_module::cmds() const override
-{
-  static Cmd cs[] =
-    { { 0, "^", "exit", "", "^\treboot the system", 0 } };
-
-  return cs;
-}
-
-IMPLEMENT
 Jdb_exit_module::Jdb_exit_module()
   : Jdb_module("GENERAL")
 {}
 
 // ------------------------------------------------------------------------
-IMPLEMENTATION [vmx]:
+#if (defined(CONFIG_IA32) || defined(CONFIG_AMD64)) && defined(CONFIG_CPU_VIRT)
 
 // VT might need some special treatment, switching VT off seems to be
 // necessary to do a (keyboard) reset
@@ -78,7 +73,6 @@ IMPLEMENTATION [vmx]:
 #include "cpu.h"
 #include "vmx.h"
 
-PRIVATE
 void
 Jdb_exit_module::vmx_off() const
 {
@@ -90,9 +84,9 @@ Jdb_exit_module::vmx_off() const
     });
 }
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [!vmx]:
+#else
 
-PRIVATE
 void
 Jdb_exit_module::vmx_off() const {}
+
+#endif
