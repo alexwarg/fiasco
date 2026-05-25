@@ -1,7 +1,5 @@
-IMPLEMENTATION:
 
 #include <cstdio>
-#include <cstring>
 
 #include "thread.h"
 #include "jdb.h"
@@ -18,20 +16,73 @@ public:
   bool show_kobject(Kobject_common *, int) override
   { return true; }
 
+  Action_code action(int cmd, void *&, char const *&, int &) override
+  {
+    if (cmd)
+      return NOTHING;
+
+    if (show_obj(object, 1))
+      return NOTHING;
+
+    Kobject_dbg::Iterator o = Kobject_dbg::begin();
+    for (; o != Kobject_dbg::end(); ++o)
+      show_obj(Kobject::from_dbg(*o), 0);
+
+    return NOTHING;
+  }
+
+  bool handle_key(Kobject_common *o, int keycode) override
+  {
+    if (keycode != 'S')
+      return false;
+
+    if (Thread *t = cxx::dyn_cast<Thread *>(o))
+      show_sender_list(t->sender_list(), 1, 1, "Thread", t->dbg_id());
+    else if (Ipc_gate_obj *g = cxx::dyn_cast<Ipc_gate_obj *>(o))
+      show_sender_list(&g->_wait_q, 1, 1, "Ipc_gate", g->dbg_id());
+    else
+      return false;
+
+    Jdb::getchar();
+    return true;
+  }
+
+  char const *help_text(Kobject_common *o) const override
+  {
+    if (cxx::dyn_cast<Thread *>(o) || cxx::dyn_cast<Ipc_gate_obj *>(o))
+      return "S=sndlist";
+
+    return 0;
+  }
+
+  int num_cmds() const override
+  { return 1; }
+
+  Cmd const *cmds() const override
+  {
+    static Cmd cs[] =
+      {
+	  { 0, "ls", "senderlist", "%q",
+            "senderlist\tshow sender-list of thread", &object }
+      };
+
+    return cs;
+  }
+
 private:
   static Kobject *object;
-};
 
-static Jdb_sender_list jdb_sender_list INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
+  void show_sender_list(Prio_list *t, int overlayprint, int printnone,
+                        const char *tag = 0, unsigned long dbgid = 0);
+  bool show_obj(Kobject *o, int printnone);
+};
 
 Kobject *Jdb_sender_list::object;
 
-
-PRIVATE
 void
 Jdb_sender_list::show_sender_list(Prio_list *t,
                                   int overlayprint, int printnone,
-                                  const char *tag = 0, unsigned long dbgid = 0)
+                                  const char *tag, unsigned long dbgid)
 {
   if (overlayprint)
     {
@@ -81,7 +132,6 @@ Jdb_sender_list::show_sender_list(Prio_list *t,
     Jdb::line();
 }
 
-PRIVATE
 bool
 Jdb_sender_list::show_obj(Kobject *o, int printnone)
 {
@@ -99,68 +149,8 @@ Jdb_sender_list::show_obj(Kobject *o, int printnone)
   return false;
 }
 
-PUBLIC
-Jdb_module::Action_code
-Jdb_sender_list::action(int cmd, void *&, char const *&, int &) override
-{
-  if (cmd)
-    return NOTHING;
+static Jdb_sender_list jdb_sender_list INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
-  if (show_obj(object, 1))
-    return NOTHING;
-
-  Kobject_dbg::Iterator o = Kobject_dbg::begin();
-  for (; o != Kobject_dbg::end(); ++o)
-    show_obj(Kobject::from_dbg(*o), 0);
-
-  return NOTHING;
-}
-
-PUBLIC
-bool
-Jdb_sender_list::handle_key(Kobject_common *o, int keycode) override
-{
-  if (keycode != 'S')
-    return false;
-
-  if (Thread *t = cxx::dyn_cast<Thread *>(o))
-    show_sender_list(t->sender_list(), 1, 1, "Thread", t->dbg_id());
-  else if (Ipc_gate_obj *g = cxx::dyn_cast<Ipc_gate_obj *>(o))
-    show_sender_list(&g->_wait_q, 1, 1, "Ipc_gate", g->dbg_id());
-  else
-    return false;
-
-  Jdb::getchar();
-  return true;
-}
-
-PUBLIC
-char const *
-Jdb_sender_list::help_text(Kobject_common *o) const override
-{
-  if (cxx::dyn_cast<Thread *>(o) || cxx::dyn_cast<Ipc_gate_obj *>(o))
-    return "S=sndlist";
-
-  return 0;
-}
-
-PUBLIC
-int Jdb_sender_list::num_cmds() const override
-{ return 1; }
-
-PUBLIC
-Jdb_module::Cmd const * Jdb_sender_list::cmds() const override
-{
-  static Cmd cs[] =
-    {
-	{ 0, "ls", "senderlist", "%q",
-          "senderlist\tshow sender-list of thread", &object }
-    };
-
-  return cs;
-}
-
-IMPLEMENT
 Jdb_sender_list::Jdb_sender_list()
   : Jdb_module("INFO")
 {
