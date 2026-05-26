@@ -94,7 +94,7 @@ endef
 
 force-the-rule: ;
 
-$(ALL_STAMPS): $(MODULES_FILES) .Modules.deps globalconfig.out \
+do-all $(ALL_STAMPS): $(MODULES_FILES) .Modules.deps globalconfig.out \
 	       .Clean-auto .Compiler-config .Host-config
 
 # Basename of implementation files = Basename of first .cpp file

@@ -106,7 +106,7 @@ $(foreach m, $(GENERATED_MODULES), auto/stamp-$(m).ready): $(MODULES_FILES)
 	$(VERBOSE)$(RM_R) auto/*.cc auto/*.h auto/*.S auto/stamp-*.ready
 	$(VERBOSE)$(RM) dump_tcboffsets
 	@echo "Creating $@"
-	@($(foreach mod, $(GENERATED_MODULES),				\
+	@(echo ""; $(foreach mod, $(GENERATED_MODULES),			\
 	    echo 'auto/stamp-$(mod).ready:				\
 		  $(addsuffix .cpp,$(call eval_impl,$(mod)))';		\
 	    $(foreach cpp, $(call eval_impl,$(mod)), echo '$(cpp).cpp:';) \
