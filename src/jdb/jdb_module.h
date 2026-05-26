@@ -4,6 +4,7 @@
 #include <cstdarg>
 #include <cxx/hlist>
 #include <cxx/slist>
+#include <cxx/static_vector>
 
 #include "initcalls.h"
 
@@ -258,6 +259,24 @@ public:
 
 private:
   Jdb_category const *_cat;
+};
+
+
+template<typename DERIVED>
+class Jdb_module_mixin : public Jdb_module
+{
+public:
+  using Jdb_module::Jdb_module;
+
+  Cmd const *cmds() const override
+  {
+    return DERIVED::jdb_cmds().begin();
+  }
+
+  int num_cmds() const override
+  {
+    return DERIVED::jdb_cmds().size();
+  }
 };
 
 inline Jdb_module::~Jdb_module() {}
