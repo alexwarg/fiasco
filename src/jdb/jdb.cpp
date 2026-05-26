@@ -14,6 +14,7 @@ INTERFACE:
 #include "per_cpu_data.h"
 #include "processor.h"
 #include "string_buffer.h"
+#include "thread.h"
 
 class Context;
 class Space;
@@ -86,6 +87,13 @@ public:
   __attribute__((format(printf, 3, 4)));
   static void save_disable_irqs(Cpu_number cpu);
   static void restore_irqs(Cpu_number cpu);
+  static Thread *get_thread(Cpu_number cpu);
+
+  static Space *get_space(Cpu_number cpu)
+  {
+    Thread *thread = Jdb::get_thread(cpu);
+    return thread ? thread->space() : nullptr;
+  }
 
 protected:
   template< typename T >
