@@ -1,4 +1,3 @@
-IMPLEMENTATION[ia32,amd64]:
 
 #include <cstdio>
 #include <cctype>
@@ -14,10 +13,14 @@ IMPLEMENTATION[ia32,amd64]:
 #include "thread.h"
 #include "task.h"
 
-class Jdb_bt : public Jdb_module, public Jdb_input_task_addr
+#include <globalconfig.h>
+
+class Jdb_bt : public Jdb_module_mixin<Jdb_bt>, public Jdb_input_task_addr
 {
 public:
   Jdb_bt() FIASCO_INIT;
+  Action_code action(int cmd, void *&args, char const *&fmt, int &next_char) override;
+
 private:
   static char     dummy;
   static char     first_char;
@@ -26,6 +29,39 @@ private:
   static Thread * tid;
   static Kobject *ko_tid;
   static Space *  task;
+
+  // determine the user level ebp and eip considering the current thread state
+  static void get_user_eip_ebp(Address &eip, Address &ebp);
+  static Mword get_user_ebp_following_kernel_stack();
+  static void get_kernel_eip_ebp(Mword &eip1, Mword &eip2, Mword &ebp);
+  /** Show one backtrace item we found. Add symbol name and line info */
+  static void show_item(int nr, Address ksp, Address addr, Address_type);
+  static void show_without_ebp();
+  static void show(Mword ebp, Mword eip1, Mword eip2, Address_type user);
+
+#ifdef CONFIG_BIT32
+  static bool syscall_from_user(Address eip)
+  { return eip >= Mem_layout::Syscalls; }
+#endif
+
+#ifdef CONFIG_BIT64
+  static bool syscall_from_user(Address)
+  { return false; }
+#endif
+
+public:
+  static cxx::static_vector<Cmd const> jdb_cmds()
+  {
+    static constexpr Cmd const cs[] =
+    {
+	{ 0, "bt", "backtrace", " [a]ddr/[t]hread",
+	  "bt[t<threadid>][<addr>]\tshow backtrace of current/given "
+	  "thread/addr",
+	  &dummy },
+    };
+    return cs;
+  }
+
 };
 
 char      Jdb_bt::dummy;
@@ -37,7 +73,7 @@ Space    *Jdb_bt::task;
 Kobject *Jdb_bt::ko_tid;
 
 // determine the user level ebp and eip considering the current thread state
-static void
+void
 Jdb_bt::get_user_eip_ebp(Address &eip, Address &ebp)
 {
   if (!task)
@@ -107,7 +143,7 @@ Jdb_bt::get_user_eip_ebp(Address &eip, Address &ebp)
 
 }
 
-static Mword
+Mword
 Jdb_bt::get_user_ebp_following_kernel_stack()
 {
   if (!Config::Have_frame_ptr)
@@ -158,7 +194,7 @@ struct Is_current
 
 };
 
-static void
+void
 Jdb_bt::get_kernel_eip_ebp(Mword &eip1, Mword &eip2, Mword &ebp)
 {
   if (tid == Jdb::get_thread(Jdb::current_cpu))
@@ -211,13 +247,13 @@ Jdb_bt::get_kernel_eip_ebp(Mword &eip1, Mword &eip2, Mword &ebp)
 }
 
 /** Show one backtrace item we found. Add symbol name and line info */
-static void
+void
 Jdb_bt::show_item(int nr, Address ksp, Address addr, Address_type)
 {
   printf(" %s#%d " L4_PTR_FMT " " L4_PTR_FMT "\n", nr<10 ? " ": "", nr, ksp, addr);
 }
 
-static void
+void
 Jdb_bt::show_without_ebp()
 {
   Mword *ksp      = (Mword*) tid->get_kernel_sp();
@@ -231,7 +267,7 @@ Jdb_bt::show_without_ebp()
     }
 }
 
-static void
+void
 Jdb_bt::show(Mword ebp, Mword eip1, Mword eip2, Address_type user)
 {
   for (int i=0; i<40 /*sanity check*/; i++)
@@ -270,9 +306,8 @@ Jdb_bt::show(Mword ebp, Mword eip1, Mword eip2, Address_type user)
     }
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_bt::action(int cmd, void *&args, char const *&fmt, int &next_char) override
+Jdb_bt::action(int cmd, void *&args, char const *&fmt, int &next_char)
 {
   if (cmd == 0)
     {
@@ -377,42 +412,9 @@ start_backtrace_known_ebp:
   return NOTHING;
 }
 
-PUBLIC
-Jdb_module::Cmd const *
-Jdb_bt::cmds() const override
-{
-  static Cmd cs[] =
-    {
-	{ 0, "bt", "backtrace", " [a]ddr/[t]hread",
-	  "bt[t<threadid>][<addr>]\tshow backtrace of current/given "
-	  "thread/addr",
-	  &dummy },
-    };
-  return cs;
-}
-
-PUBLIC
-int
-Jdb_bt::num_cmds() const override
-{
-  return 1;
-}
-
-IMPLEMENT
 Jdb_bt::Jdb_bt()
-  : Jdb_module("INFO")
+  : Jdb_module_mixin<Jdb_bt>("INFO")
 {}
 
 static Jdb_bt jdb_bt INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
-//----------------------------------------------------------------------------
-IMPLEMENTATION[ia32,ux]:
-
-PRIVATE static inline bool Jdb_bt::syscall_from_user(Address eip)
-{ return eip >= Mem_layout::Syscalls; }
-
-//----------------------------------------------------------------------------
-IMPLEMENTATION[amd64]:
-
-PRIVATE static inline bool Jdb_bt::syscall_from_user(Address)
-{ return false; }
