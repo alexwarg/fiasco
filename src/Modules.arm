@@ -182,11 +182,11 @@ CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arm_v7plus.cc perf_cnt_arm.cc
 ifeq ("$(CONFIG_JDB)","y")
 JDB			:= jdb_compound.o
 SUBSYSTEMS		+= JDB
-INTERFACES_JDB		+= jdb_perf
 
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc jdb_idle_stats.cc \
 	      jdb_trace_set.cc jdb_trace_set-arm.cc \
-	      jdb_ptab-arm.cc jdb-arm.cc jdb_tcb-arm.cc
+	      jdb_ptab-arm.cc jdb-arm.cc jdb_tcb-arm.cc \
+	      jdb_perf-arm.cc
 
 CXXSRC_JDB-$(CONFIG_BIT32) += jdb_bp.cc
 
