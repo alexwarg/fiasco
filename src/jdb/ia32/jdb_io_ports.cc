@@ -1,4 +1,3 @@
-IMPLEMENTATION[ia32,amd64]:
 
 #include <cstdio>
 #include "simpleio.h"
@@ -17,6 +16,10 @@ class Io_m : public Jdb_module
 {
 public:
   Io_m() FIASCO_INIT;
+
+  Action_code action( int cmd, void *&args, char const *&fmt, int &) override;
+  int num_cmds() const override;
+  Cmd const *cmds() const override;
 
 private:
   static char porttype;
@@ -53,9 +56,8 @@ char               Io_m::porttype;
 Io_m::Input_buffer Io_m::buf;
 
 
-PUBLIC
 Jdb_module::Action_code
-Io_m::action( int cmd, void *&args, char const *&fmt, int &) override
+Io_m::action( int cmd, void *&args, char const *&fmt, int &)
 {
   static char const *const port_in_fmt    = " addr=%8x";
   static char const *const port_out_fmt   = " addr=%8x, val=%8x";
@@ -207,14 +209,12 @@ Io_m::action( int cmd, void *&args, char const *&fmt, int &) override
   return NOTHING;
 }
 
-PUBLIC
-int Io_m::num_cmds() const override
-{ 
+int Io_m::num_cmds() const
+{
   return 2;
 }
 
-PUBLIC
-Jdb_module::Cmd const * Io_m::cmds() const override
+Jdb_module::Cmd const *Io_m::cmds() const
 {
   static Cmd cs[] =
     { 
@@ -228,7 +228,6 @@ Jdb_module::Cmd const * Io_m::cmds() const override
   return cs;
 }
 
-IMPLEMENT
 Io_m::Io_m()
   : Jdb_module("INFO")
 {}
