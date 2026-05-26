@@ -8,6 +8,7 @@ INTERFACE:
 #include "cpu_mask.h"
 #include "jdb_types.h"
 #include "jdb_core.h"
+#include "jdb_ansi.h"
 #include "jdb_handler_queue.h"
 #include "mem.h"
 #include "per_cpu_data.h"
@@ -21,7 +22,7 @@ class Push_console;
 
 class Jdb_entry_frame;
 
-class Jdb : public Jdb_core
+class Jdb : public Jdb_core, public Jdb_ansi
 {
 public:
   struct Remote_func : cxx::functor<void (Cpu_number)>
