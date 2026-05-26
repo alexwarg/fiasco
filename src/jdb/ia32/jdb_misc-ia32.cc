@@ -1,4 +1,3 @@
-IMPLEMENTATION[ia32 || amd64]:
 
 #include <cstdio>
 #include "config.h"
@@ -10,21 +9,25 @@ IMPLEMENTATION[ia32 || amd64]:
 #include "static_init.h"
 #include "task.h"
 #include "x86desc.h"
+#ifndef CONFIG_NO_LDT
+#include <x86desc_dbg.h>
+#endif
 
 class Jdb_misc_general : public Jdb_module
 {
 public:
   Jdb_misc_general() FIASCO_INIT;
+  Action_code action(int cmd, void *&, char const *&, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
 private:
   static char first_char;
 };
 
 char Jdb_misc_general::first_char;
 
-
-PUBLIC
 Jdb_module::Action_code
-Jdb_misc_general::action(int cmd, void *&, char const *&, int &) override
+Jdb_misc_general::action(int cmd, void *&, char const *&, int &)
 {
   switch (cmd)
     {
@@ -43,9 +46,8 @@ Jdb_misc_general::action(int cmd, void *&, char const *&, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_misc_general::cmds() const override
+Jdb_misc_general::cmds() const
 {
   static Cmd cs[] =
     {
@@ -56,14 +58,12 @@ Jdb_misc_general::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_misc_general::num_cmds() const override
+Jdb_misc_general::num_cmds() const
 {
   return 1;
 }
 
-IMPLEMENT
 Jdb_misc_general::Jdb_misc_general()
   : Jdb_module("GENERAL")
 {
@@ -78,23 +78,67 @@ class Jdb_misc_debug : public Jdb_module
 {
 public:
   Jdb_misc_debug() FIASCO_INIT;
+  Action_code action(int cmd, void *&args, char const *&fmt, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
 private:
   static char     first_char;
   static Mword    task;
+
+  static void show_ldt();
+  static void show_lbr_entry(const char *str, Address addr);
 };
 
 char     Jdb_misc_debug::first_char;
 Mword    Jdb_misc_debug::task;
 
-static void
+void
 Jdb_misc_debug::show_lbr_entry(const char *str, Address addr)
 {
   printf("%s " L4_PTR_FMT " ", str, addr);
 }
 
-PUBLIC
+void
+Jdb_misc_debug::show_ldt()
+{
+#ifdef CONFIG_NO_LDT
+  printf(" -- no LDT support\n");
+#else
+  Space *s = cxx::dyn_cast<Task*>(reinterpret_cast<Kobject*>(task));
+  Address addr, size;
+
+  if (!s)
+    {
+      printf(" -- invalid task number '%lx'", task);
+      return;
+    }
+
+  addr = s->_ldt.addr();
+  size = s->_ldt.size();
+
+  if (!size)
+    {
+      printf(" -- no LDT active");
+      return;
+    }
+
+  printf("\nLDT of space %lx at " L4_PTR_FMT "-" L4_PTR_FMT "\n", task, addr, addr+size-1);
+
+  Gdt_entry *desc = reinterpret_cast<Gdt_entry *>(addr);
+
+  for (; size>=Cpu::Ldt_entry_size; size-=Cpu::Ldt_entry_size, desc++)
+    {
+      if (desc->present())
+        {
+          printf(" %5lx: ", reinterpret_cast<Mword>(desc) - addr);
+          Dbg::desc_show(*desc);
+        }
+    }
+#endif
+}
+
 Jdb_module::Action_code
-Jdb_misc_debug::action(int cmd, void *&args, char const *&fmt, int &) override
+Jdb_misc_debug::action(int cmd, void *&args, char const *&fmt, int &)
 {
   switch (cmd)
     {
@@ -133,7 +177,7 @@ Jdb_misc_debug::action(int cmd, void *&args, char const *&fmt, int &) override
       else
 	{
 	  Jdb::msr_test = Jdb::Msr_test_fail_warn;
-	  if (Cpu::boot_cpu()->lbr_type() == Cpu::Lbr_pentium_4 || 
+	  if (Cpu::boot_cpu()->lbr_type() == Cpu::Lbr_pentium_4 ||
 	      Cpu::boot_cpu()->lbr_type() == Cpu::Lbr_pentium_4_ext)
 	    {
 	      Unsigned64 msr;
@@ -196,9 +240,8 @@ Jdb_misc_debug::action(int cmd, void *&args, char const *&fmt, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_misc_debug::cmds() const override
+Jdb_misc_debug::cmds() const
 {
   static Cmd cs[] =
     {
@@ -213,14 +256,12 @@ Jdb_misc_debug::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_misc_debug::num_cmds() const override
+Jdb_misc_debug::num_cmds() const
 {
   return 2;
 }
 
-IMPLEMENT
 Jdb_misc_debug::Jdb_misc_debug()
   : Jdb_module("DEBUGGING")
 {
@@ -229,62 +270,15 @@ Jdb_misc_debug::Jdb_misc_debug()
 static Jdb_misc_debug jdb_misc_debug INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
 
-// --------------------------------------------------------
-IMPLEMENTATION[(ia32 || amd64) && no_ldt]:
-
-static inline void
-Jdb_misc_debug::show_ldt()
-{
-  printf(" -- no LDT support\n");
-}
-
-// --------------------------------------------------------
-IMPLEMENTATION[(ia32 || amd64) && !no_ldt]:
-
-#include <x86desc_dbg.h>
-
-static void
-Jdb_misc_debug::show_ldt()
-{
-  Space *s = cxx::dyn_cast<Task*>(reinterpret_cast<Kobject*>(task));
-  Address addr, size;
-
-  if (!s)
-    {
-      printf(" -- invalid task number '%lx'", task);
-      return;
-    }
-
-  addr = s->_ldt.addr();
-  size = s->_ldt.size();
-
-  if (!size)
-    {
-      printf(" -- no LDT active");
-      return;
-    }
-
-  printf("\nLDT of space %lx at " L4_PTR_FMT "-" L4_PTR_FMT "\n", task, addr, addr+size-1);
-
-  Gdt_entry *desc = reinterpret_cast<Gdt_entry *>(addr);
-
-  for (; size>=Cpu::Ldt_entry_size; size-=Cpu::Ldt_entry_size, desc++)
-    {
-      if (desc->present())
-        {
-          printf(" %5lx: ", reinterpret_cast<Mword>(desc) - addr);
-          Dbg::desc_show(*desc);
-        }
-    }
-}
-
-// --------------------------------------------------------
-IMPLEMENTATION[ia32 || amd64]:
+//---------------------------------------------------------------------------//
 
 class Jdb_misc_info : public Jdb_module
 {
 public:
   Jdb_misc_info() FIASCO_INIT;
+  Action_code action(int cmd, void *&args, char const *&fmt, int &) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
 private:
   static char       first_char;
   static Address    addr;
@@ -297,9 +291,8 @@ Address    Jdb_misc_info::addr;
 Mword      Jdb_misc_info::value;
 Unsigned64 Jdb_misc_info::value64;
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_misc_info::action(int cmd, void *&args, char const *&fmt, int &) override
+Jdb_misc_info::action(int cmd, void *&args, char const *&fmt, int &)
 {
   switch (cmd)
     {
@@ -382,9 +375,8 @@ Jdb_misc_info::action(int cmd, void *&args, char const *&fmt, int &) override
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_misc_info::cmds() const override
+Jdb_misc_info::cmds() const
 {
   static Cmd cs[] =
     {
@@ -398,14 +390,12 @@ Jdb_misc_info::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_misc_info::num_cmds() const override
+Jdb_misc_info::num_cmds() const
 {
   return 2;
 }
 
-IMPLEMENT
 Jdb_misc_info::Jdb_misc_info()
   : Jdb_module("INFO")
 {
