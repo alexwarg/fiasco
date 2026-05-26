@@ -1,4 +1,3 @@
-IMPLEMENTATION[io]:
 
 #include <cstdio>
 #include <cctype>
@@ -17,17 +16,23 @@ class Jdb_iomap : public Jdb_module
 {
 public:
   Jdb_iomap() FIASCO_INIT;
+  Action_code action(int cmd, void *&args, char const *&fmt, int &next_char) override;
+  Cmd const *cmds() const override;
+  int num_cmds() const override;
+
 private:
   static char     first_char;
   static Space    *space;
   Address         task;
+
+  static void show();
 };
 
 char     Jdb_iomap::first_char;
 Space   *Jdb_iomap::space;
 
 
-static void
+void
 Jdb_iomap::show()
 {
   // base addresses of the two IO bitmap pages
@@ -93,9 +98,8 @@ Jdb_iomap::show()
     printf("%sshould be %u\033[m\n", Jdb::esc_emph, count);
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_iomap::action(int cmd, void *&args, char const *&fmt, int &next_char) override
+Jdb_iomap::action(int cmd, void *&args, char const *&fmt, int &next_char)
 {
   if (cmd == 0)
     {
@@ -127,9 +131,8 @@ Jdb_iomap::action(int cmd, void *&args, char const *&fmt, int &next_char) overri
   return NOTHING;
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_iomap::cmds() const override
+Jdb_iomap::cmds() const
 {
   static Cmd cs[] =
     {
@@ -140,14 +143,12 @@ Jdb_iomap::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_iomap::num_cmds() const override
+Jdb_iomap::num_cmds() const
 {
   return 1;
 }
 
-IMPLEMENT
 Jdb_iomap::Jdb_iomap()
   : Jdb_module("INFO")
 {}
