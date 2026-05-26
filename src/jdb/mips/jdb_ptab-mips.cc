@@ -1,15 +1,17 @@
-IMPLEMENTATION [mips]:
 
-IMPLEMENT_OVERRIDE
+#include "jdb_ptab.h"
+#include <jdb_core.h>
+#include <simpleio.h>
+#include <stdio.h>
+
 void *
 Jdb_ptab::entry_virt(Pdir::Pte_ptr const &entry)
 {
   return (void *)entry.next_level();
 }
 
-IMPLEMENTATION [cpu_mips32]:
+#ifdef CONFIG_BIT32 // cpu_mips32
 
-IMPLEMENT
 void
 Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
 {
@@ -42,10 +44,8 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
     }
 }
 
+#else // cpu_mips64
 
-IMPLEMENTATION [cpu_mips64]:
-
-IMPLEMENT
 void
 Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
 {
@@ -77,3 +77,5 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
              (*entry.e & Pdir::Write) ? 'w' : 'r');
     }
 }
+
+#endif
