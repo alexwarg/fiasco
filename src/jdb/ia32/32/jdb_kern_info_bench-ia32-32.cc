@@ -1,5 +1,6 @@
-IMPLEMENTATION:
 
+#include <jdb_kern_info_bench.h>
+#include <jdb_kern_info_bench_arch.h>
 #include <cstdio>
 #include "cpu.h"
 #include "div32.h"
@@ -7,20 +8,8 @@ IMPLEMENTATION:
 #include "simpleio.h"
 #include "static_init.h"
 #include "timer_tick.h"
-
-static void
-Jdb_kern_info_bench::show_time(Unsigned64 time, Unsigned32 rounds,
-			       const char *descr)
-{
-  Unsigned64 cycs = div32(time, rounds);
-  printf("  %-24s %6llu.%llu cycles\n",
-      descr, cycs, div32(time-cycs*rounds, rounds/10));
-}
-
-IMPLEMENT inline
-Unsigned64
-Jdb_kern_info_bench::get_time_now()
-{ return Cpu::rdtsc(); }
+#include <io.h>
+#include <idt.h>
 
 #define inst_wbinvd							\
   asm volatile ("wbinvd")
@@ -79,10 +68,10 @@ Jdb_kern_info_bench::get_time_now()
 #include "apic.h"
 #include "cpu.h"
 
-IMPLEMENT
 void
 Jdb_kern_info_bench::show_arch()
 {
+  using Jdb_kern_info_arch::show_time;
   Unsigned64 time;
   Mword dummy;
   Mword cr0, pic;

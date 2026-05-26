@@ -1,5 +1,5 @@
-IMPLEMENTATION [arm && 32bit]:
 
+#include <jdb_kern_info.h>
 #include <cstdio>
 #include <cstring>
 
@@ -9,18 +9,24 @@ IMPLEMENTATION [arm && 32bit]:
 
 class Jdb_kern_info_cpu : public Jdb_kern_info_module
 {
+public:
+  Jdb_kern_info_cpu()
+    : Jdb_kern_info_module('c', "CPU features")
+  {
+    Jdb_kern_info::register_subcmd(this);
+  }
+
+  void show() override;
+
 private:
   static Mword jdb_mrc_insn(unsigned r_val) asm ("jdb_mrc_insn");
+  Mword mrc(Mword insn);
+  Mword mrc(unsigned cp_num, unsigned opcode_1,
+            unsigned CRn, unsigned CRm, unsigned opcode_2);
 };
 
 static Jdb_kern_info_cpu k_c INIT_PRIORITY(JDB_MODULE_INIT_PRIO+1);
 
-PUBLIC
-Jdb_kern_info_cpu::Jdb_kern_info_cpu()
-  : Jdb_kern_info_module('c', "CPU features")
-{
-  Jdb_kern_info::register_subcmd(this);
-}
 
 asm (
   ".section \".text.jdb\"                     \t\n"
@@ -29,7 +35,6 @@ asm (
   "                mov pc, lr                 \t\n"
   ".previous                                  \t\n");
 
-PRIVATE
 Mword
 Jdb_kern_info_cpu::mrc(Mword insn)
 {
@@ -40,7 +45,6 @@ Jdb_kern_info_cpu::mrc(Mword insn)
   return jdb_mrc_insn(0);
 }
 
-PRIVATE
 Mword
 Jdb_kern_info_cpu::mrc(unsigned cp_num, unsigned opcode_1,
                        unsigned CRn, unsigned CRm, unsigned opcode_2)
@@ -100,9 +104,8 @@ static Cp_struct cp_vals[] = {
   { Arm_cp_op<15, 0, 0, 0, 1>::Mrc, "Cache type", show_cache_type },
 };
 
-PUBLIC
 void
-Jdb_kern_info_cpu::show() override
+Jdb_kern_info_cpu::show()
 {
 
   for (unsigned i = 0; i < sizeof(cp_vals) / sizeof(cp_vals[0]); ++i)

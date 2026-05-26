@@ -1,77 +1,41 @@
-INTERFACE:
 
-#include "jdb.h"
-
-class Jdb_kern_info_bench : public Jdb_kern_info_module
-{
-private:
-  static Unsigned64 get_time_now();
-  static void show_arch();
-};
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
+#include <jdb_kern_info_bench.h>
+#include <jdb_kern_info_bench_arch.h>
+#include <globalconfig.h>
 
 static Jdb_kern_info_bench k_a INIT_PRIORITY(JDB_MODULE_INIT_PRIO+1);
 
-PUBLIC
 Jdb_kern_info_bench::Jdb_kern_info_bench()
   : Jdb_kern_info_module('b', "Benchmark privileged instructions")
 {
   Jdb_kern_info::register_subcmd(this);
 }
 
-PUBLIC
 void
-Jdb_kern_info_bench::show() override
+Jdb_kern_info_bench::show()
 {
   do_mp_benchmark();
   show_arch();
 }
 
 //---------------------------------------------------------------------------
-IMPLEMENTATION [!mp]:
+#ifndef CONFIG_MP
 
-PRIVATE
 void
 Jdb_kern_info_bench::do_mp_benchmark()
 {}
 
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mp && (ia32 || amd64)]:
+#else
 
-#include "idt.h"
-#include <timer_tick.h>
-
-PRIVATE static inline
-void
-Jdb_kern_info_bench::stop_timer()
-{
-  Timer_tick::set_vectors_stop();
-}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mp && !(ia32 || amd64)]:
-
-PRIVATE static inline
-void
-Jdb_kern_info_bench::stop_timer()
-{}
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION [mp]:
-
-#include "ipi.h"
+#include <ipi.h>
 
 static int volatile ipi_bench_spin_done;
 static int ipi_cnt;
 
-PRIVATE static
-void
-Jdb_kern_info_bench::wait_for_ipi(Cpu_number cpu)
+static void wait_for_ipi(Cpu_number cpu)
 {
   Jdb::restore_irqs(cpu);
-  stop_timer();
+  Jdb_kern_info_arch::stop_timer();
   Proc::sti();
 
   while (!ipi_bench_spin_done)
@@ -81,16 +45,12 @@ Jdb_kern_info_bench::wait_for_ipi(Cpu_number cpu)
   Jdb::save_disable_irqs(cpu);
 }
 
-PRIVATE static
-void
-Jdb_kern_info_bench::empty_func(Cpu_number, void *)
+static void empty_func(Cpu_number, void *)
 {
   ++ipi_cnt;
 }
 
-PRIVATE static
-void
-Jdb_kern_info_bench::do_ipi_bench(Cpu_number my_cpu, Cpu_number partner)
+static void do_ipi_bench(Cpu_number my_cpu, Cpu_number partner)
 {
   Unsigned64 time;
   enum {
@@ -106,12 +66,12 @@ Jdb_kern_info_bench::do_ipi_bench(Cpu_number my_cpu, Cpu_number partner)
   for (i = 0; i < Warmup; ++i)
     Jdb::remote_work_ipi(my_cpu, partner, empty_func, 0, true);
 
-  time = get_time_now();
+  time = Jdb_kern_info_arch::get_time_now();
   for (i = 0; i < (1 << Runs2); i++)
     Jdb::remote_work_ipi(my_cpu, partner, empty_func, 0, true);
 
   printf(" %2u:%8llu", cxx::int_value<Cpu_number>(partner),
-         (get_time_now() - time) >> Runs2);
+         (Jdb_kern_info_arch::get_time_now() - time) >> Runs2);
 
   if (ipi_cnt != Rounds)
     printf("\nCounter mismatch: cnt=%d v %d\n", ipi_cnt, Rounds);
@@ -120,7 +80,6 @@ Jdb_kern_info_bench::do_ipi_bench(Cpu_number my_cpu, Cpu_number partner)
   Mem::barrier();
 }
 
-PRIVATE
 void
 Jdb_kern_info_bench::do_mp_benchmark()
 {
@@ -171,3 +130,5 @@ Jdb_kern_info_bench::do_mp_benchmark()
 	printf("\n");
       }
 }
+
+#endif

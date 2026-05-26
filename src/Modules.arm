@@ -186,14 +186,11 @@ SUBSYSTEMS		+= JDB
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc jdb_idle_stats.cc \
 	      jdb_trace_set.cc jdb_trace_set-arm.cc \
 	      jdb_ptab-arm.cc jdb-arm.cc jdb_tcb-arm.cc \
-	      jdb_perf-arm.cc
+	      jdb_perf-arm.cc jdb_kern_info-arm.cc jdb_kern_info_bench.cc \
+	      jdb_kern_info_bench-arm.cc
 
-CXXSRC_JDB-$(CONFIG_BIT32) += jdb_bp.cc
+CXXSRC_JDB-$(CONFIG_BIT32) += jdb_bp.cc jdb_kern_info-cpu-arm.cc
 
-
-jdb_kern_info_IMPL	:= jdb_kern_info jdb_kern_info-arm \
-			   jdb_kern_info-bench jdb_kern_info-bench-arm \
-			   jdb_kern_info-cpu-arm
 
 endif
 

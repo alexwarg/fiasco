@@ -1,5 +1,5 @@
-IMPLEMENTATION[apic]:
 
+#include <jdb_kern_info.h>
 #include <cstdio>
 #include "simpleio.h"
 
@@ -8,16 +8,17 @@ IMPLEMENTATION[apic]:
 
 class Jdb_kern_info_apic : public Jdb_kern_info_module
 {
+public:
+  Jdb_kern_info_apic()
+    : Jdb_kern_info_module('a', "Local APIC state")
+  {
+    Jdb_kern_info::register_subcmd(this);
+  }
+
+  void show() override;
 };
 
 static Jdb_kern_info_apic k_a INIT_PRIORITY(JDB_MODULE_INIT_PRIO+1);
-
-PUBLIC
-Jdb_kern_info_apic::Jdb_kern_info_apic()
-  : Jdb_kern_info_module('a', "Local APIC state")
-{
-  Jdb_kern_info::register_subcmd(this);
-}
 
 static void apic_id_show(void)
 {
@@ -145,9 +146,8 @@ static void apic_isr_show()
 }
 
 
-PUBLIC
 void
-Jdb_kern_info_apic::show() override
+Jdb_kern_info_apic::show()
 {
   if (!Config::apic)
     {

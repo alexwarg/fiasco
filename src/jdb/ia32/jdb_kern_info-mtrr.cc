@@ -1,15 +1,23 @@
-IMPLEMENTATION:
 
+#include <jdb_kern_info.h>
 #include "static_init.h"
+#include <types.h>
+#include <jdb.h>
 
 class Jdb_kern_info_mtrr : public Jdb_kern_info_module
 {
   Address size_or_mask;
+
+  void get_var_mtrr(int reg, Address *ret_base,
+                    Address *ret_size, int *ret_type);
+
+public:
+  Jdb_kern_info_mtrr();
+  void show() override;
 };
 
 static Jdb_kern_info_mtrr k_M INIT_PRIORITY(JDB_MODULE_INIT_PRIO+1);
 
-PUBLIC
 Jdb_kern_info_mtrr::Jdb_kern_info_mtrr()
     : Jdb_kern_info_module('M', "Memory type range registers (MTRRs)")
 {
@@ -20,7 +28,6 @@ Jdb_kern_info_mtrr::Jdb_kern_info_mtrr()
   Jdb_kern_info::register_subcmd(this);
 }
 
-PRIVATE
 void
 Jdb_kern_info_mtrr::get_var_mtrr(int reg, Address *ret_base,
                                  Address *ret_size, int *ret_type)
@@ -52,9 +59,8 @@ Jdb_kern_info_mtrr::get_var_mtrr(int reg, Address *ret_base,
   *ret_type = base & 0x0f;
 }
 
-PUBLIC
 void
-Jdb_kern_info_mtrr::show() override
+Jdb_kern_info_mtrr::show()
 {
   int num_mtrr;
   static const char * const typestr[] = 

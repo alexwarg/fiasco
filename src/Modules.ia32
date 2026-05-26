@@ -143,15 +143,13 @@ CXXSRC_JDB += tb_entry_output.cc loadcnt.cc jdb_log.cc jdb_io_apic.cc \
 	      jdb_trace_set.cc jdb_trace_set-ia32.cc jdb_halt_thread.cc \
 	      jdb_screen-ia32.cc jdb_ptab-ia32.cc jdb-ia32.cc jdb_tcb-ia32.cc \
 	      jdb_iomap.cc jdb_io_ports.cc jdb_bt-ia32.cc \
-	      jdb_misc-ia32.cc jdb_bp.cc
+	      jdb_misc-ia32.cc jdb_bp.cc \
+	      jdb_kern_info-ia32.cc jdb_kern_info-pci.cc jdb_kern_info-dr.cc \
+	      jdb_kern_info-mtrr.cc jdb_kern_info_bench.cc jdb_kern_info_bench-ia32-32.cc
+CXXSRC_JDB-$(CONFIG_APIC) += jdb_kern_info-apic.cc
 
 jdb_bp_IMPL		:= jdb_bp-ia32 jdb_bp-ia32-amd64 jdb_bp-ia32-32
 jdb_entry_frame_IMPL	:= jdb_entry_frame-ia32
-jdb_kern_info_IMPL	:= jdb_kern_info jdb_kern_info-ia32-amd64 \
-			   jdb_kern_info-ia32 jdb_kern_info-apic \
-			   jdb_kern_info-pci jdb_kern_info-bench \
-			   jdb_kern_info-bench-ia32-32 \
-			   jdb_kern_info-dr jdb_kern_info-mtrr
 
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
