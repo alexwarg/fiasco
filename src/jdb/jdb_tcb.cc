@@ -1,16 +1,7 @@
-INTERFACE:
-
-#include "l4_types.h"
-
-class Thread;
-
-
-//-----------------------------------------------------------------
-IMPLEMENTATION:
-
 #include <cstdio>
 #include <cstring>
 
+#include <jdb_tcb_layout.h>
 #include "entry_frame.h"
 #include "jdb.h"
 #include "jdb_disasm.h"
@@ -36,138 +27,25 @@ IMPLEMENTATION:
 #include "types.h"
 #include "jdb_prompt_ext.h"
 
-IMPLEMENTATION [32bit]:
+#include <jdb_tcb_ptr.h>
+#include <jdb_tcb.h>
+
+#include <globalconfig.h>
+
+#ifdef CONFIG_BIT32
 #define ADDR_FMT "%08lx"
-
-IMPLEMENTATION [64bit]:
+#endif
+#ifdef CONFIG_BIT64
 #define ADDR_FMT "%016lx"
-
-
-IMPLEMENTATION:
-
-class Jdb_tcb_ptr
-{
-public:
-  Jdb_tcb_ptr(Address addr = 0)
-    : _base(addr & ~(Context::Size-1)),
-      _offs(addr &  (Context::Size-1))
-  {}
-
-  inline bool valid() const
-  { return _offs <= Context::Size-sizeof(Mword); }
-
-  bool operator > (int offs) const
-  {
-    return offs < 0 ? _offs > Context::Size + offs*sizeof(Mword)
-                    : _offs > offs*sizeof(Mword);
-  }
-
-  Jdb_tcb_ptr &operator += (int offs)
-  { _offs += offs*sizeof(Mword); return *this; }
-
-  inline Address addr() const
-  { return _base + _offs; }
-
-  inline Mword value() const
-  { return *(Mword*)(_base + _offs); }
-
-  inline void value(Mword v)
-  { *(Mword*)(_base + _offs) = v; }
-
-  inline bool is_user_value() const;
-
-  Space *space(Thread *user_thread) const
-  {
-    return is_user_value() ? user_thread->space() : 0;
-  }
-
-  inline const char *user_value_desc() const;
-
-  Address user_ip() const;
-
-  inline Mword const *top_value_ptr(int offs) const
-  { return (Mword*)(Cpu::stack_align(_base + Context::Size)) + offs; }
-
-  inline Mword top_value(int offs) const
-  { return *top_value_ptr(offs); }
-
-  inline Address base() const
-  { return _base; }
-
-  inline Address offs() const
-  { return _offs; }
-
-  inline void offs(Address offs)
-  { _offs = offs; }
-
-  inline bool is_kern_code() const
-  { return (Address)&Mem_layout::image_start <= value()
-           && value() <= (Address)&Mem_layout::ecode;  };
-
-  inline bool is_kobject() const
-  { return Kobject_dbg::is_kobj(reinterpret_cast<void *>(value())); }
-
-private:
-  Address  _base;
-  Address  _offs;
-};
-
-IMPLEMENT_DEFAULT
-Address
-Jdb_tcb_ptr::user_ip() const
-{
-  return 0;
-}
-
-class Jdb_disasm_view
-{
-public:
-  unsigned _x, _y;
-};
-
-
-class Jdb_stack_view
-{
-public:
-  bool is_current;
-  Jdb_entry_frame *ef;
-  Jdb_tcb_ptr current;
-  unsigned start_y;
-  Address absy;
-  Address addy, addx;
-  bool memdump_is_colored;
-
-  bool edit_registers();
-
-private:
-  int _show_obj_help;
-};
-
-
-class Jdb_tcb : public Jdb_module, public Jdb_kobject_handler
-{
-  static Kobject *threadid;
-  static Address address;
-  static char    first_char;
-  static char    auto_tcb;
-
-private:
-  static void print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp);
-  static void print_entry_frame_regs(Thread *t);
-  static void info_thread_state(Thread *t);
-
-  static Jdb_disasm_view _disasm_view;
-  static Jdb_stack_view  _stack_view;
-};
-
+#endif
 
 
 Kobject *Jdb_tcb::threadid;
 Address Jdb_tcb::address;
 char    Jdb_tcb::first_char;
 char    Jdb_tcb::auto_tcb;
-Jdb_disasm_view Jdb_tcb::_disasm_view(Jdb_tcb::Disasm_x, Jdb_tcb::Disasm_y);
-Jdb_stack_view  Jdb_tcb::_stack_view (Jdb_tcb::Stack_y);
+Jdb_disasm_view Jdb_tcb::_disasm_view(Jdb_tcb_layout::Disasm_x, Jdb_tcb_layout::Disasm_y);
+Jdb_stack_view  Jdb_tcb::_stack_view (Jdb_tcb_layout::Stack_y);
 
 
 // available from jdb_dump module
@@ -177,29 +55,7 @@ extern int jdb_dump_addr_task(Jdb_address addr, int level)
 
 // default implementations: --------------------------------------------
 
-// nothing special to do for edit registers
-IMPLEMENT_DEFAULT bool Jdb_stack_view::edit_registers() { return true; }
 
-
-PUBLIC
-Jdb_stack_view::Jdb_stack_view(unsigned y, int show_obj_help = 1)
-: start_y(y), absy(0), memdump_is_colored(true), _show_obj_help(show_obj_help)
-{}
-
-PUBLIC static inline
-Mword
-Jdb_stack_view::cols()
-{
-  // we show the low 8 bytes of the address
-  return Jdb_screen::cols(8, sizeof(Mword)*2+1) - 1;
-}
-
-PUBLIC static inline
-Mword
-Jdb_stack_view::bytes_per_line()
-{ return cols() * sizeof(Mword); }
-
-PUBLIC
 void
 Jdb_stack_view::init(Address ksp, Jdb_entry_frame *_ef, bool _is_current)
 {
@@ -212,9 +68,8 @@ Jdb_stack_view::init(Address ksp, Jdb_entry_frame *_ef, bool _is_current)
   is_current = _is_current;
 }
 
-PUBLIC
 void
-Jdb_stack_view::print_value(Jdb_tcb_ptr const &p, bool highl = false)
+Jdb_stack_view::print_value(Jdb_tcb_ptr const &p, bool highl)
 {
   if (!p.valid() || !Jdb_util::is_mapped((void const*)p.addr()))
     {
@@ -256,7 +111,6 @@ Jdb_stack_view::print_value(Jdb_tcb_ptr const &p, bool highl = false)
 }
 
 
-PUBLIC
 void
 Jdb_stack_view::dump(bool dump_only)
 {
@@ -293,17 +147,6 @@ Jdb_stack_view::dump(bool dump_only)
     }
 }
 
-PRIVATE inline
-unsigned
-Jdb_stack_view::posx()
-{ return addx * (Jdb_screen::Mword_size_bmode + 1) + 9; }
-
-PRIVATE inline
-unsigned
-Jdb_stack_view::posy()
-{ return addy + start_y; }
-
-PUBLIC
 void
 Jdb_stack_view::highlight(bool highl)
 {
@@ -343,7 +186,6 @@ Jdb_stack_view::highlight(bool highl)
                        "%s", kobj_desc.c_str());
 }
 
-PUBLIC
 bool
 Jdb_stack_view::handle_key(int keycode, bool *redraw)
 {
@@ -368,7 +210,6 @@ Jdb_stack_view::handle_key(int keycode, bool *redraw)
                              &absy, &addy, &addx, redraw);
 }
 
-PUBLIC
 void
 Jdb_stack_view::edit_stack(bool *redraw)
 {
@@ -421,36 +262,17 @@ Jdb_stack_view::edit_stack(bool *redraw)
     }
 }
 
-PUBLIC
-Jdb_disasm_view::Jdb_disasm_view(unsigned x, unsigned y)
-: _x(x), _y(y)
-{}
-
-PUBLIC
-void
-Jdb_disasm_view::show(Jdb_address addr, bool dump_only)
+static void at_jdb_enter()
 {
-  if (!Jdb_disasm::avail())
-    return;
-
-  Jdb_address disass_addr = addr;
-  if (dump_only)
+  if (Jdb_tcb::auto_tcb)
     {
-      for (unsigned i = 0; i < 20; ++i)
-        Jdb_disasm::show_disasm_line(Jdb_screen::width(), disass_addr);
-      return;
+      // clear any keystrokes in queue
+      Jdb::set_next_cmd(0);
+      Jdb::push_cons()->push('t');
+      Jdb::push_cons()->push(' ');
     }
-
-  Jdb::cursor(_y, _x);
-  putstr(Jdb::esc_emph);
-  Jdb_disasm::show_disasm_line(-40, disass_addr);
-  putstr("\033[m");
-  Jdb::cursor(_y + 1, _x);
-  Jdb_disasm::show_disasm_line(-40, disass_addr);
 }
 
-
-PUBLIC
 Jdb_tcb::Jdb_tcb()
   : Jdb_module("INFO"), Jdb_kobject_handler((Thread*)0)
 {
@@ -460,31 +282,8 @@ Jdb_tcb::Jdb_tcb()
   Jdb_kobject::module()->register_handler(this);
 }
 
-static void
-Jdb_tcb::at_jdb_enter()
-{
-  if (auto_tcb)
-    {
-      // clear any keystrokes in queue
-      Jdb::set_next_cmd(0);
-      Jdb::push_cons()->push('t');
-      Jdb::push_cons()->push(' ');
-    }
-}
 
 
-PUBLIC virtual
-Kobject *
-Jdb_tcb::parent(Kobject_common *o) override
-{
-  Thread *t = cxx::dyn_cast<Thread*>(o);
-  if (!t)
-    return 0;
-
-  return static_cast<Task*>(t->space());
-}
-
-PRIVATE static
 bool
 Jdb_tcb::handle_obj_key(int keycode, Mword addr)
 {
@@ -513,7 +312,6 @@ Jdb_tcb::handle_obj_key(int keycode, Mword addr)
   return false;
 }
 
-PRIVATE static inline
 char *
 Jdb_tcb::vcpu_state_str(Mword state, char *s, int len)
 {
@@ -527,7 +325,6 @@ Jdb_tcb::vcpu_state_str(Mword state, char *s, int len)
   return s;
 }
 
-PUBLIC static
 Jdb_module::Action_code
 Jdb_tcb::show(Thread *t, int level, bool dump_only)
 {
@@ -680,7 +477,7 @@ whole_screen:
       if (!dump_only)
         Jdb::cursor(11, 1);
       print_entry_frame_regs(t);
-      Jdb::cursor(Jdb_tcb::Disasm_x, Jdb_tcb::Disasm_y);
+      Jdb::cursor(Jdb_tcb_layout::Disasm_x, Jdb_tcb_layout::Disasm_y);
       Jdb_address insn_ptr;
       if (ef->from_user())
         insn_ptr = Jdb_address(ef->ip(), t->space());
@@ -854,9 +651,8 @@ EDX=00000001  ESP=e00207b4
 L4KD: 
 ------------------------------------------------------------------------------*/
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_tcb::action(int cmd, void *&args, char const *&fmt, int &next_char) override
+Jdb_tcb::action(int cmd, void *&args, char const *&fmt, int &next_char)
 {
   static Address tcb_addr = 0;
   if (cmd == 0)
@@ -929,9 +725,8 @@ Jdb_tcb::action(int cmd, void *&args, char const *&fmt, int &next_char) override
   return NOTHING;
 }
 
-PUBLIC
 Kobject_common *
-Jdb_tcb::follow_link(Kobject_common *o) override
+Jdb_tcb::follow_link(Kobject_common *o)
 {
   Thread *t = cxx::dyn_cast<Thread *>(Kobject::from_dbg(o->dbg_info()));
   if (t->space() == Kernel_task::kernel_task())
@@ -939,24 +734,21 @@ Jdb_tcb::follow_link(Kobject_common *o) override
   return static_cast<Kobject*>(static_cast<Task*>(t->space()));
 }
 
-PUBLIC
 bool
-Jdb_tcb::show_kobject(Kobject_common *o, int level) override
+Jdb_tcb::show_kobject(Kobject_common *o, int level)
 {
   Thread *t = cxx::dyn_cast<Thread *>(Kobject::from_dbg(o->dbg_info()));
   return show(t, level, false);
 }
 
-PRIVATE static
 bool
 Jdb_tcb::is_current(Thread *t)
 {
   return t == Jdb::get_thread(t->get_current_cpu());
 }
 
-PUBLIC
 void
-Jdb_tcb::show_kobject_short(String_buffer *buf, Kobject_common *o, bool) override
+Jdb_tcb::show_kobject_short(String_buffer *buf, Kobject_common *o, bool)
 {
   Thread *t = cxx::dyn_cast<Thread *>(Kobject::from_dbg(o->dbg_info()));
   bool is_current = Jdb_tcb::is_current(t);
@@ -978,9 +770,8 @@ Jdb_tcb::show_kobject_short(String_buffer *buf, Kobject_common *o, bool) overrid
                 is_current ? " " JDB_ANSI_COLOR(green) "cur" JDB_ANSI_END : "");
 }
 
-PUBLIC
 Jdb_module::Cmd const *
-Jdb_tcb::cmds() const override
+Jdb_tcb::cmds() const
 {
   static Cmd cs[] =
     {
@@ -993,9 +784,8 @@ Jdb_tcb::cmds() const override
   return cs;
 }
 
-PUBLIC
 int
-Jdb_tcb::num_cmds() const override
+Jdb_tcb::num_cmds() const
 { return 2; }
 
 static Jdb_tcb jdb_tcb INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
@@ -1004,28 +794,6 @@ int
 jdb_show_tcb(Thread *t, int level)
 { return Jdb_tcb::show(t, level, false); }
 
-static inline
-void
-Jdb_tcb::print_thread_uid_raw(Thread *t)
-{
-  printf(" <%p> ", t);
-}
-
-PRIVATE static
-void
-Jdb_tcb::print_kobject(Cap_index n)
-{
-  printf("[C:%4lx]       ", cxx::int_value<Cap_index>(n));
-}
-
-PRIVATE static
-void
-Jdb_tcb::print_kobject(Kobject *o)
-{
-  printf("D:%4lx         ", o ? o->dbg_info()->dbg_id() : 0);
-}
-
-PRIVATE static
 void
 Jdb_tcb::print_kobject(Thread *t, Cap_index capidx)
 {
@@ -1062,7 +830,6 @@ public:
   void ext() override;
 };
 
-IMPLEMENT
 void
 Jdb_thread_name_ext::ext()
 {

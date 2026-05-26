@@ -1,61 +1,22 @@
-IMPLEMENTATION [mips]:
 
-EXTENSION class Jdb_tcb
-{
-  enum
-  {
-    Disasm_x = 43,
-    Disasm_y = 11,
-    Stack_y  = 20,
-  };
-};
+#include <jdb_tcb.h>
 
-IMPLEMENT inline
-bool
-Jdb_tcb_ptr::is_user_value() const
-{
-  return _offs >= Context::Size - sizeof(Trap_state);
-}
+#include <config.h>
+#include <jdb.h>
 
-IMPLEMENT inline
-const char *
-Jdb_tcb_ptr::user_value_desc() const
-{
-  const char *const desc[] =
-    {
-      "Epc", "Status", "Cause", "BadVAddr", "Lo", "Hi",
-      "ra ($31)", "s8 ($30)", "sp ($29)", "gp ($28)",
-      "k1 ($27)", "k0 ($26)", "t9 ($25)", "t8 ($24)",
-      "s7 ($23)", "s6 ($22)", "s5 ($21)", "s4 ($s0)",
-      "s3 ($19)", "s2 ($18)", "s1 ($17)", "s0 ($16)",
-      "t7 ($15)", "t6 ($14)", "t5 ($13)", "t4 ($12)",
-      "t3 ($11)", "t2 ($10)", "t1 ($9)",  "t0 ($8)",
-      "a3 ($7)",  "a2 ($6)",  "a1 ($5)",  "a0 ($4)",
-      "v1 ($3)",  "v0 ($2)",  "at ($1)",  "eret-work",
-      "BadInstr", "BadInstrP"
-    };
-  static_assert ((sizeof (Trap_state) / sizeof (Mword))
-                 <= (sizeof (desc) / sizeof (desc[0])),
-                 "desc entries do not match the sizeof Trap_state");
-  return desc[(Context::Size - _offs) / sizeof(Mword) - 1];
-}
+#include <globalconfig.h>
 
-IMPLEMENT
 void
 Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &, Address)
 {}
 
-IMPLEMENT_OVERRIDE
-Address
-Jdb_tcb_ptr::user_ip() const
-{
-  return top_value(-1);
-}
+bool
+Jdb_stack_view::edit_registers()
+{ return true; }
 
 
-IMPLEMENTATION[32bit]:
+#ifdef CONFIG_BIT32
 
-IMPLEMENT
 void
 Jdb_tcb::info_thread_state(Thread *t)
 {
@@ -80,7 +41,6 @@ Jdb_tcb::info_thread_state(Thread *t)
     }
 }
 
-IMPLEMENT
 void Jdb_tcb::print_entry_frame_regs(Thread *t)
 {
   Jdb_entry_frame *ef = Jdb::get_entry_frame(t->get_current_cpu());
@@ -104,10 +64,9 @@ void Jdb_tcb::print_entry_frame_regs(Thread *t)
          ef->cause, ef->status, ef->epc, s->c_asid());
 }
 
+#endif
+#ifdef CONFIG_BIT64
 
-IMPLEMENTATION[64bit]:
-
-IMPLEMENT
 void
 Jdb_tcb::info_thread_state(Thread *t)
 {
@@ -138,7 +97,6 @@ Jdb_tcb::info_thread_state(Thread *t)
     }
 }
 
-IMPLEMENT
 void Jdb_tcb::print_entry_frame_regs(Thread *t)
 {
   Jdb_entry_frame *ef = Jdb::get_entry_frame(t->get_current_cpu());
@@ -157,3 +115,5 @@ void Jdb_tcb::print_entry_frame_regs(Thread *t)
          ef->r[10], ef->r[11], ef->hi, ef->lo, ef->bad_v_addr,
          ef->cause, ef->status, ef->epc, s->c_asid());
 }
+
+#endif

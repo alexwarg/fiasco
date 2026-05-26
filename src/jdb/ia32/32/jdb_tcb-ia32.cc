@@ -1,22 +1,11 @@
-IMPLEMENTATION [ia32]:
 
-#include "config.h"
-#include "jdb.h"
-#include "jdb_disasm.h"
+#include <jdb_tcb.h>
 
-EXTENSION class Jdb_tcb
-{
-  enum
-  {
-    Disasm_x = 41,
-    Disasm_y = 11,
-    Stack_y  = 17,
-  };
+#include <config.h>
+#include <jdb.h>
+#include <jdb_disasm.h>
+#include <jdb_input.h>
 
-};
-
-
-IMPLEMENT
 void
 Jdb_tcb::print_entry_frame_regs(Thread *t)
 {
@@ -42,7 +31,6 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
 	 ef->cs() & 0xffff, Jdb::esc_emph, ef->ip(), ef->flags());
 }
 
-IMPLEMENT
 void
 Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp)
 {
@@ -51,7 +39,6 @@ Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp)
       current.top_value(-5), current.top_value(-3), ksp);
 }
 
-IMPLEMENT
 void
 Jdb_tcb::info_thread_state(Thread *t)
 {
@@ -140,7 +127,6 @@ Jdb_tcb::info_thread_state(Thread *t)
     }
 }
 
-IMPLEMENT_OVERRIDE
 bool
 Jdb_stack_view::edit_registers()
 {
@@ -188,24 +174,3 @@ Jdb_stack_view::edit_registers()
   return true;
 }
 
-IMPLEMENT inline
-bool
-Jdb_tcb_ptr::is_user_value() const
-{
-  return _offs >= Context::Size - 5 * sizeof(Mword);
-}
-
-IMPLEMENT inline
-const char *
-Jdb_tcb_ptr::user_value_desc() const
-{
-  const char *desc[] = { "SS", "SP", "EFL", "CS", "IP" };
-  return desc[(Context::Size - _offs) / sizeof(Mword) - 1];
-}
-
-IMPLEMENT_OVERRIDE
-Address
-Jdb_tcb_ptr::user_ip() const
-{
-  return top_value(-5);
-}

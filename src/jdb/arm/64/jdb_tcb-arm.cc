@@ -1,21 +1,10 @@
-IMPLEMENTATION [arm]:
 
-#include "config.h"
+#include <jdb_tcb.h>
 
-EXTENSION class Jdb_tcb
-{
-  enum
-  {
-    Disasm_x = 48,
-    Disasm_y = 11,
-    Stack_y  = 20,
-  };
+#include <config.h>
+#include <jdb.h>
 
-};
-
-PRIVATE static
-void
-Jdb_tcb::print_gp_regs(Mword const *r)
+static void print_gp_regs(Mword const *r)
 {
   printf(" x0 %016lx %016lx\n x2 %016lx %016lx\n", r[0], r[1], r[2], r[3]);
 
@@ -35,7 +24,6 @@ Jdb_tcb::print_gp_regs(Mword const *r)
     }
 }
 
-IMPLEMENT
 void
 Jdb_tcb::print_entry_frame_regs(Thread *t)
 {
@@ -54,7 +42,6 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
          ef->r[30]);
 }
 
-IMPLEMENT
 void
 Jdb_tcb::info_thread_state(Thread *t)
 {
@@ -66,34 +53,11 @@ Jdb_tcb::info_thread_state(Thread *t)
   print_gp_regs(current.top_value_ptr(-37));
 }
 
-IMPLEMENT
 void
 Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &, Address)
 {}
 
-IMPLEMENT_OVERRIDE
 bool
 Jdb_stack_view::edit_registers()
 { return false; }
 
-IMPLEMENT inline
-bool
-Jdb_tcb_ptr::is_user_value() const
-{
-  return _offs >= Context::Size - 7 * sizeof(Mword);
-}
-
-IMPLEMENT inline
-const char *
-Jdb_tcb_ptr::user_value_desc() const
-{
-  const char *desc[] = { "PSR", "PC", "USP", "PFA", "ESR", "KSP", "ULR" };
-  return desc[(Context::Size - _offs) / sizeof(Mword) - 1];
-}
-
-IMPLEMENT_OVERRIDE
-Address
-Jdb_tcb_ptr::user_ip() const
-{
-  return top_value(-2);
-}

@@ -123,11 +123,9 @@ PRIVATE_INCDIR += jdb/$(CONFIG_NARCH)/$(BITS) jdb/$(CONFIG_XARCH) jdb/$(CONFIG_N
 INTERFACES_JDB += \
 	jdb_entry_frame                   \
 	jdb_bp     \
-	jdb_tcb               \
 	jdb_kern_info_kmem_alloc \
 	jdb_kern_info_kip jdb_kern_info jdb_kern_info_data       \
 
-jdb_tcb_IMPL	+= jdb_tcb
 
 CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_core.cc jdb_list.cc jdb_timeout.cc \
 	      jdb_module.cc jdb_ipc_gate.cc jdb_input.cc jdb_input_task.cc \
@@ -138,7 +136,7 @@ CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_core.cc jdb_list.cc jdb_timeout.cc
 	      jdb_counters.cc jdb_sender_list.cc jdb_dump.cc jdb_prompt_ext.cc \
 	      jdb_attach_irq.cc jdb_screen.cc jdb_factory.cc jdb_kobject_names.cc \
 	      jdb_exit_module.cc jdb_report.cc jdb_ptab.cc jdb_ansi.cc \
-	      jdb_current_thread.cc jdb.cc
+	      jdb_current_thread.cc jdb.cc jdb_tcb.cc
 
 CXXSRC_JDB-$(CONFIG_MP) += jdb_cpu_call.cc jdb_ipi.cc
 CXXSRC_JDB-$(CONFIG_JDB_DISASM) += jdb_disasm.cc

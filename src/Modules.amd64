@@ -143,7 +143,7 @@ INTERFACES_JDB		+= jdb_io_ports \
 
 CXXSRC_JDB += tb_entry_output.cc loadcnt.cc jdb_log.cc jdb_io_apic.cc \
 	      jdb_trace_set.cc jdb_trace_set-ia32.cc jdb_halt_thread.cc \
-	      jdb_screen-ia32.cc jdb_ptab-amd64.cc jdb-ia32.cc
+	      jdb_screen-ia32.cc jdb_ptab-amd64.cc jdb-ia32.cc jdb_tcb-ia32.cc
 
 jdb_bp_IMPL		:= jdb_bp-ia32 jdb_bp-ia32-amd64 jdb_bp-amd64
 jdb_bt_IMPL		:= jdb_bt-ia32
@@ -154,7 +154,6 @@ jdb_kern_info_IMPL	:= jdb_kern_info jdb_kern_info-ia32-amd64 \
 			   jdb_kern_info-bench-ia32-64 \
 			   jdb_kern_info-dr jdb_kern_info-mtrr
 jdb_misc_IMPL		:= jdb_misc-ia32-amd64
-jdb_tcb_IMPL		+= jdb_tcb-amd64
 
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif

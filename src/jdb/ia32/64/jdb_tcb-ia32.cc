@@ -1,31 +1,13 @@
-IMPLEMENTATION [amd64]:
 
-#include "jdb_disasm.h"
 
-EXTENSION class Jdb_tcb
-{
-  enum
-  {
-    Disasm_x = 45,
-    Disasm_y = 11,
-    Stack_y  = 21,
-  };
-};
+#include <jdb_tcb.h>
 
-PRIVATE static
-void
-Jdb_tcb::print_regs_invalid_tid()
-{
-  //const Mword mask
-  //  = (Context::Size * Mem_layout::max_threads()) - 1;
-  //const Mword tsksz = Context::Size * L4_uid::threads_per_task();
+#include <config.h>
+#include <jdb.h>
+#include <jdb_disasm.h>
+#include <jdb_input.h>
 
- // LThread_num task = ((Address)Jdb::get_thread(Jdb::current_cpu) & mask) / tsksz;
-  putchar('\n');
-  //print_entry_frame_regs (task);
-}
 
-IMPLEMENT
 void
 Jdb_tcb::print_entry_frame_regs(Thread *t)
 {
@@ -55,7 +37,6 @@ Jdb_tcb::print_entry_frame_regs(Thread *t)
 	 Jdb::esc_emph, ef->ip(), ef->flags());
 }
 
-IMPLEMENT
 void
 Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp)
 {
@@ -63,7 +44,6 @@ Jdb_tcb::print_return_frame_regs(Jdb_tcb_ptr const &current, Mword ksp)
          Jdb::esc_emph, current.top_value(-5), current.top_value(-3), ksp);
 }
 
-IMPLEMENT
 void
 Jdb_tcb::info_thread_state(Thread *t)
 {
@@ -243,7 +223,6 @@ Jdb_tcb::search_bt_start(Address tcb, Mword *ksp, bool is_current_thread)
 }
 #endif
 
-IMPLEMENT_OVERRIDE
 bool
 Jdb_stack_view::edit_registers()
 {
@@ -296,24 +275,3 @@ Jdb_stack_view::edit_registers()
   return true;
 }
 
-IMPLEMENT inline
-bool
-Jdb_tcb_ptr::is_user_value() const
-{
-  return _offs >= Context::Size - 5 * sizeof(Mword);
-}
-
-IMPLEMENT inline
-const char *
-Jdb_tcb_ptr::user_value_desc() const
-{
-  const char *desc[] = { "SS", "SP", "RFL", "CS", "IP" };
-  return desc[(Context::Size - _offs) / sizeof(Mword) - 1];
-}
-
-IMPLEMENT_OVERRIDE
-Address
-Jdb_tcb_ptr::user_ip() const
-{
-  return top_value(-5);
-}
