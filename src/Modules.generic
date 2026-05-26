@@ -125,7 +125,7 @@ INTERFACES_JDB += \
 	jdb_entry_frame                   \
 	jdb_bp     \
 	jdb_tcb               \
-	jdb_report jdb_kern_info_kmem_alloc \
+	jdb_kern_info_kmem_alloc \
 	jdb_kern_info_kip jdb_kern_info jdb_kern_info_data       \
 
 jdb_IMPL	+= jdb jdb-ansi jdb-thread
@@ -139,7 +139,7 @@ CXXSRC_JDB += kern_cnt.cc push_console.cc jdb_core.cc jdb_list.cc jdb_timeout.cc
 	      jdb_space.cc jdb_obj_space.cc jdb_trap_state.cc jdb_rcupdate.cc \
 	      jdb_counters.cc jdb_sender_list.cc jdb_dump.cc jdb_prompt_ext.cc \
 	      jdb_attach_irq.cc jdb_screen.cc jdb_factory.cc jdb_kobject_names.cc \
-	      jdb_exit_module.cc
+	      jdb_exit_module.cc jdb_report.cc
 
 CXXSRC_JDB-$(CONFIG_MP) += jdb_cpu_call.cc jdb_ipi.cc
 CXXSRC_JDB-$(CONFIG_JDB_DISASM) += jdb_disasm.cc
