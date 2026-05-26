@@ -1,117 +1,12 @@
-INTERFACE[ia32,amd64]:
 
-#include "initcalls.h"
-#include "l4_types.h"
-#include "string_buffer.h"
-#include "jdb_types.h"
-
-class Thread;
-class Task;
-class Space;
-
-class Breakpoint
-{
-public:
-  enum Mode { INSTRUCTION=0, WRITE=1, PORTIO=2, ACCESS=3 };
-  enum Log  { BREAK=0, LOG=1 };
-
-private:
-  typedef struct
-    {
-      int other;
-      Mword thread;
-    } Bp_thread_res;
-
-  typedef struct
-    {
-      int other;
-      Mword task;
-    } Bp_task_res;
-
-  typedef struct
-    {
-      char reg;
-      Address y, z;
-    } Bp_reg_res;
-
-  typedef struct
-    {
-      unsigned char len;
-      Address addr;
-      Address y, z;
-    } Bp_mem_res;
-
-  typedef struct
-    {
-      Bp_thread_res thread;
-      Bp_task_res   task;
-      Bp_reg_res    reg;
-      Bp_mem_res    mem;
-    } Restriction;
-
-  Jdb_address  addr;
-  Unsigned8    len;
-  Mode         mode;
-  Log          log;
-  Restriction  restrict;
-  static char const * const mode_names[4];
-};
-
-class Jdb_bp
-{
-public:
-  static int		global_breakpoints();
-  static void		init_arch();
-
-private:
-  static void		at_jdb_enter();
-  static void		at_jdb_leave();
-  static Breakpoint	bps[4];
-};
-
-
-IMPLEMENTATION[ia32,amd64]:
-
+#include <jdb_bp.h>
+#include <jdb.h>
+#include <jdb_input_task.h>
+#include <jdb_module.h>
+#include <kmem.h>
 #include <cstdio>
 
-#include "jdb.h"
-#include "jdb_input_task.h"
-#include "jdb_module.h"
-#include "jdb_handler_queue.h"
-#include "jdb_screen.h"
-#include "jdb_tbuf.h"
-#include "l4_types.h"
-#include "static_init.h"
-#include "task.h"
-#include "thread.h"
-
-class Jdb_set_bp : public Jdb_module, public Jdb_input_task_addr
-{
-public:
-  Jdb_set_bp() FIASCO_INIT;
-private:
-  static char     breakpoint_cmd;
-  static char     breakpoint_restrict_cmd;
-  static Mword    breakpoint_number;
-  static Mword    breakpoint_length;
-  static Mword    breakpoint_restrict_task;
-  static Mword    breakpoint_restrict_thread;
-  typedef struct
-    {
-      char        reg;
-      Mword       low;
-      Mword       high;
-    } Restrict_reg;
-  static Restrict_reg breakpoint_restrict_reg;
-  typedef struct
-    {
-      Address     addr;
-      Mword       low;
-      Mword       high;
-    } Restrict_addr;
-  static Restrict_addr breakpoint_restrict_addr;
-  static int      state;
-};
+Mword Jdb_bp::dr7;
 
 Breakpoint Jdb_bp::bps[4];
 
@@ -120,111 +15,6 @@ char const * const Breakpoint::mode_names[4] =
   "instruction", "write access", "i/o access", "r/w access"
 };
 
-char     Jdb_set_bp::breakpoint_cmd;
-char     Jdb_set_bp::breakpoint_restrict_cmd;
-Mword    Jdb_set_bp::breakpoint_number;
-Mword    Jdb_set_bp::breakpoint_length;
-Mword    Jdb_set_bp::breakpoint_restrict_task;
-Mword    Jdb_set_bp::breakpoint_restrict_thread;
-Jdb_set_bp::Restrict_reg  Jdb_set_bp::breakpoint_restrict_reg;
-Jdb_set_bp::Restrict_addr Jdb_set_bp::breakpoint_restrict_addr;
-int      Jdb_set_bp::state;
-
-PUBLIC
-Breakpoint::Breakpoint()
-{
-  restrict.thread.thread = 0;
-  restrict.task.task     = 0;
-}
-
-PUBLIC inline NOEXPORT
-void
-Breakpoint::kill()
-{
-  addr = Jdb_address::null();
-}
-
-PUBLIC inline NOEXPORT
-int
-Breakpoint::unused()
-{
-  return addr == Jdb_address::null();
-}
-
-PUBLIC inline NOEXPORT
-int
-Breakpoint::break_at_instruction()
-{
-  return mode == INSTRUCTION;
-}
-
-PUBLIC inline NOEXPORT
-int
-Breakpoint::match_addr(Jdb_address virt, Mode m)
-{
-  return !unused() && addr == virt && mode == m;
-}
-
-PUBLIC inline NOEXPORT
-void
-Breakpoint::set_logmode(char m)
-{
-  log = (m == '*') ? LOG : BREAK;
-}
-
-PUBLIC inline NOEXPORT
-int
-Breakpoint::is_break()
-{
-  return !unused() && log == BREAK;
-}
-
-PUBLIC inline
-void
-Breakpoint::restrict_task(int other, Mword task)
-{
-  restrict.task.other = other;
-  restrict.task.task  = task;
-}
-
-PUBLIC inline NOEXPORT
-void
-Breakpoint::restrict_thread(int other, Mword thread)
-{
-  restrict.thread.other  = other;
-  restrict.thread.thread = thread;
-}
-
-PUBLIC inline NOEXPORT
-void
-Breakpoint::restrict_register(char reg, Mword y, Mword z)
-{
-  restrict.reg.reg = reg;
-  restrict.reg.y   = y;
-  restrict.reg.z   = z;
-}
-
-PUBLIC inline NOEXPORT
-void
-Breakpoint::restrict_memory(Mword addr, Mword len, Mword y, Mword z)
-{
-  restrict.mem.addr = addr;
-  restrict.mem.len  = len;
-  restrict.mem.y    = y;
-  restrict.mem.z    = z;
-}
-
-PUBLIC inline NOEXPORT
-void
-Breakpoint::clear_restriction()
-{
-  restrict.thread.thread = 0;
-  restrict.task.task     = 0;
-  restrict.reg.reg       = 0;
-  restrict.mem.len       = 0;
-}
-
-PUBLIC
 void
 Breakpoint::show()
 {
@@ -290,7 +80,6 @@ Breakpoint::show()
 
 // return TRUE  if the breakpoint does NOT match
 // return FALSE if all restrictions do match
-PUBLIC
 int
 Breakpoint::restricted(Thread *t)
 {
@@ -344,7 +133,6 @@ Breakpoint::restricted(Thread *t)
   return 0;
 }
 
-PUBLIC
 int
 Breakpoint::test_break(String_buffer *buf, Thread *t)
 {
@@ -372,7 +160,6 @@ Breakpoint::test_break(String_buffer *buf, Thread *t)
 }
 
 // Create log entry if breakpoint matches
-PUBLIC
 void
 Breakpoint::test_log(Thread *t)
 {
@@ -405,83 +192,65 @@ Breakpoint::test_log(Thread *t)
 }
 
 
-STATIC_INITIALIZE_P(Jdb_bp, JDB_MODULE_INIT_PRIO);
-
-PUBLIC static FIASCO_INIT
-void
-Jdb_bp::init()
-{
-  static Jdb_handler enter(at_jdb_enter);
-  static Jdb_handler leave(at_jdb_leave);
-
-  Jdb::jdb_enter.add(&enter);
-  Jdb::jdb_leave.add(&leave);
-
-  init_arch();
-}
-
-static inline
-void
-Jdb_bp::clr_dr7(int num, Mword &dr7)
-{
-  dr7 &= ~(((3 + (3 <<2)) << (16 + 4 * num)) + (3 << (2 * num)));
-}
-
-static inline
-void
-Jdb_bp::set_dr7(int num, Mword len, Breakpoint::Mode mode, Mword &dr7)
-{
-  // the encoding of length 8 is special
-  if (len == 8)
-    len = 3;
-
-  dr7 |= ((((mode & 3) + ((len-1)<<2)) << (16 + 4 * num)) + (2 << (2 * num)));
-  dr7 |= 0x200; /* exact breakpoint enable (not available on P6 and below) */
-}
-
-PUBLIC static
 int
-Jdb_bp::set_breakpoint(int num, Jdb_address addr, Mword len,
-		       Breakpoint::Mode mode, Breakpoint::Log log)
+Jdb_bp::set_debug_address_register(int num, Jdb_address addr, Mword len,
+				   Breakpoint::Mode mode)
 {
-  if (set_debug_address_register(num, addr, len, mode))
+  clr_dr7(num, dr7);
+  set_dr7(num, len, mode, dr7);
+  switch (num)
     {
-      bps[num].set(addr, len, mode, log);
-      return 1;
+    case 0: write_debug_register(0, addr.addr()); break;
+    case 1: write_debug_register(1, addr.addr()); break;
+    case 2: write_debug_register(2, addr.addr()); break;
+    case 3: write_debug_register(3, addr.addr()); break;
+    default:;
     }
-
-  return 0;
+  return 1;
 }
 
-PUBLIC static
 void
-Jdb_bp::clr_breakpoint(int num)
+Jdb_bp::at_jdb_enter()
 {
-  clr_debug_address_register(num);
-  bps[num].kill();
+  dr7 = read_debug_register(7);
+  // disable breakpoints while we are in kernel debugger
+  write_debug_register(7, dr7 & Jdb_bp_ia32_bits::Val_enter);
 }
 
-PUBLIC static inline NOEXPORT
 void
-Jdb_bp::logmode_breakpoint(int num, char mode)
+Jdb_bp::at_jdb_leave()
 {
-  bps[num].set_logmode(mode);
+  write_debug_register(6, Jdb_bp_ia32_bits::Val_leave);
+  write_debug_register(7, dr7);
 }
 
-PUBLIC static
+/** @return 1 if single step occurred */
 int
-Jdb_bp::first_unused()
+Jdb_bp::test_sstep(Cpu_number, Jdb_entry_frame *)
 {
-  int i;
+  Mword dr6 = read_debug_register(6);
+  if (!(dr6 & Jdb_bp_ia32_bits::Val_test_sstep))
+    return 0;
 
-  for (i = 0; i < 4 && !bps[i].unused(); i++)
-    ;
+  // single step has highest priority, don't consider other conditions
+  write_debug_register(6, Jdb_bp_ia32_bits::Val_leave);
+  return 1;
+}
 
-  return i;
+/** @return 1 if breakpoint occurred */
+int
+Jdb_bp::test_break(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf)
+{
+  Mword dr6 = read_debug_register(6);
+  if (!(dr6 & Jdb_bp_ia32_bits::Val_test))
+    return 0;
+
+  int ret = test_break(cpu, ef, buf, dr6);
+  write_debug_register(6, dr6 & ~Jdb_bp_ia32_bits::Val_test);
+  return ret;
 }
 
 // Return 1 if a breakpoint hits
-PUBLIC static
 int
 Jdb_bp::test_break(Cpu_number cpu, Jdb_entry_frame *e, String_buffer *buf, Mword dr6)
 {
@@ -499,9 +268,52 @@ Jdb_bp::test_break(Cpu_number cpu, Jdb_entry_frame *e, String_buffer *buf, Mword
   return 0;
 }
 
+/** @return 1 if other debug exception occurred */
+int
+Jdb_bp::test_other(Cpu_number, Jdb_entry_frame *, String_buffer *buf)
+{
+  Mword dr6 = read_debug_register(6);
+  if (!(dr6 & Jdb_bp_ia32_bits::Val_test_other))
+    return 0;
+
+  buf->printf("unknown trap 1 (dr6=" L4_PTR_FMT ")", dr6);
+  write_debug_register(6, Jdb_bp_ia32_bits::Val_leave);
+  return 1;
+}
+
+/** @return 1 if only breakpoints were logged and jdb should not be entered */
+int
+Jdb_bp::test_log_only(Cpu_number, Jdb_entry_frame *)
+{
+  Mword dr6 = read_debug_register(6);
+
+  if (dr6 & Jdb_bp_ia32_bits::Val_test)
+    {
+      dr7 = read_debug_register(7);
+      // disable breakpoints -- we might trigger a r/w breakpoint again
+      write_debug_register(7, dr7 & Jdb_bp_ia32_bits::Val_enter);
+      test_log(dr6);
+      write_debug_register(6, dr6);
+      write_debug_register(7, dr7);
+      if (!(dr6 & Jdb_bp_ia32_bits::Val_test_other))
+	// don't enter jdb, breakpoints only logged
+	return 1;
+    }
+  // enter jdb
+  return 0;
+}
+
+void
+Jdb_bp::init_arch()
+{
+  Jdb::bp_test_log_only = test_log_only;
+  Jdb::bp_test_break    = test_break;
+  Jdb::bp_test_sstep    = test_sstep;
+  Jdb::bp_test_other    = test_other;
+}
+
 // Create log entry if breakpoint matches.
 // Return 1 if debugger should stop
-PUBLIC static
 void
 Jdb_bp::test_log(Mword &dr6)
 {
@@ -524,7 +336,6 @@ Jdb_bp::test_log(Mword &dr6)
       }
 }
 
-PUBLIC static
 Mword
 Jdb_bp::test_match(Jdb_address addr, Breakpoint::Mode mode)
 {
@@ -535,48 +346,6 @@ Jdb_bp::test_match(Jdb_address addr, Breakpoint::Mode mode)
   return 0;
 }
 
-PUBLIC static
-int
-Jdb_bp::instruction_bp_at_addr(Jdb_address addr)
-{ return test_match(addr, Breakpoint::INSTRUCTION); }
-
-
-PUBLIC static inline NOEXPORT
-void
-Jdb_bp::restrict_task(int num, int other, Mword task)
-{
-  bps[num].restrict_task(other, task);
-}
-
-PUBLIC static inline NOEXPORT
-void
-Jdb_bp::restrict_thread(int num, int other, Mword thread)
-{
-  bps[num].restrict_thread(other, thread);
-}
-
-PUBLIC static inline NOEXPORT
-void
-Jdb_bp::restrict_register(int num, char reg, Mword y, Mword z)
-{
-  bps[num].restrict_register(reg, y, z);
-}
-
-PUBLIC static inline NOEXPORT
-void
-Jdb_bp::restrict_memory(int num, Mword addr, Mword len, Mword y, Mword z)
-{
-  bps[num].restrict_memory(addr, len, y, z);
-}
-
-PUBLIC static inline NOEXPORT
-void
-Jdb_bp::clear_restriction(int num)
-{
-  bps[num].clear_restriction();
-}
-
-PUBLIC static
 void
 Jdb_bp::list()
 {
@@ -591,17 +360,84 @@ Jdb_bp::list()
   putchar('\n');
 }
 
+int
+Jdb_bp::set_breakpoint(int num, Jdb_address addr, Mword len,
+		       Breakpoint::Mode mode, Breakpoint::Log log)
+{
+  if (set_debug_address_register(num, addr, len, mode))
+    {
+      bps[num].set(addr, len, mode, log);
+      return 1;
+    }
+
+  return 0;
+}
 
 //---------------------------------------------------------------------------//
+class Jdb_set_bp : public Jdb_module_mixin<Jdb_set_bp>, public Jdb_input_task_addr
+{
+public:
+  Jdb_set_bp() FIASCO_INIT;
+  Action_code action(int cmd, void *&args, char const *&fmt, int &next_char) override;
 
-IMPLEMENT
+  static cxx::static_vector<Cmd const> jdb_cmds()
+  {
+    static Cmd cs[] =
+      {
+          { 0, "b", "bp", "%c",
+            "b{i|a|w|p}<addr>\tset breakpoint on instruction/access/write/io "
+            "access\n"
+            "b{-|+|*}<num>\tdisable/enable/log breakpoint\n"
+            "bl\tlist breakpoints\n"
+            "br<num>{t|T|a|A|e|1|2|4}\trestrict breakpoint to "
+            "(!)thread/(!)task/reg/mem",
+            &breakpoint_cmd },
+      };
+
+    return cs;
+  }
+
+
+private:
+  static char     breakpoint_cmd;
+  static char     breakpoint_restrict_cmd;
+  static Mword    breakpoint_number;
+  static Mword    breakpoint_length;
+  static Mword    breakpoint_restrict_task;
+  static Mword    breakpoint_restrict_thread;
+  typedef struct
+    {
+      char        reg;
+      Mword       low;
+      Mword       high;
+    } Restrict_reg;
+  static Restrict_reg breakpoint_restrict_reg;
+  typedef struct
+    {
+      Address     addr;
+      Mword       low;
+      Mword       high;
+    } Restrict_addr;
+  static Restrict_addr breakpoint_restrict_addr;
+  static int      state;
+};
+
+char     Jdb_set_bp::breakpoint_cmd;
+char     Jdb_set_bp::breakpoint_restrict_cmd;
+Mword    Jdb_set_bp::breakpoint_number;
+Mword    Jdb_set_bp::breakpoint_length;
+Mword    Jdb_set_bp::breakpoint_restrict_task;
+Mword    Jdb_set_bp::breakpoint_restrict_thread;
+Jdb_set_bp::Restrict_reg  Jdb_set_bp::breakpoint_restrict_reg;
+Jdb_set_bp::Restrict_addr Jdb_set_bp::breakpoint_restrict_addr;
+int      Jdb_set_bp::state;
+
 Jdb_set_bp::Jdb_set_bp()
-  : Jdb_module("DEBUGGING")
+  : Jdb_module_mixin<Jdb_set_bp>("DEBUGGING")
 {}
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_set_bp::action(int cmd, void *&args, char const *&fmt, int &next_char) override
+Jdb_set_bp::action(int cmd, void *&args, char const *&fmt, int &next_char)
 {
   Jdb_module::Action_code code;
   Breakpoint::Mode mode;
@@ -800,30 +636,5 @@ got_address:
   return NOTHING;
 }
 
-PUBLIC
-Jdb_module::Cmd const *
-Jdb_set_bp::cmds() const override
-{
-  static Cmd cs[] =
-    {
-	{ 0, "b", "bp", "%c",
-	  "b{i|a|w|p}<addr>\tset breakpoint on instruction/access/write/io "
-	  "access\n"
-	  "b{-|+|*}<num>\tdisable/enable/log breakpoint\n"
-	  "bl\tlist breakpoints\n"
-	  "br<num>{t|T|a|A|e|1|2|4}\trestrict breakpoint to "
-	  "(!)thread/(!)task/reg/mem",
-	  &breakpoint_cmd },
-    };
-
-  return cs;
-}
-
-PUBLIC
-int
-Jdb_set_bp::num_cmds() const override
-{
-  return 1;
-}
 
 static Jdb_set_bp jdb_set_bp INIT_PRIORITY(JDB_MODULE_INIT_PRIO);

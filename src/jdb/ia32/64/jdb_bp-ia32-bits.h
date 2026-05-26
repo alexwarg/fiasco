@@ -1,7 +1,8 @@
-INTERFACE:
+#pragma once
 
-EXTENSION class Jdb_bp
+class Jdb_bp_ia32_bits
 {
+public:
   enum
   {
     Val_enter      = 0x000000000000ff00,

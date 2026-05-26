@@ -121,7 +121,6 @@ VPATH_JDB += jdb
 PRIVATE_INCDIR += jdb/$(CONFIG_NARCH)/$(BITS) jdb/$(CONFIG_XARCH) jdb/$(CONFIG_NARCH) jdb jabi
 
 INTERFACES_JDB += \
-	jdb_bp     \
 	jdb_kern_info_kmem_alloc \
 	jdb_kern_info_kip jdb_kern_info jdb_kern_info_data       \
 

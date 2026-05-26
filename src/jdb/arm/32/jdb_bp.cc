@@ -1,43 +1,8 @@
-INTERFACE [arm && 32bit]:
 
-#include "jdb.h"
-#include "jdb_input.h"
-#include "jdb_input_task.h"
-#include "jdb_module.h"
-
-class Jdb_bp : public Jdb_module, public Jdb_input_task_addr
-{
-};
-
-IMPLEMENTATION [arm && 32bit]:
+#include <jdb_bp.h>
 
 #include <cstdio>
-#include "string_buffer.h"
-
-EXTENSION class Jdb_bp
-{
-public:
-  Jdb_bp() FIASCO_INIT;
-private:
-  static void   at_jdb_enter();
-  static void   at_jdb_leave();
-
-  static int    test_log_only(Cpu_number);
-  static int    test_break(Cpu_number, String_buffer *buf);
-
-
-  static char  breakpoint_cmd;
-  static bool inited;
-  static char state;
-  static char breakpoint_length;
-  static int  breakpoint_number;
-  static char breakpoint_type;
-
-  enum
-  {
-    Vers_v7_1 = 5,
-  };
-};
+#include <string_buffer.h>
 
 char Jdb_bp::breakpoint_cmd;
 bool Jdb_bp::inited;
@@ -46,7 +11,6 @@ char Jdb_bp::breakpoint_length;
 int  Jdb_bp::breakpoint_number;
 char Jdb_bp::breakpoint_type;
 
-PRIVATE static
 void
 Jdb_bp::init_cpu(Cpu_number)
 {
@@ -72,9 +36,8 @@ Jdb_bp::init_cpu(Cpu_number)
 }
 
 
-IMPLEMENT
 Jdb_bp::Jdb_bp()
-  : Jdb_module("DEBUGGING")
+  : Jdb_module_mixin<Jdb_bp>("DEBUGGING")
 {
   static Jdb_handler enter(at_jdb_enter);
   static Jdb_handler leave(at_jdb_leave);
@@ -86,21 +49,18 @@ Jdb_bp::Jdb_bp()
   Jdb::bp_test_break    = test_break;
 }
 
-IMPLEMENT
 void
 Jdb_bp::at_jdb_enter()
 {
   // disable breakpoints while we are in kernel debugger
 }
 
-IMPLEMENT
 void
 Jdb_bp::at_jdb_leave()
 {
   // enable again
 }
 
-PRIVATE static
 unsigned
 Jdb_bp::num_watchpoints()
 {
@@ -109,7 +69,6 @@ Jdb_bp::num_watchpoints()
   return ((v >> 28) & 0xf) + 1;
 }
 
-PRIVATE static
 unsigned
 Jdb_bp::num_breakpoints()
 {
@@ -118,7 +77,6 @@ Jdb_bp::num_breakpoints()
   return ((v >> 24) & 0xf) + 1;
 }
 
-PRIVATE static
 void
 Jdb_bp::wvr(int num, Mword v)
 {
@@ -144,7 +102,6 @@ Jdb_bp::wvr(int num, Mword v)
     };
 }
 
-PRIVATE static
 Mword
 Jdb_bp::wvr(int num)
 {
@@ -172,7 +129,6 @@ Jdb_bp::wvr(int num)
   return v;
 }
 
-PRIVATE static
 void
 Jdb_bp::wcr(int num, Mword v)
 {
@@ -198,7 +154,6 @@ Jdb_bp::wcr(int num, Mword v)
     };
 }
 
-PRIVATE static
 Mword
 Jdb_bp::wcr(int num)
 {
@@ -226,7 +181,6 @@ Jdb_bp::wcr(int num)
   return v;
 }
 
-PRIVATE static
 void
 Jdb_bp::bvr(int num, Mword v)
 {
@@ -252,7 +206,6 @@ Jdb_bp::bvr(int num, Mword v)
     };
 }
 
-PRIVATE static
 Mword
 Jdb_bp::bvr(int num)
 {
@@ -280,7 +233,6 @@ Jdb_bp::bvr(int num)
   return v;
 }
 
-PRIVATE static
 void
 Jdb_bp::bcr(int num, Mword v)
 {
@@ -306,7 +258,6 @@ Jdb_bp::bcr(int num, Mword v)
     };
 }
 
-PRIVATE static
 Mword
 Jdb_bp::bcr(int num)
 {
@@ -335,7 +286,6 @@ Jdb_bp::bcr(int num)
 }
 
 /** @return 1 if only breakpoints were logged and jdb should not be entered */
-IMPLEMENT
 int
 Jdb_bp::test_log_only(Cpu_number )
 {
@@ -343,7 +293,6 @@ Jdb_bp::test_log_only(Cpu_number )
   return 0; // enter jdb
 }
 
-PRIVATE static
 void
 Jdb_bp::test_debug(Cpu_number cpu, String_buffer *buf, char *type,
                    bool *disable, Address *addr)
@@ -396,7 +345,6 @@ Jdb_bp::test_debug(Cpu_number cpu, String_buffer *buf, char *type,
     }
 }
 
-PRIVATE static
 void
 Jdb_bp::disable_breakpoint(Address addr)
 {
@@ -408,7 +356,6 @@ Jdb_bp::disable_breakpoint(Address addr)
     }
 }
 
-PUBLIC static
 Mword
 Jdb_bp::instruction_bp_at_addr(Address addr)
 {
@@ -419,7 +366,6 @@ Jdb_bp::instruction_bp_at_addr(Address addr)
 }
 
 
-PRIVATE static
 void
 Jdb_bp::disable_watchpoint(Address addr)
 {
@@ -432,7 +378,6 @@ Jdb_bp::disable_watchpoint(Address addr)
     }
 }
 
-PRIVATE static
 void
 Jdb_bp::set_bw(int idx, char type, Address addr,
                Mword cr_mask, Mword cr_val)
@@ -450,7 +395,6 @@ Jdb_bp::set_bw(int idx, char type, Address addr,
 }
 
 /** @return 1 if breakpoint occurred */
-IMPLEMENT
 int
 Jdb_bp::test_break(Cpu_number cpu, String_buffer *buf)
 {
@@ -475,7 +419,6 @@ Jdb_bp::test_break(Cpu_number cpu, String_buffer *buf)
   return 1;
 }
 
-PRIVATE
 void
 Jdb_bp::wp_bas(String_buffer *b, unsigned bas)
 {
@@ -490,7 +433,6 @@ Jdb_bp::wp_bas(String_buffer *b, unsigned bas)
     b->append((bas & (1 << (7 - i))) ? '1' : '0');
 }
 
-PRIVATE
 void
 Jdb_bp::show_wp(unsigned idx)
 {
@@ -510,7 +452,6 @@ Jdb_bp::show_wp(unsigned idx)
     printf("W#%d: disabled\n", idx);
 }
 
-PRIVATE
 void
 Jdb_bp::show_bp(unsigned idx)
 {
@@ -529,7 +470,6 @@ Jdb_bp::show_bp(unsigned idx)
 }
 
 
-PRIVATE
 void
 Jdb_bp::show_bps()
 {
@@ -542,7 +482,6 @@ Jdb_bp::show_bps()
     show_wp(i);
 }
 
-PRIVATE static
 const char *
 Jdb_bp::version_string(unsigned vers)
 {
@@ -552,23 +491,6 @@ Jdb_bp::version_string(unsigned vers)
   return vers > 7 ? 0 : versionstr[vers];
 }
 
-PRIVATE static inline
-Mword
-Jdb_bp::dbgdidr()
-{
-  Mword v;
-  asm volatile("mrc p14, 0, %0, c0, c0, 0" : "=r" (v));
-  return v;
-}
-
-PRIVATE static inline
-Mword
-Jdb_bp::hw_version()
-{
-  return (dbgdidr() >> 16) & 0xf;
-}
-
-PRIVATE static
 void
 Jdb_bp::show_hwinfo_cpu(Cpu_number cpu)
 {
@@ -585,14 +507,12 @@ Jdb_bp::show_hwinfo_cpu(Cpu_number cpu)
          (v >> 0) & 0xf);
 }
 
-PRIVATE static
 bool
 Jdb_bp::dbg_avail()
 {
   return !!version_string(hw_version());
 }
 
-PRIVATE
 int
 Jdb_bp::get_free_wp()
 {
@@ -603,7 +523,6 @@ Jdb_bp::get_free_wp()
   return -1;
 }
 
-PRIVATE
 int
 Jdb_bp::get_free_bp()
 {
@@ -614,9 +533,8 @@ Jdb_bp::get_free_bp()
   return -1;
 }
 
-PUBLIC
 Jdb_module::Action_code
-Jdb_bp::action(int cmd, void *&args, char const *&fmt, int &next_char) override
+Jdb_bp::action(int cmd, void *&args, char const *&fmt, int &next_char)
 {
   enum State
   {
@@ -795,33 +713,6 @@ Jdb_bp::action(int cmd, void *&args, char const *&fmt, int &next_char) override
     }
 
   return NOTHING;
-}
-
-PUBLIC
-Jdb_module::Cmd const *
-Jdb_bp::cmds() const override
-{
-  static Cmd cs[] =
-    {
-        {
-          0, "b", "bp", "%c",
-          "b{i|a|r|w}<addr>\tset breakpoint on insn/access/read/write "
-          "access\n"
-          "b-{b|w}<nr>\tdisable breakpoint\n"
-          "bl\tlist breakpoints\n"
-          "bI\tshow info on hw debugging",
-          &breakpoint_cmd
-        },
-    };
-
-  return cs;
-}
-
-PUBLIC
-int
-Jdb_bp::num_cmds() const override
-{
-  return 1;
 }
 
 static Jdb_bp jdb_set_bp INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
