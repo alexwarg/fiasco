@@ -34,6 +34,7 @@ IMPLEMENTATION:
 #include "thread.h"
 #include "thread_state.h"
 #include "types.h"
+#include "jdb_prompt_ext.h"
 
 IMPLEMENTATION [32bit]:
 #define ADDR_FMT "%08lx"
