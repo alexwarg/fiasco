@@ -1,99 +1,8 @@
-// Inside Jdb the method Jdb::get_thread() should be used instead of
-// Thread::current_thread(). The latter function cannot not handle the
-// case when we came from the kernel stack context!
 
-INTERFACE:
+#include <jdb_arch.h>
+#include <jdb.h>
 
-#include <l4_types.h>
-
-class Trap_state;
-class Thread;
-class Console_buffer;
-class Jdb_entry_frame;
-class Push_console;
-
-EXTENSION class Jdb
-{
-public:
-  enum
-  {
-    Msr_test_default     = 0,
-    Msr_test_fail_warn   = 1,
-    Msr_test_fail_ignore = 2,
-  };
-
-  static void init();
-
-  static Per_cpu<unsigned> apic_tpr;
-  static Unsigned16 pic_status;
-  static volatile char msr_test;
-  static volatile char msr_fail;
-
-  typedef enum
-    {
-      s_unknown, s_ipc, s_pagefault, s_fputrap,
-      s_interrupt, s_timer_interrupt, s_slowtrap, s_user_invoke,
-    } Guessed_thread_state;
-
-
-  static int (*bp_test_log_only)(Cpu_number cpu, Jdb_entry_frame *ef);
-  static int (*bp_test_sstep)(Cpu_number cpu, Jdb_entry_frame *ef);
-  static int (*bp_test_break)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
-  static int (*bp_test_other)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
-
-private:
-
-  static char _connected;
-  static Per_cpu<char> permanent_single_step;
-  static Per_cpu<char> code_ret, code_call, code_bra, code_int;
-
-  typedef enum
-    {
-      SS_NONE=0, SS_BRANCH, SS_RETURN
-    } Step_state;
-
-  static Per_cpu<Step_state> ss_state;
-  static Per_cpu<int> ss_level;
-
-  static const Unsigned8 *debug_ctrl_str;
-  static int              debug_ctrl_len;
-
-  static Per_cpu<int> jdb_irqs_disabled;
-};
-
-IMPLEMENTATION [{amd64,ia32}-!serial]:
-
-static inline
-void Jdb::init_serial_console()
-{}
-
-IMPLEMENTATION [{amd64,ia32}-serial]:
-
-#include <cstdio>
-#include <kernel_uart.h>
-
-static
-void Jdb::init_serial_console()
-{
-  if (Config::serial_esc == Config::SERIAL_ESC_IRQ &&
-      !Kernel_uart::uart()->failed())
-    {
-      int irq;
-
-      if ((irq = Kernel_uart::uart()->irq()) == -1)
-	{
-	  Config::serial_esc = Config::SERIAL_ESC_NOIRQ;
-	  puts("SERIAL ESC: Using serial hack in slow timer handler.");
-	}
-      else
-	{
-	  Kernel_uart::enable_rcv_irq();
-	  printf("SERIAL ESC: allocated IRQ %d for serial uart\n", irq);
-	}
-    }
-}
-
-IMPLEMENTATION[ia32,amd64]:
+#include <globalconfig.h>
 
 #include <cstring>
 #include <csetjmp>
@@ -108,6 +17,7 @@ IMPLEMENTATION[ia32,amd64]:
 #include <checksum.h>
 #include <config.h>
 #include <cpu.h>
+#include <div32.h>
 #include <initcalls.h>
 #include <idt.h>
 #include <io_apic.h>
@@ -138,31 +48,59 @@ IMPLEMENTATION[ia32,amd64]:
 #include <doublefault.h>
 #include <dbg_stack.h>
 
-char Jdb::_connected;			// Jdb::init() was done
+char Jdb_ia32_base::_connected;			// Jdb::init() was done
 // explicit single_step command
-DEFINE_PER_CPU Per_cpu<char> Jdb::permanent_single_step;
-volatile char Jdb::msr_test;		// = 1: trying to access an msr
-volatile char Jdb::msr_fail;		// = 1: MSR access failed
-DEFINE_PER_CPU Per_cpu<char> Jdb::code_ret; // current instruction is ret/iret
-DEFINE_PER_CPU Per_cpu<char> Jdb::code_call;// current instruction is call
-DEFINE_PER_CPU Per_cpu<char> Jdb::code_bra; // current instruction is jmp/jxx
-DEFINE_PER_CPU Per_cpu<char> Jdb::code_int; // current instruction is int x
+DEFINE_PER_CPU Per_cpu<char> Jdb_ia32_base::permanent_single_step;
+volatile char Jdb_ia32_base::msr_test;		// = 1: trying to access an msr
+volatile char Jdb_ia32_base::msr_fail;		// = 1: MSR access failed
+DEFINE_PER_CPU Per_cpu<char> Jdb_ia32_base::code_ret; // current instruction is ret/iret
+DEFINE_PER_CPU Per_cpu<char> Jdb_ia32_base::code_call;// current instruction is call
+DEFINE_PER_CPU Per_cpu<char> Jdb_ia32_base::code_bra; // current instruction is jmp/jxx
+DEFINE_PER_CPU Per_cpu<char> Jdb_ia32_base::code_int; // current instruction is int x
 
 // special single step state
-DEFINE_PER_CPU Per_cpu<Jdb::Step_state> Jdb::ss_state;
-DEFINE_PER_CPU Per_cpu<int> Jdb::ss_level;  // current call level
+DEFINE_PER_CPU Per_cpu<Jdb_ia32_base::Step_state> Jdb_ia32_base::ss_state;
+DEFINE_PER_CPU Per_cpu<int> Jdb_ia32_base::ss_level;  // current call level
 
-const Unsigned8*Jdb::debug_ctrl_str;	// string+length for remote control of
-int             Jdb::debug_ctrl_len;	// Jdb via enter_kdebugger("*#");
+const Unsigned8*Jdb_ia32_base::debug_ctrl_str;	// string+length for remote control of
+int             Jdb_ia32_base::debug_ctrl_len;	// Jdb via enter_kdebugger("*#");
 
-Unsigned16 Jdb::pic_status;
-DEFINE_PER_CPU Per_cpu<unsigned> Jdb::apic_tpr;
-DEFINE_PER_CPU Per_cpu<int> Jdb::jdb_irqs_disabled;
+Unsigned16 Jdb_ia32_base::pic_status;
+DEFINE_PER_CPU Per_cpu<unsigned> Jdb_ia32_base::apic_tpr;
+DEFINE_PER_CPU Per_cpu<int> Jdb_ia32_base::jdb_irqs_disabled;
 
-int  (*Jdb::bp_test_log_only)(Cpu_number cpu, Jdb_entry_frame *ef);
-int  (*Jdb::bp_test_sstep)(Cpu_number cpu, Jdb_entry_frame *ef);
-int  (*Jdb::bp_test_break)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
-int  (*Jdb::bp_test_other)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
+int  (*Jdb_ia32_base::bp_test_log_only)(Cpu_number cpu, Jdb_entry_frame *ef);
+int  (*Jdb_ia32_base::bp_test_sstep)(Cpu_number cpu, Jdb_entry_frame *ef);
+int  (*Jdb_ia32_base::bp_test_break)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
+int  (*Jdb_ia32_base::bp_test_other)(Cpu_number cpu, Jdb_entry_frame *ef, String_buffer *buf);
+
+
+#ifdef CONFIG_SERIAL
+
+#include <cstdio>
+#include <kernel_uart.h>
+
+void Jdb_ia32_base::init_serial_console()
+{
+  if (Config::serial_esc == Config::SERIAL_ESC_IRQ &&
+      !Kernel_uart::uart()->failed())
+    {
+      int irq;
+
+      if ((irq = Kernel_uart::uart()->irq()) == -1)
+	{
+	  Config::serial_esc = Config::SERIAL_ESC_NOIRQ;
+	  puts("SERIAL ESC: Using serial hack in slow timer handler.");
+	}
+      else
+	{
+	  Kernel_uart::enable_rcv_irq();
+	  printf("SERIAL ESC: allocated IRQ %d for serial uart\n", irq);
+	}
+    }
+}
+
+#endif
 
 // available from the jdb_dump module
 int jdb_dump_addr_task (Jdb_address addr, int level)
@@ -172,7 +110,7 @@ int jdb_dump_addr_task (Jdb_address addr, int level)
 STATIC_INITIALIZE_P(Jdb,JDB_INIT_PRIO);
 
 
-IMPLEMENT FIASCO_INIT FIASCO_NOINLINE
+FIASCO_INIT
 void Jdb::init()
 {
   if (Koptions::o()->opt(Koptions::F_nojdb))
@@ -197,39 +135,9 @@ void Jdb::init()
   Dbf::may_enter_dbg = true;
 }
 
-PUBLIC static inline bool
-Jdb::connected()
-{
-  return _connected;
-}
-
-IMPLEMENT_OVERRIDE inline template< typename T >
-T
-Jdb::monitor_address(Cpu_number current_cpu, T volatile const *addr)
-{
-  if (!*addr && Cpu::cpus.cpu(current_cpu).has_monitor_mwait())
-    {
-      asm volatile ("monitor \n" : : "a"(addr), "c"(0), "d"(0) );
-      Mword irq_sup = Cpu::cpus.cpu(current_cpu).has_monitor_mwait_irq() ? 1 : 0;
-      asm volatile ("mwait   \n" : : "a"(0x00), "c"(irq_sup) );
-    }
-
-  return *addr;
-}
-
-
-static inline
-void
-Jdb::backspace()
-{
-  putstr("\b \b");
-}
-
-
 DEFINE_PER_CPU static Per_cpu<Proc::Status> jdb_saved_flags;
 
 // disable interrupts before entering the kernel debugger
-IMPLEMENT
 void
 Jdb::save_disable_irqs(Cpu_number cpu)
 {
@@ -268,7 +176,6 @@ Jdb::save_disable_irqs(Cpu_number cpu)
 }
 
 // restore interrupts after leaving the kernel debugger
-IMPLEMENT
 void
 Jdb::restore_irqs(Cpu_number cpu)
 {
@@ -295,31 +202,24 @@ Jdb::restore_irqs(Cpu_number cpu)
 }
 
 
-PUBLIC static inline
-bool
-Jdb::same_page(Address a1, Address a2)
+static inline bool same_page(Address a1, Address a2)
 {
   return (a1 & Config::PAGE_MASK) == (a2 & Config::PAGE_MASK);
 }
 
-PUBLIC static inline
-bool
-Jdb::consecutive_pages(Address a1, Address a2)
+static inline bool consecutive_pages(Address a1, Address a2)
 {
   return (a1 & Config::PAGE_MASK) + Config::PAGE_SIZE
       == (a2 & Config::PAGE_MASK);
 }
 
-PUBLIC static inline NEEDS[Jdb::same_page, Jdb::consecutive_pages]
-bool
-Jdb::same_or_consecutive_pages(Address a1, Address a2)
+static inline bool same_or_consecutive_pages(Address a1, Address a2)
 {
   return same_page(a1, a2) || consecutive_pages(a1, a2);
 }
 
-PUBLIC static
 void
-Jdb::peek_phys(Address phys, void *value, int width)
+Jdb_ia32_base::peek_phys(Address phys, void *value, int width)
 {
   assert(width > 0);
   assert(same_or_consecutive_pages(phys, phys + width - 1));
@@ -329,9 +229,8 @@ Jdb::peek_phys(Address phys, void *value, int width)
   memcpy(value, (void*)virt, width);
 }
 
-PUBLIC static
 void
-Jdb::poke_phys(Address phys, void const *value, int width)
+Jdb_ia32_base::poke_phys(Address phys, void const *value, int width)
 {
   assert(width > 0);
   assert(same_or_consecutive_pages(phys, phys + width - 1));
@@ -341,7 +240,6 @@ Jdb::poke_phys(Address phys, void const *value, int width)
   memcpy((void*)virt, value, width);
 }
 
-PRIVATE static
 unsigned char *
 Jdb::access_mem_task(Jdb_address addr, bool write)
 {
@@ -383,9 +281,8 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   return reinterpret_cast<unsigned char *>(virt);
 }
 
-PUBLIC static
 Address
-Jdb::get_phys_address(Jdb_address addr)
+Jdb_ia32_base::get_phys_address(Jdb_address addr)
 {
   if (addr.is_null())
     return (Address)~0UL;
@@ -402,9 +299,8 @@ Jdb::get_phys_address(Jdb_address addr)
 // The content of apdapter memory is not shown by default because reading
 // memory-mapped I/O registers may confuse the hardware. We assume that all
 // memory above the end of the RAM is adapter memory.
-PUBLIC static
 int
-Jdb::is_adapter_memory(Jdb_address addr)
+Jdb_ia32_base::is_adapter_memory(Jdb_address addr)
 {
   if (addr.is_null())
     return false;
@@ -431,9 +327,8 @@ extern "C" char in_sc_ipc1 WEAK, in_sc_ipc2 WEAK;
 
 // Try to guess the thread state of t by walking down the kernel stack and
 // locking at the first return address we find.
-PUBLIC static
-Jdb::Guessed_thread_state
-Jdb::guess_thread_state(Thread *t)
+Jdb_ia32_base::Guessed_thread_state
+Jdb_ia32_base::guess_thread_state(Thread *t)
 {
   Guessed_thread_state state = s_unknown;
   Mword *ktop = (Mword*)((Mword)context_of(t->get_kernel_sp()) +
@@ -453,7 +348,7 @@ Jdb::guess_thread_state(Thread *t)
 #endif
 	     0)
 	    state = s_ipc;
-	  else if (ktop[i] == (Mword)&Thread::user_invoke)
+	  else if (ktop[i] == Jdb::user_invoke_addr<Thread>())
 	    state = s_user_invoke;
 	  else if (ktop[i] == (Mword)&in_handle_fputrap)
 	    state = s_fputrap;
@@ -475,73 +370,26 @@ Jdb::guess_thread_state(Thread *t)
   return state;
 }
 
-PUBLIC static
 void
-Jdb::set_single_step(Cpu_number cpu, int on)
+Jdb_ia32_base::set_single_step(Cpu_number cpu, int on)
 {
   if (on)
-    entry_frame.cpu(cpu)->flags(entry_frame.cpu(cpu)->flags() | EFLAGS_TF);
+    Jdb::entry_frame.cpu(cpu)->flags(Jdb::entry_frame.cpu(cpu)->flags() | EFLAGS_TF);
   else
-    entry_frame.cpu(cpu)->flags(entry_frame.cpu(cpu)->flags() & ~EFLAGS_TF);
+    Jdb::entry_frame.cpu(cpu)->flags(Jdb::entry_frame.cpu(cpu)->flags() & ~EFLAGS_TF);
 
   permanent_single_step.cpu(cpu) = on;
 }
 
-
-static bool
-Jdb::handle_special_cmds(int c)
-{
-  foreach_cpu(&analyze_code);
-
-  switch (c)
-    {
-    case 'j': // do restricted "go"
-      switch (putchar(c=getchar()))
-	{
-	case 'b': // go until next branch
-	case 'r': // go until current function returns
-	  ss_level.cpu(current_cpu) = 0;
-	  if (code_call.cpu(current_cpu))
-	    {
-	      // increase call level because currently we
-	      // stay on a call instruction
-	      ss_level.cpu(current_cpu)++;
-	    }
-	  ss_state.cpu(current_cpu) = (c == 'b') ? SS_BRANCH : SS_RETURN;
-	  // if we have lbr feature, the processor treats the single
-	  // step flag as step on branches instead of step on instruction
-	  Cpu::boot_cpu()->btf_enable(true);
-	  // fall through
-	case 's': // do one single step
-	  entry_frame.cpu(current_cpu)->flags(entry_frame.cpu(current_cpu)->flags() | EFLAGS_TF);
-	  hide_statline = false;
-	  return 0;
-	default:
-	  abort_command();
-	  break;
-	}
-      break;
-    default:
-      backspace();
-      // ignore character and get next input
-      break;
-    }
-
-  return 1;
-
-}
-
-
-IMPLEMENTATION[ia32]:
+#ifdef CONFIG_BIT32
 
 // take a look at the code of the current thread eip
 // set global indicators code_call, code_ret, code_bra, code_int
 // This can fail if the current page is still not mapped
-static void
-Jdb::analyze_code(Cpu_number cpu)
+static void analyze_code(Cpu_number cpu)
 {
   Jdb_entry_frame *entry_frame = Jdb::entry_frame.cpu(cpu);
-  Space *task = get_task(cpu);
+  Space *task = Jdb::get_task(cpu);
   // do nothing if page not mapped into this address space
   if (entry_frame->ip()+1 > Kmem::user_max())
     return;
@@ -550,24 +398,24 @@ Jdb::analyze_code(Cpu_number cpu)
 
   Jdb_addr<Unsigned8> insn_ptr((Unsigned8*)entry_frame->ip(), task);
 
-  if (   !peek(insn_ptr, op1)
-      || !peek(insn_ptr + 1, op2))
+  if (   !Jdb::peek(insn_ptr, op1)
+      || !Jdb::peek(insn_ptr + 1, op2))
     return;
 
   if (op1 != 0x0f && op1 != 0xff)
     op2 = 0;
 
-  code_ret.cpu(cpu) =
+  Jdb_ia32_base::code_ret.cpu(cpu) =
 	      (   ((op1 & 0xf6) == 0xc2)	// ret/lret /xxxx
 	       || (op1 == 0xcf));		// iret
 
-  code_call.cpu(cpu) =
+  Jdb_ia32_base::code_call.cpu(cpu) =
 	      (   (op1 == 0xe8)			// call near
 	       || ((op1 == 0xff)
 	           && ((op2 & 0x30) == 0x10))	// call/lcall *(...)
 	       || (op1 == 0x9a));		// lcall xxxx:xxxx
 
-  code_bra.cpu(cpu) =
+  Jdb_ia32_base::code_bra.cpu(cpu) =
 	      (   ((op1 & 0xfc) == 0xe0)	// loop/jecxz
 	       || ((op1 & 0xf0) == 0x70)	// jxx rel 8 bit
 	       || (op1 == 0xeb)			// jmp rel 8 bit
@@ -578,33 +426,72 @@ Jdb::analyze_code(Cpu_number cpu)
 	           && ((op2 & 0x30) == 0x20))	// jmp/ljmp *(...)
 	       || (op1 == 0xea));		// ljmp xxxx:xxxx
 
-  code_int.cpu(cpu) =
+  Jdb_ia32_base::code_int.cpu(cpu) =
 	      (   (op1 == 0xcc)			// int3
 	       || (op1 == 0xcd)			// int xx
 	       || (op1 == 0xce));		// into
 }
+#endif
 
-IMPLEMENTATION[amd64]:
+#ifdef CONFIG_BIT64
+static inline void analyze_code(Cpu_number) {}
+#endif
 
-static void
-Jdb::analyze_code(Cpu_number)
-{}
+bool
+Jdb_ia32_base::handle_special_cmds(int c)
+{
+  Jdb::foreach_cpu(&analyze_code);
 
-IMPLEMENTATION[ia32,amd64]:
+  switch (c)
+    {
+    case 'j': // do restricted "go"
+      switch (putchar(c=getchar()))
+	{
+	case 'b': // go until next branch
+	case 'r': // go until current function returns
+	  ss_level.cpu(Jdb::current_cpu) = 0;
+	  if (code_call.cpu(Jdb::current_cpu))
+	    {
+	      // increase call level because currently we
+	      // stay on a call instruction
+	      ss_level.cpu(Jdb::current_cpu)++;
+	    }
+	  ss_state.cpu(Jdb::current_cpu) = (c == 'b') ? SS_BRANCH : SS_RETURN;
+	  // if we have lbr feature, the processor treats the single
+	  // step flag as step on branches instead of step on instruction
+	  Cpu::boot_cpu()->btf_enable(true);
+	  // fall through
+	case 's': // do one single step
+          Jdb::entry_frame.cpu(Jdb::current_cpu)->flags(Jdb::entry_frame.cpu(Jdb::current_cpu)->flags() | EFLAGS_TF);
+          Jdb::hide_statline = false;
+	  return 0;
+	default:
+          Jdb::abort_command();
+	  break;
+	}
+      break;
+    default:
+      putstr("\b \b");
+      // ignore character and get next input
+      break;
+    }
+
+  return 1;
+}
 
 // entered debugger because of single step trap
-static inline NOEXPORT int
-Jdb::handle_single_step(Cpu_number cpu)
+static inline int
+handle_single_step(Cpu_number cpu)
 {
   int really_break = 1;
 
   analyze_code(cpu);
 
   Cpu const &ccpu = Cpu::cpus.cpu(cpu);
-  error_buffer.cpu(cpu).clear();
+  Jdb::error_buffer.cpu(cpu).clear();
 
   // special single_step ('j' command): go until branch/return
-  if (ss_state.cpu(cpu) != SS_NONE)
+  if (Jdb_ia32_base::ss_state.cpu(cpu) != Jdb_ia32_base::SS_NONE)
     {
       if (ccpu.lbr_type() != Cpu::Lbr_unsupported)
 	{
@@ -613,26 +500,26 @@ Jdb::handle_single_step(Cpu_number cpu)
       else
 	{
 	  // we have to emulate lbr looking at the code ...
-	  switch (ss_state.cpu(cpu))
+	  switch (Jdb_ia32_base::ss_state.cpu(cpu))
 	    {
-	    case SS_RETURN:
+	    case Jdb_ia32_base::SS_RETURN:
 	      // go until function return
 	      really_break = 0;
-	      if (code_call.cpu(cpu))
+	      if (Jdb_ia32_base::code_call.cpu(cpu))
 		{
 		  // increase call level
-		  ss_level.cpu(cpu)++;
+		  Jdb_ia32_base::ss_level.cpu(cpu)++;
 		}
-	      else if (code_ret.cpu(cpu))
+	      else if (Jdb_ia32_base::code_ret.cpu(cpu))
 		{
 		  // decrease call level
-		  really_break = (ss_level.cpu(cpu)-- == 0);
+		  really_break = (Jdb_ia32_base::ss_level.cpu(cpu)-- == 0);
 		}
 	      break;
-	    case SS_BRANCH:
+	    case Jdb_ia32_base::SS_BRANCH:
 	    default:
 	      // go until next branch
-	      really_break = (code_ret.cpu(cpu) || code_call.cpu(cpu) || code_bra.cpu(cpu) || code_int.cpu(cpu));
+	      really_break = (Jdb_ia32_base::code_ret.cpu(cpu) || Jdb_ia32_base::code_call.cpu(cpu) || Jdb_ia32_base::code_bra.cpu(cpu) || Jdb_ia32_base::code_int.cpu(cpu));
 	      break;
 	    }
 	}
@@ -640,63 +527,63 @@ Jdb::handle_single_step(Cpu_number cpu)
       if (really_break)
 	{
 	  // condition met
-	  ss_state.cpu(cpu) = SS_NONE;
-	  error_buffer.cpu(cpu).printf("%s", "Branch/Call");
+	  Jdb_ia32_base::ss_state.cpu(cpu) = Jdb_ia32_base::SS_NONE;
+	  Jdb::error_buffer.cpu(cpu).printf("%s", "Branch/Call");
 	}
     }
   else // (ss_state == SS_NONE)
     // regular single_step
-    error_buffer.cpu(cpu).printf("%s", "Singlestep");
+    Jdb::error_buffer.cpu(cpu).printf("%s", "Singlestep");
 
   return really_break;
 }
 
 // entered debugger due to debug exception
-static inline NOEXPORT int
-Jdb::handle_trap1(Cpu_number cpu, Jdb_entry_frame *ef)
+static inline int
+handle_trap1(Cpu_number cpu, Jdb_entry_frame *ef)
 {
   // FIXME: currently only on boot cpu
   if (cpu != Cpu_number::boot_cpu())
     return 0;
 
-  if (bp_test_sstep && bp_test_sstep(cpu, ef))
+  if (Jdb_ia32_base::bp_test_sstep && Jdb_ia32_base::bp_test_sstep(cpu, ef))
     return handle_single_step(cpu);
 
-  error_buffer.cpu(cpu).clear();
-  if (bp_test_break
-      && bp_test_break(cpu, ef, &error_buffer.cpu(cpu)))
+  Jdb::error_buffer.cpu(cpu).clear();
+  if (Jdb_ia32_base::bp_test_break
+      && Jdb_ia32_base::bp_test_break(cpu, ef, &Jdb::error_buffer.cpu(cpu)))
     return 1;
 
-  if (bp_test_other
-      && bp_test_other(cpu, ef, &error_buffer.cpu(cpu)))
+  if (Jdb_ia32_base::bp_test_other
+      && Jdb_ia32_base::bp_test_other(cpu, ef, &Jdb::error_buffer.cpu(cpu)))
     return 1;
 
   return 0;
 }
 
 // entered debugger due to software breakpoint
-static inline NOEXPORT bool
-Jdb::handle_trap3(Cpu_number cpu, Jdb_entry_frame *ef)
+static inline bool
+handle_trap3(Cpu_number cpu, Jdb_entry_frame *ef)
 {
-  error_buffer.cpu(cpu).clear();
+  Jdb::error_buffer.cpu(cpu).clear();
 
   if (ef->debug_entry_kernel_str())
-    error_buffer.cpu(cpu).printf("%s", ef->text());
+    Jdb::error_buffer.cpu(cpu).printf("%s", ef->text());
   else if (ef->debug_entry_user_str())
-    error_buffer.cpu(cpu).printf("user \"%.*s\"", ef->textlen(), ef->text());
+    Jdb::error_buffer.cpu(cpu).printf("user \"%.*s\"", ef->textlen(), ef->text());
 
   return true;
 }
 
 // entered debugger due to other exception
-static inline NOEXPORT int
-Jdb::handle_trapX(Cpu_number cpu, Jdb_entry_frame *ef)
+static inline int
+handle_trapX(Cpu_number cpu, Jdb_entry_frame *ef)
 {
-  error_buffer.cpu(cpu).clear();
-  error_buffer.cpu(cpu).printf("%s", Cpu::exception_string(ef->_trapno));
+  Jdb::error_buffer.cpu(cpu).clear();
+  Jdb::error_buffer.cpu(cpu).printf("%s", Cpu::exception_string(ef->_trapno));
   if (   ef->_trapno >= 10
       && ef->_trapno <= 14)
-    error_buffer.cpu(cpu).printf(" (ERR=" L4_PTR_FMT ")", ef->_err);
+    Jdb::error_buffer.cpu(cpu).printf(" (ERR=" L4_PTR_FMT ")", ef->_err);
 
   return 1;
 }
@@ -705,7 +592,6 @@ Jdb::handle_trapX(Cpu_number cpu, Jdb_entry_frame *ef)
  * after entering the kernel debugger.
  * @return true if command was successfully interpreted
  */
-IMPLEMENT
 bool
 Jdb::handle_user_request(Cpu_number cpu)
 {
@@ -720,22 +606,18 @@ Jdb::handle_user_request(Cpu_number cpu)
   return false;
 }
 
-IMPLEMENT
 void
 Jdb::enter_trap_handler(Cpu_number cpu)
 { Cpu::cpus.cpu(cpu).debugctl_disable(); }
 
-IMPLEMENT
 void
 Jdb::leave_trap_handler(Cpu_number cpu)
 { Cpu::cpus.cpu(cpu).debugctl_enable(); }
 
-IMPLEMENT
 bool
 Jdb::handle_conditional_breakpoint(Cpu_number cpu, Jdb_entry_frame *e)
 { return e->_trapno == 1 && bp_test_log_only && bp_test_log_only(cpu, e); }
 
-IMPLEMENT
 void
 Jdb::handle_nested_trap(Jdb_entry_frame *e)
 {
@@ -784,7 +666,6 @@ Jdb::handle_nested_trap(Jdb_entry_frame *e)
     }
 }
 
-IMPLEMENT
 bool
 Jdb::handle_debug_traps(Cpu_number cpu)
 {
@@ -813,27 +694,78 @@ Jdb::handle_debug_traps(Cpu_number cpu)
   return really_break;
 }
 
-IMPLEMENT
 bool
-Jdb::test_checksums()
+Jdb_ia32_base::test_checksums()
 { return Boot_info::get_checksum_ro() == Checksum::get_checksum_ro(); }
 
-PUBLIC static inline
-void
-Jdb::enter_getchar()
-{}
+int
+Jdb_ia32_base::get_register(char *reg)
+{
+  union
+  {
+    char c[4];
+    Unsigned32 v;
+  } reg_name;
+  int i;
+  reg_name.v = 0;
 
-PUBLIC static inline
+  putchar(reg_name.c[0] = Jdb_screen::Reg_prefix);
+
+  for (i = 1; i < 3; i++)
+    {
+      int c = getchar();
+      if (c == KEY_ESC)
+	return false;
+      putchar(reg_name.c[i] = c & 0xdf);
+      if (c == '8' || c == '9')
+	break;
+    }
+
+  reg_name.c[3] = '\0';
+
+  for (i = 0; i < Jdb_screen::num_regs(); i++)
+    if (reg_name.v == *((Unsigned32 *)(Jdb_screen::Reg_names[i])))
+      break;
+
+  if (i == Jdb_screen::num_regs())
+    return false;
+
+  *reg = i + 1;
+  return true;
+}
+
 void
-Jdb::leave_getchar()
-{}
+Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
+{
+  Unsigned64 uns = Cpu::boot_cpu()->tsc_to_ns(tsc < 0 ? -tsc : tsc);
+
+  if (tsc < 0)
+    uns = -uns;
+
+  if (sign)
+    buf->printf("%c", (tsc < 0) ? '-' : (tsc == 0) ? ' ' : '+');
+
+  Mword _s  = uns / 1000000000;
+  Mword _us = div32(uns, 1000) - 1000000 * _s;
+  buf->printf("%3lu.%06lu s ", _s, _us);
+}
+
+void
+Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
+{
+  Unsigned64 ns = Cpu::boot_cpu()->tsc_to_ns(tsc < 0 ? -tsc : tsc);
+  if (tsc < 0)
+    ns = -ns;
+  write_ll_ns(buf, ns, sign);
+}
 
 //----------------------------------------------------------------------------
-IMPLEMENTATION [(ia32 || amd64) && mp]:
+#ifdef CONFIG_MP
 
-static
 void
 Jdb::send_nmi(Cpu_number cpu)
 {
   Apic::mp_send_ipi(Apic::apic.cpu(cpu)->apic_id(), 0, Apic::APIC_IPI_NMI);
 }
+
+#endif

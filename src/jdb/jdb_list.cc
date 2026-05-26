@@ -14,6 +14,9 @@
 #include "keycodes.h"
 #include "simpleio.h"
 #include <minmax.h>
+#include <ctype.h>
+
+
 // search index of search starting from _start
 int
 Jdb_list::lookup_in_visible_area(void *search)

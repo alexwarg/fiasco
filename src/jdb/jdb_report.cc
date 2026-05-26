@@ -9,6 +9,8 @@
 #include "jdb_kobject.h"
 #include "jdb_screen.h"
 
+#include <kernel_console.h>
+
 
 class Jdb_report : public Jdb_module
 {

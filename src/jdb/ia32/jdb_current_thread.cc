@@ -1,6 +1,7 @@
 
 #include <jdb.h>
 #include <thread.h>
+#include <dbg_stack.h>
 
 struct On_dbg_stack
 {

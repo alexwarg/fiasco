@@ -1,13 +1,6 @@
-INTERFACE [arm]:
 
-EXTENSION class Jdb
-{
-public:
-  static int (*bp_test_log_only)(Cpu_number);
-  static int (*bp_test_break)(Cpu_number, String_buffer *);
-};
-
-IMPLEMENTATION [arm]:
+#include <jdb.h>
+#include <jdb_arch.h>
 
 #include <globals.h>
 #include <kernel_task.h>
@@ -20,45 +13,20 @@ IMPLEMENTATION [arm]:
 #include <timer_tick.h>
 #include <watchdog.h>
 #include <cxx/cxx_int>
+#include <push_console.h>
+
+#include <arch_time_source.h>
 
 STATIC_INITIALIZE_P(Jdb, JDB_INIT_PRIO);
 
 DEFINE_PER_CPU static Per_cpu<Proc::Status> jdb_irq_state;
 
-int (*Jdb::bp_test_log_only)(Cpu_number);
-int (*Jdb::bp_test_break)(Cpu_number, String_buffer *buf);
+int (*Jdb_arm_base::bp_test_log_only)(Cpu_number);
+int (*Jdb_arm_base::bp_test_break)(Cpu_number, String_buffer *buf);
 
+
+#ifdef CONFIG_ARM_GIC
 // ------------------------------------------------------------------------
-IMPLEMENTATION [arm && !pic_gic]:
-
-PRIVATE static inline
-void
-Jdb::wfi_enter()
-{}
-
-PRIVATE static inline
-void
-Jdb::wfi_leave()
-{}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pic_gic && serial]:
-
-PRIVATE static inline
-void
-Jdb::kernel_uart_irq_ack()
-{ Kernel_uart::uart()->irq_ack(); }
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pic_gic && !serial]:
-
-PRIVATE static inline
-void
-Jdb::kernel_uart_irq_ack()
-{}
-
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm && pic_gic]:
 
 #include <gic.h>
 
@@ -69,36 +37,7 @@ struct Jdb_wfi_gic
 };
 static Jdb_wfi_gic wfi_gic;
 
-PRIVATE static
-void
-Jdb::wfi_enter()
-{
-  Jdb_core::wait_for_input = _wait_for_input;
-
-  Timer_tick *tt = Timer_tick::boot_cpu_timer_tick();
-  Gic *g = static_cast<Gic*>(tt->chip());
-
-  wfi_gic.orig_tt_prio = g->irq_prio_bootcpu(tt->pin());
-  wfi_gic.orig_pmr     = g->get_pmr();
-  g->set_pmr(0x90);
-  g->irq_prio_bootcpu(tt->pin(), 0x00);
-
-  Timer_tick::enable(Cpu_number::boot_cpu());
-}
-
-PRIVATE static
-void
-Jdb::wfi_leave()
-{
-  Timer_tick *tt = Timer_tick::boot_cpu_timer_tick();
-  Gic *g = static_cast<Gic*>(tt->chip());
-  g->irq_prio_bootcpu(tt->pin(), wfi_gic.orig_tt_prio);
-  g->set_pmr(wfi_gic.orig_pmr);
-}
-
-PRIVATE static
-void
-Jdb::_wait_for_input()
+static void _wait_for_input()
 {
   Proc::halt();
 
@@ -106,7 +45,7 @@ Jdb::_wait_for_input()
   unsigned i = static_cast<Gic*>(tt->chip())->get_pending();
   if (i == tt->pin())
     {
-      kernel_uart_irq_ack();
+      Jdb::kernel_uart_irq_ack();
       tt->ack();
     }
   else
@@ -121,13 +60,34 @@ Jdb::_wait_for_input()
     }
 }
 
-// ------------------------------------------------------------------------
-IMPLEMENTATION [arm]:
+void
+Jdb_arm_base::wfi_enter()
+{
+  Jdb_core::wait_for_input = _wait_for_input;
 
-#include <arch_time_source.h>
+  Timer_tick *tt = Timer_tick::boot_cpu_timer_tick();
+  Gic *g = static_cast<Gic*>(tt->chip());
+
+  wfi_gic.orig_tt_prio = g->irq_prio_bootcpu(tt->pin());
+  wfi_gic.orig_pmr     = g->get_pmr();
+  g->set_pmr(0x90);
+  g->irq_prio_bootcpu(tt->pin(), 0x00);
+
+  Timer_tick::enable(Cpu_number::boot_cpu());
+}
+
+void
+Jdb_arm_base::wfi_leave()
+{
+  Timer_tick *tt = Timer_tick::boot_cpu_timer_tick();
+  Gic *g = static_cast<Gic*>(tt->chip());
+  g->irq_prio_bootcpu(tt->pin(), wfi_gic.orig_tt_prio);
+  g->set_pmr(wfi_gic.orig_pmr);
+}
+
+#endif
 
 // disable interrupts before entering the kernel debugger
-IMPLEMENT
 void
 Jdb::save_disable_irqs(Cpu_number cpu)
 {
@@ -142,7 +102,6 @@ Jdb::save_disable_irqs(Cpu_number cpu)
 }
 
 // restore interrupts after leaving the kernel debugger
-IMPLEMENT
 void
 Jdb::restore_irqs(Cpu_number cpu)
 {
@@ -156,17 +115,14 @@ Jdb::restore_irqs(Cpu_number cpu)
   Proc::sti_restore(jdb_irq_state.cpu(cpu));
 }
 
-IMPLEMENT inline
 void
 Jdb::enter_trap_handler(Cpu_number)
 {}
 
-IMPLEMENT inline
 void
 Jdb::leave_trap_handler(Cpu_number)
 {}
 
-IMPLEMENT inline
 bool
 Jdb::handle_conditional_breakpoint(Cpu_number cpu, Jdb_entry_frame *e)
 {
@@ -174,7 +130,6 @@ Jdb::handle_conditional_breakpoint(Cpu_number cpu, Jdb_entry_frame *e)
          && bp_test_log_only && bp_test_log_only(cpu);
 }
 
-IMPLEMENT
 void
 Jdb::handle_nested_trap(Jdb_entry_frame *e)
 {
@@ -182,7 +137,6 @@ Jdb::handle_nested_trap(Jdb_entry_frame *e)
          e->ip(), e->psr, e->error_code);
 }
 
-IMPLEMENT
 bool
 Jdb::handle_debug_traps(Cpu_number cpu)
 {
@@ -205,7 +159,6 @@ Jdb::handle_debug_traps(Cpu_number cpu)
   return true;
 }
 
-IMPLEMENT inline
 bool
 Jdb::handle_user_request(Cpu_number cpu)
 {
@@ -220,18 +173,18 @@ Jdb::handle_user_request(Cpu_number cpu)
   return false;
 }
 
-IMPLEMENT inline
-bool
-Jdb::test_checksums()
-{ return true; }
 
-static
-bool
-Jdb::handle_special_cmds(int)
-{ return 1; }
+static void at_jdb_enter()
+{
+  Mem_unit::clean_vdcache();
+}
 
-PUBLIC static
-FIASCO_INIT FIASCO_NOINLINE void
+static void at_jdb_leave()
+{
+  Mem_unit::flush_vcache();
+}
+
+FIASCO_INIT void
 Jdb::init()
 {
   static Jdb_handler enter(at_jdb_enter);
@@ -246,7 +199,6 @@ Jdb::init()
 }
 
 
-PRIVATE static
 unsigned char *
 Jdb::access_mem_task(Jdb_address addr, bool write)
 {
@@ -317,38 +269,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
                            + (phys & (Config::SUPERPAGE_SIZE - 1)));
 }
 
-PUBLIC static
-int
-Jdb::is_adapter_memory(Jdb_address)
-{
-  return 0;
-}
-
-PRIVATE static
-void
-Jdb::at_jdb_enter()
-{
-  Mem_unit::clean_vdcache();
-}
-
-PRIVATE static
-void
-Jdb::at_jdb_leave()
-{
-  Mem_unit::flush_vcache();
-}
-
-PUBLIC static inline
-void
-Jdb::enter_getchar()
-{}
-
-PUBLIC static inline
-void
-Jdb::leave_getchar()
-{}
-
-IMPLEMENT_OVERRIDE
 void
 Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
 {
@@ -365,7 +285,6 @@ Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
   buf->printf("%3lu.%06lu s ", _s, _us);
 }
 
-IMPLEMENT_OVERRIDE
 void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
@@ -376,12 +295,11 @@ Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 }
 
 
+#ifdef CONFIG_MP
 //----------------------------------------------------------------------------
-IMPLEMENTATION [arm && mp]:
 
 #include <cstdio>
 
-static
 void
 Jdb::send_nmi(Cpu_number cpu)
 {
@@ -389,19 +307,4 @@ Jdb::send_nmi(Cpu_number cpu)
          cxx::int_value<Cpu_number>(cpu));
 }
 
-IMPLEMENT_OVERRIDE inline template< typename T >
-void
-Jdb::set_monitored_address(T *dest, T val)
-{
-  *const_cast<T volatile *>(dest) = val;
-  Mem::dsb();
-  asm volatile("sev");
-}
-
-IMPLEMENT_OVERRIDE inline template< typename T >
-T
-Jdb::monitor_address(Cpu_number, T volatile const *addr)
-{
-  asm volatile("wfe");
-  return *addr;
-}
+#endif

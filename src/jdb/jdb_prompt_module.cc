@@ -7,6 +7,7 @@
 #include "jdb_screen.h"
 #include "kernel_console.h"
 #include "static_init.h"
+#include <keycodes.h>
 
 #include "processor.h"
 

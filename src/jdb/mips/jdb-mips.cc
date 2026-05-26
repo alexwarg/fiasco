@@ -1,4 +1,7 @@
-IMPLEMENTATION [mips]:
+
+#include <jdb_arch.h>
+#include <jdb.h>
+#include <jdb_types.h>
 
 #include "globals.h"
 #include "kmem_alloc.h"
@@ -7,41 +10,39 @@ IMPLEMENTATION [mips]:
 #include "mem_unit.h"
 #include "static_init.h"
 #include <globalconfig.h>
+#include <kernel_console.h>
+#include <push_console.h>
 
 STATIC_INITIALIZE_P(Jdb, JDB_INIT_PRIO);
 
 // disable interrupts before entering the kernel debugger
-IMPLEMENT
 void
 Jdb::save_disable_irqs(Cpu_number)
 {}
 
 // restore interrupts after leaving the kernel debugger
-IMPLEMENT
 void
 Jdb::restore_irqs(Cpu_number cpu)
 {
 #ifdef CONFIG_MP
   Ipi::atomic_reset(cpu, Ipi::Debug);
+#else
+  (void)cpu;
 #endif
 }
 
-IMPLEMENT inline
 void
 Jdb::enter_trap_handler(Cpu_number)
 {}
 
-IMPLEMENT inline
 void
 Jdb::leave_trap_handler(Cpu_number)
 {}
 
-IMPLEMENT inline
 bool
 Jdb::handle_conditional_breakpoint(Cpu_number, Jdb_entry_frame *)
 { return false; }
 
-IMPLEMENT
 void
 Jdb::handle_nested_trap(Jdb_entry_frame *e)
 {
@@ -49,7 +50,6 @@ Jdb::handle_nested_trap(Jdb_entry_frame *e)
          e->ip(), e->cause, e->status);
 }
 
-IMPLEMENT
 bool
 Jdb::handle_debug_traps(Cpu_number cpu)
 {
@@ -68,7 +68,6 @@ Jdb::handle_debug_traps(Cpu_number cpu)
   return true;
 }
 
-IMPLEMENT inline
 bool
 Jdb::handle_user_request(Cpu_number cpu)
 {
@@ -83,18 +82,8 @@ Jdb::handle_user_request(Cpu_number cpu)
   return false;
 }
 
-IMPLEMENT inline
-bool
-Jdb::test_checksums()
-{ return true; }
 
-static
-bool
-Jdb::handle_special_cmds(int)
-{ return 1; }
-
-PUBLIC static
-FIASCO_INIT FIASCO_NOINLINE void
+FIASCO_INIT void
 Jdb::init()
 {
   Thread::nested_trap_handler = (Trap_state::Handler)enter_jdb;
@@ -102,7 +91,6 @@ Jdb::init()
 }
 
 
-PRIVATE static
 unsigned char *
 Jdb::access_mem_task(Jdb_address addr, bool write)
 {
@@ -159,24 +147,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
   return reinterpret_cast<unsigned char *>(map_window | phys_ofs);
 }
 
-PUBLIC static
-int
-Jdb::is_adapter_memory(Jdb_address)
-{
-  return 0;
-}
-
-PUBLIC static inline
-void
-Jdb::enter_getchar()
-{}
-
-PUBLIC static inline
-void
-Jdb::leave_getchar()
-{}
-
-IMPLEMENT_OVERRIDE
 void
 Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
 {
@@ -186,15 +156,15 @@ Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
     buf->printf("%lld c", tsc);
 }
 
-IMPLEMENT_OVERRIDE
 void
 Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
 {
   write_tsc_s(buf, tsc, sign);
 }
 
+
 //----------------------------------------------------------------------------
-IMPLEMENTATION [mips && mp]:
+#ifdef CONFIG_MP
 
 #include <cstdio>
 
@@ -206,17 +176,4 @@ Jdb::send_nmi(Cpu_number cpu)
          cxx::int_value<Cpu_number>(cpu));
 }
 
-IMPLEMENT_OVERRIDE inline template< typename T >
-void
-Jdb::set_monitored_address(T *dest, T val)
-{
-  *const_cast<T volatile *>(dest) = val;
-  Mem::mp_wmb();
-}
-
-IMPLEMENT_OVERRIDE inline template< typename T >
-T
-Jdb::monitor_address(Cpu_number, T volatile const *addr)
-{
-  return *addr;
-}
+#endif

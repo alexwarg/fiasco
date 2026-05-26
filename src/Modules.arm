@@ -186,10 +186,9 @@ INTERFACES_JDB		+= jdb_perf
 
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc jdb_idle_stats.cc \
 	      jdb_trace_set.cc jdb_trace_set-arm.cc \
-	      jdb_ptab-arm.cc
+	      jdb_ptab-arm.cc jdb-arm.cc
 
 
-jdb_IMPL		+= jdb-arm
 jdb_kern_info_IMPL	:= jdb_kern_info jdb_kern_info-arm \
 			   jdb_kern_info-bench jdb_kern_info-bench-arm \
 			   jdb_kern_info-cpu-arm

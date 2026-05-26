@@ -6,6 +6,7 @@
 #include "jdb_module.h"
 #include "static_init.h"
 #include "types.h"
+#include <jdb_entry_frame.h>
 
 
 /**

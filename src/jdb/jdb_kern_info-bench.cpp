@@ -41,6 +41,7 @@ Jdb_kern_info_bench::do_mp_benchmark()
 IMPLEMENTATION [mp && (ia32 || amd64)]:
 
 #include "idt.h"
+#include <timer_tick.h>
 
 PRIVATE static inline
 void

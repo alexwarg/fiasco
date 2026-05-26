@@ -1,174 +1,21 @@
-INTERFACE:
 
-#include <cxx/atomic>
-#include <cxx/function>
-#include <cxx/type_traits>
+#include <jdb.h>
 
-#include "l4_types.h"
-#include "cpu_mask.h"
-#include "jdb_types.h"
-#include "jdb_core.h"
-#include "jdb_ansi.h"
-#include "jdb_handler_queue.h"
-#include "mem.h"
-#include "per_cpu_data.h"
-#include "processor.h"
-#include "string_buffer.h"
-#include "thread.h"
+#include <globalconfig.h>
+#include <config.h>
+#include <keycodes.h>
 
-class Context;
-class Space;
-class Thread;
-class Push_console;
+#include <libc_backend.h>
+#include <feature.h>
 
-class Jdb_entry_frame;
+#include <ipi.h>
+#include <logdefs.h>
+#include <jdb_entry_frame.h>
+#include <push_console.h>
+#include <kernel_uart.h>
+#include <kernel_console.h>
 
-class Jdb : public Jdb_core, public Jdb_ansi
-{
-public:
-  struct Remote_func : cxx::functor<void (Cpu_number)>
-  {
-    bool running;
-
-    Remote_func() = default;
-    Remote_func(Remote_func const &) = delete;
-    Remote_func operator = (Remote_func const &) = delete;
-
-    void reset_mp_safe()
-    {
-      set_monitored_address(&_f, (Func)0);
-    }
-
-    void set_mp_safe(cxx::functor<void (Cpu_number)> const &rf)
-    {
-      Remote_func const &f = static_cast<Remote_func const &>(rf);
-      running = true;
-      _d = f._d;
-      Mem::mp_mb();
-      set_monitored_address(&_f, f._f);
-      Mem::mp_mb();
-    }
-
-    void monitor_exec(Cpu_number current_cpu)
-    {
-      if (Func f = monitor_address(current_cpu, &_f))
-        {
-          _f = 0;
-          f(_d, cxx::forward<Cpu_number>(current_cpu));
-          Mem::mp_mb();
-          running = false;
-        }
-    }
-
-    void wait() const
-    {
-      for (;;)
-        {
-          Mem::mp_mb();
-          if (!running)
-            break;
-          Proc::pause();
-        }
-    }
-  };
-
-  static Per_cpu<Jdb_entry_frame*> entry_frame;
-  static Cpu_number current_cpu;
-  static Per_cpu<Remote_func> remote_func;
-
-  static void write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign);
-  static void write_tsc(String_buffer *buf, Signed64 tsc, bool sign);
-
-  static int FIASCO_FASTCALL enter_jdb(Jdb_entry_frame *e, Cpu_number cpu);
-  static void cursor_end_of_screen();
-  static void cursor_home();
-  static void printf_statline(const char *prompt, const char *help,
-                              const char *format, ...)
-  __attribute__((format(printf, 3, 4)));
-  static void save_disable_irqs(Cpu_number cpu);
-  static void restore_irqs(Cpu_number cpu);
-  static Thread *get_thread(Cpu_number cpu);
-
-  static Space *get_space(Cpu_number cpu)
-  {
-    Thread *thread = Jdb::get_thread(cpu);
-    return thread ? thread->space() : nullptr;
-  }
-
-protected:
-  template< typename T >
-  static void set_monitored_address(T *dest, T val);
-
-  template< typename T >
-  static T monitor_address(Cpu_number, T const volatile *addr);
-
-private:
-  Jdb();			// default constructors are undefined
-  Jdb(const Jdb&);
-
-  static char hide_statline;
-  static char next_cmd;
-  static Per_cpu<String_buf<81> > error_buffer;
-  static bool was_input_error;
-
-  static const char *toplevel_cmds;
-  static const char *non_interactive_cmds;
-
-  // state for traps in JDB itself
-  static Per_cpu<bool> running;
-  static bool in_service;
-  static bool leave_barrier;
-  static cxx::atomic<unsigned long> cpus_in_debugger;
-  static bool never_break;
-  static bool jdb_active;
-
-  static void enter_trap_handler(Cpu_number cpu);
-  static void leave_trap_handler(Cpu_number cpu);
-  static bool handle_conditional_breakpoint(Cpu_number cpu, Jdb_entry_frame *e);
-  static void handle_nested_trap(Jdb_entry_frame *e);
-  static bool handle_user_request(Cpu_number cpu);
-  static bool handle_debug_traps(Cpu_number cpu);
-  static bool test_checksums();
-
-public:
-  static Jdb_handler_queue jdb_enter;
-  static Jdb_handler_queue jdb_leave;
-
-  // esc sequences for highlighting
-  static char  esc_iret[];
-  static char  esc_bt[];
-  static char  esc_emph[];
-  static char  esc_emph2[];
-  static char  esc_mark[];
-  static char  esc_line[];
-  static char  esc_symbol[];
-
-};
-
-//---------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include <cstdio>
-#include <cstring>
 #include <ctype.h>
-#include <simpleio.h>
-
-#include "config.h"
-#include "delayloop.h"
-#include "feature.h"
-#include "jdb_core.h"
-#include "jdb_entry_frame.h"
-#include "jdb_screen.h"
-#include "kernel_console.h"
-#include "kernel_uart.h"
-#include "processor.h"
-#include "push_console.h"
-#include "static_init.h"
-#include "task.h"
-#include "keycodes.h"
-#include "libc_backend.h"
-#include "ipi.h"
-#include "logdefs.h"
 
 
 KIP_KERNEL_FEATURE("jdb");
@@ -209,80 +56,15 @@ bool Jdb::leave_barrier;
 cxx::atomic<unsigned long> Jdb::cpus_in_debugger;
 
 
-IMPLEMENT_DEFAULT inline template< typename T >
 void
-Jdb::set_monitored_address(T *dest, T val)
-{ *const_cast<T volatile *>(dest) = val; }
-
-IMPLEMENT_DEFAULT inline template< typename T >
-T
-Jdb::monitor_address(Cpu_number, T const volatile *addr)
-{ return *addr; }
-
-
-PUBLIC static
-bool
-Jdb::cpu_in_jdb(Cpu_number cpu)
-{ return Cpu::online(cpu) && running.cpu(cpu); }
-
-
-PUBLIC static
-template< typename Func >
-void
-Jdb::foreach_cpu(Func const &f)
+Jdb::rcv_uart_enable()
 {
-  for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
-    if (cpu_in_jdb(i))
-      f(i);
+  if (Config::serial_esc == Config::SERIAL_ESC_IRQ)
+    Kernel_uart::enable_rcv_irq();
 }
-
-PUBLIC static
-template< typename Func >
-bool
-Jdb::foreach_cpu(Func const &f, bool positive)
-{
-  bool r = positive;
-  for (Cpu_number i = Cpu_number::first(); i < Config::max_num_cpus(); ++i)
-    if (cpu_in_jdb(i))
-      {
-        bool res = f(i);
-
-        if (positive)
-          r = r && res;
-        else
-          r = r || res;
-      }
-
-  return r;
-}
-
-PUBLIC static inline
-void
-Jdb::set_next_cmd(char cmd)
-{ next_cmd = cmd; }
-
-PUBLIC static inline
-int
-Jdb::get_next_cmd()
-{ return next_cmd; }
-
-/** Command aborted. If we are interpreting a debug command like
- *  enter_kdebugger("*#...") this is an error
- */
-PUBLIC
-static void
-Jdb::abort_command()
-{
-  cursor(Jdb_screen::height(), 6);
-  clear_to_eol();
-
-  was_input_error = true;
-}
-
 
 // go to bottom of screen and print some text in the form "jdb: ..."
 // if no text follows after the prompt, prefix the current thread number
-IMPLEMENT
 void
 Jdb::printf_statline(const char *prompt, const char *help,
                      const char *format, ...)
@@ -323,7 +105,6 @@ Jdb::printf_statline(const char *prompt, const char *help,
     clear_to_eol();
 }
 
-PUBLIC static
 bool Jdb::is_toplevel_cmd(char c)
 {
   char cm[] = {c, 0};
@@ -339,9 +120,8 @@ bool Jdb::is_toplevel_cmd(char c)
 }
 
 
-PUBLIC static
 int
-Jdb::execute_command(const char *s, int first_char = -1)
+Jdb::execute_command(const char *s, int first_char)
 {
   Jdb_core::Cmd cmd = Jdb_core::has_cmd(s);
 
@@ -360,9 +140,8 @@ Jdb::execute_command(const char *s, int first_char = -1)
   return 0;
 }
 
-PRIVATE static
 int
-Jdb::execute_command_mode(bool is_short, const char *s, int first_char = -1)
+Jdb::execute_command_mode(bool is_short, const char *s, int first_char)
 {
   bool orig_mode = short_mode;
   short_mode = is_short;
@@ -371,21 +150,7 @@ Jdb::execute_command_mode(bool is_short, const char *s, int first_char = -1)
   return r;
 }
 
-PUBLIC static
-int
-Jdb::execute_command_short(const char *s, int first_char = -1)
-{
-  return execute_command_mode(true, s, first_char);
-}
 
-PUBLIC static
-int
-Jdb::execute_command_long(const char *s, int first_char = -1)
-{
-  return execute_command_mode(false, s, first_char);
-}
-
-PUBLIC static
 Push_console *
 Jdb::push_cons()
 {
@@ -395,7 +160,6 @@ Jdb::push_cons()
 
 // Interprete str as non interactive commands for Jdb. We allow mostly 
 // non-interactive commands here (e.g. we don't allow d, t, l, u commands)
-PRIVATE static
 int
 Jdb::execute_command_ni(char const *str, int len)
 {
@@ -458,7 +222,6 @@ Jdb::execute_command_ni(char const *str, int len)
   return leave;
 }
 
-PRIVATE static
 bool
 Jdb::input_short_mode(Jdb::Cmd *cmd, char const **args, int &cmd_key)
 {
@@ -555,7 +318,6 @@ public:
 };
 
 
-PRIVATE static
 bool
 Jdb::input_long_mode(Jdb::Cmd *cmd, char const **args)
 {
@@ -638,7 +400,6 @@ Jdb::input_long_mode(Jdb::Cmd *cmd, char const **args)
     }
 }
 
-PRIVATE static
 int
 Jdb::execute_command()
 {
@@ -668,7 +429,6 @@ Jdb::execute_command()
   return 1;
 }
 
-PRIVATE static
 bool
 Jdb::open_debug_console(Cpu_number cpu)
 {
@@ -689,7 +449,6 @@ Jdb::open_debug_console(Cpu_number cpu)
 }
 
 
-PRIVATE static
 void
 Jdb::close_debug_console(Cpu_number cpu)
 {
@@ -714,10 +473,9 @@ Jdb::close_debug_console(Cpu_number cpu)
   restore_irqs(cpu);
 }
 
-PUBLIC static
 void
 Jdb::remote_work(Cpu_number cpu, cxx::functor<void (Cpu_number)> &&func,
-                 bool sync = true)
+                 bool sync)
 {
   if (!Cpu::online(cpu))
     return;
@@ -735,45 +493,25 @@ Jdb::remote_work(Cpu_number cpu, cxx::functor<void (Cpu_number)> &&func,
     }
 }
 
-PUBLIC template<typename Func> static
-void
-Jdb::on_each_cpu(Func &&func, bool single_sync = true)
-{
-  foreach_cpu([&](Cpu_number cpu){ remote_work(cpu, cxx::forward<Func>(func), single_sync); });
-}
-
-PUBLIC template<typename Func> static
-void
-Jdb::on_each_cpu_pl(Func &&func)
-{
-  foreach_cpu([&](Cpu_number cpu){ remote_work(cpu, cxx::forward<Func>(func), false); });
-
-  foreach_cpu([](Cpu_number cpu){ Jdb::remote_func.cpu(cpu).wait(); });
-}
-
-PUBLIC
-static int
-Jdb::getchar(void)
+int
+Jdb::getchar()
 {
   int c = Jdb_core::getchar();
   check_for_cpus(false);
   return c;
 }
 
-IMPLEMENT
 void Jdb::cursor_home()
 {
   putstr("\033[H");
 }
 
-IMPLEMENT
 void Jdb::cursor_end_of_screen()
 {
   putstr("\033[127;1H");
 }
 
 //-------- pretty print functions ------------------------------
-PUBLIC static
 void
 Jdb::write_ll_ns(String_buffer *buf, Signed64 ns, bool sign)
 {
@@ -835,7 +573,6 @@ Jdb::write_ll_ns(String_buffer *buf, Signed64 ns, bool sign)
   buf->printf("%3lu.%03lu u ", _us, _ns);
 }
 
-PUBLIC static
 void
 Jdb::write_ll_hex(String_buffer *buf, Signed64 x, bool sign)
 {
@@ -850,7 +587,6 @@ Jdb::write_ll_hex(String_buffer *buf, Signed64 x, bool sign)
     buf->printf("%04lx%08x", (Mword)((xu >> 32) & 0xffff), (unsigned)xu);
 }
 
-PUBLIC static
 void
 Jdb::write_ll_dec(String_buffer *buf, Signed64 x, bool sign)
 {
@@ -869,7 +605,6 @@ Jdb::write_ll_dec(String_buffer *buf, Signed64 x, bool sign)
     buf->printf("%12llu", xu);
 }
 
-PUBLIC static
 void
 Jdb::cpu_mask_print(Cpu_mask &m)
 {
@@ -893,8 +628,8 @@ Jdb::cpu_mask_print(Cpu_mask &m)
     }
 }
 
-IMPLEMENT_DEFAULT
-void
+#if 0
+__attribute__((weak)) void
 Jdb::write_tsc_s(String_buffer *buf, Signed64 tsc, bool sign)
 {
   Unsigned64 uns = Cpu::boot_cpu()->tsc_to_ns(tsc < 0 ? -tsc : tsc);
@@ -920,16 +655,9 @@ Jdb::write_tsc(String_buffer *buf, Signed64 tsc, bool sign)
     ns = -ns;
   write_ll_ns(buf, ns, sign);
 }
-
-PUBLIC static inline
-Jdb_entry_frame*
-Jdb::get_entry_frame(Cpu_number cpu)
-{
-  return entry_frame.cpu(cpu);
-}
+#endif
 
 /// handling of standard cursor keys (Up/Down/PgUp/PgDn)
-PUBLIC static
 int
 Jdb::std_cursor_key(int c, Mword cols, Mword lines,
                     Mword max_absy, Mword max_pos,
@@ -1027,22 +755,11 @@ Jdb::std_cursor_key(int c, Mword cols, Mword lines,
   return 1;
 }
 
-PUBLIC static inline
-Space *
-Jdb::get_task(Cpu_number cpu)
-{
-  if (!get_thread(cpu))
-    return 0;
-  else
-    return get_thread(cpu)->space();
-}
-
 
 //
 // memory access wrappers
 //
 
-PUBLIC static
 int
 Jdb::peek_task(Jdb_address addr, void *value, int width)
 {
@@ -1054,7 +771,6 @@ Jdb::peek_task(Jdb_address addr, void *value, int width)
   return 0;
 }
 
-PUBLIC static
 int
 Jdb::poke_task(Jdb_address addr, void const *value, int width)
 {
@@ -1067,83 +783,49 @@ Jdb::poke_task(Jdb_address addr, void const *value, int width)
   return 0;
 }
 
-PUBLIC static
-template< typename T >
-bool
-Jdb::peek(Jdb_addr<T> addr, typename cxx::remove_const<T>::type &value)
-{
-  // use an Mword here instead of T as some implementations of peek_task use
-  // an Mword in their operation which is potentially bigger than T
-  // XXX: should be fixed
-  Mword tmp;
-  bool ret = peek_task(addr, &tmp, sizeof(T)) == 0;
-  value = tmp;
-  return ret;
-}
-
-PUBLIC static
-template< typename T >
-bool
-Jdb::poke(Jdb_addr<T> addr, T const &value)
-{ return poke_task(addr, &value, sizeof(T)) == 0; }
-
 
 class Jdb_base_cmds : public Jdb_module
 {
 public:
   Jdb_base_cmds() FIASCO_INIT;
+
+  Action_code action (int cmd, void *&, char const *&, int &) override
+  {
+    if (cmd!=0)
+      return NOTHING;
+
+    Jdb_core::short_mode = !Jdb_core::short_mode;
+    printf("\ntoggle mode: now in %s command mode (use '%s' to switch back)\n",
+           Jdb_core::short_mode ? "short" : "long",
+           Jdb_core::short_mode ? "*" : "mode");
+    return NOTHING;
+  }
+
+  int num_cmds() const override
+  {
+    return 1;
+  }
+
+  Cmd const *cmds() const override
+  {
+    static Cmd cs[] =
+      { { 0, "*", "mode", "", "*|mode\tswitch long and short command mode",
+          (void*)0 } };
+
+    return cs;
+  }
+
 };
 
 static Jdb_base_cmds jdb_base_cmds INIT_PRIORITY(JDB_MODULE_INIT_PRIO);
 
-PUBLIC
-Jdb_module::Action_code
-Jdb_base_cmds::action (int cmd, void *&, char const *&, int &) override
-{
-  if (cmd!=0)
-    return NOTHING;
-
-  Jdb_core::short_mode = !Jdb_core::short_mode;
-  printf("\ntoggle mode: now in %s command mode (use '%s' to switch back)\n",
-         Jdb_core::short_mode ? "short" : "long",
-         Jdb_core::short_mode ? "*" : "mode");
-  return NOTHING;
-}
-
-PUBLIC
-int
-Jdb_base_cmds::num_cmds() const override
-{ 
-  return 1;
-}
-
-PUBLIC
-Jdb_module::Cmd const *
-Jdb_base_cmds::cmds() const override
-{
-  static Cmd cs[] =
-    { { 0, "*", "mode", "", "*|mode\tswitch long and short command mode",
-	(void*)0 } };
-
-  return cs;
-}
-
-IMPLEMENT
 Jdb_base_cmds::Jdb_base_cmds()
   : Jdb_module("GENERAL")
 {}
 
-PRIVATE inline static
-void
-Jdb::rcv_uart_enable()
-{
-  if (Config::serial_esc == Config::SERIAL_ESC_IRQ)
-    Kernel_uart::enable_rcv_irq();
-}
 
 
-
-IMPLEMENT int
+int
 Jdb::enter_jdb(Jdb_entry_frame *e, Cpu_number cpu)
 {
   if (e->debug_ipi())
@@ -1283,7 +965,6 @@ Jdb::enter_jdb(Jdb_entry_frame *e, Cpu_number cpu)
   return 0;
 }
 
-PUBLIC static
 const char *
 Jdb::addr_space_to_str(Jdb_address addr, char *str, size_t len)
 {
@@ -1297,54 +978,17 @@ Jdb::addr_space_to_str(Jdb_address addr, char *str, size_t len)
 }
 
 
+#ifdef CONFIG_MP
 //--------------------------------------------------------------------------
-IMPLEMENTATION [!mp]:
 
-PRIVATE static
-bool
-Jdb::stop_all_cpus(Cpu_number)
-{ return true; }
+#include <delayloop.h>
 
-PRIVATE
-static
-void
-Jdb::leave_wait_for_others()
-{}
-
-PRIVATE static
-bool
-Jdb::check_for_cpus(bool)
-{ return true; }
-
-PRIVATE static inline
-int
-Jdb::remote_work_ipi_process(Cpu_number)
-{ return 1; }
-
-
-//---------------------------------------------------------------------------
-INTERFACE [mp]:
-
-#include "spin_lock.h"
-
-EXTENSION class Jdb
-{
-  // remote call
-  static Spin_lock<> _remote_call_lock;
-  static void (*_remote_work_ipi_func)(Cpu_number, void *);
-  static void *_remote_work_ipi_func_data;
-  static unsigned long _remote_work_ipi_done;
-};
-
-//--------------------------------------------------------------------------
-IMPLEMENTATION [mp]:
 
 void (*Jdb::_remote_work_ipi_func)(Cpu_number, void *);
 void *Jdb::_remote_work_ipi_func_data;
 unsigned long Jdb::_remote_work_ipi_done;
 Spin_lock<> Jdb::_remote_call_lock;
 
-PRIVATE static
 bool
 Jdb::check_for_cpus(bool try_nmi)
 {
@@ -1413,7 +1057,6 @@ retry:
   return true;
 }
 
-PRIVATE static
 bool
 Jdb::stop_all_cpus(Cpu_number current_cpu)
 {
@@ -1475,8 +1118,6 @@ Jdb::stop_all_cpus(Cpu_number current_cpu)
     }
 }
 
-PRIVATE
-static
 void
 Jdb::leave_wait_for_others()
 {
@@ -1515,7 +1156,6 @@ Jdb::leave_wait_for_others()
 }
 
 // The remote_work_ipi* functions are for the IPI round-trip benchmark (only)
-PRIVATE static
 int
 Jdb::remote_work_ipi_process(Cpu_number cpu)
 {
@@ -1529,10 +1169,9 @@ Jdb::remote_work_ipi_process(Cpu_number cpu)
   return 1;
 }
 
-PUBLIC static
 bool
 Jdb::remote_work_ipi(Cpu_number this_cpu, Cpu_number to_cpu,
-                     void (*f)(Cpu_number, void *), void *data, bool wait = true)
+                     void (*f)(Cpu_number, void *), void *data, bool wait)
 {
   if (to_cpu == this_cpu)
     {
@@ -1559,3 +1198,5 @@ Jdb::remote_work_ipi(Cpu_number this_cpu, Cpu_number to_cpu,
 
   return true;
 }
+
+#endif
