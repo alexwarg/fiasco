@@ -1,17 +1,16 @@
-IMPLEMENTATION:
 
 #include <arithmetic.h>
 #include <cstdio>
 #include <cctype>
 
-#include "alternatives.h"
-#include "config.h"
-#include "jdb.h"
-#include "jdb_module.h"
+#include <alternatives.h>
+#include <config.h>
+#include <jdb.h>
+#include <jdb_module.h>
 
-#include "paging.h"
-#include "mem_unit.h"
-#include "cpu.h"
+#include <paging.h>
+#include <mem_unit.h>
+#include <cpu.h>
 
 namespace {
 

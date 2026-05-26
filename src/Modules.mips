@@ -149,12 +149,12 @@ JDB			:= jdb_compound.o
 SUBSYSTEMS		+= JDB
 
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc jdb-mips.cc jdb_tcb-mips.cc \
-	      jdb_trace_set.cc jdb_trace_set-mips.cc jdb_ptab-mips.cc
+	      jdb_trace_set.cc jdb_trace_set-mips.cc jdb_ptab-mips.cc \
+	      jdb_mips_tlb.cc
 
 jdb_entry_frame_IMPL	:= jdb_entry_frame-mips
 jdb_kern_info_IMPL	:= jdb_kern_info
 jdb_tbuf_init_IMPL	:= jdb_tbuf_init jdb_tbuf_init-mips
-INTERFACES_JDB		+= jdb_mips_tlb
 INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
 
