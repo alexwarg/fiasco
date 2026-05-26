@@ -123,11 +123,7 @@ DEPS:	$(SRC_ALL) $(foreach idir, $(PRIVATE_INCDIR), $(wildcard $(idir)/*.h))
 
 GENDOT_FLAGS ?= -t1u1
 
-KERNEL_MODULES_CPP = $(foreach mod, $(INTERFACES_KERNEL) $(INTERFACES_LIBK), \
-	$(addsuffix .cpp,$(call eval_impl,$(mod)))) \
-	$(foreach idir, $(srcdir)/kern $(srcdir)/kern/shared \
-	                $(srcdir)/kern/$(CONFIG_XARCH), \
-	  $(wildcard $(idir)/*.h))
+KERNEL_MODULES_CPP =
 
 DEPS.dot: $(KERNEL_MODULES_CPP)
 	@echo -n > source_files.mkdeps

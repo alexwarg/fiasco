@@ -147,9 +147,6 @@ CXXSRC_JDB += tb_entry_output.cc loadcnt.cc jdb_log.cc jdb_io_apic.cc \
 	      jdb_kern_info-mtrr.cc jdb_kern_info_bench.cc jdb_kern_info_bench-ia32-64.cc
 CXXSRC_JDB-$(CONFIG_APIC) += jdb_kern_info-apic.cc
 
-jdb_entry_frame_IMPL	:= jdb_entry_frame-ia32
-
-INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 endif
 
 ASSRC_KERNEL		:= entry.S entry-native.S
@@ -159,35 +156,11 @@ ASSRC_KERNEL-y                          += tramp-realmode.S tramp-acpi.S
 ASSRC_KERNEL-$(CONFIG_CPU_VIRT)         += vm_svm_asm.S vm_vmx_asm.S
 ASSRC_KERNEL                            += $(ASSRC_KERNEL-y)
 
-NOOPT			+= $(filter jdb%,\
-			     $(foreach in,$(INTERFACES_KERNEL), \
-			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in))))
-NOOPT			+= tb_entry_output $(tb_entry_IMPL) perf_cnt perf_cnt_arch  \
-			   kern_cnt loadcnt $(watchdog_IMPL) kdb \
-			   $(kernel_uart_IMPL) push_console thread-dbf   \
+NOOPT			+= tb_entry_output perf_cnt perf_cnt_arch  \
+			   kern_cnt loadcnt kdb \
+			   push_console thread-dbf   \
 			   trap_state
-NOOPT			+= $(foreach in,$(INTERFACES_JDB), \
-			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in)))
 
-
-### When testing with test threads, uncomment the following:
-#
-# VPATH			+= kern-test
-# PRIVATE_INCDIR	+= kern-test
-#
-# INTERFACES_KERNEL	+= generic_test_thread test_thread node cpu \
-#			   back_trace cpu_guard types
-#
-# node_IMPL		:= node node-up
-# cpu_IMPL		:= cpu cpu-perf cpu-perfp4
-#
-# kernel_thread_IMPL	:= $(filter-out kernel_thread-std,$(kernel_thread_IMPL)) \
-#			   kernel_thread-test
-#
-# Replace this definition with your own test thread.
-# test_thread_IMPL	:= test_thread-test26
-#
-### End of test-thread section
 
 #
 # CRT0 subsystem
@@ -364,4 +337,3 @@ endif
 
 MODULES_FILES += $(MODULES_FILE) $(MODULES_FILE_BSP)
 
-INTERFACES_KERNEL       += $(INTERFACES_KERNEL-y)

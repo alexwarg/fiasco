@@ -200,9 +200,6 @@ CPPFLAGS                += $(if $(CONFIG_MP),-DMPCORE_PHYS_BASE=$(MPCORE_PHYS_BA
 CPPFLAGS                += -DRAM_PHYS_BASE=$(RAM_PHYS_BASE)
 
 
-NOOPT			+= $(filter jdb%,\
-			     $(foreach in,$(INTERFACES_KERNEL), \
-			       $(if $($(in)_IMPL),$($(in)_IMPL),$(in))))
 NOOPT			+= tb_entry tb_entry_output
 
 
@@ -313,8 +310,6 @@ CXXSRC_TCBOFFSET	:= tcboffset.cc dump_tcboffsets.cc
 
 include $(MODULES_FILE_BSP)
 PREPROCESS_PARTS	+= $(PREPROCESS_PARTS-y)
-INTERFACES_KERNEL       += $(INTERFACES_KERNEL-y) $(INTERFACES_KERNEL-y-y)
-INTERFACES_JDB		+= $(INTERFACES_JDB-y)
 TRAMP_MP_ASM_INCLUDE    ?= kern/arm/tramp-mp-asm-default.h
 CPPFLAGS                += -DTRAMP_MP_ASM_INCLUDE=\"$(srcdir)/$(TRAMP_MP_ASM_INCLUDE)\"
 
