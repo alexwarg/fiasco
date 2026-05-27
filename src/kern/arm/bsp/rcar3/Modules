@@ -2,8 +2,6 @@
 
 OBJECTS_LIBUART       += uart_sh.o
 LIBUART_UART_FLAGS    += $(call LIBUART_UART, sh)
-PREPROCESS_PARTS      += generic_tickless_idle \
-                         arm_generic_timer pic_gic psci
 RAM_PHYS_BASE         := 0x48000000
 
 CXXSRC_KERNEL         += pfc-arm-rcar3.cc pic-arm-rcar3.cc rcar3_pf.cc

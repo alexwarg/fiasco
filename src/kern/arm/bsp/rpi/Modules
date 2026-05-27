@@ -1,11 +1,7 @@
 # vim:set ft=make:
 
-PREPROCESS_PARTS        += generic_tickless_idle
 RAM_PHYS_BASE           := 0
 
-PREPROCESS_PARTS        += generic_tickless_idle
-
-PREPROCESS_PARTS-$(CONFIG_ARM_V7PLUS)       += arm_generic_timer
 OBJECTS_LIBUART-$(CONFIG_PF_RPI_UART_16550)  = uart_16550.o
 OBJECTS_LIBUART-$(CONFIG_PF_RPI_UART_PL011)  = uart_pl011.o
 OBJECTS_LIBUART         += $(OBJECTS_LIBUART-y)
@@ -13,11 +9,6 @@ LIBUART_UART_FLAGS-$(CONFIG_PF_RPI_UART_16550) += $(call LIBUART_UART, 16550)
 LIBUART_UART_FLAGS-$(CONFIG_PF_RPI_UART_PL011) += $(call LIBUART_UART, pl011)
 LIBUART_UART_FLAGS      += $(LIBUART_UART_FLAGS-y)
 
-PREPROCESS_PARTS-$(CONFIG_PF_RPI_RPI1)  += arm_single_ipi_irq
-PREPROCESS_PARTS-$(CONFIG_PF_RPI_RPI2)  += arm_single_ipi_irq
-PREPROCESS_PARTS-$(CONFIG_PF_RPI_RPI3)  += arm_single_ipi_irq
-PREPROCESS_PARTS-$(CONFIG_PF_RPI_RPIZW) += arm_single_ipi_irq
-PREPROCESS_PARTS-$(CONFIG_ARM_GIC)          += pic_gic
 
 CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI2)  += arm_control.cc
 CXXSRC_KERNEL-$(CONFIG_PF_RPI_RPI3)  += arm_control.cc

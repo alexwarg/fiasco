@@ -2,8 +2,6 @@
 
 OBJECTS_LIBUART       += uart_pl011.o
 LIBUART_UART_FLAGS    += $(call LIBUART_UART, pl011)
-PREPROCESS_PARTS      += generic_tickless_idle \
-                         arm_generic_timer pic_gic psci
 RAM_PHYS_BASE         := 0x80000000
 
 CXXSRC_KERNEL         += pfc-arm-lx2160.cc pic-arm-lx2160.cc lx2160_pf.cc

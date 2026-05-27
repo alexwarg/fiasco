@@ -11,25 +11,6 @@ ifeq ($(CONFIG_UNIT_TEST),y)
 	SUBSYSTEMS += UTEST
 endif
 
-PREPROCESS_PARTS 	+= arch $(CONFIG_ABI) 64bit iofp \
-			   $(CONFIG_XARCH) i8259 pc i8254 fpu \
-			   auto_map_kip io realmode libuart
-
-PREPROCESS_PARTS-$(CONFIG_MP)                += mp
-PREPROCESS_PARTS-$(CONFIG_JDB)               += debug log
-PREPROCESS_PARTS-$(CONFIG_SCHED_PIT)         += pit_timer
-PREPROCESS_PARTS-$(CONFIG_SCHED_RTC)         += rtc_timer
-PREPROCESS_PARTS-$(CONFIG_SCHED_APIC)        += apic_timer
-PREPROCESS_PARTS-$(CONFIG_SCHED_HPET)        += hpet_timer
-PREPROCESS_PARTS-$(CONFIG_SERIAL)            += serial
-PREPROCESS_PARTS-$(CONFIG_CPU_VIRT)          += svm vmx
-PREPROCESS_PARTS-$(CONFIG_SCHED_FIXED_PRIO)  += sched_fixed_prio
-PREPROCESS_PARTS-$(CONFIG_SCHED_WFQ)         += sched_wfq
-PREPROCESS_PARTS-$(CONFIG_SCHED_FP_WFQ)      += sched_fp_wfq
-PREPROCESS_PARTS-$(CONFIG_IOMMU)             += iommu
-
-PREPROCESS_PARTS        += $(PREPROCESS_PARTS-y)
-
 #
 # TYPES subsystem
 #
@@ -249,7 +230,6 @@ ifeq ("$(CONFIG_JDB_DISASM)","y")
 
   SUBSYSTEMS        += LIBDISASM
   KERNEL_EXTRA_LIBS += $(LIBDISASM)
-  PREPROCESS_PARTS  += jdb_disasm
 
   LIBDISASM         := libdisasm.a
   VPATH             += lib/disasm lib/disasm/capstone \
@@ -325,7 +305,6 @@ endif
 ifneq ($(wildcard $(srcdir)/lib/regex),)
   SUBSYSTEMS		+= LIBREGEX
   KERNEL_EXTRA_LIBS	+= $(LIBREGEX)
-  PREPROCESS_PARTS	+= jdb_regex
 endif
 
 ifneq ($(filter LIBREGEX LIBDISASM,$(SUBSYSTEMS)),)

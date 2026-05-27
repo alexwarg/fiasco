@@ -21,8 +21,6 @@ CXXSRC_ABI-$(CONFIG_JDB) += \
 
 CXXSRC_ABI += $(CXXSRC_ABI-y)
 
-PREPROCESS_PARTS-$(CONFIG_JDB_LOGGING)       += jdb_logging
-
 CXXSRC_KERNEL += \
 	cpu_generic.cc \
 	banner.cc \
@@ -114,8 +112,6 @@ CXXFLAGS += $(CXXFLAGS_K_SCHED_CONTEXT-y)
 
 
 OBJ_SPACE_TYPE = $(if $(CONFIG_VIRT_OBJ_SPACE),virt,phys)
-PREPROCESS_PARTS-y$(CONFIG_VIRT_OBJ_SPACE) += obj_space_phys
-PREPROCESS_PARTS += obj_space_$(OBJ_SPACE_TYPE)
 
 VPATH_JDB += jdb
 PRIVATE_INCDIR += jdb/$(CONFIG_NARCH)/$(BITS) jdb/$(CONFIG_XARCH) jdb/$(CONFIG_NARCH) jdb jabi

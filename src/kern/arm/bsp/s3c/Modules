@@ -2,7 +2,6 @@
 
 OBJECTS_LIBUART         += uart_s3c2410.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, s3c2410)
-PREPROCESS_PARTS        += generic_tickless_idle
 RAM_PHYS_BASE           := 0x30000000
 
 CXXSRC_KERNEL += timer_arm_s3c2410.cc pic-arm-s3c2410.cc s3c2410_pf.cc

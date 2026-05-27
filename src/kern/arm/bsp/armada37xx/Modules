@@ -1,6 +1,5 @@
 # vim:set ft=make:
 
-PREPROCESS_PARTS      += generic_tickless_idle arm_generic_timer pic_gic
 OBJECTS_LIBUART       += uart_mvebu.o
 LIBUART_UART_FLAGS    += $(call LIBUART_UART, mvebu)
 RAM_PHYS_BASE         := 0x0

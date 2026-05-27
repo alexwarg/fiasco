@@ -2,7 +2,6 @@
 
 OBJECTS_LIBUART         += uart_cadence.o
 LIBUART_UART_FLAGS      += $(call LIBUART_UART, cadence)
-PREPROCESS_PARTS        += generic_tickless_idle mptimer pic_gic
 RAM_PHYS_BASE           := 0x0
 MPCORE_PHYS_BASE        := 0xf8f00000
 

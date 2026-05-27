@@ -2,8 +2,6 @@
 
 OBJECTS_LIBUART       += uart_cadence.o
 LIBUART_UART_FLAGS    += $(call LIBUART_UART, cadence)
-PREPROCESS_PARTS      += generic_tickless_idle \
-                         arm_generic_timer pic_gic psci
 RAM_PHYS_BASE         := 0x0
 
 CXXSRC_KERNEL         += pfc-arm-zynqmp.cc pic-arm-zynqmp.cc zynqmp_pf.cc

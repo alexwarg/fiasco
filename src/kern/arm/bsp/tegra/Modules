@@ -1,8 +1,5 @@
 # vim:set ft=make:
 
-PREPROCESS_PARTS        += pic_gic generic_tickless_idle
-PREPROCESS_PARTS-$(CONFIG_PF_TEGRA_TIMER_MP)  += mptimer
-PREPROCESS_PARTS-$(CONFIG_PF_TEGRA_TIMER_TMR) += tegra_timer_tmr
 RAM_PHYS_BASE-$(CONFIG_PF_TEGRA2) := $(if $(CONFIG_ARM_EM_TZ),0x30000000,0x0)
 RAM_PHYS_BASE-$(CONFIG_PF_TEGRA3) := $(if $(CONFIG_ARM_EM_TZ),0xa0000000,0x80000000)
 RAM_PHYS_BASE                     := $(RAM_PHYS_BASE-y)
