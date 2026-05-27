@@ -113,8 +113,7 @@ public:
 
   void acknowledge_locked(unsigned irq)
   {
-    if (!Gic_dist::Config_mxc_tzic)
-      _cpu.ack(irq);
+    _cpu.ack(irq);
   }
 
   void mask_and_ack(Mword pin) override
@@ -134,9 +133,6 @@ public:
 
   Unsigned32 pending()
   {
-    if (Gic_dist::Config_mxc_tzic)
-      return _dist.mxc_pending();
-
     Unsigned32 ack = _cpu.iar();
 
     // GICv2 only: for SGIs, bits [12:10] identify the source CPU interface.

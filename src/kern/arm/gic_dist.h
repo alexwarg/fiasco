@@ -60,26 +60,6 @@ public:
     return _dist.get_mmio_base();
   }
 
-#if defined (CONFIG_ARM_IMX_MXC_TZIC)
-  static constexpr bool Config_mxc_tzic = true;
-
-  Unsigned32 mxc_pending()
-  {
-    Address a = MXC_TZIC_PND;
-    for (unsigned g = 0; g < 128; g += 32, a += 4)
-      {
-        Unsigned32 v = _dist.read<Unsigned32>(a);
-        if (v)
-          return g + cxx::log2u(v);
-      }
-    return 0;
-  }
-#else // PRE_pic_gic_mxc_tzic
-  static constexpr bool Config_mxc_tzic = false;
-
-  Unsigned32 mxc_pending() const { return 0; }
-#endif // PRE_pic_gic_mxc_tzic
-
   static constexpr bool Config_tz_sec = IS_ENABLED(CONFIG_ARM_EM_TZ);
 
 public:
@@ -101,11 +81,7 @@ public:
 
   void enable(V2)
   {
-    Unsigned32 dist_enable = GICD_CTRL_ENABLE;
-    if (Config_mxc_tzic && !Config_tz_sec)
-      dist_enable |= MXC_TZIC_CTRL_NSEN | MXC_TZIC_CTRL_NSENMASK;
-
-    _dist.write<Unsigned32>(dist_enable, GICD_CTRL);
+    _dist.write<Unsigned32>(GICD_CTRL_ENABLE, GICD_CTRL);
   }
 
   void cpu_init_v2()
@@ -159,7 +135,7 @@ private:
   void igroup_init(V2, unsigned num)
   {
     Mword v = 0;
-    if (Config_tz_sec || Config_mxc_tzic)
+    if (Config_tz_sec)
       v = 0xffffffff;
 
     for (unsigned i = 32; i < num; i += 32)
@@ -320,9 +296,8 @@ public:
     if (nr_irqs_override != -1)
       num = nr_irqs_override;
 
-    if (!Config_mxc_tzic)
-      for (unsigned i = 32; i < num; i += 16)
-        _dist.write<Unsigned32>(0, GICD_ICFGR + i * 4 / 16);
+    for (unsigned i = 32; i < num; i += 16)
+      _dist.write<Unsigned32>(0, GICD_ICFGR + i * 4 / 16);
 
     init_prio(32, num);
     init_regs(32, num);
@@ -333,12 +308,6 @@ public:
     // Initialize interrupt targets last, since for the GICv3 affinity routing
     // must be enabled before interrupt affinities (targets) can be assigned.
     init_targets(num, VERSION());
-
-    if (Config_mxc_tzic)
-      {
-        _dist.write<Unsigned32>(0x0, MXC_TZIC_SYNCCTRL);
-        _dist.write<Unsigned32>(cpu_prio, MXC_TZIC_PRIOMASK);
-      }
 
     return num;
   }

@@ -32,10 +32,7 @@ public:
     unsigned num = init_dist(nr_irqs_override);
     printf("Number of IRQs available at this GIC: %d\n", num);
     Irq_chip_gen::init(num);
-
-    if (!Gic_dist::Config_mxc_tzic)
-      cpu_local_init(Cpu_number::boot_cpu());
-
+    cpu_local_init(Cpu_number::boot_cpu());
     _cpu.enable();
   }
 
