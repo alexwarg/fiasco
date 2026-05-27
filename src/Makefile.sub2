@@ -84,8 +84,7 @@ ToDoItems:
 
 doc: docs/stamp-doc.ready
 
-docs/stamp-doc.ready: $(srcdir)/doxygen.conf \
-		$(foreach m, $(GENERATED_MODULES), auto/stamp-$(m).ready) | docs
+docs/stamp-doc.ready: $(srcdir)/doxygen.conf | docs
 	@touch $@
 	$(VERBOSE)doxygen $(srcdir)/doxygen.conf
 

@@ -93,11 +93,9 @@ ifdef SUBSYSTEMS
 endif
 
 ifdef _modules_read_
-GENERATED_MODULES = $(foreach subsys, $(SUBSYSTEMS), \
-		      $(INTERFACES_$(subsys)))
-ALL = $(foreach subsys, $(SUBSYSTEMS), $($(subsys)) $($(subsys)_EXTRA))
+GENERATED_MODULES =
 
-$(foreach m, $(GENERATED_MODULES), auto/stamp-$(m).ready): $(MODULES_FILES)
+ALL = $(foreach subsys, $(SUBSYSTEMS), $($(subsys)) $($(subsys)_EXTRA))
 
 .PRECIOUS: .Modules.deps
 .Modules.deps: $(MODULES_FILES) globalconfig.h globalconfig.tags | auto
@@ -106,26 +104,11 @@ $(foreach m, $(GENERATED_MODULES), auto/stamp-$(m).ready): $(MODULES_FILES)
 	$(VERBOSE)$(RM_R) auto/*.cc auto/*.h auto/*.S auto/stamp-*.ready
 	$(VERBOSE)$(RM) dump_tcboffsets
 	@echo "Creating $@"
-	@(echo ""; $(foreach mod, $(GENERATED_MODULES),			\
-	    echo 'auto/stamp-$(mod).ready:				\
-		  $(addsuffix .cpp,$(call eval_impl,$(mod)))';		\
-	    $(foreach cpp, $(call eval_impl,$(mod)), echo '$(cpp).cpp:';) \
-	    echo '$(patsubst %,auto/%.cc,$(call eval_impl,$(mod)))'	\
-		 'auto/$(mod).h auto/$(mod)_i.h:			\
-		  auto/stamp-$(mod).ready ;				\
-	          @[ -e $$@ ] || { $$(RM) $$<; $$(MAKE) $$<; }';	\
-	  )) > $@.new
+	@(echo "") > $@.new
 	@($(foreach subsys, $(SUBSYSTEMS),				      \
-	    echo 'IFDEPS += $(addprefix ., $(addsuffix .cc.d,		      \
-			      $(foreach in,$(INTERFACES_$(subsys)),	      \
-				$(call eval_impl,$(in)))))' ;		      \
-	    echo 'CXXSRC_$(subsys) += $(addsuffix .cc,			      \
-					$(foreach in,$(INTERFACES_$(subsys)), \
-					  $(call eval_impl,$(in))))';	      \
 	    echo 'OBJ_$(subsys) += $$(CXXSRC_$(subsys):.cc=.o)		      \
 		                   $$(CSRC_$(subsys):.c=.o)		      \
 		                   $$(ASSRC_$(subsys):.S=.o)' ; ) ) >> $@.new
-	@echo "GENERATED_MODULES = $(GENERATED_MODULES)" >> $@.new
 	@echo "ALL = $(ALL)" >> $@.new
 	@echo "_modules_deps_read_ = true" >> $@.new
 	@mv $@.new $@
@@ -139,8 +122,6 @@ endif # _modules_read_
 .PHONY: create-sources
 create-sources: $(MODULES_FILES) globalconfig.h globalconfig.tags .Modules.deps source
 	$(MAKE) srcdir=$(srcdir) objbase=$(objbase) -f $(srcdir)/Makefile.sub1 
-auto/stamp-%.ready: $(MODULES_FILES) globalconfig.h globalconfig.tags .Modules.deps 
-	$(MAKE) srcdir=$(srcdir) objbase=$(objbase) -f $(srcdir)/Makefile.sub1 $@
 
 DEPS_FILES=DEPS DEPS.a4 DEPS.tred
 
