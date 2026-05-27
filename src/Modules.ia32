@@ -140,8 +140,8 @@ ASSRC_KERNEL-$(CONFIG_CPU_VIRT)         += vm_svm_asm.S vm_vmx_asm.S
 ASSRC_KERNEL                            += $(ASSRC_KERNEL-y)
 
 NOOPT			+= tb_entry_output perf_cnt perf_cnt_arch  \
-			   kern_cnt loadcnt kdb \
-			   push_console virq thread-dbf   \
+			   kern_cnt loadcnt \
+			   push_console \
 			   trap_state
 
 
