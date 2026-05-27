@@ -3,6 +3,7 @@
 #include <mem_layout.h>
 
 #ifdef CONFIG_HAVE_ARM_GICV2
+#ifndef CONFIG_ARM_IMX_MXC_TZIC
 Pic_gic::Gic_info const Pic_gic::primary_gic_info =
 {
   .version = 2, .primary = true, .offset = 0,
@@ -13,6 +14,7 @@ Pic_gic::Gic_info const Pic_gic::primary_gic_info =
   .cpu_v_phys = Mem_layout::Gic_v_phys_base,    .cpu_v_size = 0x1000,
 #endif
 };
+#endif
 #endif
 
 #ifdef CONFIG_HAVE_ARM_GICV3
