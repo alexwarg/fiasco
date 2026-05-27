@@ -18,8 +18,6 @@ tramp_mp_setup_gic_info(void const *, unsigned)
 #include <kernel_task.h>
 #include <pic-gic-helper.h>
 
-#include <pre_parts.h>
-
 struct Mp_boot_info
 {
   Mword sctlr;

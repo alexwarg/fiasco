@@ -4,7 +4,6 @@
 #include <globalconfig.h>
 #include <config_tcbsize.h>
 #include <l4_types.h>
-#include <pre_parts.h>
 
 // special magic to allow old compilers to inline constants
 
@@ -145,13 +144,13 @@ namespace Config
   GREETING_COLOR_ANSI_OFF
 
 
-#if ! defined (PRE_virtual_space_iface)
+#if ! defined (CONFIG_VIRTUAL_SPACE_IFACE)
 #define FIASCO_SPACE_VIRTUAL
 #else
 #define FIASCO_SPACE_VIRTUAL virtual
 #endif
 
-#if ! defined(PRE_virt_obj_space_iface)
+#if ! defined(CONFIG_VIRTUAL_SPACE_IFACE)
 #define FIASCO_VIRT_OBJ_SPACE_OVERRIDE
 #else
 #define FIASCO_VIRT_OBJ_SPACE_OVERRIDE override

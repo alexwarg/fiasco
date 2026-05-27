@@ -5,7 +5,6 @@
 #include "spin_lock.h"
 #include "globalconfig.h"
 #include "std_macros.h"
-#include "pre_parts.h"
 #include "cpu.h"
 #include "l4_types.h"
 #include "lock_guard.h"
@@ -61,7 +60,7 @@ public:
     return _dist.get_mmio_base();
   }
 
-#if defined (PRE_pic_gic_mxc_tzic)
+#if defined (CONFIG_ARM_IMX_MXC_TZIC)
   static constexpr bool Config_mxc_tzic = true;
 
   Unsigned32 mxc_pending()

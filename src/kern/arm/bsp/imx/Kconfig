@@ -5,6 +5,9 @@
 config ARM_IMX_TIMER_EPIT
         bool
 
+config ARM_IMX_MXC_TZIC
+	bool
+
 choice
 	prompt "NXP/Freescale i.MX"
 	default PF_IMX_51
@@ -39,6 +42,7 @@ config PF_IMX_51
 	select ARM_GIC
 	select HAVE_ARM_GICV2
         select ARM_IMX_TIMER_EPIT
+	select ARM_IMX_MXC_TZIC
 	help
 	  Choose for i.MX51.
 
@@ -48,6 +52,7 @@ config PF_IMX_51
 #	depends on PF_IMX
 #	select CAN_ARM_CPU_CORTEX_A8
 #       select ARM_IMX_TIMER_EPIT
+#	select ARM_IMX_MXC_TZIC
 #	help
 #	  Choose for i.MX53.
 

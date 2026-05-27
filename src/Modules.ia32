@@ -23,11 +23,11 @@ PREPROCESS_PARTS-$(CONFIG_SCHED_APIC)        += apic_timer
 PREPROCESS_PARTS-$(CONFIG_SCHED_HPET)        += hpet_timer
 PREPROCESS_PARTS-$(CONFIG_SERIAL)            += serial
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc
-PREPROCESS_PARTS-$(CONFIG_CPU_VIRT)          += svm vmx virtual_space_iface
+PREPROCESS_PARTS-$(CONFIG_CPU_VIRT)          += svm vmx
 PREPROCESS_PARTS-$(CONFIG_SCHED_FIXED_PRIO)  += sched_fixed_prio
 PREPROCESS_PARTS-$(CONFIG_SCHED_WFQ)         += sched_wfq
 PREPROCESS_PARTS-$(CONFIG_SCHED_FP_WFQ)      += sched_fp_wfq
-PREPROCESS_PARTS-$(CONFIG_IOMMU)             += iommu virtual_space_iface
+PREPROCESS_PARTS-$(CONFIG_IOMMU)             += iommu
 
 PREPROCESS_PARTS        += $(PREPROCESS_PARTS-y)
 

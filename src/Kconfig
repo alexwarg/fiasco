@@ -37,6 +37,9 @@ config HAS_CPU_VIRT
 config HAS_SYNC_CLOCK
 	bool
 
+config VIRTUAL_SPACE_IFACE
+	bool
+
 menu "Target configuration"
 
 choice
@@ -53,6 +56,7 @@ config IA32
 	select HAS_FPU_OPTION
 	select HAS_LAZY_FPU
 	select JDB_REGEX
+	select VIRTUAL_SPACE_IFACE if IOMMU || CPU_VIRT
 
 config AMD64
 	bool "AMD64 processor family"
@@ -64,6 +68,7 @@ config AMD64
 	select HAS_FPU_OPTION
 	select HAS_LAZY_FPU
 	select JDB_REGEX
+	select VIRTUAL_SPACE_IFACE if IOMMU || CPU_VIRT
 
 #  ARCH_CHOICE
 endchoice

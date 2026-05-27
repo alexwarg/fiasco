@@ -155,6 +155,7 @@ public:
     a->q_free(ram_quota(), Config::page_size(), d);
   }
 
+  FIASCO_SPACE_VIRTUAL
   V_pfn obj_map_max_address() const
   {
     return V_pfn(Slots_per_dir * Obj::Caps_per_page);

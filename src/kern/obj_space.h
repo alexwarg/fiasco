@@ -6,6 +6,7 @@
 #include "template_math.h"
 #include "assert_opt.h"
 #include "mem_space.h"
+#include <config.h>
 
 #if defined (CONFIG_VIRT_OBJ_SPACE)
 
@@ -133,7 +134,6 @@ public:
   Capability lookup(Cap_index virt) FIASCO_FLATTEN
   { return Base::lookup(virt); }
 
-  FIASCO_SPACE_VIRTUAL
   V_pfn obj_map_max_address() const FIASCO_VIRT_OBJ_SPACE_OVERRIDE
   FIASCO_FLATTEN
   { return Base::obj_map_max_address(); }

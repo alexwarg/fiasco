@@ -1,9 +1,8 @@
 
 #pragma once
 
-#include "trap_state.h"
-#include "globalconfig.h"
-#include "pre_parts.h"
+#include <trap_state.h>
+#include <globalconfig.h>
 
 struct Tb_entry_arch
 {

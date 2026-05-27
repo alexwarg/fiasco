@@ -2,7 +2,6 @@
 
 #include <config_arm_bsp.h>
 #include <types.h>
-#include <pre_parts.h>
 #include <globalconfig.h>
 
 namespace Config

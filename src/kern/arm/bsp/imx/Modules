@@ -6,9 +6,9 @@ PREPROCESS_PARTS        += generic_tickless_idle
 PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_21),kern_start_0xd)
 PREPROCESS_PARTS        += $(if $(CONFIG_PF_IMX_35),imx_epit)
 PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_51),imx_epit \
-                                                    pic_gic pic_gic_mxc_tzic)
+                                                    pic_gic)
 PREPROCESS_PARTS	+= $(if $(CONFIG_PF_IMX_53),imx_epit \
-                                                    pic_gic pic_gic_mxc_tzic)
+                                                    pic_gic)
 PREPROCESS_PARTS        += $(if $(CONFIG_PF_IMX_6),pic_gic)
 PREPROCESS_PARTS        += $(if $(CONFIG_PF_IMX_6_TIMER_MPTIMER),mptimer)
 PREPROCESS_PARTS        += $(if $(CONFIG_PF_IMX_6_TIMER_EPIT),imx_epit)
