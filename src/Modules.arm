@@ -205,7 +205,7 @@ ASSRC_CRT0	:= crt0.S
 # LIBK subsystem
 #
 LIBK 		:= libk.a
-VPATH          	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib/libk lib/contrib/compiler-rt/lib/builtins/arm lib/contrib/compiler-rt/lib/builtins
+VPATH          	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib/libk
 PRIVATE_INCDIR 	+= lib/libk/$(CONFIG_XARCH)/$(BITS) lib/libk/$(CONFIG_XARCH) lib/libk
 
 ifeq ($(CONFIG_BIT32),y)
@@ -213,17 +213,7 @@ CSRC_LIBK       += gcc_lib.c
 ASSRC_LIBK      += gcc_lib-aeabi.S
 endif
 CXXSRC_LIBK     += construction.cc
-ASSRC_LIBK-$(CONFIG_BIT32)  += \
-	aeabi_uldivmod.S \
-	aeabi_uidivmod.S \
-	aeabi_idivmod.S \
-	udivmoddi4.S \
-	udivsi3.S \
-	udivmodsi4.S \
-	divmodsi4.S \
-	divsi3.S
-
-CSRC_LIBK-$(CONFIG_BIT32)   += ashldi3.c
+CFLAGS += -ffreestanding
 ASSRC_LIBK += $(ASSRC_LIBK-y)
 CSRC_LIBK  += $(CSRC_LIBK-y)
 
