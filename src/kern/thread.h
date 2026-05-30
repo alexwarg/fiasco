@@ -120,7 +120,7 @@ public:
   // construct a thread
   explicit Thread(Ram_quota *);
 
-  virtual ~Thread() noexcept;
+  virtual ~Thread() noexcept = 0;
 
   Ram_quota *quota() const
   {
