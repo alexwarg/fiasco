@@ -10,7 +10,7 @@ public:
   Unsigned32 fpcr, fpsr;
   Unsigned64 state[64]; // 32 128bit regs
 
-  void init()
+  Fpu_state_simd()
   {
     static_assert(!(sizeof (*this) % sizeof(Mword)),
                   "Non-mword size of Fpu_regs");

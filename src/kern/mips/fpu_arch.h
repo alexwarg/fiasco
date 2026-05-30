@@ -12,6 +12,20 @@ class Fpu_state
 public:
   Unsigned64 regs[32];
   Mword fcsr;
+
+  Fpu_state()
+  {
+    static_assert(!(sizeof (*this) % sizeof(Mword)),
+                  "Non-mword size of Fpu_regs");
+
+    // Load the FPU with signalling NANS.  This bit pattern we're using has
+    // the property that no matter whether considered as single or as double
+    // precision represents signaling NANS.
+    Mem::memset_mwords(this, -1UL, sizeof (*this) / sizeof(Mword));
+
+    // We initialize fcr31 to rounding to nearest, no exceptions.
+    fcsr = 0;
+  }
 };
 
 class Fpu_arch
@@ -86,20 +100,6 @@ public:
 
   static unsigned state_align()
   { return sizeof(Unsigned64); }
-
-  static void init_state(Fpu_state *fpu_regs)
-  {
-    static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
-                  "Non-mword size of Fpu_regs");
-
-    // Load the FPU with signalling NANS.  This bit pattern we're using has
-    // the property that no matter whether considered as single or as double
-    // precision represents signaling NANS.
-    Mem::memset_mwords(fpu_regs, -1UL, sizeof (*fpu_regs) / sizeof(Mword));
-
-    // We initialize fcr31 to rounding to nearest, no exceptions.
-    fpu_regs->fcsr = 0;
-  }
 
   static void copy_state(Fpu_state *to, Fpu_state const *from)
   {

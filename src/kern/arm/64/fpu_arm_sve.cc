@@ -133,9 +133,11 @@ public:
     return reinterpret_cast<typename E::Type const *>(ext_state + E::off(vl));
   }
 
-  void init() override
+  void operator delete (void *addr, size_t s);
+
+  Fpu_state_sve()
   {
-    memset(ext_state, 0, Fpu_state_sve::dyn_size());
+    memset(ext_state, 0, dyn_size());
 
     // Default to maximum vector length
     *access<Zcr>() = _max_vl - 1;
@@ -370,9 +372,6 @@ public:
   Fpu_state_type type() const override
   { return Fpu_state_type::Simd; }
 
-  void init() override
-  { Fpu_state_simd::init(); }
-
   void save() override
   { Fpu_state_simd::save(); }
 
@@ -384,6 +383,8 @@ public:
 
   void copy(Fpu_state const *from) override
   { Fpu_state_simd::copy(nonull_static_cast<Fpu_state_simd_x const *>(from)); }
+
+  void operator delete (void *addr, size_t s);
 };
 
 
@@ -448,15 +449,57 @@ Fpu_arch_base::state_size(State_type type)
   else
     return sizeof(Fpu_state_simd_x);
 }
-void
-Fpu_arch_base::init_state(Fpu_state *fpu_state, State_type type)
-{
-  if (type == Fpu::State_type::Simd)
-    new (fpu_state) Fpu_state_simd_x();
-  else
-    new (fpu_state) Fpu_state_sve();
 
-  fpu_state->init();
+constexpr unsigned
+quota_offset(unsigned state_size)
+{
+  return (state_size + alignof(Ram_quota *) - 1) & ~(alignof(Ram_quota *) - 1);
+}
+
+constexpr unsigned
+size_with_quota(unsigned state_size)
+{
+  return quota_offset(state_size) + sizeof(Ram_quota *);
+}
+
+static Kmem_slab _sve_state_allocator(
+    size_with_quota(Fpu::state_size(Fpu::State_type::Sve)),
+    Fpu::state_align(), "Sve state");
+
+static Kmem_slab _fpu_state_allocator(
+    size_with_quota(Fpu::state_size(Fpu::Default_state_type)),
+    Fpu::state_align(), "Fpu state");
+
+
+template<typename T>
+inline Fpu_state *ctor_if(Ram_quota *q, void *m, unsigned sz)
+{
+  if (!m)
+    return nullptr;
+
+  Fpu_state *r = new (m) T();
+  *((Ram_quota **)((char*)m + quota_offset(sz))) = q;
+  return r;
+}
+
+void Fpu_state_sve::operator delete (void *sb, size_t)
+{
+  if (!sb)
+    return;
+
+  Ram_quota *q = *((Ram_quota **)((char*)(sb)
+                                  + quota_offset(Fpu::state_size(Fpu::State_type::Sve))));
+  _sve_state_allocator.q_free(q, sb);
+}
+
+void Fpu_state_simd_x::operator delete (void *sb, size_t)
+{
+  if (!sb)
+    return;
+
+  Ram_quota *q = *((Ram_quota **)((char*)(sb)
+                                  + quota_offset(Fpu::state_size(Fpu::State_type::Simd))));
+  _fpu_state_allocator.q_free(q, sb);
 }
 
 void
@@ -466,3 +509,20 @@ Fpu_arch_base::init(Cpu_number cpu, bool resume)
     detect_sve(cpu);
 }
 
+namespace Fpu_alloc
+{
+
+Fpu_state *alloc_types_state(Ram_quota *q, Fpu::State_type type)
+{
+  switch (type)
+    {
+    case Fpu::State_type::Sve:
+      return ctor_if<Fpu_state_sve>(q, _sve_state_allocator.q_alloc(q), Fpu::state_size(type));
+    case Fpu::State_type::Simd:
+      return ctor_if<Fpu_state_simd_x>(q, _fpu_state_allocator.q_alloc(q), Fpu::state_size(type));
+    default:
+      return nullptr;
+    }
+}
+
+}

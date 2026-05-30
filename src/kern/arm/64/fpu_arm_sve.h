@@ -21,10 +21,10 @@ class Fpu_state
 {
 public:
   virtual Fpu_state_type type() const = 0;
-  virtual void init() = 0;
   virtual void save() = 0;
   virtual void restore() const = 0;
   virtual void copy(Fpu_state const *from) = 0;
+  virtual ~Fpu_state() = default;
 };
 
 class Fpu_arch_base
@@ -34,7 +34,6 @@ public:
   static constexpr State_type Default_state_type = State_type::Simd;
   static unsigned state_size(State_type type = Default_state_type);
   static void init(Cpu_number, bool);
-  static void init_state(Fpu_state *fpu_state, State_type type);
 
 private:
   /// SVE support detected?

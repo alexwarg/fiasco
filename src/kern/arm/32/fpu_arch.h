@@ -13,6 +13,17 @@ class Fpu_state
 public:
   Mword fpexc, fpscr, fpinst, fpinst2;
   Mword state[64];
+
+  Fpu_state()
+  {
+    static_assert(!(sizeof (*this) % sizeof(Mword)),
+                  "Non-mword size of Fpu_regs");
+    Mem::memset_mwords(this, 0, sizeof (*this) / sizeof(Mword));
+#ifdef CONFIG_CPU_VIRT
+    enum { FPEXC_EN   = 1 << 30 };
+    fpexc |= FPEXC_EN;
+#endif
+  }
 };
 
 struct Fpu_arch
@@ -139,14 +150,6 @@ private:
   Mword _fpexc;
 
 public:
-  static void init_state(Fpu_state *fpu_regs)
-  {
-    static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
-                  "Non-mword size of Fpu_regs");
-    Mem::memset_mwords(fpu_regs, 0, sizeof (*fpu_regs) / sizeof(Mword));
-    fpu_regs->fpexc |= FPEXC_EN;
-  }
-
   static bool is_enabled()
   {
     Mword dummy; __asm__ __volatile__ ("mrc p15, 4, %0, c1, c1, 2" : "=r"(dummy));
@@ -189,13 +192,6 @@ public:
   }
 
 #else // CONFIG_CPU_VIRT
-
-  static void init_state(Fpu_state *fpu_regs)
-  {
-    static_assert(!(sizeof (*fpu_regs) % sizeof(Mword)),
-                  "Non-mword size of Fpu_regs");
-    Mem::memset_mwords(fpu_regs, 0, sizeof (*fpu_regs) / sizeof(Mword));
-  }
 
   static bool is_enabled()
   {

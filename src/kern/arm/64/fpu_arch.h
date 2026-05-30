@@ -18,11 +18,6 @@ struct Fpu_arch_base
 
   static unsigned state_size()
   { return sizeof (Fpu_state); }
-
-  static void init_state(Fpu_state *fpu_regs)
-  {
-    fpu_regs->init();
-  }
 };
 
 #endif

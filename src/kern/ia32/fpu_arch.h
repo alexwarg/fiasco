@@ -215,3 +215,12 @@ public:
   }
 };
 
+class Fpu_state
+{
+public:
+  char data[0];
+
+  Fpu_state() { Fpu_arch::init_state(this); }
+};
+
+
