@@ -8,7 +8,7 @@
 
 class Gic_v3;
 
-class Gic_msi : public Irq_chip_icu
+class Gic_msi : public Irq_chip_icu_msi
 {
 private:
   struct Msi_src
@@ -197,7 +197,7 @@ public:
     return success;
   }
 
-  int msg(Mword pin, Unsigned64 src, Irq_mgr::Msi_info *inf);
+  int msg(Mword pin, Unsigned64 src, Irq_mgr::Msi_info *inf) override;
 
 #ifdef CONFIG_JDB
   char const *chip_type() const override
