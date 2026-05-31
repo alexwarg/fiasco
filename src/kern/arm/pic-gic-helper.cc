@@ -1,7 +1,6 @@
 
 #include <pic-gic-helper.h>
 
-#include <irq_mgr_multi_chip.h>
 #include <mmio_register_block.h>
 #include <kmem.h>
 #include <gic_v2.h>
@@ -11,6 +10,15 @@
 #include <vgic_global.h>
 #include <tramp-mp.h>
 #include <globalconfig.h>
+
+#ifdef CONFIG_ARM_GIC_MSI
+#include <gic_msi.h>
+#include <irq_mgr_multi_msi.h>
+using Irq_mgr_arm = Irq_mgr_multi_msi;
+#else
+#include <irq_mgr_multi_chip.h>
+using Irq_mgr_arm = Irq_mgr_multi_chip<9>;
+#endif
 
 #include <cstdio>
 
@@ -88,6 +96,15 @@ namespace Pic_gic
     if (IS_ENABLED(CONFIG_CPU_VIRT) && primary)
       Gic_h_global::gic = new Boot_object<Gic_h_v3>();
 
+    if (inf.its_phys && inf.its_size)
+      {
+#ifdef CONFIG_ARM_GIC_MSI
+        if (primary)
+          mgr->add_msi_chip(g->msi_chip());
+#endif
+        g->add_its(Kmem::mmio_remap(inf.its_phys, inf.its_size));
+      }
+
     return 0;
   }
 #endif
@@ -138,7 +155,7 @@ namespace Pic_gic
 
   int add_gic(Gic_info const &inf)
   {
-    typedef Irq_mgr_multi_chip<9> Mgr;
+    typedef Irq_mgr_arm Mgr;
     Mgr *m = new Boot_object<Mgr>(8);
     Irq_mgr::mgr = m;
     return add_gic(m, inf);
