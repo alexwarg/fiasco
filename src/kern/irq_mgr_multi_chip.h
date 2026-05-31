@@ -31,6 +31,7 @@ public:
     return Irq(ci->chip, irqnum - ci->offset);
   }
 
+  int add_msi_chip(Irq_chip_icu_msi *) override { return -E_too_many_chips; }
   int add_chip(int irq_base, Irq_chip_icu *c, int pins = -1) override
   {
     if ((irq_base & ~(~0UL << Bits_per_entry)) != 0)

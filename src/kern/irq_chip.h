@@ -162,7 +162,17 @@ public:
   virtual ~Irq_chip_icu() = 0;
 };
 
+class Irq_chip_icu_msi : public Irq_chip_icu
+{
+public:
+  struct Msi_info
+  {
+    Unsigned64 addr;
+    Unsigned32 data;
+  };
 
+  virtual int msg(Mword pin, Unsigned64 src, Msi_info *inf) = 0;
+};
 
 /**
  * Base class for all kinds of IRQ consuming objects.

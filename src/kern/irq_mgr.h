@@ -16,11 +16,7 @@
 class Irq_mgr
 {
 public:
-  struct Msi_info
-  {
-    Unsigned64 addr;
-    Unsigned32 data;
-  };
+  using Msi_info = Irq_chip_icu_msi::Msi_info;
 
   /**
    * Chip and pin for an IRQ pin.
@@ -131,6 +127,7 @@ public:
   };
 
   virtual int add_chip(int base, Irq_chip_icu *chip, int pins = -1) = 0;
+  virtual int add_msi_chip(Irq_chip_icu_msi *chip) = 0;
 };
 
 template< typename CHIP >

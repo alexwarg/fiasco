@@ -34,6 +34,9 @@ public:
     return Irq();
   }
 
+  int add_msi_chip(Irq_chip_icu_msi *chip) override
+  { return -E_too_many_chips; }
+
   /**
    * Add a chip starting its range at `pos`.
    * \param chip  The chip to add.

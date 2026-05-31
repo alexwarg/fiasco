@@ -55,6 +55,7 @@ public:
   unsigned nr_irqs() const { return _nr_irqs; }
   unsigned nr_msis() const { return 0; }
 
+  int add_msi_chip(Irq_chip_icu_msi *) override { return -E_too_many_chips; }
   int add_chip(int base, Irq_chip_icu *chip, int pins = -1) override
   {
     (void) pins;
