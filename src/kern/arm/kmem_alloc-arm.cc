@@ -166,7 +166,7 @@ void Kmem_alloc::debug_dump() const
   a->dump();
 
   unsigned long free = a->avail();
-  printf("Used %ldKB out of %dKB of Kmem\n",
+  printf("Used %ldKB out of %ldKB of Kmem\n",
 	 (Config::KMEM_SIZE - free + 1023)/1024,
 	 (Config::KMEM_SIZE        + 1023)/1024);
 }
