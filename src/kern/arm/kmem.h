@@ -9,7 +9,7 @@
 class Kmem : public Mem_layout
 {
 public:
-  static Mword is_kmem_page_fault(Mword pfa, Mword error)
+  static bool is_kmem_page_fault(Mword pfa, Mword error)
   {
     if (IS_ENABLED(CONFIG_CPU_VIRT) && !PF::is_usermode_error(error))
       return true;
@@ -17,9 +17,9 @@ public:
     return in_kernel(pfa);
   }
 
-  static Mword is_io_bitmap_page_fault(Mword /*pfa*/)
+  static bool is_io_bitmap_page_fault(Mword /*pfa*/)
   {
-    return 0;
+    return false;
   }
 
   static Address mmio_remap(Address phys, Address size);

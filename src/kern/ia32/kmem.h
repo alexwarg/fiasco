@@ -36,12 +36,12 @@ private:
 
 public:
 
-  static Mword is_kmem_page_fault(Address addr, Mword /*error*/)
+  static bool is_kmem_page_fault(Address addr, Mword /*error*/)
   {
     return addr > Mem_layout::User_max;
   }
 
-  static Mword is_io_bitmap_page_fault(Address addr)
+  static bool is_io_bitmap_page_fault(Address addr)
   {
     return addr >= Mem_layout::Io_bitmap &&
            addr <= Mem_layout::Io_bitmap + Mem_layout::Io_port_max / 8;
