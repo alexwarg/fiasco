@@ -53,7 +53,7 @@ Kmem_alloc_arch::base_init()
   if (requested_size > Mem_layout::Physmem_max_size)
     requested_size = Mem_layout::Physmem_max_size; // maximum mappable memory
 
-  requested_size = Pg::round(requested_size);
+  requested_size = Pg::ceil(requested_size);
 
   if (0)
     {
@@ -127,7 +127,7 @@ Kmem_alloc_arch::base_init()
                                       Mem_desc::Kernel_tmp));
 
   Mem_layout::kphys_base(sp_base);
-  Mem_layout::pmem_size = Super_pg::round(end + 1 - sp_base);
+  Mem_layout::pmem_size = Super_pg::ceil(end + 1 - sp_base);
   assert(Mem_layout::pmem_size <= Config::kernel_mem_max);
 
   return true;

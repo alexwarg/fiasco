@@ -55,7 +55,7 @@ public:
 
   static Address kcode_end()
   {
-    return Pg::round(virt_to_phys(&Mem_layout::end));
+    return Pg::ceil(virt_to_phys(&Mem_layout::end));
   }
 
   static Address virt_to_phys(const void *addr)

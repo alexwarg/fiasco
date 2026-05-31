@@ -28,7 +28,7 @@ static bool
 map_pmem(unsigned long phy, unsigned long size)
 {
   static unsigned long next_map = Mem_layout::Pmem_start;
-  size = Super_pg::round(size + Super_pg::offset(phy));
+  size = Super_pg::ceil(size + Super_pg::offset(phy));
   phy = Super_pg::trunc(phy);
 
   if (next_map + size > Mem_layout::Pmem_end)

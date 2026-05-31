@@ -26,6 +26,19 @@ public:
   }
 
   /**
+   * Round to the nearest higher page.
+   *
+   * \param value  Value to round.
+   *
+   * \return Nearest higher page of \ref value.
+   */
+  template<typename TYPE>
+  static constexpr TYPE ceil(TYPE const &value)
+  {
+    return cxx::ceil_lsb(value, PAGE_SHIFT);
+  }
+
+  /**
    * Truncate to the nearest lower page.
    *
    * \param value  Value to truncate.

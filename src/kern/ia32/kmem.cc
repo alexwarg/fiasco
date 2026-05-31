@@ -83,7 +83,7 @@ Kmem::mmio_remap(Address phys, Address size, bool cache, bool with_exec)
 {
   static Address ndev = 0;
   Address phys_page = Super_pg::trunc(phys);
-  Address phys_end  = Super_pg::round(phys + size);
+  Address phys_end  = Super_pg::ceil(phys + size);
 
   for (Address a = Mem_layout::Registers_map_start;
        a < Mem_layout::Registers_map_end; a += Config::SUPERPAGE_SIZE)
@@ -474,7 +474,7 @@ Kmem::setup_cpu_structures_isolation(Cpu &cpu, Kpdir *cpu_dir, cxx::Simple_alloc
   extern char _kernel_text_start[];
   extern char _kernel_text_entry_end[];
   Address ki_page = Pg::trunc((Address)_kernel_text_start);
-  Address kie_page = Pg::round((Address)_kernel_text_entry_end);
+  Address kie_page = Pg::ceil((Address)_kernel_text_entry_end);
 
   if (Print_info)
     printf("kernel code: %p(%lx)-%p(%lx)\n", _kernel_text_start,

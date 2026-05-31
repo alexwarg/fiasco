@@ -13,7 +13,7 @@ public:
 
   static inline Address alloc_io_vmem(unsigned long bytes)
   {
-    bytes = Pg::round(bytes);
+    bytes = Pg::ceil(bytes);
     if (_io_map_ptr - bytes < Registers_map_start)
       return 0;
 

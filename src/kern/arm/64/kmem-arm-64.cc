@@ -26,7 +26,7 @@ Kmem::mmio_remap(Address phys, Address size)
 {
   static Address ndev = 0;
   Address phys_page = Super_pg::trunc(phys);
-  Address phys_end  = Super_pg::round(phys + size);
+  Address phys_end  = Super_pg::ceil(phys + size);
 
   for (Address a = Mem_layout::Registers_map_start;
        a < Mem_layout::Registers_map_end; a += Config::SUPERPAGE_SIZE)

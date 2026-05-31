@@ -10,7 +10,7 @@ Address
 Kmem::mmio_remap(Address phys, Address size)
 {
   Address phys_page = Super_pg::trunc(phys);
-  Address phys_end = Super_pg::round(phys + size);
+  Address phys_end = Super_pg::ceil(phys + size);
 
   for (Address p = phys_page; p < phys_end; p += Config::SUPERPAGE_SIZE)
     {

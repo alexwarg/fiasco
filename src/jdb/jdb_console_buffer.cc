@@ -126,7 +126,7 @@ Console_buffer::alloc(size_t size)
 {
   if (!out_buf)
     {
-      out_buf_size = Pg::round(size);
+      out_buf_size = Pg::ceil(size);
       if (out_buf_size)
 	out_buf = (char *)Kmem_alloc::allocator()->
                             alloc(Bytes(out_buf_size));
