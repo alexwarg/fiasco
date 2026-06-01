@@ -24,7 +24,7 @@ public:
     return false;
   }
 
-  static Address mmio_remap(Address phys, Address size);
+  static Address mmio_remap(Address phys, Address size, bool cache = false, bool with_exec = false);
 };
 
 

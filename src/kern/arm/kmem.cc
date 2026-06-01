@@ -20,7 +20,7 @@ bool cont_mapped(Address phys_beg, Address phys_end, Address virt)
 }
 
 Address
-Kmem::mmio_remap(Address phys, Address size)
+Kmem::mmio_remap(Address phys, Address size, bool cache, bool with_exec)
 {
   static Address ndev = 0;
 
@@ -45,12 +45,13 @@ Kmem::mmio_remap(Address phys, Address size)
 
       ndev += Config::SUPERPAGE_SIZE;
 
-      auto m = kdir->walk(Virt_addr(dm), K_pte_ptr::Super_level);
+      auto m = kdir->walk(Virt_addr(dm), kdir->Super_level);
       assert(!m.is_valid());
       assert(m.page_order() == Config::SUPERPAGE_SHIFT);
       m.set_page(Phys_mem_addr(p),
-                 Page::Attr(Page::Rights::RW(),
-                            Page::Type::Uncached(),
+                 Page::Attr(with_exec ? Page::Rights::RWX() : Page::Rights::RW(),
+                            cache ? Page::Type::Normal()
+                                  : Page::Type::Uncached(),
                             Page::Kern::Global()));
 
       m.write_back_if(true);

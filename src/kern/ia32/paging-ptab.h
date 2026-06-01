@@ -139,6 +139,11 @@ public:
     write_now(pte, p);
   }
 
+  void set_page(Phys_mem_addr addr, Page::Attr attr)
+  {
+    set_page(make_page(addr, attr));
+  }
+
   Page::Attr attribs() const
   {
     typedef L4_fpage::Rights R;
