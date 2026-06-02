@@ -19,7 +19,7 @@ public:
   {
     assert (cpu_lock.test());
 
-    return static_cast<Obj_space*>(s)->lookup_local(_t, rights);
+    return nonull_static_cast<Obj_space*>(s)->lookup_local(_t, rights);
   }
 
 
