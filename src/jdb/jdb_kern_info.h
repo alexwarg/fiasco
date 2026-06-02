@@ -28,7 +28,7 @@ public:
   static void register_subcmd(Jdb_kern_info_module *m);
   Action_code action(int cmd, void *&args, char const *&, int &) override;
   int num_cmds() const override;
-  Cmd const *cmds() const;
+  Cmd const *cmds() const override;
 
 private:
   typedef cxx::S_list_bss<Jdb_kern_info_module> Module_list;

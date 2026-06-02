@@ -10,6 +10,7 @@ namespace Jdb_kern_info_arch {
 inline Unsigned64 get_time_now()
 { return Cpu::rdtsc(); }
 
+[[gnu::unused]]
 static void show_time(Unsigned64 time, Unsigned32 rounds,
                       const char *descr)
 {
