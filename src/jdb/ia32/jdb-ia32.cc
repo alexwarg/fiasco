@@ -331,33 +331,32 @@ Jdb_ia32_base::Guessed_thread_state
 Jdb_ia32_base::guess_thread_state(Thread *t)
 {
   Guessed_thread_state state = s_unknown;
-  Mword *ktop = (Mword*)((Mword)context_of(t->get_kernel_sp()) +
-			  Context::Size);
+  void **ktop = offset_cast<void**>(context_of(t->get_kernel_sp()), Context::Size);
 
   for (int i=-1; i>-26; i--)
     {
       if (ktop[i] != 0)
 	{
-	  if (ktop[i] == (Mword)&in_page_fault)
+	  if (ktop[i] == &in_page_fault)
 	    state = s_pagefault;
-	  if ((ktop[i] == (Mword)&in_slow_ipc4) ||  // entry.S, int 0x30 log
-	      (ktop[i] == (Mword)&in_slow_ipc5) ||  // entry.S, sysenter log
+	  if ((ktop[i] == &in_slow_ipc4) ||  // entry.S, int 0x30 log
+	      (ktop[i] == &in_slow_ipc5) ||  // entry.S, sysenter log
 #if defined (CONFIG_JDB_LOGGING)
-	      (ktop[i] == (Mword)&in_sc_ipc1)   ||  // entry.S, int 0x30
-	      (ktop[i] == (Mword)&in_sc_ipc2)   ||  // entry.S, sysenter
+	      (ktop[i] == &in_sc_ipc1)   ||  // entry.S, int 0x30
+	      (ktop[i] == &in_sc_ipc2)   ||  // entry.S, sysenter
 #endif
 	     0)
 	    state = s_ipc;
-	  else if (ktop[i] == Jdb::user_invoke_addr<Thread>())
+	  else if (ktop[i] == reinterpret_cast<void *>(Jdb::user_invoke_addr<Thread>()))
 	    state = s_user_invoke;
-	  else if (ktop[i] == (Mword)&in_handle_fputrap)
+	  else if (ktop[i] == &in_handle_fputrap)
 	    state = s_fputrap;
-	  else if (ktop[i] == (Mword)&in_interrupt)
+	  else if (ktop[i] == &in_interrupt)
 	    state = s_interrupt;
-	  else if ((ktop[i] == (Mword)&in_timer_interrupt) ||
-		   (ktop[i] == (Mword)&in_timer_interrupt_slow))
+	  else if ((ktop[i] == &in_timer_interrupt) ||
+		   (ktop[i] == &in_timer_interrupt_slow))
 	    state = s_timer_interrupt;
-	  else if (ktop[i] == (Mword)&in_slowtrap)
+	  else if (ktop[i] == &in_slowtrap)
 	    state = s_slowtrap;
 	  if (state != s_unknown)
 	    break;
@@ -396,7 +395,7 @@ static void analyze_code(Cpu_number cpu)
 
   Unsigned8 op1, op2;
 
-  Jdb_addr<Unsigned8> insn_ptr((Unsigned8*)entry_frame->ip(), task);
+  Jdb_addr<Unsigned8> insn_ptr(reinterpret_cast<Unsigned8*>(entry_frame->ip()), task);
 
   if (   !Jdb::peek(insn_ptr, op1)
       || !Jdb::peek(insn_ptr + 1, op2))
@@ -724,7 +723,7 @@ Jdb_ia32_base::get_register(char *reg)
   reg_name.c[3] = '\0';
 
   for (i = 0; i < Jdb_screen::num_regs(); i++)
-    if (reg_name.v == *((Unsigned32 *)(Jdb_screen::Reg_names[i])))
+    if (reg_name.v == *reinterpret_cast<Unsigned32 const *>(Jdb_screen::Reg_names[i]))
       break;
 
   if (i == Jdb_screen::num_regs())

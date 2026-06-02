@@ -271,7 +271,7 @@ private:
         return 0;
       };
 
-    unsigned long cap = (unsigned long)mem | Pg::offset(cv);
+    unsigned long cap = reinterpret_cast<unsigned long>(mem) | Pg::offset(cv);
 
     return reinterpret_cast<Entry*>(cap);
   }

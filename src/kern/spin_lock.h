@@ -102,12 +102,12 @@ public:
 
   T get_unused() const noexcept
   {
-    return (T)(_lock & ~Arch_lock);
+    return reinterpret_cast<T>(_lock & ~Arch_lock);
   }
 
   void set_unused(T val) noexcept
   {
-    _lock = (_lock & Arch_lock) | (Mword)val;
+    _lock = (_lock & Arch_lock) | reinterpret_cast<Mword>(val);
   }
 };
 

@@ -473,7 +473,7 @@ inline Fpu_state *ctor_if(Ram_quota *q, void *m, unsigned sz)
     return nullptr;
 
   Fpu_state *r = new (m) T();
-  *((Ram_quota **)((char*)m + quota_offset(sz))) = q;
+  *offset_cast<Ram_quota **>(m, quota_offset(sz)) = q;
   return r;
 }
 
@@ -482,8 +482,8 @@ void Fpu_state_sve::operator delete (void *sb, size_t)
   if (!sb)
     return;
 
-  Ram_quota *q = *((Ram_quota **)((char*)(sb)
-                                  + quota_offset(Fpu::state_size(Fpu::State_type::Sve))));
+  Ram_quota *q = *offset_cast<Ram_quota **>(sb,
+      quota_offset(Fpu::state_size(Fpu::State_type::Sve)));
   _sve_state_allocator.q_free(q, sb);
 }
 
@@ -492,8 +492,8 @@ void Fpu_state_simd_x::operator delete (void *sb, size_t)
   if (!sb)
     return;
 
-  Ram_quota *q = *((Ram_quota **)((char*)(sb)
-                                  + quota_offset(Fpu::state_size(Fpu::State_type::Simd))));
+  Ram_quota *q = *offset_cast<Ram_quota **>(sb,
+      quota_offset(Fpu::state_size(Fpu::State_type::Simd)));
   _fpu_state_allocator.q_free(q, sb);
 }
 

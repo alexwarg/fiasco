@@ -185,8 +185,8 @@ private:
   bool alloc_dir()
   {
     static_assert(sizeof(Cap_dir) == Config::PAGE_SIZE, "cap_dir size mismatch");
-    auto *dir = (Cap_dir*)Kmem_alloc::allocator()->q_alloc(ram_quota(),
-                                                           Config::page_size());
+    auto *dir = Kmem_alloc::allocator()->q_alloc<Cap_dir>(ram_quota(),
+                                                          Config::page_size());
     if (dir)
       Mem::memset_mwords(dir, 0, Config::PAGE_SIZE / sizeof(Mword));
 
@@ -239,7 +239,7 @@ private:
     // visible! The lookup in get_cap() happens without a lock.
     Mem::mp_wmb();
 
-    Cap_table *tab = _dir->d[d_idx] = (Cap_table*)mem;
+    Cap_table *tab = _dir->d[d_idx] = reinterpret_cast<Cap_table*>(mem);
     return &tab->e[ cxx::get_lsb(cxx::int_value<Cap_index>(virt), Obj::Caps_per_page_ld2)];
   }
 };

@@ -124,7 +124,7 @@ public:
   void setup_sysenter() const
   {
     wrmsr(Gdt::gdt_code_kernel, 0, MSR_SYSENTER_CS);
-    wrmsr((unsigned long)&kernel_sp(), 0, MSR_SYSENTER_ESP);
+    wrmsr(reinterpret_cast<unsigned long>(&kernel_sp()), 0, MSR_SYSENTER_ESP);
     wrmsr(_sysenter_eip, 0, MSR_SYSENTER_EIP);
   }
 
@@ -137,8 +137,9 @@ public:
 private:
   void set_sysenter(void (*func)(void))
   {
-    _sysenter_eip = (Mword) func;
-    wrmsr((Mword) func, 0, MSR_SYSENTER_EIP);
+    auto fn = reinterpret_cast<Mword>(func);
+    _sysenter_eip = fn;
+    wrmsr(fn, 0, MSR_SYSENTER_EIP);
   }
 
 };

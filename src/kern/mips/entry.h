@@ -12,8 +12,8 @@ vcpu_return_to_kernel(Context *, Mword ip, Mword sp, void *arg)
   assert (cpu_lock.test());
 
   {
-    Mword register a0 __asm__("a0") = (Mword)arg;
-    Mword register t9 __asm__("t9") = (Mword)ip;
+    register void *a0 __asm__("a0") = arg;
+    register Mword t9 __asm__("t9") = ip;
     asm volatile
       (".set push                     \n"
        ".set noat                     \n"

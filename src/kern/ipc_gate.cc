@@ -135,7 +135,7 @@ Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
 
 void Ipc_gate_obj::operator delete (void *_f) noexcept
 {
-  Ipc_gate_obj *f = (Ipc_gate_obj*)_f;
+  Ipc_gate_obj *f = reinterpret_cast<Ipc_gate_obj*>(_f);
   Ram_quota *p = f->_quota;
   asm ("" : "=m"(*f));
 

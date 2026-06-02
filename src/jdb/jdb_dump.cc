@@ -334,7 +334,7 @@ Jdb_dump::draw_entry(unsigned long row, unsigned long col)
 	    {
 	      if (mword == 0)
 		printf("%*lu", Jdb_screen::Mword_size_bmode, mword);
-	      else if (mword == (Mword)~0UL)
+	      else if (mword == static_cast<Mword>(~0UL))
 		printf("%*d", Jdb_screen::Mword_size_bmode, -1);
 	      else
 	        {

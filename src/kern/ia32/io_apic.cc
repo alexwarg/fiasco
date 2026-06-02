@@ -76,7 +76,7 @@ Io_apic::Io_apic(Unsigned64 phys, unsigned gsi_base)
   _offset(gsi_base), _next(0)
 {
   if (Print_info)
-    printf("IO-APIC: addr=%lx\n", (Mword)phys);
+    printf("IO-APIC: addr=%lx\n", static_cast<Mword>(phys));
 
   Address va = Kmem::mmio_remap(phys, Config::PAGE_SIZE);
 
@@ -87,7 +87,7 @@ Io_apic::Io_apic(Unsigned64 phys, unsigned gsi_base)
 
   _apic = a;
   _irqs = a->num_entries() + 1;
-  _vec = (unsigned char *)Boot_alloced::alloc(_irqs);
+  _vec =  new (Boot_alloced::alloc(_irqs)) unsigned char [_irqs];
 
   if ((_offset + nr_irqs()) > _nr_irqs)
     _nr_irqs = _offset + nr_irqs();

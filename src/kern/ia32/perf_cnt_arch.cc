@@ -375,7 +375,7 @@ Mword lookup_event(unsigned evntsel)
 
   if (perfctr_lookup_event != 0 && perfctr_lookup_event(evntsel, &nr) != 0)
     return nr;
-  return (Mword)-1;
+  return static_cast<Mword>(-1l);
 }
 
 void get_unit_mask(Mword nr, Unit_mask_type *type,

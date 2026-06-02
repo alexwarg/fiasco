@@ -352,7 +352,7 @@ public:
       panic("Non-maskable FIQs (NMFI) detected, cannot use TZ mode");
 
     // set monitor vector base address
-    assert(!((Mword)&D::monitor_vector_base & 31));
+    assert(!(reinterpret_cast<Mword>(&D::monitor_vector_base) & 31));
     asm volatile ("mcr p15, 0, %0, c12, c0, 1" : : "r" (&D::monitor_vector_base));
 
     Mword dummy;
@@ -421,7 +421,7 @@ public:
   {
     extern char hyp_vector_base[];
 
-    assert (!((Mword)hyp_vector_base & 31));
+    assert (!(reinterpret_cast<Mword>(hyp_vector_base) & 31));
     asm volatile ("mcr p15, 4, %0, c12, c0, 0 \n" : : "r"(hyp_vector_base));
 
     asm volatile (

@@ -75,7 +75,7 @@ Jdb_tcb::info_thread_state(Thread *t)
   Jdb_tcb_ptr current((Address)t->get_kernel_sp());
 
   printf("Ca=%08lx St=%08lx Epc=%08lx\n"
-         "BadVA=%08lx Asid=%hx Hi=%lx Lo=%lx\n",
+         "BadVA=%08lx Asid=%lx Hi=%lx Lo=%lx\n",
          current.top_value(-3), current.top_value(-2), current.top_value(-1),
          current.top_value(-4), static_cast<unsigned long>(s->c_asid()), current.top_value(-5),
          current.top_value(-6));

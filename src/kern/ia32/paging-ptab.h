@@ -61,7 +61,7 @@ class Pte_ptr : private Pt_entry
 {
 public:
   using Pt_entry::Super_level;
-  Pte_ptr(void *pte, unsigned char level) : pte((Mword*)pte), level(level) {}
+  Pte_ptr(void *pte, unsigned char level) : pte(static_cast<Mword*>(pte)), level(level) {}
   Pte_ptr() = default;
 
   bool is_valid() const

@@ -65,7 +65,7 @@ public:
 
   static bool is_full_flush(L4_fpage::Rights rights)
   {
-    return (bool)(rights & L4_fpage::Rights::R());
+    return !!(rights & L4_fpage::Rights::R());
   }
 
   static Page_number canonize(Page_number v)

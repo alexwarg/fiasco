@@ -54,7 +54,7 @@ vcpu_return_to_kernel(Context *, Mword ip, Mword sp, T arg)
 {
   assert(cpu_lock.test());
 
-  Address *p = (Address *)Mem_layout::Kentry_cpu_page;
+  Address *p = reinterpret_cast<Address *>(Mem_layout::Kentry_cpu_page);
   handle_ia32_branch_barriers(&p[2]);
   handle_mds_mitigations(&p[2]);
 

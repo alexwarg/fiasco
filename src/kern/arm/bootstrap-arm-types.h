@@ -65,7 +65,7 @@ namespace Bootstrap
   void map_memory(void volatile *pd, Virt_addr va, Phys_addr pa,
                   bool cache, bool local)
   {
-    Phys_addr *const p = (Phys_addr*)pd;
+    Phys_addr *const p = static_cast<Phys_addr *>(const_cast<void *>(pd));
     p[cxx::int_value<Virt_addr>(va >> map_page_order)]
       = pt_entry(pa, cache, local);
   }
@@ -87,7 +87,7 @@ namespace Bootstrap
   inline ALWAYS_INLINE
   void *kern_to_boot(void *a)
   {
-    return (void *)((Mword)a + Virt_ofs);
+    return offset_cast<void *>(a, Virt_ofs);
   }
 }
 

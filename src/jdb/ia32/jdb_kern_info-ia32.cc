@@ -35,8 +35,8 @@ public:
 
     printf("idt base=" L4_PTR_FMT "  limit=%04x (%04x bytes)\n",
            idt_pseudo.base(),
-           (unsigned)((idt_pseudo.limit() + 1) / sizeof(Idt_entry)),
-           (unsigned)idt_pseudo.limit() + 1);
+           static_cast<unsigned>((idt_pseudo.limit() + 1) / sizeof(Idt_entry)),
+           static_cast<unsigned>(idt_pseudo.limit()) + 1);
     if (!Jdb_core::new_line(line))
       return;
 
@@ -152,7 +152,7 @@ public:
   void show() override
   {
     Cpu_time clock = Kip::k()->clock();
-    printf ("clck: %08x.%08x\n", (unsigned)(clock >> 32), (unsigned)clock);
+    printf ("clck: %08x.%08x\n", static_cast<unsigned>(clock >> 32), static_cast<unsigned>(clock));
 
     show_pdir();
 
@@ -161,11 +161,11 @@ public:
     Idt::get (&idt_pseudo);
     printf ("idt : base=" L4_PTR_FMT "  limit=%04x\n"
             "gdt : base=" L4_PTR_FMT "  limit=%04x\n",
-            idt_pseudo.base(), (unsigned)(idt_pseudo.limit()+1)/8,
-            gdt_pseudo.base(), (unsigned)(gdt_pseudo.limit()+1)/8);
+            idt_pseudo.base(), static_cast<unsigned>(idt_pseudo.limit()+1)/8,
+            gdt_pseudo.base(), static_cast<unsigned>(gdt_pseudo.limit()+1)/8);
 
     // print LDT
-    printf("ldt : %04x", (unsigned)Cpu::get_ldt());
+    printf("ldt : %04x", static_cast<unsigned>(Cpu::get_ldt()));
     if (Cpu::get_ldt() != 0)
       {
         Gdt_entry *e = Cpu::boot_cpu()->get_gdt()->entries() + (Cpu::boot_cpu()->get_ldt() >> 3);
@@ -175,7 +175,7 @@ public:
 
     // print TSS
     printf("\n"
-           "tr  : %04x", (unsigned)Cpu::boot_cpu()->get_tr());
+           "tr  : %04x", static_cast<unsigned>(Cpu::boot_cpu()->get_tr()));
     if(Cpu::get_tr() != 0)
       {
         Gdt_entry *e = Cpu::boot_cpu()->get_gdt()->entries() + (Cpu::boot_cpu()->get_tr() >> 3);
@@ -431,11 +431,11 @@ public:
 
     if (Config::Max_num_cpus > 1)
       printf("CPU%u: GDT base=" L4_PTR_FMT "  limit=%04x (%04x bytes)\n",
-             cxx::int_value<Cpu_number>(cpu), (Mword)gdt, entries,
-             (unsigned)Gdt::gdt_max);
+             cxx::int_value<Cpu_number>(cpu), reinterpret_cast<Mword>(gdt), entries,
+             static_cast<unsigned>(Gdt::gdt_max));
     else
       printf("GDT base=" L4_PTR_FMT "  limit=%04x (%04x bytes)\n",
-             (Mword)gdt, entries, (unsigned)Gdt::gdt_max);
+             reinterpret_cast<Mword>(gdt), entries, static_cast<unsigned>(Gdt::gdt_max));
 
     if (!Jdb_core::new_line(line))
       return;

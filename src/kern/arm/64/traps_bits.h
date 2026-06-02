@@ -20,7 +20,7 @@ pagein_tcb_request(Return_frame *regs)
   assert (regs->esr.il());        // must be a 32bit wide insn
   // we assume the instruction is a ldr with the target register
   // in the lower 5 bits
-  unsigned rt = *(Mword*)regs->pc & 0x1f;
+  unsigned rt = *reinterpret_cast<Mword*>(regs->pc) & 0x1f;
 
   // skip faulting instruction
   regs->pc += 4;

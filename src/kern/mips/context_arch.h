@@ -85,12 +85,12 @@ public:
     Proc::set_ulr(to->_cpu_state.ulr);
 
       {
-        Mword register _old_this asm("$5") = (Mword)_this();     // a1
-        Mword register _new_this asm("$4") = (Mword)to;          // a0
-        Mword register _old_sp asm("$6")
-          = (Mword)&_this()->_cpu_state.kernel_sp;  // a2
-        Mword register _new_sp asm("$7")
-          = (Mword)to->_cpu_state.kernel_sp;        // a3
+        register void *_old_this asm("$5") = _this();     // a1
+        register void *_new_this asm("$4") = to;          // a0
+        register void *_old_sp asm("$6")
+          = &_this()->_cpu_state.kernel_sp;  // a2
+        register void *_new_sp asm("$7")
+          = to->_cpu_state.kernel_sp;        // a3
 
         __asm__ __volatile__ (
             ".set push                                  \n"

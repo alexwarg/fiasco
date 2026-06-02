@@ -868,7 +868,7 @@ template<typename T>
 Context::Drq::Result
 Thread_ipc<T>::handle_remote_ipc_send(Drq *src, Context *, void *_rq)
 {
-  Ipc_remote_request *rq = (Ipc_remote_request*)_rq;
+  Ipc_remote_request *rq = reinterpret_cast<Ipc_remote_request*>(_rq);
   bool r = nonull_static_cast<Thread*>(src->context())->remote_ipc_send(rq);
   //LOG_MSG_3VAL(src, "rse<", current_cpu(), (Mword)src, r);
   return r ? Drq::need_resched() : Drq::done();

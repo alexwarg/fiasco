@@ -87,7 +87,7 @@ Arch_time_source::init_system_clock()
   extern unsigned char const _kip_time_code[];
   kip_clock_deploy_code_blob(Kip::k(), _kip_time_code);
   Cpu &cpu = Cpu::cpus.cpu(Cpu_number::boot_cpu());
-  *(Mword*)(Kip::k()->clock_blob() + 0xf0) = cpu.get_scaler_tsc_to_us();
-  *(Mword*)(Kip::k()->clock_blob() + 0xf8) = cpu.get_scaler_tsc_to_ns();
+  *reinterpret_cast<Mword*>(Kip::k()->clock_blob() + 0xf0) = cpu.get_scaler_tsc_to_us();
+  *reinterpret_cast<Mword*>(Kip::k()->clock_blob() + 0xf8) = cpu.get_scaler_tsc_to_ns();
 }
 

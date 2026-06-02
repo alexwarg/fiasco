@@ -129,10 +129,10 @@ public:
   static Del_irq_chip chip;
 
   static Thread *thread(Mword pin)
-  { return (Thread*)pin; }
+  { return reinterpret_cast<Thread*>(pin); }
 
   static Mword pin(Thread *t)
-  { return (Mword)t; }
+  { return reinterpret_cast<Mword>(t); }
 
   void unbind(Irq_base *irq) override
   { thread(irq->pin())->remove_delete_irq(irq); }
@@ -150,7 +150,7 @@ Thread::register_delete_irq(Irq_base *irq)
 
   auto g = lock_guard(irq->irq_lock());
   irq->unbind();
-  Del_irq_chip::chip.bind(irq, (Mword)this);
+  Del_irq_chip::chip.bind(irq, reinterpret_cast<Mword>(this));
   Irq_base *none = nullptr;
   if (_del_observer.compare_exchange_strong(none, irq))
     return true;

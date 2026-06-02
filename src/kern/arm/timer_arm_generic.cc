@@ -30,7 +30,7 @@ Timer_generic_timer::finalize_init(Cpu_number cpu)
 {
   if (is_boot_cpu(cpu))
     {
-      _interval = (Unsigned64)_freq0 * Config::Scheduler_granularity / 1000000;
+      _interval = Unsigned64{_freq0} * Config::Scheduler_granularity / 1000000;
       printf("ARM generic timer: freq=%ld interval=%ld cnt=%lld\n", _freq0, _interval, Gtimer::counter());
       assert(_freq0);
 

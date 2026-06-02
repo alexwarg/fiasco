@@ -55,7 +55,7 @@ void split_event(Mword event, unsigned *evntsel, Mword *)
   *evntsel = event;
 }
 
-Mword lookup_event(Mword) { return is_avail() ? 0 : (Mword)-1; }
+Mword lookup_event(Mword) { return is_avail() ? 0 : static_cast<Mword>(-1L); }
 
 void combine_event(Mword evntsel, Mword, Mword *event)
 {

@@ -74,7 +74,7 @@ public:
     if (_irqs[pin] != irq)
       return;
 
-    if (cxx::atomic_compare_exchange_strong(&_irqs[pin], irq, (Irq_base *)nullptr))
+    if (cxx::atomic_compare_exchange_strong(&_irqs[pin], irq, static_cast<Irq_base *>(nullptr)))
       Irq_chip_soft::unbind(irq);
   }
 

@@ -49,7 +49,7 @@ protected:
   void prepare_pt_switch()
   {
     Mword *pd = reinterpret_cast<Mword *>(Kmem::current_cpu_udir());
-    Mword *d = (Mword *)static_cast<Mem_space *>(this)->dir();
+    Mword *d = reinterpret_cast<Mword *>(static_cast<Mem_space *>(this)->dir());
     auto *m = Kmem::pte_map();
     unsigned bit = 0;
     for (;;)

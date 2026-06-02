@@ -19,8 +19,8 @@ static void tz_switch_to_ns(Mword *nonsecure_state)
 {
   extern char go_nonsecure[];
 
-  register Mword r0 asm("r0") = (Mword)nonsecure_state;
-  register Mword r1 asm("r1") = (Mword)go_nonsecure;
+  register void *r0 asm("r0") = nonsecure_state;
+  register void *r1 asm("r1") = go_nonsecure;
 
   asm volatile("push   {r11}      \n"
                "stmdb sp!, {r0}   \n"
@@ -107,7 +107,7 @@ Vm::resume_vcpu(Context *ctxt, Vcpu_state *vcpu, [[maybe_unused]] bool user_mode
           return -L4_err::EInval;
         }
 
-      tz_switch_to_ns((Mword *)state);
+      tz_switch_to_ns(reinterpret_cast<Mword *>(state));
 
       assert(cpu_lock.test());
 
@@ -232,7 +232,7 @@ Vm::dump_vm_state()
 void
 Vm::show_short(String_buffer *buf)
 {
-  buf->printf(" utcb:%lx pc:%lx ", (Mword)state_for_dbg, (Mword)jdb_get(&state_for_dbg->pc));
+  buf->printf(" utcb:%lx pc:%lx ", reinterpret_cast<Mword>(state_for_dbg), reinterpret_cast<Mword>(jdb_get(&state_for_dbg->pc)));
 }
 
 void

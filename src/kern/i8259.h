@@ -26,8 +26,8 @@ public:
 
   Unsigned16 disable_all_save()
   {
-    Unsigned16 s =   (Unsigned16)read_ocw_m()
-                   | (Unsigned16)read_ocw_s() << 8;
+    Unsigned16 s =   static_cast<Unsigned16>(read_ocw_m())
+                   | static_cast<Unsigned16>(read_ocw_s()) << 8;
     write_ocw_m(0xff);
     write_ocw_s(0xff);
     return s;
@@ -369,7 +369,7 @@ public:
     if (_irqs[pin])
       return false;
 
-    _irqs[pin] = (Irq_base*)1;
+    _irqs[pin] = reinterpret_cast<Irq_base*>(1);
 
     return true;
   }

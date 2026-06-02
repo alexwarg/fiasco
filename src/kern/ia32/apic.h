@@ -147,12 +147,12 @@ public:
 
   static Unsigned32 reg_read(unsigned reg)
   {
-    return *((volatile Unsigned32*)(io_base + reg));
+    return *reinterpret_cast<volatile Unsigned32*>(io_base + reg);
   }
 
   static void reg_write(unsigned reg, Unsigned32 val)
   {
-    *((volatile Unsigned32*)(io_base + reg)) = val;
+    *reinterpret_cast<volatile Unsigned32*>(io_base + reg) = val;
   }
 
   static int reg_delivery_mode(Unsigned32 val)

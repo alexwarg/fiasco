@@ -27,7 +27,7 @@ Fpu_alloc::alloc_state(Ram_quota *q, Fpu_state_ptr &s)
 
   Fpu_state *state = new (b) Fpu_state();
   unsigned sz = Fpu::state_size();
-  *((Ram_quota **)((char*)state + quota_offset(sz))) = q;
+  *offset_cast<Ram_quota **>(state, quota_offset(sz)) = q;
   s.set(state);
   return true;
 }
@@ -40,8 +40,7 @@ Fpu_alloc::free_state(Fpu_state_ptr &s)
 
   auto *sb = s.reset();
   unsigned sz = Fpu::state_size();
-  Ram_quota *q = *((Ram_quota **)((char*)(sb)
-                                  + quota_offset(sz)));
+  Ram_quota *q = *offset_cast<Ram_quota **>(sb, quota_offset(sz));
   _fpu_state_allocator.q_free(q, sb);
 }
 

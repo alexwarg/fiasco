@@ -109,7 +109,7 @@ public:
   template<typename THREAD>
   static Mword user_invoke_addr()
   {
-    return (Mword)&THREAD::user_invoke;
+    return reinterpret_cast<Mword>(&THREAD::user_invoke);
   }
 
 private:

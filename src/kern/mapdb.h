@@ -43,10 +43,10 @@ private:
     void *mem = Kmem_alloc::allocator()->alloc(mem_bytes(size));
     if (mem)
       memset(mem, 0, size * sizeof(Physframe));
-    return (Physframe *)mem;
+    return reinterpret_cast<Physframe *>(mem);
 #else
     Physframe* block
-      = (Physframe *)Kmem_alloc::allocator()->alloc(mem_bytes(size));
+      = reinterpret_cast<Physframe *>(Kmem_alloc::allocator()->alloc(mem_bytes(size)));
     assert (block);
     for (unsigned i = 0; i < size; ++i)
       new (block + i) Physframe();

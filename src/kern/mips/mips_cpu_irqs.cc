@@ -63,7 +63,7 @@ public:
     if (_irqs[pin])
       return false;
 
-    _irqs[pin] = (Irq_base*)1;
+    _irqs[pin] = reinterpret_cast<Irq_base*>(1);
 
     return true;
   }

@@ -22,13 +22,13 @@ public:
   Space *vcpu_aware() const { return user_mode() ? vcpu_user() : space(); }
 
   void space(Space *s) { _s.set_unused(s); }
-  void vcpu_user(Space *s) { _v = (Address)s; }
+  void vcpu_user(Space *s) { _v = reinterpret_cast<Address>(s); }
   void user_mode(bool enable)
   {
     if (enable)
-      _v |= (Address)1;
+      _v |= Address{1};
     else
-      _v &= (Address)(~1);
+      _v &= Address{~1UL};
   }
 };
 

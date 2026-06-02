@@ -217,7 +217,7 @@ public:
   void init(Cpu_number cpu, bool resume, bool is_boot_cpu = false);
 
   static Unsigned64 const _frequency
-    = (Unsigned64)Config::Cpu_frequency * 1000000;
+    = Unsigned64{Config::Cpu_frequency} * 1000000;
 
   static Unsigned64 frequency() { return _frequency; }
   static Per_cpu<Cpu> cpus;
@@ -232,7 +232,7 @@ public:
   { return _phys_id; }
 
   static Unsigned64 rdtsc()
-  { return (Unsigned32)(Mips::mfc0_32(9, 0)); }
+  { return static_cast<Unsigned32>(Mips::mfc0_32(9, 0)); }
 
   static unsigned phys_bits()
   {

@@ -33,7 +33,7 @@ public:
     { _d.m = mig; }
 
     Migration_start_result(Special s) noexcept
-    { _d.w = (Mword)s; }
+    { _d.w = static_cast<Mword>(s); }
 
     bool is_done() const noexcept
     { return _d.w & 3; }
@@ -80,7 +80,7 @@ public:
   {
     assert(cpu_lock.test());
     Context::Migration *m = c->_migration.get_and_clear();
-    assert (!((Mword)m & 0x3)); // ensure alignment
+    assert (!(reinterpret_cast<Mword>(m) & 0x3)); // ensure alignment
 
     if (!m)
       return Migration_start_result::Nothing; // bit one == 0 --> no need to reschedule

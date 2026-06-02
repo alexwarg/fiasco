@@ -56,7 +56,7 @@ Config::kmem_size(unsigned long available_size)
   return alloc_size;
 #else
   (void)available_size;
-  return (unsigned long)CONFIG_KMEM_SIZE_KB << 10;
+  return static_cast<unsigned long>(CONFIG_KMEM_SIZE_KB) << 10;
 #endif
 }
 

@@ -332,7 +332,7 @@ pagein_tcb_request(Return_frame *regs)
       //         ecx/rcx
       //         edx/rdx
       //         ...
-      Mword *reg = ((Mword*)regs) - 2 - Return_frame::Pf_ax_offset;
+      Mword *reg = reinterpret_cast<Mword*>(regs) - 2 - Return_frame::Pf_ax_offset;
       assert((op >> 11) <= 2);
       reg[-(op>>11)] = 0; // op==0 => eax, op==1 => ecx, op==2 => edx
 

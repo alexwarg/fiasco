@@ -72,7 +72,7 @@ Cpu_ia32_bits::init_sysenter()
 {
   if (sysenter())
     {
-      _sysenter_eip = (Mword)entry_sys_fast_ipc_c;
+      _sysenter_eip = reinterpret_cast<Mword>(entry_sys_fast_ipc_c);
       setup_sysenter();
     }
 }

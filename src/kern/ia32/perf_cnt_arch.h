@@ -38,7 +38,7 @@ namespace Perf_cnt
     {
       for (Mword slot = 0; slot < Max_slot; ++slot)
         {
-          pmc_event[slot].pmc  = (Mword)-1;
+          pmc_event[slot].pmc  = static_cast<Mword>(-1l);
           pmc_event[slot].edge = 0;
         }
     }

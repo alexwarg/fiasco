@@ -391,7 +391,7 @@ namespace Ptab
               continue;
             }
 
-          Next *n = (Next*)mem.phys_to_pmem(e.next_level());
+          Next *n = reinterpret_cast<Next*>(mem.phys_to_pmem(e.next_level()));
           n->unmap(start, size, level - 1, force_write_back,
                    cxx::forward<MEM>(mem));
         }

@@ -108,7 +108,7 @@ struct Ia32_intel_microcode
       if (!match_proc(rev_sig & 0xffffffffU, proc_mask))
         return false;
 
-      return (Signed32)(rev_sig >> 32) < update_rev;
+      return static_cast<Signed32>(rev_sig >> 32) < update_rev;
     }
 
   } __attribute__((packed));

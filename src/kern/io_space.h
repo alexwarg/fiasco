@@ -95,7 +95,7 @@ public:
 
   static bool is_full_flush(L4_fpage::Rights rights)
   {
-    return (bool)rights;
+    return !rights.empty();
   }
 
   /** return the IO counter.
@@ -112,7 +112,7 @@ public:
   */
   void addto_io_counter(Smword incr) noexcept
   {
-    cxx::atomic_fetch_add(&_io_counter, (Mword)incr);
+    cxx::atomic_fetch_add(&_io_counter, static_cast<Mword>(incr));
   }
 
 protected:

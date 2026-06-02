@@ -79,10 +79,10 @@ protected:
   {
     switch (field >> 13)
       {
-      case 0: _internal_write(vmcs, field, (Unsigned16)value); break;
-      case 1: _internal_write(vmcs, field, (Unsigned64)value); break;
-      case 2: _internal_write(vmcs, field, (Unsigned32)value); break;
-      case 3: _internal_write(vmcs, field, (Mword)value); break;
+      case 0: _internal_write<Unsigned16>(vmcs, field, value); break;
+      case 1: _internal_write<Unsigned64>(vmcs, field, value); break;
+      case 2: _internal_write<Unsigned32>(vmcs, field, value); break;
+      case 3: _internal_write<Mword>(vmcs, field, value); break;
       }
   }
 
@@ -141,13 +141,13 @@ private:
   template< typename T >
   static T _internal_read(void const *vmcs, unsigned field)
   {
-    return *(T *)field_ptr(vmcs, field);
+    return *reinterpret_cast<T const *>(field_ptr(vmcs, field));
   }
 
   template< typename T >
   static void _internal_write(void *vmcs, unsigned field, T value)
   {
-    *(T*)field_ptr(vmcs, field) = value;
+    *reinterpret_cast<T*>(field_ptr(vmcs, field)) = value;
   }
 
 };

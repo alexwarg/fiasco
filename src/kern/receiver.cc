@@ -10,7 +10,7 @@ struct Ipc_remote_dequeue_request
 Context::Drq::Result
 Receiver::handle_remote_abort_send(Drq *, Context *, void *_rq)
 {
-  Ipc_remote_dequeue_request *rq = (Ipc_remote_dequeue_request*)_rq;
+  Ipc_remote_dequeue_request *rq = reinterpret_cast<Ipc_remote_dequeue_request *>(_rq);
   if (rq->sender->in_sender_list())
     {
       // really cancel IPC

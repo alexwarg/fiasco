@@ -18,14 +18,14 @@ public:
    */
   template< typename T >
   static T read(Address address)
-  { return *(volatile T *)address; }
+  { return *reinterpret_cast<volatile T *>(address); }
 
   /**
    * Write the value of type T at address.
    */
   template< typename T >
   static void write(T value, Address address)
-  { *(volatile T *)address = value; }
+  { *reinterpret_cast<volatile T *>(address) = value; }
 
   /**
    * Write (read<T>(address) & maskbits) of type T at address.

@@ -42,7 +42,7 @@ Irq_sender::modify_label(Mword const *todo, int cnt)
 Context::Drq::Result
 Irq_sender::handle_remote_hit(Context::Drq *, Context *target, void *arg)
 {
-  Irq_sender *irq = (Irq_sender*)arg;
+  Irq_sender *irq = reinterpret_cast<Irq_sender*>(arg);
   irq->set_cpu(current_cpu());
   auto t = irq->_irq_thread.load(cxx::memory_order_acquire);
   if (EXPECT_TRUE(t == target))

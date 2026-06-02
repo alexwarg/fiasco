@@ -245,8 +245,8 @@ public:
 
   static void xsetbv(Unsigned64 val, Unsigned32 xcr)
   {
-    asm volatile ("xsetbv" : : "a" ((Mword)val),
-                               "d" ((Mword)(val >> 32)),
+    asm volatile ("xsetbv" : : "a" (static_cast<Mword>(val)),
+                               "d" (static_cast<Mword>(val >> 32)),
                                "c" (xcr));
   }
 
@@ -257,7 +257,7 @@ public:
                  : "=a" (eax),
                    "=d" (edx)
                  : "c" (xcr));
-    return eax | ((Unsigned64)edx << 32);
+    return eax | (Unsigned64{edx} << 32);
   }
 
   static Mword get_cr0()
@@ -290,11 +290,11 @@ public:
     Unsigned32 l,h;
 
     asm volatile ("rdpmc" : "=a" (l), "=d" (h) : "c" (idx));
-    return ((Unsigned64)h << 32) + (Unsigned64)l;
+    return (Unsigned64{h} << 32) + Unsigned64{l};
   }
 
   static void wrmsr(Unsigned32 low, Unsigned32 high, Unsigned32 reg)
-  { Proc::wrmsr(((Unsigned64)high << 32) | low, reg); }
+  { Proc::wrmsr((Unsigned64{high} << 32) | low, reg); }
 
   static void wrmsr(Unsigned64 msr, Unsigned32 reg)
   { Proc::wrmsr(msr, reg); }

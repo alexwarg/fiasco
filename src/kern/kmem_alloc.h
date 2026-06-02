@@ -73,8 +73,8 @@ public:
   void dump() const;
   void debug_dump() const;
 
-  template< typename Q >
-  void *q_alloc(Q *quota, Order order)
+  template<typename T = void, typename Q = void>
+  T *q_alloc(Q *quota, Order order)
   {
     Auto_quota<Q> q(quota, order);
     if (EXPECT_FALSE(!q))
@@ -85,11 +85,11 @@ public:
       return 0;
 
     q.release();
-    return b;
+    return reinterpret_cast<T*>(b);
   }
 
-  template< typename Q >
-  void *q_alloc(Q *quota, Bytes size)
+  template<typename T = void, typename Q = void>
+  T *q_alloc(Q *quota, Bytes size = Bytes(sizeof(T)))
   {
     Auto_quota<Q> q(quota, size);
     if (EXPECT_FALSE(!q))
@@ -100,12 +100,12 @@ public:
       return 0;
 
     q.release();
-    return b;
+    return reinterpret_cast<T*>(b);
   }
 
   void free_phys(Order o, Address p)
   {
-    void *va = (void*)Mem_layout::phys_to_pmem(p);
+    void *va = reinterpret_cast<void*>(Mem_layout::phys_to_pmem(p));
     if ((unsigned long)va != ~0UL)
       free(o, va);
   }

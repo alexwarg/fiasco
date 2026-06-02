@@ -78,7 +78,7 @@ Cpu::first_boot(bool is_boot_cpu)
           "Dual VTLB / FTLB", "<unk>", "<unk>", "<unk>"
         };
       panic("unsupported TLB type: %s (%u)\n",
-            tlb_type[c.r<0>().mt()], (unsigned int)c.r<0>().mt());
+            tlb_type[c.r<0>().mt()], static_cast<unsigned>(c.r<0>().mt()));
     }
 
   require(c.r<0>().vi() == 0, "virtual instruction caches not supported\n");
@@ -105,7 +105,7 @@ Cpu::first_boot(bool is_boot_cpu)
     {
       if (c.r<0>().ar() == 2 || c.r<4>().mmu_ext_def() == 3)
         {
-          tlb_size |= (unsigned)c.r<4>().vtlb_sz_ext() << 6;
+          tlb_size |= static_cast<unsigned>(c.r<4>().vtlb_sz_ext()) << 6;
           ftlb_info = c.r<4>().ftlb_info();
           ftlb_ps = c.r<4>().ftlb_page_size2();
         }
@@ -115,12 +115,12 @@ Cpu::first_boot(bool is_boot_cpu)
           ftlb_ps = c.r<4>().ftlb_page_size1();
         }
       else if (c.r<4>().mmu_ext_def() == 1)
-        tlb_size |= (unsigned)c.r<4>().mmu_sz_ext() << 6;
+        tlb_size |= static_cast<unsigned>(c.r<4>().mmu_sz_ext()) << 6;
 
       if (ftlb_info)
         {
           unsigned ps = 0;
-          switch ((Mword)Config::PAGE_SIZE)
+          switch (static_cast<Mword>(Config::PAGE_SIZE))
             {
             case 0x1000: // try to enable 4KB pages in FTLB
               ps = 1;

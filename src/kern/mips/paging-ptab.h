@@ -193,14 +193,14 @@ public:
 
         if (do_alloc)
           {
-            p = (Mword*)alloc.alloc(Bytes(sizeof(Mword) << size));
+            p = static_cast<Mword*>(alloc.alloc(Bytes(sizeof(Mword) << size)));
             if (!p)
               return r; // OOM
 
             for (unsigned i = 0; i < (1UL << size); ++i)
               p[i] = Leaf;
 
-            *r.e = (Mword)p;
+            *r.e = reinterpret_cast<Mword>(p);
           }
 
         r.size = l_field(lvl);
@@ -218,7 +218,7 @@ public:
             do_alloc = true;
             continue;
           }
-        p = (Mword*)*r.e;
+        p = reinterpret_cast<Mword*>(*r.e);
       }
 
     return r;
@@ -236,7 +236,7 @@ public:
     Mword *e;
     unsigned char level;
     Pte_ptr() = default;
-    Pte_ptr(void *p, unsigned char lvl) : e((Mword *)p), level(lvl) {}
+    Pte_ptr(void *p, unsigned char lvl) : e(static_cast<Mword *>(p)), level(lvl) {}
     bool is_leaf() const  { return *e & Leaf; }
     bool is_valid() const { return !(*e & Leaf) || (*e & Valid); }
     Address next_level() const { return *e; }
@@ -302,7 +302,7 @@ Pdir::destroy(Va _start, Va _end, ALLOC const &alloc)
           if (n < Used_levels - 2)
             {
               ++n;
-              p[n] = (Mword *)v;
+              p[n] = reinterpret_cast<Mword *>(v);
               continue;
             }
 

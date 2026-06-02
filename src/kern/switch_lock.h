@@ -92,7 +92,7 @@ public:
   Context * NO_INSTRUMENT lock_owner() const
   {
     auto guard = lock_guard(cpu_lock);
-    return (Context*)(_lock_owner & ~1UL);
+    return reinterpret_cast<Context*>(_lock_owner & ~1UL);
   }
 
   /**
@@ -144,7 +144,7 @@ public:
             if (!o)
               break;
 
-            help(c, (Context *)o, o);
+            help(c, reinterpret_cast<Context *>(o), o);
           }
       }
     while (!set_lock_owner(c));
@@ -184,7 +184,7 @@ public:
 
     assert (!valid());
 
-    if ((_lock_owner & ~1UL) == (Address)c)
+    if ((_lock_owner & ~1UL) == reinterpret_cast<Address>(c))
       {
         clear_lock_owner();
         c->dec_lock_cnt();
@@ -196,7 +196,7 @@ public:
         assert(cpu_lock.test());
 
         Address _owner = access_once(&_lock_owner);
-        Context *owner = (Context *)(_owner & ~1UL);
+        Context *owner = reinterpret_cast<Context *>(_owner & ~1UL);
         if (!owner)
           break;
 

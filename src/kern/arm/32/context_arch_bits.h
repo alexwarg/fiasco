@@ -73,10 +73,10 @@ protected:
   {
     Context *self = static_cast<Context *>(this);
     Context_arch_bits *to_a = to;
-    register Mword _old_this asm("r1") = (Mword)self;
-    register Mword _new_this asm("r0") = (Mword)to;
-    register Mword _old_sp asm("r2") = (Mword)&_cpu_state.kernel_sp;
-    register Mword _new_sp asm("r3") = (Mword)to_a->_cpu_state.kernel_sp;
+    register void *_old_this asm("r1") = self;
+    register void *_new_this asm("r0") = to;
+    register void *_old_sp asm("r2") = &_cpu_state.kernel_sp;
+    register void *_new_sp asm("r3") = to_a->_cpu_state.kernel_sp;
 
     asm volatile
       (// save context of old thread

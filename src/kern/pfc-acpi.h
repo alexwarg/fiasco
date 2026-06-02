@@ -61,7 +61,7 @@ public:
     printf("ACPI: HW sig=%x\n", facs->hw_signature);
 
     extern char _tramp_acpi_wakeup[];
-    phys_wake_vector = (Address)_tramp_acpi_wakeup;
+    phys_wake_vector = reinterpret_cast<Address>(_tramp_acpi_wakeup);
     if (phys_wake_vector >= 1UL << 20)
       {
         printf("ACPI: invalid wake vector (1MB): %lx\n", phys_wake_vector);

@@ -32,8 +32,8 @@ Thread::user_invoke()
   do
     {
       extern char ret_from_user_invoke[];
-      Mword register a0 __asm__("a0") = (Mword)ts;
-      Mword register ra __asm__("ra") = (Mword)ret_from_user_invoke;
+      register void *a0 __asm__("a0") = ts;
+      register void const *ra __asm__("ra") = ret_from_user_invoke;
       __asm__ __volatile__ (
           ASM_ADDIU "  $sp, %[ts], -%[cfs]   \n"
           "jr          %[ra]                 \n"

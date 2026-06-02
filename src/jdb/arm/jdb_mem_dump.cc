@@ -37,7 +37,7 @@ Jdb_module::Action_code Jdb_mem_dump::action( int cmd, void *&, char const *&, i
   if(cmd!=0)
     return NOTHING;
 
-  unsigned v = *((unsigned*)((Mword)address & ~0x03));
+  unsigned v = *reinterpret_cast<unsigned*>(reinterpret_cast<Mword>(address) & ~0x03);
   printf(" => 0x%08x\n", v);
   return NOTHING;
 }
@@ -51,7 +51,7 @@ Jdb_module::Cmd const *const Jdb_mem_dump::cmds() const
 {
   static Cmd cs[] =
     {  { 0, "d", "dump", " address: %x", 
-	   "d\tdump memory at specific address", (void*)&address }
+	   "d\tdump memory at specific address", static_cast<void*>(&address) }
     };
 
   return cs;

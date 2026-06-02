@@ -294,7 +294,7 @@ static Phys_addr init_paging()
       "msr ttbr0_el2, %0 \n"
       "isb               \n"
       : :
-      "r"(d), "r"((Mword)Page::Ttbcr_bits));
+      "r"(d), "r"(Mword{Page::Ttbcr_bits}));
 
   return Phys_addr(0);
 }

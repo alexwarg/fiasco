@@ -14,7 +14,7 @@ pagein_tcb_request(Return_frame *regs)
     return false;
 
   //if ((*(Mword*)regs->pc & 0xfff00fff ) == 0xe5900000)
-  if (*(Mword*)regs->pc == 0xe59ee000)
+  if (*reinterpret_cast<Mword*>(regs->pc) == 0xe59ee000)
     {
       // printf("TCBR: %08lx\n", *(Mword*)regs->pc);
       // skip faulting instruction

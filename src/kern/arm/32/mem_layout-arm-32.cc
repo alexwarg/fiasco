@@ -14,7 +14,7 @@ bool
 Mem_layout_arch::_read_special_safe(Mword const *address, Mword &v)
 {
   // Counterpart: Thread::pagein_tcb_request()
-  register Mword a asm("r14") = (Mword)address;
+  register Mword a asm("r14") = reinterpret_cast<Mword>(address);
   Mword ret;
   asm volatile ("msr cpsr_f, #0    \n"
                 "ldr %[a], [%[a]]  \n"

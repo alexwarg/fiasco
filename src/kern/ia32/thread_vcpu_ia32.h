@@ -26,7 +26,7 @@ public:
       Vmx::cpus.current().init_vmcs_infos(v);
 
     if (Cpu::boot_cpu()->vendor() == Cpu::Vendor_intel)
-      v->user_data[6] = (Mword)Cpu::ucode_revision();
+      v->user_data[6] = static_cast<Mword>(Cpu::ucode_revision());
   }
 };
 

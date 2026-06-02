@@ -79,7 +79,7 @@ public:
   Cmd const *cmds() const override
   {
     static Cmd cs[] =
-      { { 0, "A", "apic", "", "apic\tdump state of IOAPIC", (void*)0 } };
+      { { 0, "A", "apic", "", "apic\tdump state of IOAPIC", nullptr } };
 
     return cs;
   }

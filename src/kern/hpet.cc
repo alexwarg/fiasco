@@ -62,7 +62,7 @@ Hpet::init()
 
   Kip::k()->add_mem_region(Mem_desc(a, a + 1023, Mem_desc::Reserved));
 
-  _hpet = (Hpet_device *)(va + offs);
+  _hpet = offset_cast<Hpet_device *>(va, offs);
 
   _hpet->dump();
 

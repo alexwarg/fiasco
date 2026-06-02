@@ -121,7 +121,7 @@ public:
   FIASCO_SPACE_VIRTUAL
   Status v_insert(Phys_addr phys, V_pfn const &virt, Page_order size,
                   Attr page_attribs) FIASCO_FLATTEN
-  { return (Status)Base::v_insert(phys, virt, size, page_attribs); }
+  { return static_cast<Status>(Base::v_insert(phys, virt, size, page_attribs)); }
 
   bool v_fabricate(V_pfn const &address,
                    Phys_addr *phys, Page_order *size,
