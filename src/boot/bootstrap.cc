@@ -90,11 +90,11 @@ bootstrap()
 
   // make sure that we did not forgot to discard an unused header section
   // (compare "objdump -p fiasco.image")
-  if ((Address)_start < Mem_layout::Kernel_image)
+  if (reinterpret_cast<Address>(_start) < Mem_layout::Kernel_image)
     panic("Fiasco kernel occupies memory below %014lx",
-          (unsigned long)Mem_layout::Kernel_image);
+          reinterpret_cast<unsigned long>(Mem_layout::Kernel_image));
 
-  if ((Address)&_end - Mem_layout::Kernel_image > Mem_layout::Kernel_image_size)
+  if (reinterpret_cast<Address>(&_end) - Mem_layout::Kernel_image > Mem_layout::Kernel_image_size)
     panic("Fiasco boot system occupies more than %luMB",
           Mem_layout::Kernel_image_size / (1024 * 1024));
 
@@ -102,10 +102,10 @@ bootstrap()
 
   Mem_unit::tlb_flush_early();
 
-  start = (Start)_start;
+  start = reinterpret_cast<Start>(_start);
 
-  Address phys_start = (Address)_start - Mem_layout::Kernel_image + Mem_layout::Kernel_image_phys;
-  Address phys_end   = (Address)_end   - Mem_layout::Kernel_image + Mem_layout::Kernel_image_phys;
+  Address phys_start = reinterpret_cast<Address>(_start) - Mem_layout::Kernel_image + Mem_layout::Kernel_image_phys;
+  Address phys_end   = reinterpret_cast<Address>(_end)   - Mem_layout::Kernel_image + Mem_layout::Kernel_image_phys;
   check_overlap ("VGA/IO", phys_start, phys_end, 0xa0000, 0x100000);
 
   if (Checksum::get_checksum_ro() != check_sum.checksum_ro)
