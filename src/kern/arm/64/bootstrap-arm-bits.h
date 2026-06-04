@@ -266,7 +266,7 @@ static void leave_el3()
       : "cc", "x4");
 }
 
-static Phys_addr init_paging()
+static Phys_addr init_paging(Address load_addr)
 {
   // HCR_EL2.{E2H,TGE} change behavior of paging so make sure they are disabled
   asm volatile ("msr HCR_EL2, %0" : : "r"(Cpu::Hcr_rw));
@@ -430,7 +430,7 @@ static void leave_hyp_mode()
     }
 }
 
-static Phys_addr init_paging()
+static Phys_addr init_paging(Address)
 {
   leave_hyp_mode();
   Pdir  *ud = reinterpret_cast<Pdir *>(kern_to_boot(bs_info.pi.l0_dir));
