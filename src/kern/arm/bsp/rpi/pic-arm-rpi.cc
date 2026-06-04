@@ -69,7 +69,7 @@ static void bcm2836_irq_handler()
         handle_ipis();
 
       if (pending & (1 << Timer::irq()))
-        Timer_tick::handler_all(0, 0);
+        Timer_tick::handler_static_ack();
 
       if (pending & 0x100)
         mgr->c.irq_handler();

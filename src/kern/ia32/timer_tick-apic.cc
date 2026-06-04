@@ -32,7 +32,7 @@ FIASCO_FASTCALL
 void thread_timer_interrupt(Address ip)
 {
   (void)ip;
-  Timer_tick_apic::handler_all(0, 0); //Timer_tick::_glbl_timer);
+  Timer_tick_apic::handler_static_ack(); //Timer_tick::_glbl_timer);
 }
 
 extern "C" void thread_timer_interrupt_stop(void);

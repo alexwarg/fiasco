@@ -102,17 +102,19 @@ public:
     current_thread()->handle_timer_interrupt();
   }
 
+  [[gnu::flatten]]
+  static void handler_static_ack()
+  {
+    handle_timer_noack(current_thread(), current_cpu());
+    TT::ack();
+  }
+
 private:
   // we do not support triggering modes
   void switch_mode(bool) override {}
 
-
-  static void handle_timer(Irq_base *_s, Upstream_irq const *ui,
-                           Thread *t, Cpu_number cpu)
+  static void handle_timer_noack(Thread *t, Cpu_number cpu)
   {
-    TT *self = nonull_static_cast<TT *>(_s);
-    self->ack();
-    Upstream_irq::ack(ui);
     System_clock::update(cpu);
     if (   (cpu == Cpu_number::boot_cpu())
         && (Config::esc_hack || (Config::serial_esc == Config::SERIAL_ESC_NOIRQ)))
@@ -122,6 +124,16 @@ private:
       }
     log_timer();
     t->handle_timer_interrupt();
+  }
+
+  [[gnu::flatten]]
+  static void handle_timer(Irq_base *_s, Upstream_irq const *ui,
+                           Thread *t, Cpu_number cpu)
+  {
+    TT *self = nonull_static_cast<TT *>(_s);
+    self->ack();
+    Upstream_irq::ack(ui);
+    handle_timer_noack(t, cpu);
   }
 };
 
