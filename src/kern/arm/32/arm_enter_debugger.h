@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread.h>
+#include <arm/32/inline_asm.h>
 
 inline int
 arm_enter_debugger(Trap_state *ts, Cpu_number log_cpu,
@@ -19,11 +20,7 @@ arm_enter_debugger(Trap_state *ts, Cpu_number log_cpu,
       "str    %[tmp], [%[ntr]]         \n"
       "str    %[origstack], [sp, #-4]! \n"
       "str    %[ntr], [sp, #-4]!       \n"
-#ifdef __thumb__
-      "adr    lr, (1f + 1)             \n"
-#else
-      "adr    lr, 1f                   \n"
-#endif
+      "adr    lr, " FIASCO_ARM_JMP_LABEL(1f) "\n"
       "bx     %[handler]               \n"
       "1:                              \n"
       "ldr    %[ntr], [sp], #4         \n"

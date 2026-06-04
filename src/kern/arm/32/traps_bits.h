@@ -342,7 +342,7 @@ inline T peek_user(T const *adr, Context *c)
   c->kernel_mem_op.set_ignore(true);
   // Must always be a 4 byte instruction because check_and_handle_mem_op_fault()
   // relies on this.
-  asm volatile(INST32("ldr") " %0, [%1]" : "=r"(v) : "r"(adr)); // v = *adr;
+  asm volatile(FIASCO_ASM_INST32("ldr") " %0, [%1]" : "=r"(v) : "r"(adr)); // v = *adr;
   c->kernel_mem_op.set_ignore(false);
   return v;
 }

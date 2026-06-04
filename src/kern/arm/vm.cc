@@ -13,7 +13,7 @@
 #include "thread.h"
 #include <entry.h>
 #include <task_factory_impl.h>
-
+#include <arm/32/inline_asm.h>
 
 static void tz_switch_to_ns(Mword *nonsecure_state)
 {
@@ -22,26 +22,23 @@ static void tz_switch_to_ns(Mword *nonsecure_state)
   register void *r0 asm("r0") = nonsecure_state;
   register void *r1 asm("r1") = go_nonsecure;
 
-  asm volatile("push   {r11}      \n"
+  asm volatile("push   {" FIASCO_ARM_FPTR_REG "}\n"
                "stmdb sp!, {r0}   \n"
                "mov    r2, sp     \n" // copy sp_svc to sp_mon
                "cps    #0x16      \n" // switch to monitor mode
                "mov    sp, r2     \n"
                "mrs    r4, cpsr   \n" // save return psr
-#ifdef __thumb__
-               "adr    r3, (1f + 1)\n" // save return eip
-#else
-               "adr    r3, 1f     \n" // save return eip
-#endif
+               "adr    r3, " FIASCO_ARM_JMP_LABEL(1f) "\n" // save return eip
                "bx     r1         \n" // go nonsecure!
                "1:                \n"
                "mov    r0, sp     \n" // copy sp_mon to sp_svc
                "cps    #0x13      \n" // switch to svc mode
                "mov    sp, r0     \n"
                "ldmia  sp!, {r0}  \n"
-               "pop    {r11}      \n"
+               "pop    {" FIASCO_ARM_FPTR_REG "}\n"
                : : "r" (r0), "r" (r1)
-               : "r2", "r3", "r4", "r5", "r6", "r7",
+               : FIASCO_ARM_CLOBBER_xFPTR,
+                 "r2", "r3", "r4", "r5", "r6",
                  "r8", "r9", "r10", "r12", "r14", "memory");
 }
 

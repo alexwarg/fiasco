@@ -7,7 +7,7 @@ Mem_layout_arch::_read_special_safe(Mword const *a)
 {
   // Counterpart: Thread::pagein_tcb_request()
   register Mword const *res __asm__ ("r14") = a;
-  __asm__ __volatile__ (INST32("ldr") " %0, [%0]\n"
+  __asm__ __volatile__ (FIASCO_ASM_INST32("ldr") " %0, [%0]\n"
                         : "=r" (res) : "r" (res) : "cc" );
   return Mword(res);
 }
