@@ -42,8 +42,7 @@ struct Pfc_ls_psci : Pfc_psci
 {
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    if (cpu_on(0xf01, phys_tramp_mp_addr))
-      printf("KERNEL: PSCI CPU_ON failed\n");
+    boot_ap_cpus_psci(phys_tramp_mp_addr, { 0xf01 });
   }
 };
 

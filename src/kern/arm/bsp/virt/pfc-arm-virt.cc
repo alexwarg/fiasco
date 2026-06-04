@@ -1,16 +1,13 @@
-#include <pfc.h>
 #include <pfc-psci.h>
-#include <globalconfig.h>
 
 struct Pfc_arm_virt : Pfc_psci
 {
-#ifdef CONFIG_MP
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    for (unsigned i = 0; i < Config::Max_num_cpus; ++i)
-      cpu_on(((i & 0xf0) << 4) | (i & 0xf), phys_tramp_mp_addr);
+    boot_ap_cpus_psci(phys_tramp_mp_addr,
+                      { 0x000, 0x001, 0x002, 0x003,
+                        0x100, 0x101, 0x102, 0x103 });
   }
-#endif
 };
 
 static Pfc_singleton<Pfc_arm_virt> __pfc;

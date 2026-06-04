@@ -1,17 +1,10 @@
 
 #include <pfc-arm.h>
 #include <pfc-psci.h>
-#include <types.h>
-#include <processor.h>
-#include <mem.h>
-#include <cpu.h>
 #include <mmio_register_block.h>
-#include <ipi.h>
+#include <mem_layout.h>
 #include <kmem.h>
 #include <infinite_loop.h>
-#include <minmax.h>
-#include <psci.h>
-#include <cpu.h>
 #include <mem.h>
 #include <globalconfig.h>
 #include <koptions.h>
@@ -41,13 +34,7 @@ struct Pfc_qc_psci : Pfc_psci
 {
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    unsigned ncpus = min<unsigned>(cxx::size(psci_coreid), Config::Max_num_cpus);
-    for (unsigned i = 0; i < ncpus; ++i)
-      {
-        int r = Psci::cpu_on(psci_coreid[i], phys_tramp_mp_addr);
-        if (r && r != Psci::Psci_already_on)
-          printf("CPU%d boot-up error: %d\n", i, r);
-      }
+    boot_ap_cpus_psci(phys_tramp_mp_addr, psci_coreid);
   }
 };
 

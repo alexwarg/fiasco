@@ -1,20 +1,12 @@
 
 #include <pfc-arm.h>
 #include <pfc-psci.h>
-#include <types.h>
-#include <processor.h>
-#include <mem.h>
-#include <cpu.h>
 #include <mmio_register_block.h>
-#include <ipi.h>
 #include <kmem.h>
 #include <infinite_loop.h>
-#include <minmax.h>
-#include <psci.h>
 #include <cpu.h>
 #include <mem.h>
 #include <globalconfig.h>
-#include <koptions.h>
 
 #include <cstdio>
 
@@ -57,32 +49,13 @@ struct Pfc_v_nopsci : Pfc_arm
 
 struct Pfc_v_psci : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr)
+  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    int seq = 1;
-    for (int i = 0; i < min<int>(2, Config::Max_num_cpus); ++i)
-      {
-        unsigned coreid[16] = {
-              0x000,   0x100,   0x200,   0x300,
-              0x400,   0x500,   0x600,   0x700,
-            0x10000, 0x10100, 0x10200, 0x10300,
-            0x10400, 0x10500, 0x10600, 0x10700,
-        };
-        int r = Psci::cpu_on(coreid[i], phys_tramp_mp_addr);
-        if (r)
-          {
-            if (r != Psci::Psci_already_on)
-              printf("CPU%d boot-up error: %d\n", i, r);
-            continue;
-          }
-
-        while (!Cpu::online(Cpu_number(seq)))
-          {
-            Mem::barrier();
-            Proc::pause();
-          }
-        ++seq;
-      }
+    boot_ap_cpus_psci(phys_tramp_mp_addr,
+                      {   0x000,   0x100,   0x200,   0x300,
+                          0x400,   0x500,   0x600,   0x700,
+                        0x10000, 0x10100, 0x10200, 0x10300,
+                        0x10400, 0x10500, 0x10600, 0x10700 });
   }
 };
 

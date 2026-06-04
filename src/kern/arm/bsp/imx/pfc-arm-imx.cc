@@ -8,11 +8,9 @@
 #include <mmio_register_block.h>
 #include <mem_layout.h>
 #include <kmem.h>
-#include <minmax.h>
 #include <cstdio>
 #include <processor.h>
 #include <mem.h>
-#include <psci.h>
 #include <cpu.h>
 
 namespace {
@@ -121,8 +119,7 @@ struct Pfc_imx7_psci : Pfc_psci
 {
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    if (cpu_on(0x1, phys_tramp_mp_addr))
-      printf("KERNEL: PSCI CPU_ON failed\n");
+    boot_ap_cpus_psci(phys_tramp_mp_addr, { 0x1 });
   }
 };
 
@@ -130,28 +127,8 @@ struct Pfc_imx8 : Pfc_psci
 {
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    int seq = 1;
-    enum { Num_cores = 6 };
-    unsigned coreid[Num_cores] = { 0x000, 0x001, 0x002, 0x003,
-                                   0x100, 0x101 };
-
-    for (int i = 0; i < min<int>(Num_cores, Config::Max_num_cpus); ++i)
-      {
-        int r = cpu_on(coreid[i], phys_tramp_mp_addr);
-        if (r)
-          {
-            if (r != Psci::Psci_already_on)
-              printf("KERNEL: CPU%d boot-up error: %d\n", i, r);
-            continue;
-          }
-
-        while (!Cpu::online(Cpu_number(seq)))
-          {
-            Mem::barrier();
-            Proc::pause();
-          }
-        ++seq;
-      }
+    boot_ap_cpus_psci(phys_tramp_mp_addr,
+                      { 0x000, 0x001, 0x002, 0x003, 0x100, 0x101 });
   }
 };
 
