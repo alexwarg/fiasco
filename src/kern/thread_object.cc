@@ -149,6 +149,10 @@ inline
 L4_msg_tag
 Thread_object::sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
 {
+  // Only threads running on our CPU are allowed to iterate our sender list.
+  if (current() != this)
+    return commit_result(-L4_err::EInval);
+
   if (sender_list()->cursor())
     return Kobject_iface::commit_result(-L4_err::EBusy);
 
