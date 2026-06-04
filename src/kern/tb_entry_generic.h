@@ -314,14 +314,14 @@ public:
 class Tb_entry_ipc_res : public Tb_entry
 {
 private:
+  Unsigned8     _have_snd;      ///< IPC had send part
+  Unsigned8     _is_np;         ///< next period bit set
   L4_msg_tag    _tag;           ///< message tag
   Mword         _dword[2];      ///< first two dwords
   L4_error      _result;        ///< result
   Mword         _from;          ///< receive descriptor
   L4_obj_ref    _dst;           ///< destination id
   Mword         _pair_event;    ///< referred event
-  Unsigned8     _have_snd;      ///< IPC had send part
-  Unsigned8     _is_np;         ///< next period bit set
 public:
   void print(String_buffer *buf) const;
 
