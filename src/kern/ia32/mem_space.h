@@ -77,18 +77,18 @@ public:
     return true;
   }
 
-  void tlb_flush_current_cpu() FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void tlb_flush_current_cpu() FIASCO_SPACE_OVERRIDE
   {
     tlb_flush_this_();
   }
 
   Status v_insert(Phys_addr phys, Vaddr virt, Page_order size,
-                  Attr page_attribs) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+                  Attr page_attribs) FIASCO_SPACE_OVERRIDE;
   bool v_lookup(Vaddr virt, Phys_addr *phys = 0, Page_order *order = 0,
-                Attr *page_attribs = 0) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+                Attr *page_attribs = 0) FIASCO_SPACE_OVERRIDE;
   L4_fpage::Rights v_delete(Vaddr virt, Page_order size,
-                            L4_fpage::Rights page_attribs) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
-  void v_set_access_flags(Vaddr virt, L4_fpage::Rights access_flags) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+                            L4_fpage::Rights page_attribs) FIASCO_SPACE_OVERRIDE;
+  void v_set_access_flags(Vaddr virt, L4_fpage::Rights access_flags) FIASCO_SPACE_OVERRIDE;
 
   /** Set this memory space as the current on this CPU. */
   void make_current(Switchin_flags flags = None)

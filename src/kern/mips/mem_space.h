@@ -88,7 +88,7 @@ public:
 
   static void init();
 
-  void tlb_flush_current_cpu() FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void tlb_flush_current_cpu() FIASCO_SPACE_OVERRIDE
   {
 #ifdef CONFIG_CPU_VIRT
     Cpu_number cpu = current_cpu();
@@ -100,7 +100,7 @@ public:
   }
 
 
-  void v_set_access_flags(Vaddr, L4_fpage::Rights) FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void v_set_access_flags(Vaddr, L4_fpage::Rights) FIASCO_SPACE_OVERRIDE
   {
     // not supported currently
   }
@@ -108,15 +108,15 @@ public:
   bool
   v_lookup(Vaddr virt, Phys_addr *phys = nullptr,
            Page_order *order = nullptr,
-           Attr *page_attribs = nullptr) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+           Attr *page_attribs = nullptr) FIASCO_SPACE_OVERRIDE;
 
   Status
   v_insert(Phys_addr phys, Vaddr virt, Page_order size,
-           Attr page_attribs) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+           Attr page_attribs) FIASCO_SPACE_OVERRIDE;
 
   L4_fpage::Rights
   v_delete(Vaddr virt, Page_order size,
-           L4_fpage::Rights page_attribs) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+           L4_fpage::Rights page_attribs) FIASCO_SPACE_OVERRIDE;
 
 
   Address pmem_to_phys(Address virt) const

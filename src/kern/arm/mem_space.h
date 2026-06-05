@@ -50,7 +50,7 @@ public:
     return Mem_layout::pmem_to_phys(virt);
   }
 
-  void tlb_flush_current_cpu() FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void tlb_flush_current_cpu() FIASCO_SPACE_OVERRIDE
   {
     if (!Have_asids)
       Mem_unit::tlb_flush();
@@ -58,21 +58,21 @@ public:
       Mem_unit::tlb_flush(c_asid());
   }
 
-  void v_set_access_flags(Vaddr, L4_fpage::Rights) FIASCO_VIRT_OBJ_SPACE_OVERRIDE
+  void v_set_access_flags(Vaddr, L4_fpage::Rights) FIASCO_SPACE_OVERRIDE
   {}
 
   bool
   v_lookup(Vaddr virt, Phys_addr *phys = nullptr,
            Page_order *order = nullptr,
-           Attr *page_attribs = nullptr) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+           Attr *page_attribs = nullptr) FIASCO_SPACE_OVERRIDE;
 
   Status
   v_insert(Phys_addr phys, Vaddr virt, Page_order size,
-           Attr page_attribs) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+           Attr page_attribs) FIASCO_SPACE_OVERRIDE;
 
   L4_fpage::Rights
   v_delete(Vaddr virt, Page_order size,
-           L4_fpage::Rights page_attribs) FIASCO_VIRT_OBJ_SPACE_OVERRIDE;
+           L4_fpage::Rights page_attribs) FIASCO_SPACE_OVERRIDE;
 
   Address virt_to_phys(Address virt) const
   {

@@ -184,7 +184,7 @@ public:
     return cap.obj();
   }
 
-  virtual V_pfn obj_map_max_address() const
+  V_pfn obj_map_max_address() const
   {
     Mword r;
 

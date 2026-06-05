@@ -159,13 +159,9 @@ namespace Config
 
 #if ! defined (CONFIG_VIRTUAL_SPACE_IFACE)
 #define FIASCO_SPACE_VIRTUAL
+#define FIASCO_SPACE_OVERRIDE
 #else
 #define FIASCO_SPACE_VIRTUAL virtual
-#endif
-
-#if ! defined(CONFIG_VIRTUAL_SPACE_IFACE)
-#define FIASCO_VIRT_OBJ_SPACE_OVERRIDE
-#else
-#define FIASCO_VIRT_OBJ_SPACE_OVERRIDE override
+#define FIASCO_SPACE_OVERRIDE override
 #endif
 
