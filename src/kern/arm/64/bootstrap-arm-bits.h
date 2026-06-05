@@ -16,8 +16,6 @@
 
 namespace Bootstrap
 {
-  static unsigned long load_addr;
-
   struct Bs_mem_map
   {
     static Address phys_to_pmem(Address a)
