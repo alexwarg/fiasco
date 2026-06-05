@@ -7,3 +7,7 @@
 inline void *operator new (size_t, void *p) noexcept { return p; }
 inline void *operator new [] (size_t, void *p) noexcept { return p; }
 
+namespace cxx {
+    template<typename T>
+    inline T *launder(T *in) { return __builtin_launder(in); }
+};
