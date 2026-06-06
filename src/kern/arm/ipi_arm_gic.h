@@ -33,7 +33,7 @@ struct Ipi_arm_gic : Ipi_arm_gic_base
     IPI::stat_sent(from_cpu);
   }
 
-  static void bcast(Message m, Cpu_number from_cpu)
+  static void bcast(Message m, Cpu_number /*from_cpu*/)
   {
     Gic::primary->softint_bcast(m);
   }
