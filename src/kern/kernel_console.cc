@@ -4,7 +4,7 @@
 #include "console.h"
 #include "mux_console.h"
 #include "processor.h"
-#include "kip.h"
+#include <system_clock.h>
 
 #include <cstring>
 #include <cstdio>
@@ -44,7 +44,7 @@ Kconsole::check_input_ignore()
 {
   if (_ignore_input_until)
     {
-      if (Kip::k()->clock() > _ignore_input_until)
+      if (System_clock::aux_clock() > _ignore_input_until)
         _ignore_input_until = 0;
       else
         {
