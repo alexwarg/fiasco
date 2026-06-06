@@ -1,5 +1,6 @@
 #include <delayloop.h>
 
+#ifndef CONFIG_SYNC_CLOCK
 #include <kip.h>
 #include <mem.h>
 #include <processor.h>
@@ -93,3 +94,50 @@ Delay::udelay(unsigned us)
   while (c--);
   Mem::barrier();
 }
+
+#else
+
+#include <processor.h>
+#include <system_clock.h>
+
+void
+Delay::init()
+{
+  // In this configuration we use Timer::aux_clock_unstopped(), which, unlike
+  // the KIP clock, updates independent of any timer tick interrupt.
+}
+
+/**
+ * Wait for a certain amount of time.
+ *
+ * \param ms  The number of milliseconds to wait for.
+ *
+ * Can be used in the kernel debugger while no timer tick is available. Don't
+ * expect 100% accurate delays here.
+ */
+void
+Delay::delay(unsigned ms)
+{
+  Cpu_time now = System_clock::aux_clock();
+  while (System_clock::aux_clock() - now < 1000ULL * ms)
+    Proc::pause();
+}
+
+/**
+ * Wait for a certain amount of time.
+ *
+ * \param us  The number of microseconds to wait for.
+ *
+ * Can be used in the kernel debugger while no timer tick is available. Don't
+ * expect 100% accurate delays here.
+ */
+void
+Delay::udelay(unsigned us)
+{
+  Cpu_time now = System_clock::aux_clock();
+  while (System_clock::aux_clock() - now < us)
+    Proc::pause();
+}
+
+
+#endif
