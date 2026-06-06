@@ -21,6 +21,14 @@ public:
     return Kip::k()->clock();
   }
 
+  // this function must not rely on any kernel stack, or
+  // current(), current_cpu() etc. functions. It is also
+  // not allowed to have side effects.
+  static Unsigned64 aux_clock()
+  {
+    return Kip::k()->clock();
+  }
+
   static void update(Cpu_number cpu)
   {
     if (cpu != Cpu_number::boot_cpu())

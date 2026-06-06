@@ -46,4 +46,12 @@ public:
 
     Kip::k()->set_clock(TIME_SRC::time_us());
   }
+
+  // this function must not rely on any kernel stack, or
+  // current(), current_cpu() etc. functions. It is also
+  // not allowed to have side effects.
+  static Unsigned64 aux_clock()
+  {
+    return TIME_SRC::time_us();
+  }
 };
