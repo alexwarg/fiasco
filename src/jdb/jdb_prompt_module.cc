@@ -117,7 +117,7 @@ public:
     else if (args == &input_time_block_sec)
       {
         printf("\nJDB: Ignoring input for %u seconds\n", input_time_block_sec);
-        Kconsole::console()->set_ignore_input(Kip::k()->clock() + input_time_block_sec * 1000000);
+        Kconsole::console()->set_ignore_input(System_clock::aux_clock() + input_time_block_sec * 1000000);
         return LEAVE;
       }
 
