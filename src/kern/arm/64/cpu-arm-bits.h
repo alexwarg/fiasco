@@ -38,7 +38,7 @@ public:
     Scr_eel2 = 1UL << 18, ///< Secure EL2 enable
   };
 
-  enum {
+enum : Mword {
     Sctlr_m       = 1UL << 0,
     Sctlr_a       = 1UL << 1,
     Sctlr_c       = 1UL << 2,

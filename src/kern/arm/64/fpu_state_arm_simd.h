@@ -26,6 +26,7 @@ public:
 inline void
 Fpu_state_simd::save()
 {
+  Mword _fpcr, _fpsr;
   asm volatile(".arch_extension fp                        \n"
                "stp     q0, q1,   [%[s], #16 *  0]        \n"
                "stp     q2, q3,   [%[s], #16 *  2]        \n"
@@ -46,10 +47,12 @@ Fpu_state_simd::save()
                "mrs     %[fpcr], fpcr                     \n"
                "mrs     %[fpsr], fpsr                     \n"
                ".arch_extension nofp                      \n"
-               : [fpcr] "=r" (fpcr),
-                 [fpsr] "=r" (fpsr),
+               : [fpcr] "=r" (_fpcr),
+                 [fpsr] "=r" (_fpsr),
                  "=m" (state)
                : [s] "r" (state));
+  fpcr = _fpcr;
+  fpsr = _fpsr;
 }
 
 inline void
