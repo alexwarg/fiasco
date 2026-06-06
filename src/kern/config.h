@@ -51,47 +51,19 @@ namespace Config
     One_shot_max_interval_us = 10000,
 
 
-#ifdef CONFIG_FINE_GRAINED_CPUTIME
-    Fine_grained_cputime = true,
-#else
-    Fine_grained_cputime = false,
-#endif
+    Fine_grained_cputime = IS_ENABLED(CONFIG_FINE_GRAINED_CPUTIME),
 
-#ifdef CONFIG_STACK_DEPTH
-    Stack_depth = true,
-#else
-    Stack_depth = false,
-#endif
-#ifdef CONFIG_NO_FRAME_PTR
-    Have_frame_ptr = 0,
-#else
-    Have_frame_ptr = 1,
-#endif
-#ifdef CONFIG_JDB
-    Jdb = 1,
-#else
-    Jdb = 0,
-#endif
-#ifdef CONFIG_JDB_LOGGING
-    Jdb_logging = 1,
-#else
-    Jdb_logging = 0,
-#endif
-#ifdef CONFIG_JDB_ACCOUNTING
-    Jdb_accounting = 1,
-#else
-    Jdb_accounting = 0,
-#endif
+    Stack_depth    = IS_ENABLED(CONFIG_STACK_DEPTH),
+    Have_frame_ptr = ! IS_ENABLED(CONFIG_NO_FRAME_PTR),
+    Jdb            = IS_ENABLED(CONFIG_JDB),
+    Jdb_logging    = IS_ENABLED(CONFIG_JDB_LOGGING),
+    Jdb_accounting = IS_ENABLED(CONFIG_JDB_ACCOUNTING),
 #ifdef CONFIG_MP
     Max_num_cpus = CONFIG_MP_MAX_CPUS,
 #else
     Max_num_cpus = 1,
 #endif
-#ifdef CONFIG_BIG_ENDIAN
-    Big_endian = true,
-#else
-    Big_endian = false,
-#endif
+    Big_endian = IS_ENABLED(CONFIG_BIG_ENDIAN),
   };
 
   constexpr Cpu_number max_num_cpus() { return Cpu_number(Max_num_cpus); }

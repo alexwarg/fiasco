@@ -51,27 +51,10 @@ namespace Config
 
   enum
   {
-#ifdef CONFIG_ARM_ENABLE_SWP
-    Cp15_c1_use_swp_enable = 1,
-#else
-    Cp15_c1_use_swp_enable = 0,
-#endif
-#ifdef CONFIG_ARM_ALIGNMENT_CHECK
-    Cp15_c1_use_alignment_check = 1,
-#else
-    Cp15_c1_use_alignment_check = 0,
-#endif
+    Cp15_c1_use_swp_enable      = IS_ENABLED(CONFIG_ARM_ENABLE_SWP),
+    Cp15_c1_use_alignment_check = IS_ENABLED(CONFIG_ARM_ALIGNMENT_CHECK),
 
     Support_arm_linux_cache_API = 1,
-  };
-
-  enum
-  {
-#ifdef CONFIG_SYNC_CLOCK
-    Kip_clock_uses_timer = 1,
-#else
-    Kip_clock_uses_timer = 0,
-#endif
   };
 
 #if defined (CONFIG_ARM_LPAE)

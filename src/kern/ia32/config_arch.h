@@ -49,11 +49,7 @@ namespace Config
     // can access user memory directly
     Access_user_mem = Access_user_mem_direct,
 #endif
-#ifdef CONFIG_IA32_PCID
-    Pcid_enabled = true,
-#else
-    Pcid_enabled = false,
-#endif
+    Pcid_enabled = IS_ENABLED(CONFIG_IA32_PCID),
 
     /// Timer vector used with APIC timer or IOAPIC
     Apic_timer_vector = APIC_IRQ_BASE + 0,
@@ -74,11 +70,7 @@ namespace Config
     Default_time_slice    = 10 * Scheduler_granularity,
 #endif
 
-#ifdef CONFIG_ONE_SHOT
-    Scheduler_one_shot = true,
-#else
-    Scheduler_one_shot = false,
-#endif
+    Scheduler_one_shot = IS_ENABLED(CONFIG_ONE_SHOT),
 
 #ifdef CONFIG_SCHED_RTC
     Scheduler_mode = SCHED_RTC,
@@ -111,11 +103,7 @@ namespace Config
   enum
   {
     Pic_prio_modify = true,
-#ifdef CONFIG_SYNC_CLOCK
-    Kip_clock_uses_rdtsc = true,
-#else
-    Kip_clock_uses_rdtsc = false,
-#endif
+    Kip_clock_uses_rdtsc = IS_ENABLED(CONFIG_SYNC_CLOCK),
   };
 
   extern bool apic;
