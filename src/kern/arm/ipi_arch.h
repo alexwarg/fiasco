@@ -12,6 +12,6 @@
 #include <ipi_arm_gic.h>
 
 template<typename T>
-struct Ipi_arch : Ipi_arm_gic<T> {};
+class Ipi_arch : public Ipi_arm_gic<T> {};
 
 #endif // CONFIG_ARM_GIC
