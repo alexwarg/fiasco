@@ -2,7 +2,7 @@
 
 // generic KIP based clock
 
-#include <kip.h>
+#include <system_clock.h>
 #include <l4_types.h>
 
 class Clock_impl
@@ -21,7 +21,7 @@ public:
 protected:
   Counter read_counter() const
   {
-    return Kip::k()->clock();
+    return System_clock::clock();
   }
 };
 
