@@ -36,8 +36,8 @@ public:
   static Mword dfr0() FIASCO_PURE
   { Mword r; asm ("mrc p15, 0, %0, c0, c1, 2": "=r" (r)); return r; }
 
-  static Mword dfr1()
-  { Mword v; asm volatile ("mrc p15, 0, %0, c0, c3, 5": "=r" (v)); return v; }
+  static Mword dfr1() FIASCO_PURE
+  { Mword v; asm ("mrc p15, 0, %0, c0, c3, 5": "=r" (v)); return v; }
 
   static bool has_hpmn0()
   {
