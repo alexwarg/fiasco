@@ -55,7 +55,7 @@ public:
     Hcr_tlor   = 1ULL << 35, ///< Trap FEAT_LOR registers, not defined for HCR2
   };
 
-enum : Mword
+  enum : Mword
   {
     // HDCR[31:0] (arm32) is architecturally mapped to MDCR_EL2[31:0] (arm64).
     Mdcr_hpmn_mask = 0xf,
