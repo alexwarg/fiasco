@@ -139,7 +139,7 @@ public:
   State state;
 
 private:
-  friend Cpu_number current_cpu();
+  friend Cpu_number current_cpu() noexcept;
   Cpu_number _cpu;
 };
 
