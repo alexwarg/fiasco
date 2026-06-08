@@ -321,7 +321,7 @@ private:
    * This function is the default routine run if a newly
    * initialized context is being switch_exec()'ed.
    */
-  static void user_invoke() FIASCO_NORETURN;
+  [[noreturn]] static void user_invoke() FIASCO_NORETURN;
 
   static void do_leave_and_kill_myself() asm("thread_do_leave_and_kill_myself");
   static Drq::Result handle_remote_kill(Drq *, Context *self, void *);
