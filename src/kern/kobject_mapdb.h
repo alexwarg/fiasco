@@ -79,8 +79,8 @@ public:
   }
 
   inline static
-  int lookup_src_dst(Space const *sspc, Phys_addr sobj, Vaddr sva,
-                     Space const *dspc, Phys_addr dobj, Vaddr dva,
+  int lookup_src_dst(Space const *, Phys_addr sobj, Vaddr sva,
+                     Space const *, Phys_addr dobj, Vaddr dva,
                      Frame *sframe, Frame *dframe)
   {
     Kobject_mappable *srn = sobj->map_root();
@@ -106,13 +106,16 @@ public:
         return -1;
       }
 
-    sframe->m = sva._c;
-    sframe->frame = srn;
-
     dframe->m = dva._c;
     dframe->frame = drn;
 
-    return (sspc == dspc && sva == dva) ? 2 : 1;
+    if (same_obj && dva._c->delete_rights())
+      return 2;
+
+    sframe->m = sva._c;
+    sframe->frame = srn;
+
+    return 1;
   }
 
   static inline
