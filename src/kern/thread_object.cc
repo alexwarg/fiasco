@@ -54,20 +54,25 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
         if (EXPECT_FALSE(!snd_items.next()))
           break;
 
-        // in this case we already have a counted reference managed by vcpu_user_space()
-        Lock_guard<Lock> guard;
-        if (!guard.check_and_lock(&static_cast<Task *>(vcpu_user_space())->existence_lock))
-          return commit_result(-L4_err::ENoent);
-
-        cpu_lock.clear();
-
-        L4_snd_item_iter::Item const *const item = snd_items.get();
-        L4_fpage sfp(item->d);
-
         Reap_list rl;
-        L4_error err = fpage_map(space(), sfp,
-                                 vcpu_user_space(), L4_fpage::all_spaces(),
-                                 item->b, &rl);
+        L4_error err;
+
+          {
+            // in this case we already have a counted reference managed by vcpu_user_space()
+            Lock_guard<Lock> guard;
+            if (!guard.check_and_lock(&static_cast<Task *>(vcpu_user_space())->existence_lock))
+              return commit_result(-L4_err::ENoent);
+
+            cpu_lock.clear();
+
+            L4_snd_item_iter::Item const *const item = snd_items.get();
+            L4_fpage sfp(item->d);
+
+            err = fpage_map(space(), sfp,
+                            vcpu_user_space(), L4_fpage::all_spaces(),
+                            item->b, &rl);
+          }
+
         rl.del();
 
         cpu_lock.lock();
