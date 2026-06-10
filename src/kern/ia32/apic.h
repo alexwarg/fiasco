@@ -97,10 +97,10 @@ public:
   Apic_id apic_id() const { return _id; }
   Cpu_phys_id cpu_id() const
   {
-    if (use_x2apic())
-      return Cpu_phys_id{cxx::int_value<Apic_id>(_id)};
-    else
-      return Cpu_phys_id{cxx::int_value<Apic_id>(_id) >> 24};
+    Unsigned32 r = cxx::int_value<Apic_id>(_id);
+    asm (ALTERNATIVE_INSN_ENABLED_NOP("shrl $24, %[val]")
+         : [val]"+r"(r) : [alt_probe] "i"(use_x2apic::probe));
+    return Cpu_phys_id{r};
   }
 
   static Per_cpu<Static_object<Apic> > apic;
@@ -140,9 +140,9 @@ public:
   static Apic_id get_id()
   {
     if (use_x2apic())
-      return Apic_id{reg_read(APIC_id)};
+      return Apic_id{reg_read_x2(APIC_id)};
     else
-      return Apic_id{reg_read(APIC_id) & 0xff000000};
+      return Apic_id{reg_read_x(APIC_id) & 0xff000000};
   }
 
   /**
@@ -176,20 +176,40 @@ public:
     return frequency_khz;
   }
 
+  static Unsigned32 reg_read_x(unsigned reg)
+  {
+    return *offset_cast<volatile Unsigned32 *>(io_base, reg);
+  }
+
+  static Unsigned32 reg_read_x2(unsigned reg)
+  {
+    return Cpu::rdmsr(APIC_msr_base + (reg >> 4));
+  }
+
   static Unsigned32 reg_read(unsigned reg)
   {
     if (use_x2apic())
-      return Cpu::rdmsr(APIC_msr_base + (reg >> 4));
+      return reg_read_x2(reg);
     else
-      return *offset_cast<volatile Unsigned32 *>(io_base, reg);
+      return reg_read_x(reg);
+  }
+
+  static void reg_write_x(unsigned reg, Unsigned32 val)
+  {
+    *offset_cast<volatile Unsigned32 *>(io_base, reg) = val;
+  }
+
+  static void reg_write_x2(unsigned reg, Unsigned32 val)
+  {
+    Cpu::wrmsr(val, 0, APIC_msr_base + (reg >> 4));
   }
 
   static void reg_write(unsigned reg, Unsigned32 val)
   {
     if (use_x2apic())
-      Cpu::wrmsr(val, 0, APIC_msr_base + (reg >> 4));
+      reg_write_x2(reg, val);
     else
-      *offset_cast<volatile Unsigned32 *>(io_base, reg) = val;
+      reg_write_x(reg, val);
   }
 
   static void reg_write64(unsigned reg, Unsigned64 val)
@@ -401,7 +421,7 @@ public:
     if (use_x2apic())
       return true;
     else
-      return ((reg_read(Apic_icr) & 0x00001000) == 0);
+      return ((reg_read_x(Apic_icr) & 0x00001000) == 0);
   }
 
   static bool mp_ipi_idle_timeout(Cpu const *c, Unsigned32 wait)
@@ -415,12 +435,12 @@ public:
   static void mp_send_ipi(Ipi_dest_shrt dest_shrt, Apic_id dest,
                           Ipi_delivery_mode delivery_mode, Unsigned8 vector)
   {
+    Unsigned32 const lower_icr =   static_cast<Unsigned32>(dest_shrt) << 18
+                                 | static_cast<Unsigned32>(delivery_mode) << 8
+                                 | vector;
+
     while (!mp_ipi_idle())
       Proc::pause();
-
-    Unsigned32 lower_icr =   static_cast<Unsigned32>(dest_shrt) << 18
-                           | static_cast<Unsigned32>(delivery_mode) << 8
-                           | vector;
 
     if (use_x2apic())
       {
@@ -431,8 +451,8 @@ public:
     else
       {
         if (dest_shrt == Ipi_dest_shrt::Noshrt)
-          reg_write(Apic_icr2, cxx::int_value<Apic_id>(dest));
-        reg_write(Apic_icr, lower_icr);
+          reg_write_x(Apic_icr2, cxx::int_value<Apic_id>(dest));
+        reg_write_x(Apic_icr, lower_icr);
       }
   }
 
