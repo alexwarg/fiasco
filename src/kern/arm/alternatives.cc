@@ -3,7 +3,7 @@
 #include <cstdio>
 
 inline void
-Alternative_insn::enable() const
+Alternative_insn_entry::enable() const
 {
   void *insn = disabled_insn();
   void const *enabled_insn = this->enabled_insn();
@@ -15,8 +15,8 @@ Alternative_insn::enable() const
 void
 Alternative_insn::init()
 {
-  extern Alternative_insn const _alt_insns_begin[];
-  extern Alternative_insn const _alt_insns_end[];
+  extern Alternative_insn_entry const _alt_insns_begin[];
+  extern Alternative_insn_entry const _alt_insns_end[];
 
   if (0)
     printf("patching alternative instructions\n");

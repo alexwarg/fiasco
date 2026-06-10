@@ -15,36 +15,10 @@
 struct Alternative_insn
 {
   enum { Debug = false };
-  bool (*probe)(); ///< function called to determine which version is used
-  Signed32 disabled; ///< offset of the "disabled" instruction relative to `this`
-  Signed32 enabled; ///< offset of the "enabled" instruction relative to `this`
-  Unsigned8 len; ///< Number of bytes in the code
-
-  void *disabled_insn() const
-  {
-    return reinterpret_cast<void*>(reinterpret_cast<Address>(this) + disabled);
-  }
-
-  void const *enabled_insn() const
-  {
-    return reinterpret_cast<void*>(reinterpret_cast<Address>(this) + enabled);
-  }
-
   static void init();
+};
 
-private:
-  void enable() const;
-} __attribute__((packed));
-
-#if defined(__aarch64__)
-# define ASM_ALTERNATIVE_ENTRY_PTR ".dword %c[alt_probe]"
-#elif defined(__arm__)
-# define ASM_ALTERNATIVE_ENTRY_PTR ".word %c[alt_probe]"
-#elif defined(__x86_64__)
-# define ASM_ALTERNATIVE_ENTRY_PTR ".quad %c[alt_probe]"
-#elif defined(__i386__) || defined(__i686__)
-# define ASM_ALTERNATIVE_ENTRY_PTR ".long %c[alt_probe]"
-#else
+#if !defined(ASM_ALTERNATIVE_ENTRY_PTR)
 # error "Implementation requires a GNU compiler!"
 #endif
 
@@ -82,8 +56,9 @@ private:
  * \param enabled_insn  String of assembler instruction that are used if
  *                      alt_probe() returns true.
  */
+#ifndef ALTERNATIVE_INSN
 #define ALTERNATIVE_INSN(disabled_insn, enabled_insn)         \
-        ".pushsection .alt_insn_replacement, \"ax\"     \n\t" \
+        ".pushsection .alt_insn_replacement, \"ax?\" \n\t" \
         "8891:                                          \n\t" \
         enabled_insn                                   "\n\t" \
         "8991:                                          \n\t" \
@@ -94,13 +69,15 @@ private:
         ".org . - (8991b - 8891b) + (829b - 819b)       \n\t" \
         ".org . - (829b - 819b) + (8991b - 8891b)       \n\t" \
         "839:                                           \n\t" \
-        ".pushsection .alt_insns, \"a?\"                \n\t" \
+        ASM_ALTERNATIVE_ENTRY_DEP(888f)                       \
+        ".pushsection .alt_insns, \"a?\"  \n\t" \
         "888:                                           \n\t" \
         ASM_ALTERNATIVE_ENTRY_PTR                      "\n\t" \
         ".4byte 819b - 888b                             \n\t" \
         ".4byte 8891b - 888b                            \n\t" \
         ".byte 8991b - 8891b                            \n\t" \
         ".popsection                                    \n\t"
+#endif
 
 /**
  * Mixin class to create a statically evaluated boolean functor.

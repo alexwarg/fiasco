@@ -173,7 +173,7 @@ SECTIONS {
   .initcall.data : AT (ADDR(.initcall.data) - _fiasco_image_offset) {
     *(.initcall.data*)
     PROVIDE (_alt_insns_begin = .);
-    KEEP(*(SORT(.alt_insns) SORT(.alt_insns.*)))
+    *(SORT(.alt_insns) SORT(.alt_insns.*))
     PROVIDE (_alt_insns_end = .);
     . = ALIGN(4096);
     PROVIDE (_initcall_end = .);
