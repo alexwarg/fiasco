@@ -82,12 +82,12 @@ static void stage2()
   bool use_io_apic = Io_apic_remapped::init_apics();
   if (use_io_apic)
     {
-    if (!Config::apic)
-      {
-        Config::apic = true;
-        Apic::map_registers();
-        Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
-      }
+      if (!Config::apic)
+        {
+          Config::apic = true;
+          Apic::map_registers();
+          Apic::apic.cpu(Cpu_number::boot_cpu()).construct(Cpu_number::boot_cpu());
+        }
       Io_apic::init(Cpu_number::boot_cpu());
       Pc_i8259().disable_all_save();
     }
