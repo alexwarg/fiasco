@@ -2,7 +2,6 @@
 
 #include <types.h>
 #include <acpi_dmar.h>
-#include <apic.h>
 #include <cxx/bitfield>
 #include <cxx/type_traits>
 #include <cxx/protected_ptr>
@@ -66,7 +65,7 @@ public:
     /// target IRQ vector
     CXX_BITFIELD_MEMBER(16, 23, vector, low);
     /// destination CPU
-    CXX_BITFIELD_MEMBER(32, 63, dst_x2apic, low);
+    CXX_BITFIELD_MEMBER(32, 63, dst, low);
     CXX_BITFIELD_MEMBER(40, 47, dst_xapic, low);
 
     /// source identifier
@@ -97,18 +96,12 @@ public:
 
     Cpu_phys_id get_dst() const
     {
-      if (Apic::use_x2apic())
-        return Cpu_phys_id{dst_x2apic()};
-      else
-        return Cpu_phys_id{dst_xapic()};
+      return Cpu_phys_id{dst()};
     }
 
     void set_dst(Cpu_phys_id dst)
     {
-      if (Apic::use_x2apic())
-        dst_x2apic() = cxx::int_value<Cpu_phys_id>(dst);
-      else
-        dst_xapic() = cxx::int_value<Cpu_phys_id>(dst);
+      this->dst() = cxx::int_value<Cpu_phys_id>(dst);
     }
   };
 

@@ -98,8 +98,6 @@ public:
   Cpu_phys_id cpu_id() const
   {
     Unsigned32 r = cxx::int_value<Apic_id>(_id);
-    asm (ALTERNATIVE_INSN_ENABLED_NOP("shrl $24, %[val]")
-         : [val]"+r"(r) : [alt_probe] "i"(use_x2apic::probe));
     return Cpu_phys_id{r};
   }
 
