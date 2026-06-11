@@ -555,7 +555,7 @@ void
 Thread_object::destroy(Kobject ***rl)
 {
   Kobject::destroy(rl);
-  if (!is_invalid(false))
+  if (!is_invalid(true))
     check(kill());
   else
     unbind();
