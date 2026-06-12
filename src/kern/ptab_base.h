@@ -158,6 +158,15 @@ namespace Ptab
     }
   };
 
+  template<typename Phys_addr>
+  inline cxx::enable_if_t<!cxx::is_integral_v<Phys_addr>, typename Phys_addr::Diff_type>
+  as_difference(Phys_addr a)
+  { return typename Phys_addr::Diff_type(cxx::int_value<Phys_addr>(a)); }
+
+  template<typename Phys_addr>
+  inline cxx::enable_if_t<cxx::is_integral_v<Phys_addr>, Phys_addr>
+  as_difference(Phys_addr a)
+  { return a; }
 
   template< typename _Last, typename PTE_PTR, int DEPTH = 0 >
   class Walk
@@ -200,9 +209,9 @@ namespace Ptab
       size  -= static_cast<unsigned long>(cnt) << Traits::Shift;
     }
 
-    template< typename _Alloc, typename MEM >
-    bool map(Address &phys, Address &virt, unsigned long &size,
-             unsigned long attr, unsigned, bool force_write_back,
+    template< typename Phys_addr, typename Attr, typename _Alloc, typename MEM >
+    bool map(Phys_addr &phys, Address &virt, unsigned long &size,
+             Attr attr, unsigned, bool force_write_back,
              _Alloc &&, MEM &&)
     {
       unsigned idx = Vec::idx(virt);
@@ -211,7 +220,7 @@ namespace Ptab
         cnt = Vec::Length - idx;
       unsigned const e = idx + cnt;
 
-      for (unsigned i = idx; i != e; ++i, phys += (1ULL << (Traits::Shift + Traits::Base_shift)))
+      for (unsigned i = idx; i != e; ++i, phys += as_difference(Phys_addr(1ULL << (Traits::Shift + Traits::Base_shift))))
         PTE_PTR(&_e[i], Depth).set_page(phys, attr);
 
       if (force_write_back)
@@ -397,10 +406,10 @@ namespace Ptab
         }
     }
 
-    template< typename _Alloc, typename MEM >
+    template< typename Phys_addr, typename Attr, typename _Alloc, typename MEM >
     [[nodiscard]]
-    bool map(Address &phys, Address &virt, unsigned long &size,
-             unsigned long attr, unsigned level, bool force_write_back,
+    bool map(Phys_addr &phys, Address &virt, unsigned long &size,
+             Attr attr, unsigned level, bool force_write_back,
              _Alloc &&alloc, MEM &&mem)
     {
       if (!level)
@@ -754,9 +763,9 @@ namespace Ptab
       _base.unmap(va, sz, level, force_write_back, cxx::forward<MEM>(mem));
     }
 
-    template< typename _Alloc, typename MEM = MEM_DFLT >
+    template< typename Phys_addr, typename Attr, typename _Alloc, typename MEM = MEM_DFLT >
     [[nodiscard]]
-    bool map(Address phys, Va virt, Vs size, unsigned long attr,
+    bool map(Phys_addr phys, Va virt, Vs size, Attr attr,
              unsigned level, bool force_write_back,
              _Alloc &&alloc = _Alloc(), MEM &&mem = MEM())
     {

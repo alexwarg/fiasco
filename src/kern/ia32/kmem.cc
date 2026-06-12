@@ -93,7 +93,7 @@ FIASCO_INIT_CPU
 void
 Kmem::map_kernel_virt(Kpdir *dir)
 {
-  if (!dir->map(Mem_layout::Kernel_image_phys, Virt_addr(Kernel_image),
+  if (!dir->map(Address{Mem_layout::Kernel_image_phys}, Virt_addr(Kernel_image),
                 Virt_size(Mem_layout::Kernel_image_size),
                 Pt_entry::Dirty | Pt_entry::Writable | Pt_entry::Referenced
                 | Pt_entry::global(),
@@ -131,7 +131,7 @@ Kmem::init_mmu()
   bool ok = true;
 
   if (!Mem_layout::Adap_in_kernel_image)
-    ok &= kdir->map(Mem_layout::Adap_image_phys,
+    ok &= kdir->map(Address{Mem_layout::Adap_image_phys},
                     Virt_addr(Mem_layout::Adap_image),
                     Virt_size(Config::SUPERPAGE_SIZE),
                     Pt_entry::Dirty | Pt_entry::Writable | Pt_entry::Referenced
