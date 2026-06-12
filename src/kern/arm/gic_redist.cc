@@ -33,9 +33,7 @@ Gic_redist_find::scan_range(Address base, Unsigned64 mpidr)
     }
   while (!gicr_typer.last());
 
-  Mmio_register_block r;
-  r.set_mmio_base(0);
-  return r;
+  return Mmio_register_block(nullptr);
 }
 
 void

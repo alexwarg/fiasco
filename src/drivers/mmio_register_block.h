@@ -11,6 +11,7 @@ class Mmio_register_block
 public:
   Mmio_register_block() = default;
   explicit Mmio_register_block(Address base) : _base(base) {}
+  explicit Mmio_register_block(void *base) : _base(reinterpret_cast<Address>(base)) {}
 
   /** Read-only register mixin */
   template<typename REG, typename VALUE>
@@ -209,6 +210,7 @@ public:
 
   Address get_mmio_base() const { return _base; }
   void set_mmio_base(Address base) { _base = base; }
+  void set_mmio_base(void *base) { _base = reinterpret_cast<Address>(base); }
 
 private:
   Address _base;
@@ -244,6 +246,7 @@ struct Register_block : Mmio_register_block
 
   Register_block() = default;
   explicit Register_block(Address base) : Mmio_register_block(base) {}
+  explicit Register_block(void *base) : Mmio_register_block(base) {}
 
   /** Access register with default width at `offset`. */
   Mmio_register_block::Reg<Default_width>
