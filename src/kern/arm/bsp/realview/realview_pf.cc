@@ -1,7 +1,7 @@
 
 #include <platform_generic.h>
 #include <static_init.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <cpu.h>
 #include <mmio_register_block.h>
 #include <rv_platforms.h>
@@ -25,7 +25,7 @@ struct Realview_pf : Platform_base
     if (pf->syscon_gic)
       {
         enum { INTMODE_NEW_NO_DDC = 1 << 23 };
-        Register_block<32> sys(Kmem::mmio_remap(pf->sys_r, 0x1000));
+        Register_block<32> sys(Kmem_mmio::map(pf->sys_r, 0x1000));
         sys[Platform::Sys::Lock] = 0xa05f;
         sys[Platform::Sys::Pld_ctrl1].modify(INTMODE_NEW_NO_DDC, 0x7ul << 22);
         sys[Platform::Sys::Lock] = 0x0000;

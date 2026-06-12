@@ -6,7 +6,7 @@
 #include <globalconfig.h>
 #include <infinite_loop.h>
 #include <mmio_register_block.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 #include <cstdio>
 
@@ -16,8 +16,8 @@ struct Pfc_ls_nopsci : Pfc_arm
   Mmio_register_block devcon;
 
   Pfc_ls_nopsci()
-  : reset(Kmem::mmio_remap(0x02ad0000, sizeof(Unsigned16))),
-    devcon(Kmem::mmio_remap(0x01ee0000, 0x1000))
+  : reset(Kmem_mmio::map(0x02ad0000, sizeof(Unsigned16))),
+    devcon(Kmem_mmio::map(0x01ee0000, 0x1000))
   {}
 
   void system_reboot() override

@@ -1,6 +1,7 @@
 
 #include <timer_arm_sunxi.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 Static_object<Timer_arm_sunxi::Tmr> Timer_arm_sunxi::_timer;
 
@@ -8,7 +9,7 @@ void
 Timer_arm_sunxi::init(Cpu_number)
 {
   enum { Interval = 24000000 / Config::Scheduler_granularity };
-  _timer.construct(Kmem::mmio_remap(Mem_layout::Timer_phys_base, 0x100));
+  _timer.construct(Kmem_mmio::map(Mem_layout::Timer_phys_base, 0x100));
 
   _timer->write<Mword>(Interval, Tmr::addr(Tmr::TMRx_INTV_VALUE_REG));
   _timer->write<Mword>(1 | (1 << 1) | (1 << 2), Tmr::addr(Tmr::TMRx_CTRL_REG));

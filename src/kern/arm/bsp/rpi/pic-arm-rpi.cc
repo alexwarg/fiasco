@@ -3,7 +3,8 @@
 #include <boot_alloc.h>
 #include <irq_entry.h>
 #include <globalconfig.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 #include <irq_mgr.h>
 
 #ifndef CONFIG_ARM_GIC
@@ -22,7 +23,7 @@ static void bcm_irq_handler()
 Irq_mgr *
 Arm_rpi::create_irq_mgr_bcm(bool)
 {
-  auto m = new Boot_object<Irq_mgr_rpi>(96, Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100));
+  auto m = new Boot_object<Irq_mgr_rpi>(96, Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x100));
   Irq_mgr::mgr = m;
   Arm_irqs::set_irq_handler(bcm_irq_handler);
   return m;
@@ -79,7 +80,7 @@ static void bcm2836_irq_handler()
 Irq_mgr *
 Arm_rpi::create_irq_mgr_bcm2836(bool)
 {
-  auto m = new Boot_object<Irq_mgr_rpi>(96, Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100));
+  auto m = new Boot_object<Irq_mgr_rpi>(96, Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x100));
   Irq_mgr::mgr = m;
   Arm_irqs::set_irq_handler(bcm2836_irq_handler);
   Arm_control::init();

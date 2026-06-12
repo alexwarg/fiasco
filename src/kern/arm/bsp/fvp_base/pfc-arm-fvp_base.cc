@@ -2,7 +2,7 @@
 #include <pfc-arm.h>
 #include <pfc-psci.h>
 #include <mmio_register_block.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <infinite_loop.h>
 #include <cpu.h>
 #include <mem.h>
@@ -22,7 +22,7 @@ struct Pfc_v_nopsci : Pfc_arm
   void do_boot_ap_cpus(Address)
   {
     enum { PPONR = 4 };
-    Mmio_register_block pwr(Kmem::mmio_remap(0x1c100000, 0x1000));
+    Mmio_register_block pwr(Kmem_mmio::map(0x1c100000, 0x1000));
 
     unsigned coreid[7] = {          0x00100, 0x00200, 0x00300,
                            0x10000, 0x10100, 0x10200, 0x10300 };

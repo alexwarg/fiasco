@@ -72,9 +72,9 @@ public:
     CXX_BITFIELD_MEMBER_RO(19, 23, id_bits, raw);
   };
 
-  Address get_mmio_base() const
+  void *get_mmio_base() const
   {
-    return _dist.get_mmio_base();
+    return reinterpret_cast<void *>(_dist.get_mmio_base());
   }
 
   static constexpr bool Config_tz_sec = IS_ENABLED(CONFIG_ARM_EM_TZ);
@@ -249,7 +249,7 @@ public:
     return Unsigned64{phys_id & 0xff000000} << 8 | (phys_id & 0xffffff);
   }
 
-  explicit Gic_dist(Address dist_base)
+  explicit Gic_dist(void *dist_base)
     : _dist(dist_base)
   {}
 

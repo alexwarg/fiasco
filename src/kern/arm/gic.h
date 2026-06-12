@@ -22,9 +22,9 @@ protected:
 public:
   IRQ_CHIP_DBG_INFO("GIC");
 
-  explicit Gic_x(Address dist_base) : _dist(dist_base) {}
+  explicit Gic_x(void *dist_base) : _dist(dist_base) {}
 
-  Address get_dist_base() const
+  void *get_dist_base() const
   {
     return _dist.get_mmio_base();
   }
@@ -82,6 +82,11 @@ protected:
 public:
   template<typename ...CPU_ARGS>
   Gic_mixin(Address dist_base, CPU_ARGS &&...args)
+  : Gic_x(dist_base), _cpu(cxx::forward<CPU_ARGS>(args)...)
+  {}
+
+  template<typename ...CPU_ARGS>
+  Gic_mixin(void *dist_base, CPU_ARGS &&...args)
   : Gic_x(dist_base), _cpu(cxx::forward<CPU_ARGS>(args)...)
   {}
 

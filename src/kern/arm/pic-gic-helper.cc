@@ -2,7 +2,7 @@
 #include <pic-gic-helper.h>
 
 #include <mmio_register_block.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <gic_v2.h>
 #include <gic_v3.h>
 #include <vgic_v2.h>
@@ -26,12 +26,12 @@ namespace Pic_gic
 {
 #ifdef CONFIG_HAVE_ARM_GICV2
   static int
-  add_gicv2(Address dist_virt, Gic_info const &inf,
+  add_gicv2(void *dist_virt, Gic_info const &inf,
             Irq_mgr_dyn *mgr,
             unsigned base = 0, bool primary = true)
   {
     printf("GICv2\n");
-    Address cpu_v = Kmem::mmio_remap(inf.cpu_phys, inf.cpu_size);
+    void *cpu_v = Kmem_mmio::map(inf.cpu_phys, inf.cpu_size);
     Gic_v2 *g = new Boot_object<Gic_v2>(cpu_v, dist_virt);
     if (primary)
       g->set_as_primary_irq_handler();
@@ -51,7 +51,7 @@ namespace Pic_gic
           }
 
         Gic_h_global::gic =
-          new Boot_object<Gic_h_v2>(Kmem::mmio_remap(inf.cpu_h_phys, inf.cpu_h_size),
+          new Boot_object<Gic_h_v2>(Kmem_mmio::map(inf.cpu_h_phys, inf.cpu_h_size),
                                     inf.cpu_v_phys);
       }
 
@@ -70,19 +70,19 @@ namespace Pic_gic
         return -L4_err::EInval;
       }
 
-    Mmio_register_block dist(Kmem::mmio_remap(inf.dist_phys, inf.dist_size));
-    return add_gicv2(dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
+    Mmio_register_block dist(Kmem_mmio::map(inf.dist_phys, inf.dist_size));
+    return add_gicv2((void *)dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
  }
 #endif
 
 #ifdef CONFIG_HAVE_ARM_GICV3
   static int
-  add_gicv3(Address dist_virt, Gic_info const &inf,
+  add_gicv3(void *dist_virt, Gic_info const &inf,
             Irq_mgr_dyn *mgr,
             unsigned base = 0, bool primary = true)
   {
     printf("GICv3\n");
-    Address redist_v = Kmem::mmio_remap(inf.redist_phys, inf.redist_size);
+    void *redist_v = Kmem_mmio::map(inf.redist_phys, inf.redist_size);
     Gic_v3 *g = new Boot_object<Gic_v3>(dist_virt, redist_v);
     if (primary)
       g->set_as_primary_irq_handler();
@@ -102,7 +102,7 @@ namespace Pic_gic
         if (primary)
           mgr->add_msi_chip(g->msi_chip());
 #endif
-        g->add_its(Kmem::mmio_remap(inf.its_phys, inf.its_size));
+        g->add_its(Kmem_mmio::map(inf.its_phys, inf.its_size));
       }
 
     return 0;
@@ -121,7 +121,7 @@ namespace Pic_gic
         return -L4_err::EInval;
       }
 
-    Mmio_register_block dist(Kmem::mmio_remap(inf.dist_phys, inf.dist_size));
+    Mmio_register_block dist(Kmem_mmio::map(inf.dist_phys, inf.dist_size));
     unsigned vers = inf.version;
     if (vers == 0)
       {
@@ -138,13 +138,13 @@ namespace Pic_gic
       {
       case 2:
 #ifdef CONFIG_HAVE_ARM_GICV2
-        return add_gicv2(dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
+        return add_gicv2((void *)dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
 #else
         return -L4_err::ENodev;
 #endif
       case 3:
 #ifdef CONFIG_HAVE_ARM_GICV3
-        return add_gicv3(dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
+        return add_gicv3((void *)dist.get_mmio_base(), inf, mgr, inf.offset, inf.primary);
 #else
         return -L4_err::ENodev;
 #endif

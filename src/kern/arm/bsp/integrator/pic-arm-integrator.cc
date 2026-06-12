@@ -6,7 +6,8 @@
 #include <irq_chip_generic.h>
 #include <irq_mgr.h>
 #include <mmio_register_block.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 #include <globalconfig.h>
 
 class Irq_chip_arm_integr : public Irq_chip_gen, Mmio_register_block
@@ -34,7 +35,7 @@ public:
 
   Irq_chip_arm_integr()
   : Irq_chip_gen(32),
-    Mmio_register_block(Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100))
+    Mmio_register_block(Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x100))
   {
     write<Mword>(0xffffffff, IRQ_ENABLE_CLEAR);
     write<Mword>(0xffffffff, FIQ_ENABLE_CLEAR);

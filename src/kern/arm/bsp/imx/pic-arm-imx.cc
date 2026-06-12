@@ -2,7 +2,8 @@
 
 #include <boot_alloc.h>
 #include <irq_entry.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 #include <globalconfig.h>
 
 #include <cassert>
@@ -72,7 +73,7 @@ public:
 
   Irq_chip_arm_imx()
   : Irq_chip_gen(64),
-    Mmio_register_block(Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100))
+    Mmio_register_block(Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x100))
   {
     write<Mword>(0,    INTCTL);
     write<Mword>(0x10, NIMASK); // Do not disable any normal interrupts

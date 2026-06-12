@@ -1,11 +1,11 @@
 
 #include <timer_arm_s3c2410.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 Static_object<Timer_arm_s3c2410> Timer_arm_s3c2410::_timer;
 
 Timer_arm_s3c2410::Timer_arm_s3c2410(Address phys_base, bool tint_cstat, Mword reload_value)
-  : Mmio_register_block(Kmem::mmio_remap(phys_base, 0x100))
+  : Mmio_register_block(Kmem_mmio::map(phys_base, 0x100))
 {
   write<Mword>(0, TCFG0); // prescaler config
   write<Mword>(0, TCFG1); // mux select

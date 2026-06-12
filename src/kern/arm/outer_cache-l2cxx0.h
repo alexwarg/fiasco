@@ -53,7 +53,7 @@ namespace Outer_cache
 
       Spin_lock<> _lock;
 
-      explicit L2cxx0(Address virt) : Mmio_register_block(virt) {}
+      explicit L2cxx0(void *virt) : Mmio_register_block(virt) {}
 
       void write_op(Address reg, Mword val)
       {

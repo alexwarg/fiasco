@@ -21,9 +21,9 @@ class Gic_v3 : public Gic_mixin<Gic_v3, Gic_cpu_v3>
 public:
   using Version = Gic_dist::V3;
 
-  explicit Gic_v3(Address dist_base, Address redist_base);
+  explicit Gic_v3(void *dist_base, void *redist_base);
 
-  explicit Gic_v3(Address dist_base, Gic_redist_find *redist_get)
+  explicit Gic_v3(void *dist_base, Gic_redist_find *redist_get)
   : Gic(dist_base), _redist_get(redist_get)
   {
     init_gic(-1);
@@ -94,7 +94,7 @@ public:
                          | ((mpidr & (Unsigned64)0xff00ff0000) << 16);
   }
 
-  bool add_its(Address its_base);
+  bool add_its(void *its_base);
 
 #ifdef CONFIG_ARM_GIC_MSI
 private:

@@ -1,13 +1,13 @@
 #include <timer_realview_mptimer.h>
 #include "platform_arm_realview.h"
 #include <timer_sp804.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <rv_platforms.h>
 
 void
 Timer_realview_mptimer::init(Cpu_number cpu)
 {
-  Timer_sp804 timer(Kmem::mmio_remap(rv_current_platform()->sp804, 0x10));
+  Timer_sp804 timer(Kmem_mmio::map(rv_current_platform()->sp804, 0x10));
   Platform::system_control->modify<Mword>(Platform::System_control::Timer0_enable, 0, 0);
 
   Mword frequency = 1000000;

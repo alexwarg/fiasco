@@ -2,7 +2,7 @@
 #include <pfc-arm.h>
 #include <infinite_loop.h>
 #include <io.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <mem_layout.h>
 #include <mmio_register_block.h>
 #include <ipi.h>
@@ -18,7 +18,7 @@ struct Pfc_omap_35x : Pfc_arm
       PRM_RSTCTRL = Mem_layout::Prm_global_reg_phys_base + 0x50,
     };
 
-    Io::write<Mword>(2, Kmem::mmio_remap(PRM_RSTCTRL, sizeof(Mword)));
+    Io::write<Mword>(2, Kmem_mmio::remap(PRM_RSTCTRL, sizeof(Mword)));
 
     L4::infinite_loop();
   }
@@ -32,7 +32,7 @@ struct Pfc_omap_am33xx : Pfc_arm
   [[noreturn]] void system_reboot() override
   {
     enum { PRM_RSTCTRL = 0x44e00F00, };
-    Io::write<Mword>(1, Kmem::mmio_remap(PRM_RSTCTRL, sizeof(Mword)));
+    Io::write<Mword>(1, Kmem_mmio::remap(PRM_RSTCTRL, sizeof(Mword)));
     L4::infinite_loop();
   }
 };
@@ -81,7 +81,7 @@ struct Pfc_omap_4_5 : Pfc_arm
           AUX_CORE_BOOT_1 = 4,
         };
 
-        Mmio_register_block aux(Kmem::mmio_remap(0x48281800, 0x800));
+        Mmio_register_block aux(Kmem_mmio::map(0x48281800, 0x800));
         aux.write<Mword>(phys_tramp_mp_addr, AUX_CORE_BOOT_1);
         setup_ap_boot(&aux, AUX_CORE_BOOT_0);
         asm volatile("dsb; sev" : : : "memory");
@@ -101,7 +101,7 @@ struct Pfc_omap_4 : Pfc_omap_4_5
       DEVICE_PRM  = Mem_layout::Prm_phys_base + 0x1b00,
       PRM_RSTCTRL = DEVICE_PRM + 0,
     };
-    Address p = Kmem::mmio_remap(PRM_RSTCTRL, sizeof(Mword));
+    Address p = Kmem_mmio::remap(PRM_RSTCTRL, sizeof(Mword));
 
     Io::set<Mword>(1, p);
     Io::read<Mword>(p);
@@ -128,7 +128,7 @@ struct Pfc_omap_5 : Pfc_omap_4_5
       PRM_RSTCTRL        = DEVICE_PRM + 0,
       RST_GLOBAL_COLD_SW = 1 << 1,
     };
-    Address p = Kmem::mmio_remap(PRM_RSTCTRL, sizeof(Mword));
+    Address p = Kmem_mmio::remap(PRM_RSTCTRL, sizeof(Mword));
 
     Io::set<Mword>(RST_GLOBAL_COLD_SW, p);
     Io::read<Mword>(p);

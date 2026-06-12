@@ -2,7 +2,7 @@
 
 #include "io.h"
 #include "config.h"
-#include "kmem.h"
+#include "kmem_mmio.h"
 #include "mem_layout.h"
 
 #ifdef CONFIG_PF_EXYNOS_EXTGIC
@@ -30,7 +30,7 @@ Platform::process_pkg_ids()
 #ifdef CONFIG_PF_EXYNOS_USE_PKG_IDS
   if (sizeof(CONFIG_PF_EXYNOS_PKG_IDS) <= 1)
     return;
-  Mword pkg_id = Io::read<Mword>(Kmem::mmio_remap(0x10000000 + 4, sizeof(Mword)));
+  Mword pkg_id = Io::read<Mword>(Kmem_mmio::remap(0x10000000 + 4, sizeof(Mword)));
   for (unsigned i = 0; i < sizeof(__pkg_ids) / sizeof(__pkg_ids[0]); ++i)
     if ((pkg_id & __pkg_ids[i].mask) == __pkg_ids[i].val)
       {
@@ -46,7 +46,7 @@ Platform::type()
 {
   if (_soc == 0)
     {
-      Mword pro_id = Io::read<Mword>(Kmem::mmio_remap(Mem_layout::Chip_id_phys_base,
+      Mword pro_id = Io::read<Mword>(Kmem_mmio::remap(Mem_layout::Chip_id_phys_base,
                                                       sizeof(Mword)));
 
       _subrev = pro_id & 0xff;

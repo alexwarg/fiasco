@@ -1,8 +1,8 @@
 #include <timer_arm_imx_timrot.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 Timer_imx_timrot::Timer_imx_timrot(Address phys, unsigned size)
-: _reg(Kmem::mmio_remap(phys, size))
+: _reg(Kmem_mmio::map(phys, size))
 {
   _reg[HW_TIMROT_TIMCTRL0] = 0;
   _reg[HW_TIMROT_TIMCTRL0_SET]

@@ -1,10 +1,11 @@
 
 #include <timer_integrator.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 Static_object<Timer_integrator> Timer_integrator::_timer;
 
-Timer_integrator::Timer_integrator(Address base)
+Timer_integrator::Timer_integrator(void *base)
   : Mmio_register_block(base)
 {
   /* Switch all timers off */
@@ -23,5 +24,5 @@ Timer_integrator::Timer_integrator(Address base)
 void
 Timer_integrator::init(Cpu_number)
 {
-  _timer.construct(Kmem::mmio_remap(Mem_layout::Timer_phys_base, 0x300));
+  _timer.construct(Kmem_mmio::map(Mem_layout::Timer_phys_base, 0x300));
 }

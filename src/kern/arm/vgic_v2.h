@@ -51,6 +51,10 @@ public:
     CXX_BITFIELD_MEMBER( 31, 31, hw, raw);
   };
 
+  explicit Gic_h_v2(void *va, Address v_phys)
+  : Mmio_register_block(va), v_phys_base(v_phys)
+  {}
+
   explicit Gic_h_v2(Address va, Address v_phys)
   : Mmio_register_block(va), v_phys_base(v_phys)
   {}

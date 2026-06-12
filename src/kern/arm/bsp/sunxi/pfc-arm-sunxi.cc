@@ -6,7 +6,7 @@
 #include <cpu.h>
 #include <mmio_register_block.h>
 #include <ipi.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <infinite_loop.h>
 
 namespace {
@@ -22,7 +22,7 @@ struct Pfc_z : Pfc_arm
       GENER_CTRL_REG = 0x184,
       PRIVATE_REG    = 0x1a4,
     };
-    Mmio_register_block c(Kmem::mmio_remap(0x01c25c00, 0x400));
+    Mmio_register_block c(Kmem_mmio::map(0x01c25c00, 0x400));
     c.write<Mword>(phys_tramp_mp_addr, 0x1a4);
 
     unsigned cpu = 1;
@@ -35,7 +35,7 @@ struct Pfc_z : Pfc_arm
 
   [[noreturn]] void system_reboot()
   {
-    Address wdt = Kmem::mmio_remap(0x01c20c90, 0x10);
+    Address wdt = Kmem_mmio::remap(0x01c20c90, 0x10);
     Io::write<Unsigned32>(3, wdt + 4);
     Io::write<Unsigned32>(1, wdt + 0);
 

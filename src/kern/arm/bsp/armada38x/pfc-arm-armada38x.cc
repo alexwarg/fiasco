@@ -7,7 +7,7 @@
 #include <mmio_register_block.h>
 #include <ipi.h>
 #include <gic_iface.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <infinite_loop.h>
 
 namespace {
@@ -25,7 +25,7 @@ struct Pfc_z : Pfc_arm
       Remap_low_off = 8,
       Remap_hi_off  = 12,
     };
-    Mmio_register_block cpu_subsys(Kmem::mmio_remap(0xf1020000, 0x100));
+    Mmio_register_block cpu_subsys(Kmem_mmio::map(0xf1020000, 0x100));
 
     // Disable Window 0-7
     for (unsigned i = 0; i < 8; ++i)
@@ -56,22 +56,22 @@ struct Pfc_z : Pfc_arm
   {
     unsigned hwcpu = 1;
     // CPU1 Power Management
-    Mmio_register_block pmu_c1(Kmem::mmio_remap(0xf1022100 + hwcpu * 0x100,
-                                                0x100));
+    Mmio_register_block pmu_c1(Kmem_mmio::map(0xf1022100 + hwcpu * 0x100,
+                                              0x100));
 
     pmu_c1.r<32>(0x24) = phys_tramp_mp_addr;
     Mem::mp_wmb();
     Gic::primary->softint_phys(Ipi::Global_request, 1ul << (16 + hwcpu));
 
     // CPU0..n Software Reset Control Register
-    Mmio_register_block cpu_reset(Kmem::mmio_remap(0xf1020800, 8));
+    Mmio_register_block cpu_reset(Kmem_mmio::map(0xf1020800, 8));
     cpu_reset.r<32>(hwcpu * 0x8).clear(1);
   }
 
   [[noreturn]] void system_reboot() override
   {
     // Configuration and Control
-    Mmio_register_block r(Kmem::mmio_remap(0xf1018200, 0x100));
+    Mmio_register_block r(Kmem_mmio::map(0xf1018200, 0x100));
     r.r<32>(0x60) = 1;
     r.r<32>(0x64) = 1;
 

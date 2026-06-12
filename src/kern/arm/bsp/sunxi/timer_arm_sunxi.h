@@ -41,7 +41,7 @@ private:
       Timer_nr = 0,
     };
 
-    Tmr(Address a) : Mmio_register_block(a) {}
+    explicit Tmr(void *a) : Mmio_register_block(a) {}
 
     static Address addr(unsigned reg)
     { return TMRx_base + Timer_nr * TMRx_offset + reg; }

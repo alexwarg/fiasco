@@ -1,11 +1,12 @@
 
 #include <timer_arm_kirkwood.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 Static_object<Timer_arm_kirkwood> Timer_arm_kirkwood::_timer;
 
 Timer_arm_kirkwood::Timer_arm_kirkwood()
-: Mmio_register_block(Kmem::mmio_remap(Mem_layout::Timer_phys_base, 0x400))
+: Mmio_register_block(Kmem_mmio::map(Mem_layout::Timer_phys_base, 0x400))
 {
   // Disable timer
   write(0, Control_Reg);

@@ -22,7 +22,7 @@ public:
       Pld_ctrl1 = 0x74,
       Pld_ctrl2 = 0x78,
     };
-    explicit Sys(Address virt) : Mmio_register_block(virt) {}
+    explicit Sys(void *virt) : Mmio_register_block(virt) {}
   };
 
   class System_control : public Mmio_register_block
@@ -35,7 +35,7 @@ public:
       Timer2_enable = 1UL << 19,
       Timer3_enable = 1UL << 21,
     };
-    explicit System_control(Address virt) : Mmio_register_block(virt) {}
+    explicit System_control(void *virt) : Mmio_register_block(virt) {}
   };
 
   static Static_object<Sys> sys;

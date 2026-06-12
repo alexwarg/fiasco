@@ -35,9 +35,9 @@ public:
 
   static constexpr bool Config_tz_sec = IS_ENABLED(CONFIG_ARM_EM_TZ);
 
-  Address get_mmio_base() const
+  void *get_mmio_base() const
   {
-    return _cpu.get_mmio_base();
+    return reinterpret_cast<void *>(_cpu.get_mmio_base());
   }
 
   void pmr(unsigned prio)
@@ -57,7 +57,7 @@ public:
     _cpu.write<Unsigned32>(0, GICC_CTRL);
   }
 
-  explicit Gic_cpu_v2(Address cpu_base) noexcept
+  explicit Gic_cpu_v2(void *cpu_base) noexcept
     : _cpu(cpu_base)
   {}
 

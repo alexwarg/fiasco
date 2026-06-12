@@ -3,7 +3,7 @@
 #include <cpu.h>
 #include "platform_arm_exynos.h"
 #include <exynos_smc.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 namespace Outer_cache
 {
@@ -27,7 +27,7 @@ namespace Outer_cache
                       | (1 << 30)  // early BRESP enable
                       ;
 
-    l2cxx0.construct(Kmem::mmio_remap(0x10502000, 0x1000));
+    l2cxx0.construct(Kmem_mmio::map(0x10502000, 0x1000));
     Mword auxc = l2cxx0->read<Mword>(L2cxx0::AUX_CONTROL);
 
     if (!IS_ENABLED(CONFIG_ARM_EM_NS))

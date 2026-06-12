@@ -12,7 +12,7 @@ public:
   static Irq_chip::Mode irq_mode()
   { return Irq_chip::Mode::F_raising_edge; }
 
-  Timer_arm_rpi(Address base) : Mmio_register_block(base)
+  Timer_arm_rpi(void *base) : Mmio_register_block(base)
   {
     set_next();
   }

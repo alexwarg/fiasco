@@ -3,7 +3,7 @@
 #include <pfc-psci.h>
 #include <mmio_register_block.h>
 #include <mem_layout.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <infinite_loop.h>
 #include <mem.h>
 #include <globalconfig.h>
@@ -46,7 +46,7 @@ struct Pfc_qc_nopsci : Pfc_arm
 {
   [[noreturn]] void system_reboot() override
   {
-    Address base = Kmem::mmio_remap(Mem_layout::Mpm_ps_hold, sizeof(Unsigned32));
+    Address base = Kmem_mmio::remap(Mem_layout::Mpm_ps_hold, sizeof(Unsigned32));
     Io::write<Unsigned32>(0, base);
     L4::infinite_loop();
   }
@@ -56,7 +56,7 @@ struct Pfc_qc_nopsci : Pfc_arm
     if (Koptions::o()->core_spin_addr == -1ULL)
       return;
 
-    Address base = Kmem::mmio_remap(Koptions::o()->core_spin_addr, sizeof(Address));
+    Address base = Kmem_mmio::remap(Koptions::o()->core_spin_addr, sizeof(Address));
     Io::write<Address>(phys_tramp_mp_addr, base);
     Mem::dsb();
     asm volatile("sev" : : : "memory");

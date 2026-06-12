@@ -7,7 +7,7 @@
 #include <globalconfig.h>
 #include <poll_timeout_kclock.h>
 #include <outer_cache.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <infinite_loop.h>
 #include "platform_arm_exynos.h"
 
@@ -20,8 +20,8 @@
 struct Pfc_exynos_base : Pfc_arm
 {
 public:
-  Pfc_exynos_base() : pmu(Kmem::mmio_remap(Mem_layout::Pmu_phys_base,
-                                           Mem_layout::Pmu_phys_size))
+  Pfc_exynos_base() : pmu(Kmem_mmio::map(Mem_layout::Pmu_phys_base,
+                                         Mem_layout::Pmu_phys_size))
   {}
 
   [[noreturn]] void system_reboot() override
@@ -36,7 +36,7 @@ protected:
   class Pmu : public Mmio_register_block
   {
   public:
-    explicit Pmu(Address virt) : Mmio_register_block(virt) {}
+    explicit Pmu(void *virt) : Mmio_register_block(virt) {}
     enum Reg
     {
       Config      = 0,
@@ -77,7 +77,7 @@ protected:
 
   static void write_phys_mem_coherent(Mword addr_p, Mword value)
   {
-    Mword addr_v = Kmem::mmio_remap(addr_p, sizeof(Mword));
+    Mword addr_v = Kmem_mmio::remap(addr_p, sizeof(Mword));
     Io::write<Mword>(value, addr_v);
     Mem_unit::flush_dcache((void *)addr_v, (void *)(addr_v + sizeof(value)));
     Outer_cache::flush(addr_p);

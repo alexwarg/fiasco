@@ -31,7 +31,7 @@ public:
   void set_cpu(Mword, Cpu_number) override {}
   void ack(Mword) override { /* ack is empty */ }
 
-  Irq_chip_bcm(unsigned nr_irqs, Address base)
+  Irq_chip_bcm(unsigned nr_irqs, void *base)
   : Irq_chip_gen(nr_irqs), Mmio_register_block(base)
   {
     write<Unsigned32>(~0U, Disable_Basic_IRQs);

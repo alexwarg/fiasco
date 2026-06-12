@@ -2,10 +2,12 @@
 
 #include <globalconfig.h>
 #include <assert.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem.h>
 #include <mem_layout.h>
 #include <mmio_register_block.h>
 #include <arithmetic.h>
+#include <processor.h>
 
 class Arm_control
 {
@@ -29,7 +31,7 @@ public:
   };
 
   Arm_control()
-  : r(Kmem::mmio_remap(Mem_layout::Local_intc, 0x100))
+  : r(Kmem_mmio::map(Mem_layout::Local_intc, 0x100))
   {
     r.r<32>(Control) = 0;
     r.r<32>(Prescaler) =  1 << 31;

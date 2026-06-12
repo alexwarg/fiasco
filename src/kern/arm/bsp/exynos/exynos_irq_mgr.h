@@ -6,7 +6,7 @@
 #include <irq_combiner.h>
 #include <irq_entry.h>
 #include <boot_alloc.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <pic-gic-helper.h>
 
 class Mgr_exynos : public Irq_mgr_dyn
@@ -103,8 +103,8 @@ public:
     if (info->gic_offset != 0)
       {
         _block[0].chip = new Boot_object<Ext_gic>(
-            Kmem::mmio_remap(info->gic.cpu_phys, info->gic.cpu_size),
-            Kmem::mmio_remap(info->gic.dist_phys, info->gic.dist_size),
+            Kmem_mmio::map(info->gic.cpu_phys, info->gic.cpu_size),
+            Kmem_mmio::map(info->gic.dist_phys, info->gic.dist_size),
             info->gic_offset);
         Arm_irqs::set_irq_handler(&ext_gic_handler);
       }
@@ -114,12 +114,12 @@ public:
     _block[1].sz = info->num_combiners * 8;
     Combiner_chip *comb;
     _block[1].chip = comb = new Boot_object<Combiner_chip>(
-        Kmem::mmio_remap(0x10440000, 0x1000), info->num_combiners);
+        Kmem_mmio::map(0x10440000, 0x1000), info->num_combiners);
 
     _block[2].sz = 32; // 32 wakup IRQs
     Gpio_wakeup_chip *wu;
     _block[2].chip = wu = new Boot_object<Gpio_wakeup_chip>(
-        Kmem::mmio_remap(info->wu_phys, 0x1000));
+        Kmem_mmio::map(info->wu_phys, 0x1000));
 
     for (unsigned n = 0; n < info->n_gpio; ++n)
       {
@@ -128,7 +128,7 @@ public:
         auto *g = _block[0].chip;
 
         b.sz = gp.n_irqs;
-        b.chip = new Boot_object<Gpio_eint_chip>(Kmem::mmio_remap(gp.phys, 0x1000), gp.n_irqs);
+        b.chip = new Boot_object<Gpio_eint_chip>(Kmem_mmio::map(gp.phys, 0x1000), gp.n_irqs);
         g->alloc(new Boot_object<Cascade_irq>(b.chip, Gpio_eint_chip::cascade_hit), gp.irq);
         g->unmask(gp.irq);
       }

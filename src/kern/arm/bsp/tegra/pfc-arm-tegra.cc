@@ -6,7 +6,7 @@
 #include <infinite_loop.h>
 #include <mmio_register_block.h>
 #include <mem_layout.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <poll_timeout_kclock.h>
 #include <io.h>
 
@@ -22,7 +22,7 @@ struct Pfc_base : Pfc_arm
   };
 
   Pfc_base()
-  : pmc(Kmem::mmio_remap(Mem_layout::Pmc_phys_base, 0x100))
+  : pmc(Kmem_mmio::map(Mem_layout::Pmc_phys_base, 0x100))
   {}
 
   [[noreturn]] void system_reboot() override
@@ -54,15 +54,15 @@ struct Pfc_tegra3 : Pfc_base
   void do_boot_ap_cpus(Address phys_reset_vector) override
   {
     // set (temporary) new reset vector
-    Io::write<Mword>(phys_reset_vector, Kmem::mmio_remap(Reset_vector_addr,
+    Io::write<Mword>(phys_reset_vector, Kmem_mmio::remap(Reset_vector_addr,
           sizeof(Mword)));
 
     int cpu_powergates[4]        = { 0, 9, 10, 11 };
     int flowctrl_cpu_halt_ofs[4] = { 0, 0x14, 0x1c, 0x24 };
     int flowctrl_cpu_csr_ofs[4]  = { 8, 0x18, 0x20, 0x28 };
-    Mmio_register_block clk_rst(Kmem::mmio_remap(Mem_layout::Clock_reset_phys_base,
+    Mmio_register_block clk_rst(Kmem_mmio::map(Mem_layout::Clock_reset_phys_base,
                                                  0x1000));
-    Mmio_register_block flow_ctrl(Kmem::mmio_remap(0x60007000, 0x100));
+    Mmio_register_block flow_ctrl(Kmem_mmio::map(0x60007000, 0x100));
 
     for (unsigned i = 1; i < 4; ++i)
       {
@@ -139,10 +139,10 @@ struct Pfc_tegra2 : Pfc_base
   void do_boot_ap_cpus(Address phys_reset_vector) override
   {
     // set (temporary) new reset vector
-    Io::write<Mword>(phys_reset_vector, Kmem::mmio_remap(Reset_vector_addr,
+    Io::write<Mword>(phys_reset_vector, Kmem_mmio::remap(Reset_vector_addr,
           sizeof(Mword)));
 
-    Mmio_register_block cpu_complex(Kmem::mmio_remap(Cpu_complex, 0x2000));
+    Mmio_register_block cpu_complex(Kmem_mmio::map(Cpu_complex, 0x2000));
 
     // clocks on other cpu
     Mword r = cpu_complex.read<Mword>(Clk_rst_ctrl);

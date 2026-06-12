@@ -1,6 +1,6 @@
 
 #include <timer_omap3_am33xx.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 enum
 {
@@ -19,7 +19,7 @@ Static_object<Timer_omap_gentimer> Timer_omap3_am33xx::_timer;
 void
 Timer_omap3_am33xx::init_timer(Address wkup_phys)
 {
-  Mmio_register_block wkup(Kmem::mmio_remap(wkup_phys, 0x100));
+  Mmio_register_block wkup(Kmem_mmio::map(wkup_phys, 0x100));
   wkup.write<Mword>(2, CM_WKUP_TIMER0_CLKCTRL);
   _timer.construct();
 }

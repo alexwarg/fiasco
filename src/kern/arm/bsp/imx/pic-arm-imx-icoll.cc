@@ -2,7 +2,8 @@
 
 #include <boot_alloc.h>
 #include <irq_entry.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 #include <cassert>
 #include <irq_chip_generic.h>
@@ -60,7 +61,7 @@ public:
   }
 
   Irq_chip_imx_icoll()
-  : Irq_chip_gen(128), _reg(Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x1000))
+  : Irq_chip_gen(128), _reg(Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x1000))
   {
     _reg[HW_ICOLL_CTRL] = 0;
 

@@ -15,8 +15,8 @@ private:
 public:
   IRQ_CHIP_DBG_INFO("EI-Gpio");
 
-  Gpio_eint_chip(Mword gpio_base, unsigned num_irqs)
-    : Irq_chip_gen(num_irqs), _gpio_base(gpio_base)
+  Gpio_eint_chip(void *gpio_base, unsigned num_irqs)
+    : Irq_chip_gen(num_irqs), _gpio_base(reinterpret_cast<Address>(gpio_base))
   {}
 
   void mask(Mword pin)
@@ -97,7 +97,7 @@ private:
 public:
   IRQ_CHIP_DBG_INFO("WU-GPIO");
 
-  explicit Gpio_wakeup_chip(Address mmio_va)
+  explicit Gpio_wakeup_chip(void *mmio_va)
   : Irq_chip_gen(32),
     Mmio_register_block(mmio_va),
     _wakeup(0)

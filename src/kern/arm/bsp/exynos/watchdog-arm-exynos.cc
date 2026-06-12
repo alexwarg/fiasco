@@ -3,7 +3,8 @@
 
 #include "initcalls.h"
 #include "mmio_register_block.h"
-#include "kmem.h"
+#include "kmem_mmio.h"
+#include <mem_layout.h>
 #include "l4_types.h"
 #include "io.h"
 #include "static_init.h"
@@ -32,7 +33,7 @@ private:
 public:
   static Static_object<Watchdog> wdog;
 
-  Watchdog(Address virt) : Mmio_register_block(virt) {}
+  Watchdog(void *virt) : Mmio_register_block(virt) {}
 
   static void enable()
   {
@@ -68,7 +69,7 @@ Fn disbale = Watchdog::disable;
 
 static FIASCO_INIT void init()
 {
-  Watchdog::wdog.construct(Kmem::mmio_remap(Mem_layout::Watchdog_phys_base, 0x10));
+  Watchdog::wdog.construct(Kmem_mmio::map(Mem_layout::Watchdog_phys_base, 0x10));
   if (1)
     {
       Watchgod::wdog->setup(Reset_timeout_val);

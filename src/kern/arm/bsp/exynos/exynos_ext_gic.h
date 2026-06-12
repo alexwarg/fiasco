@@ -13,7 +13,7 @@ struct Ext_gic : Gic
   Gic_v2 *master() { return g[Cpu_number::boot_cpu()]; }
   Gic_v2 const *current() const { return g[current_cpu()]; }
 
-  Ext_gic(Address cpu_base, Address dist_base, unsigned long offset, int nr_irqs_override = -1)
+  Ext_gic(void *cpu_base, void *dist_base, unsigned long offset, int nr_irqs_override = -1)
   : offset(offset)
   {
     g[Cpu_number::boot_cpu()].construct(cpu_base, dist_base, nullptr);

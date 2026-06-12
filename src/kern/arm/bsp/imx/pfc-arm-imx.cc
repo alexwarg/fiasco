@@ -7,7 +7,7 @@
 #include <infinite_loop.h>
 #include <mmio_register_block.h>
 #include <mem_layout.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <cstdio>
 #include <processor.h>
 #include <mem.h>
@@ -28,7 +28,7 @@ struct Pfc_imx_wdog_rst : Pfc_arm
     cpus_off();
 
     // Enable watchdog with smallest timeout possible (0.5s)
-    Io::modify<Unsigned16>(WCR_WDE, 0xff10, Kmem::mmio_remap(WCR,
+    Io::modify<Unsigned16>(WCR_WDE, 0xff10, Kmem_mmio::remap(WCR,
           sizeof(Unsigned16)));
 
     L4::infinite_loop();
@@ -50,7 +50,7 @@ struct Pfc_imx6 : Pfc_imx_wdog_rst
 
   Register_block<32> src;
 
-  Pfc_imx6() : src(Kmem::mmio_remap(0x020d8000 /*Src_phys*/, 0x100))
+  Pfc_imx6() : src(Kmem_mmio::map(0x020d8000 /*Src_phys*/, 0x100))
   {}
 
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
@@ -89,13 +89,13 @@ struct Pfc_imx7_nopsci : Pfc_imx_wdog_rst
 
   Register_block<32> src;
 
-  Pfc_imx7_nopsci() : src(Kmem::mmio_remap(0x30390000 /*Src_phys*/, 0x100))
+  Pfc_imx7_nopsci() : src(Kmem_mmio::map(0x30390000 /*Src_phys*/, 0x100))
   {}
 
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
 
-    Register_block<32> gpc(Kmem::mmio_remap(0x303a0000 /*Gpc_phys*/, 0x1000));
+    Register_block<32> gpc(Kmem_mmio::map(0x303a0000 /*Gpc_phys*/, 0x1000));
 
     src[SRC_GPR3] = phys_tramp_mp_addr;
 
@@ -162,11 +162,11 @@ struct Pfc_imx_21 : Pfc_arm
     };
 
     // WDT CLock Enable
-    Io::set<Unsigned32>(PLL_PCCR1_WDT_EN, Kmem::mmio_remap(PLL_PCCR1,
+    Io::set<Unsigned32>(PLL_PCCR1_WDT_EN, Kmem_mmio::remap(PLL_PCCR1,
                                                            sizeof(Unsigned32)));
 
     // Assert Software reset signal by making the bit zero
-    Io::mask<Unsigned16>(~WCR_SRS, Kmem::mmio_remap(WCR, sizeof(Unsigned16)));
+    Io::mask<Unsigned16>(~WCR_SRS, Kmem_mmio::remap(WCR, sizeof(Unsigned16)));
 
     L4::infinite_loop();
   }
@@ -176,7 +176,7 @@ struct Pfc_imx_28 : Pfc_arm
 {
   [[noreturn]] void system_reboot() override
   {
-    Register_block<32> r(Kmem::mmio_remap(0x80056000, 0x100));
+    Register_block<32> r(Kmem_mmio::map(0x80056000, 0x100));
     r[0x50] = 1; // Watchdog counter
     r[0x04] = 1 << 4; // Watchdog enable
 

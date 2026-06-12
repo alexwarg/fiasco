@@ -2,7 +2,8 @@
 #include <irqs_s3c2410.h>
 #include <boot_alloc.h>
 #include <irq_entry.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 #include <cassert>
 #include <config.h>
@@ -89,7 +90,7 @@ public:
 
   S3c_chip()
   : Irq_chip_gen(32),
-    Mmio_register_block(Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x100))
+    Mmio_register_block(Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x100))
   {
 
     write<Mword>(0xffffffff, INTMSK); // all masked

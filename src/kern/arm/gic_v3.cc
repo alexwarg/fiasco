@@ -12,7 +12,8 @@ namespace
   {
   public:
     Gic_redist_find_array() = default;
-    explicit Gic_redist_find_array(Address redist_base) : _redist_base(redist_base) {}
+    explicit Gic_redist_find_array(void *redist_base)
+    : _redist_base(reinterpret_cast<Address>(redist_base)) {}
 
     Mmio_register_block get_redist_mmio(Unsigned64 mpid) override
     { return scan_range(_redist_base, mpid); }
@@ -22,7 +23,7 @@ namespace
   };
 }
 
-Gic_v3::Gic_v3(Address dist_base, Address redist_base)
+Gic_v3::Gic_v3(void *dist_base, void *redist_base)
 : Gic(dist_base),
   _redist_get(new Boot_object<Gic_redist_find_array>(redist_base))
 {
@@ -143,7 +144,7 @@ Gic_v3::irq(Mword pin) const
 }
 
 bool
-Gic_v3::add_its(Address its_base)
+Gic_v3::add_its(void *its_base)
 {
   if (!_has_lpis)
     return false;
@@ -164,7 +165,7 @@ Gic_v3::add_its(Address its_base)
 #else
 
 bool
-Gic_v3::add_its(Address its_base)
+Gic_v3::add_its(void *its_base)
 {
   if (_dist.hw_nr_lpis() > 0)
     Gic_its::disable(its_base);

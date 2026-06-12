@@ -12,17 +12,17 @@ class Gic_v2 : public Gic_mixin<Gic_v2, Gic_cpu_v2>
 public:
   using Version = Gic_dist::V2;
 
-  Gic_v2(Address cpu_base, Address dist_base, int num_override = -1)
+  Gic_v2(void *cpu_base, void *dist_base, int num_override = -1)
   : Gic(dist_base, cpu_base)
   {
     init_gic(num_override);
   }
 
-  Gic_v2(Address cpu_base, Address dist_base, void *)
+  Gic_v2(void *cpu_base, void *dist_base, void *)
   : Gic(dist_base, cpu_base)
   {}
 
-  Address get_cpu_base() const
+  void *get_cpu_base() const
   {
     return _cpu.get_mmio_base();
   }

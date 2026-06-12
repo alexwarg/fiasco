@@ -7,7 +7,7 @@
 class Mct_timer : public Mmio_register_block
 {
 public:
-  explicit Mct_timer(Address virt) : Mmio_register_block(virt) {}
+  explicit Mct_timer(void *virt) : Mmio_register_block(virt) {}
 
   struct Reg { enum
   {

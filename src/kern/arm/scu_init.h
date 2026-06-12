@@ -2,7 +2,7 @@
 
 #include <scu.h>
 #include <cpu.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <globalconfig.h>
 
 inline void setup_arm_scu(Address phys)
@@ -24,7 +24,7 @@ inline void setup_arm_scu(Address phys)
   extern volatile Mword _tramp_mp_scu_phys;
   _tramp_mp_scu_phys = phys;
 #endif
-  Cpu::scu.r.set_mmio_base(Kmem::mmio_remap(phys, 0x1000));
+  Cpu::scu.r.set_mmio_base(Kmem_mmio::map(phys, 0x1000));
   Cpu::scu.init(0);
 #endif
 }

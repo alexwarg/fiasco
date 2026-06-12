@@ -3,7 +3,8 @@
 #include <irq_entry.h>
 
 #include <initcalls.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 #include <cassert>
 #include <config.h>
@@ -51,7 +52,7 @@ public:
 
   Irq_chip_arm_omap3()
   : Irq_chip_gen(Num_irqs),
-    Mmio_register_block(Kmem::mmio_remap(Mem_layout::Intc_phys_base, 0x1000))
+    Mmio_register_block(Kmem_mmio::map(Mem_layout::Intc_phys_base, 0x1000))
   {
     // Reset
     write<Mword>(2, INTCPS_SYSCONFIG);

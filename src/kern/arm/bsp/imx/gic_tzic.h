@@ -58,7 +58,7 @@ private:
   }
 
 public:
-  explicit Gic_tzic(Address base, int num_irqs_override = -1)
+  explicit Gic_tzic(void *base, int num_irqs_override = -1)
     : _regs(base)
   {
     init_tzic(num_irqs_override);

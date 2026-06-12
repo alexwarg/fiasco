@@ -1,9 +1,9 @@
 
 #include <timer_arm_imx21.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 Timer_arm_imx21::Timer_arm_imx21(Address phys_base, unsigned long size)
-: Mmio_register_block(Kmem::mmio_remap(phys_base, size))
+: Mmio_register_block(Kmem_mmio::map(phys_base, size))
 {
   write<Mword>(0, TCTL); // Disable
   write<Mword>(TCTL_SW_RESET, TCTL); // reset timer

@@ -1,13 +1,14 @@
 #include <timer.h>
 #include <timer_mct.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 #include <cstdio>
 
 void
 Timer::init(Cpu_number)
 {
-  Mct_timer mct(Kmem::mmio_remap(Mem_layout::Mct_phys_base, 0x100));
+  Mct_timer mct(Kmem_mmio::map(Mem_layout::Mct_phys_base, 0x100));
   // probably need to select proper clock source for MCT
   Mword timer_start = 0UL;
   unsigned factor = 5;

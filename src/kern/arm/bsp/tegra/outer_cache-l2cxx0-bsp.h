@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mem_layout_arm_bsp.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 namespace Outer_cache
 {
@@ -11,7 +11,7 @@ namespace Outer_cache
   static Mword platform_init()
   {
     using namespace Priv;
-    l2cxx0.construct(Kmem::mmio_remap(Mem_layout_arm_bsp::L2cxx0_phys_base, 0x1000));
+    l2cxx0.construct(Kmem_mmio::map(Mem_layout_arm_bsp::L2cxx0_phys_base, 0x1000));
     Mword aux_control = l2cxx0->read<Unsigned32>(L2cxx0::AUX_CONTROL);
 
     l2cxx0->write<Mword>(0x331, L2cxx0::TAG_RAM_CONTROL);

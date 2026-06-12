@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 namespace Outer_cache
 {
@@ -46,7 +46,7 @@ namespace Outer_cache
                   | (1 << 29) // insn prefetch
                   | (1 << 30) // early BRESP enable
                  ;
-    Priv::l2cxx0.construct(Kmem::mmio_remap(0x48242000, 0x1000));
+    Priv::l2cxx0.construct(Kmem_mmio::map(0x48242000, 0x1000));
 
     Priv::smc(Omap_l2cache_aux_reg, aux_control);
     Priv::smc(Omap_l2cache_enable, 1);

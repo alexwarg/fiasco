@@ -7,7 +7,8 @@
 #include <cpu.h>
 #include <mmio_register_block.h>
 #include <ipi.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 #include <infinite_loop.h>
 
 #if defined (CONFIG_BIT32) && !defined (CONFIG_PF_RPI_RPI1) && !defined(CONFIG_PF_RPI_PRIZW)
@@ -24,7 +25,7 @@ struct Pfc_z : Pfc_arm
   {
     enum { Rstc = 0x1c, Wdog = 0x24 };
 
-    Address base = Kmem::mmio_remap(Mem_layout::Watchdog_phys_base, 0x100);
+    Address base = Kmem_mmio::remap(Mem_layout::Watchdog_phys_base, 0x100);
 
     Mword pw = 0x5a << 24;
     Io::write<Unsigned32>(pw | 8, base + Wdog);
@@ -39,7 +40,7 @@ struct Pfc_z : Pfc_arm
 #ifdef CONFIG_BIT64
   void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
-    Mmio_register_block a(Kmem::mmio_remap(0xd8, 0x28));
+    Mmio_register_block a(Kmem_mmio::map(0xd8, 0x28));
     Cpu_phys_id myid = Proc::cpu_id();
     int seq = 1;
     for (unsigned i = 0; i < min<unsigned>(4, Config::Max_num_cpus); ++i)

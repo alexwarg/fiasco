@@ -1,6 +1,7 @@
 
 #include <timer_arm_rpi.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 
 #include <cassert>
 
@@ -10,6 +11,6 @@ void
 Timer_arm_rpi::init(Cpu_number cpu)
 {
   assert (cpu == Cpu_number::boot_cpu());
-  _timer.construct(Kmem::mmio_remap(Mem_layout::Timer_phys_base, 0x100));
+  _timer.construct(Kmem_mmio::map(Mem_layout::Timer_phys_base, 0x100));
 }
 

@@ -8,7 +8,8 @@
 #include <io.h>
 #include <irq_chip_generic.h>
 #include <irq_mgr.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
+#include <mem_layout.h>
 #include <mmio_register_block.h>
 
 class Irq_chip_kirkwood : public Irq_chip_gen, private Mmio_register_block
@@ -33,7 +34,7 @@ public:
 
   Irq_chip_kirkwood()
   : Irq_chip_gen(64),
-    Mmio_register_block(Kmem::mmio_remap(Mem_layout::Pic_phys_base, 0x400))
+    Mmio_register_block(Kmem_mmio::map(Mem_layout::Pic_phys_base, 0x400))
   {
     // Disable all interrupts
     write<Unsigned32>(0U, Main_Irq_mask_low_reg);

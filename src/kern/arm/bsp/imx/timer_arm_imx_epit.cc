@@ -1,9 +1,9 @@
 
 #include <timer_arm_imx_epit.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 
 Timer_arm_imx_epit::Timer_arm_imx_epit(Address phys_base)
-: Mmio_register_block(Kmem::mmio_remap(phys_base, 0x100))
+: Mmio_register_block(Kmem_mmio::map(phys_base, 0x100))
 {
   write<Mword>(0, EPITCR); // Disable
   write<Mword>(EPITCR_SWR, EPITCR);

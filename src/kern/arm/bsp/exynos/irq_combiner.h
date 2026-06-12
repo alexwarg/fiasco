@@ -63,7 +63,7 @@ public:
     return No_pending;
   }
 
-  explicit Combiner_chip(Address mmio_va, unsigned num_chips)
+  explicit Combiner_chip(void *mmio_va, unsigned num_chips)
   : Irq_chip_gen(num_chips * 8),
     Mmio_register_block(mmio_va)
   {
