@@ -167,6 +167,10 @@ namespace L4
     { *reinterpret_cast<volatile R *>(_base + (reg << _shift)) = val; }
 
   public:
+    Io_register_block_mmio(void *base, unsigned char shift = 0)
+    : _base(reinterpret_cast<unsigned long>(base)), _shift(shift)
+    {}
+
     Io_register_block_mmio(unsigned long base, unsigned char shift = 0)
     : _base(base), _shift(shift)
     {}
@@ -209,6 +213,10 @@ namespace L4
     { *reinterpret_cast<volatile ACCESS_TYPE *>(_base + (reg << _shift)) = val; }
 
   public:
+    Io_register_block_mmio_fixed_width(void *base, unsigned char shift = 0)
+    : _base(reinterpret_cast<unsigned long>(base)), _shift(shift)
+    {}
+
     Io_register_block_mmio_fixed_width(unsigned long base, unsigned char shift = 0)
     : _base(base), _shift(shift)
     {}
