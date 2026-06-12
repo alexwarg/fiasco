@@ -138,6 +138,8 @@ public:
   unsigned long determine_kmem_alloc_size(unsigned long available_size,
                                           unsigned long alignment = Config::PAGE_SIZE);
 
+  static bool ready() { return _alloc != nullptr; }
+
 protected:
   static void allocator(Kmem_alloc *a)
   {
