@@ -94,6 +94,19 @@ public:
     return Page::Attr(rights, type);
   }
 
+  bool attribs_compatible(Page::Attr attr) const
+  {
+    Page::Attr cur = attribs();
+
+    if (cur.rights != attr.rights)
+      return false;
+
+    if (cur.type != attr.type)
+      return false;
+
+    return true;
+  }
+
   Page::Rights access_flags() const
   { return Page::Rights(0); }
 
@@ -209,6 +222,22 @@ public:
     return Page::Attr(rights, type, k);
   }
 
+  bool attribs_compatible(Page::Attr attr) const
+  {
+    Page::Attr cur = attribs();
+
+    if (cur.rights != attr.rights)
+      return false;
+
+    if (cur.type != attr.type)
+      return false;
+
+    if (cur.kern != attr.kern)
+      return false;
+
+    return true;
+  }
+
   Unsigned32 _page_bits() const { return 2; }
 
   Page::Rights access_flags() const
@@ -320,6 +349,22 @@ public:
     return Page::Attr(rights, type, k);
   }
 
+  bool attribs_compatible(Page::Attr attr) const
+  {
+    Page::Attr cur = attribs();
+
+    if (cur.rights != attr.rights)
+      return false;
+
+    if (cur.type != attr.type)
+      return false;
+
+    if (cur.kern != attr.kern)
+      return false;
+
+    return true;
+  }
+
   Unsigned64 _page_bits() const
   {
     return 0x400 | ((_this()->level == CLASS::Max_level) ? 3 : 1);
@@ -410,6 +455,19 @@ public:
       }
 
     return Page::Attr(rights, type, K(0));
+  }
+
+  bool attribs_compatible(Page::Attr attr) const
+  {
+    Page::Attr cur = attribs();
+
+    if (cur.rights != attr.rights)
+      return false;
+
+    if (cur.type != attr.type)
+      return false;
+
+    return true;
   }
 
   Unsigned64 _page_bits() const
