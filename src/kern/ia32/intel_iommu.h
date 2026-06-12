@@ -185,12 +185,12 @@ public:
 
   struct Registers
   {
-    Address va;
+    void *va;
     volatile Unsigned64 &operator [] (Reg_64 index)
-    { return *(Unsigned64 volatile *)(va + (unsigned)index); }
+    { return *offset_cast<Unsigned64 volatile *>(va, static_cast<unsigned>(index)); }
 
     volatile Unsigned32 &operator [] (Reg_32 index)
-    { return *(Unsigned32 volatile *)(va + (unsigned)index); }
+    { return *offset_cast<Unsigned32 volatile *>(va, static_cast<unsigned>(index)); }
   };
 
   enum

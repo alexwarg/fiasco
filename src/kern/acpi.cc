@@ -1,10 +1,11 @@
 #include "acpi.h"
 
 #include "boot_alloc.h"
-#include "kmem.h"
+#include "kmem_mmio.h"
 #include "warn.h"
 #include "panic.h"
 #include <cctype>
+#include <kip.h>
 
 
 template<unsigned LEN>
@@ -48,7 +49,7 @@ public:
   {
     for (unsigned i = 0; i < ((len-sizeof(Acpi_table_head))/sizeof(ptrs[0])); ++i)
       {
-        Acpi_table_head const *t = Kmem::mmio_remap(ptrs[i], sizeof(*t), true);
+        Acpi_table_head const *t = static_cast<Acpi_table_head const *>(Kmem_mmio::map(ptrs[i], sizeof(*t), true));
         if (t == (Acpi_table_head const *)~0UL)
           continue;
 
@@ -154,7 +155,7 @@ Acpi::_map_table(Unsigned64 phys, unsigned size)
       return nullptr;
     }
 
-  void *t = (void *)Kmem::mmio_remap(phys, size, true);
+  void *t = Kmem_mmio::map(phys, size, true);
   if (t == (void *)~0UL)
     {
       printf("ACPI: cannot map phys address %llx, map failed\n",
@@ -189,7 +190,7 @@ Acpi::init_virt()
 
   if (rsdp->rev && rsdp->xsdt_phys)
     {
-      Acpi_xsdt_p const *x = (Acpi_xsdt_p const *)Kmem::mmio_remap(rsdp->xsdt_phys, sizeof(*x), true);
+      Acpi_xsdt_p const *x = (Acpi_xsdt_p const *)Kmem_mmio::map(rsdp->xsdt_phys, sizeof(*x), true);
       if (x == (Acpi_xsdt_p const *)~0UL)
         WARN("ACPI: Could not map XSDT\n");
       else if (!x->checksum_ok())
@@ -212,7 +213,7 @@ Acpi::init_virt()
 
   if (rsdp->rsdt_phys)
     {
-      Acpi_rsdt_p const *r = (Acpi_rsdt_p const *)Kmem::mmio_remap(rsdp->rsdt_phys, sizeof(*r), true);
+      Acpi_rsdt_p const *r = (Acpi_rsdt_p const *)Kmem_mmio::map(rsdp->rsdt_phys, sizeof(*r), true);
       if (r == (Acpi_rsdt_p const *)~0UL)
         WARN("ACPI: Could not map RSDT\n");
       else if (!r->checksum_ok())

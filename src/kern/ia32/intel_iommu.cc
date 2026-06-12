@@ -4,6 +4,7 @@
 #include <acpi_dmar.h>
 #include <cstdio>
 #include <warn.h>
+#include <kmem_mmio.h>
 
 Intel::Io_mmu::Io_mmu_vect Intel::Io_mmu::iommus;
 Acpi_dmar::Flags Intel::Io_mmu::dmar_flags;
@@ -19,7 +20,7 @@ Intel::Io_mmu::probe(ACPI::Dmar_drhd const *drhd)
   segment   = drhd->segment;
   flags     = drhd->flags;
 
-  Address va = Kmem::mmio_remap(base_addr, Config::PAGE_SIZE);
+  void *va = Kmem_mmio::map(base_addr, Config::PAGE_SIZE);
 
   Kip::k()->add_mem_region(Mem_desc(base_addr, base_addr + Config::PAGE_SIZE -1,
                                     Mem_desc::Reserved));
@@ -29,7 +30,7 @@ Intel::Io_mmu::probe(ACPI::Dmar_drhd const *drhd)
   ecaps = regs[Reg_64::Ext_capabilities];
 
   if (Print_infos)
-    printf("IOMMU: %llx va=%lx version=%x caps=%llx:%llx\n",
+    printf("IOMMU: %llx va=%p version=%x caps=%llx:%llx\n",
            base_addr, va, regs[Reg_32::Version], caps.raw, ecaps);
 
   if (caps.rwbf())

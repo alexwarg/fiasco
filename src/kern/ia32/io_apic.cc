@@ -3,7 +3,7 @@
 #include <acpi.h>
 #include <apic.h>
 #include <assert.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <kip.h>
 #include <pc_i8259.h>
 #include <lock_guard.h>
@@ -78,11 +78,12 @@ Io_apic::Io_apic(Unsigned64 phys, unsigned gsi_base)
   if (Print_info)
     printf("IO-APIC: addr=%lx\n", static_cast<Mword>(phys));
 
-  Address va = Kmem::mmio_remap(phys, Config::PAGE_SIZE);
+  void *va = Kmem_mmio::map(phys, Config::PAGE_SIZE);
 
   Kip::k()->add_mem_region(Mem_desc(phys, phys + Config::PAGE_SIZE -1, Mem_desc::Reserved));
 
-  Io_apic::Apic *a = (Io_apic::Apic*)va;
+  Io_apic::Apic *a = static_cast<Io_apic::Apic*>(va);
+
   a->write(0, 0);
 
   _apic = a;
