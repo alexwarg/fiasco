@@ -179,7 +179,7 @@ Context::switch_exec_locked(Context *t, enum Helping_mode mode)
 }
 
 Context::Switch
-Context::switch_exec_helping(Context *t, Mword const *lock, Mword val)
+Context::switch_exec_helping(Context *t, cxx::atomic<Mword> const *lock, Mword val)
 {
   // Must be called with CPU lock held
   assert (t);

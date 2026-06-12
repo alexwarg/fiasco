@@ -43,7 +43,7 @@ private:
   // zero-initialization or be initialized using the initialize()
   // member function.
   // Reason: to avoid overwriting the lock in the thread-ctor
-  Address _lock_owner;
+  cxx::atomic<Address> _lock_owner;
 
 public:
   /**
@@ -71,7 +71,7 @@ public:
    * \return true if the lock really exists, false if not.
    */
   bool NO_INSTRUMENT valid() const
-  { return (_lock_owner & 1) == 0; }
+  { return (_lock_owner.load(cxx::memory_order_relaxed) & 1) == 0; }
 
   /**
    * Initialize Switch_lock.
@@ -81,7 +81,7 @@ public:
    */
   void NO_INSTRUMENT initialize()
   {
-    _lock_owner = 0;
+    _lock_owner.store(0, cxx::memory_order_release);
   }
 
   /**
@@ -91,8 +91,7 @@ public:
    */
   Context * NO_INSTRUMENT lock_owner() const
   {
-    auto guard = lock_guard(cpu_lock);
-    return reinterpret_cast<Context*>(_lock_owner & ~1UL);
+    return reinterpret_cast<Context*>(_lock_owner.load(cxx::memory_order_relaxed) & ~1UL);
   }
 
   /**
@@ -105,7 +104,7 @@ public:
   Status NO_INSTRUMENT test() const
   {
     auto guard = lock_guard(cpu_lock);
-    Address o = access_once(&_lock_owner);
+    Address o = _lock_owner.load(cxx::memory_order_relaxed);
     if (EXPECT_FALSE(o & 1))
       return Invalid;
     return o ? Locked : Not_locked;
@@ -125,7 +124,7 @@ public:
   {
     auto guard = lock_guard(cpu_lock);
 
-    Mword o = access_once(&_lock_owner);
+    Mword o = _lock_owner.load(cxx::memory_order_relaxed);
     if (EXPECT_FALSE(o & 1))
       return Invalid;
 
@@ -137,7 +136,7 @@ public:
       {
         for (;;)
           {
-            Mword o = access_once(&_lock_owner);
+            Mword o = _lock_owner.load(cxx::memory_order_relaxed);
             if (o & 1)
               return Invalid;
 
@@ -173,8 +172,7 @@ public:
 
   void NO_INSTRUMENT invalidate()
   {
-    auto guard = lock_guard(cpu_lock);
-    cxx::atomic_fetch_or(&_lock_owner, (Address)1);
+    _lock_owner.fetch_or((Address)1);
   }
 
   void NO_INSTRUMENT wait_free()
@@ -184,14 +182,14 @@ public:
 
     assert (!valid());
 
-    if (EXPECT_FALSE(reinterpret_cast<Context*>(_lock_owner & ~1UL) == c))
+    if (EXPECT_FALSE(lock_owner() == c))
       panic("Current thread owns Switch_lock and attempts to destroy it");
 
     for(;;)
       {
         assert(cpu_lock.test());
 
-        Address _owner = access_once(&_lock_owner);
+        Address _owner = _lock_owner.load(cxx::memory_order_relaxed);
         Context *owner = reinterpret_cast<Context *>(_owner & ~1UL);
         if (!owner)
           break;
@@ -273,7 +271,7 @@ private:
 inline void NO_INSTRUMENT
 Switch_lock::clear_lock_owner()
 {
-  cxx::atomic_fetch_and(&_lock_owner, (Address)1);
+  _lock_owner.fetch_and((Address)1);
 }
 
 inline bool NO_INSTRUMENT
@@ -291,7 +289,7 @@ Switch_lock::set_lock_owner(Context *o)
     assert (o->_running_under_lock);
 
   Mword none = 0;
-  if (EXPECT_FALSE(!cxx::atomic_compare_exchange_strong(&_lock_owner, none, Address(o))))
+  if (EXPECT_FALSE(!_lock_owner.compare_exchange_strong(none, Address(o))))
     {
       if (have_no_locks)
         o->_running_under_lock.reset();
@@ -324,7 +322,7 @@ Switch_lock::schedule(Context *curr)
 inline void NO_INSTRUMENT
 Switch_lock::clear_lock_owner()
 {
-  _lock_owner &= 1;
+  _lock_owner.fetch_and(1, cxx::memory_order_relaxed);
 }
 
 /**
@@ -335,7 +333,7 @@ Switch_lock::clear_lock_owner()
 inline bool NO_INSTRUMENT
 Switch_lock::set_lock_owner(Context *o)
 {
-  _lock_owner = Address(o) | (_lock_owner & 1);
+  _lock_owner.store(Address(o) | (_lock_owner.load(cxx::memory_order_relaxed) & 1), cxx::memory_order_acquire);
   return true;
 }
 

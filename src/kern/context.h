@@ -410,7 +410,7 @@ public:
   [[nodiscard]]
   Switch switch_exec_locked(Context *t, enum Helping_mode mode);
 
-  Switch switch_exec_helping(Context *t, Mword const *lock, Mword val);
+  Switch switch_exec_helping(Context *t, cxx::atomic<Mword> const *lock, Mword val);
 
   /**
    * \brief Queue a DRQ for changing the contexts state.

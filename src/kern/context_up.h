@@ -19,7 +19,7 @@ protected:
   bool running_on_different_cpu() const
   { return false; }
 
-  bool need_help(Mword const *, Mword) const
+  bool need_help(cxx::atomic<Mword> const *, Mword) const
   { return true; }
 
   void pending_rqq_enqueue()

@@ -199,14 +199,14 @@ public:
     return false;
   }
 
-  bool need_help(Mword const *lock, Mword val)
+  bool need_help(cxx::atomic<Mword> const *lock, Mword val)
   {
     if (EXPECT_FALSE(!_running_under_lock.try_to_help()))
       return false;
 
     // double check if the lock is held by us
     if (EXPECT_TRUE(_ctxt()->_lock_cnt.load(cxx::memory_order_acquire) != 0
-                    && access_once(lock) == val))
+                    && lock->load(cxx::memory_order_relaxed) == val))
       {
         _running_under_lock.help();
         return true;
