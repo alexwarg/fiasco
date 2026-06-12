@@ -7,7 +7,7 @@
 #include <cascade_irq.h>
 #include <mips_cpu_irqs.h>
 #include <gic.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <cm.h>
 
 static void gic_hit(Irq_base *_self, Upstream_irq const *u)
@@ -37,7 +37,7 @@ Mips_bsp_irqs::init(Cpu_number cpu)
   Cm::cm->set_gic_base_and_enable(my_gic_base);
   printf("MIPS: gic_base=%lx\n", my_gic_base);
 
-  auto *gic = new Boot_object<Gic>(Kmem::mmio_remap(my_gic_base, Gic::Size), 2);
+  auto *gic = new Boot_object<Gic>(Kmem_mmio::map(my_gic_base, Gic::Size), 2);
   auto *c = new Boot_object<Cascade_irq>(gic, gic_hit);
   Mips_cpu_irqs::chip->alloc(c, 2);
   c->unmask();

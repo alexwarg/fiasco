@@ -29,7 +29,7 @@ public:
     Size = 0x20000,
   };
 
-  Gic(Address mmio, unsigned cpu_int);
+  Gic(void *mmio, unsigned cpu_int);
 
   void unmask(Mword pin) override
   {

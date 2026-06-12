@@ -32,7 +32,7 @@ public:
 
   typedef Register_block<32, R> Gt_regs;
 
-  Gt64120(Address virt_gt_regs, Address virt_pci_io)
+  Gt64120(void *virt_gt_regs, void *virt_pci_io)
   : _gt_regs(virt_gt_regs),
     _pci_io(virt_pci_io)
   {}
@@ -48,7 +48,7 @@ protected:
 class Gt64120_irq : public Irq_chip_gen, public Gt64120
 {
 public:
-  Gt64120_irq(Address virt_gt_regs, Address virt_pci_io)
+  Gt64120_irq(void *virt_gt_regs, void *virt_pci_io)
     : Gt64120(virt_gt_regs, virt_pci_io)
   {
     Irq_chip_gen::init(29);

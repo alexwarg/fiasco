@@ -1,6 +1,6 @@
 #include <pfc-mips.h>
 #include <infinite_loop.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <mmio_register_block.h>
 
 #include <globalconfig.h>
@@ -25,7 +25,7 @@ struct Pfc_pf : Pfc_mips
       GORESET          = 0x42,
     };
 
-    Register_block<32> r(Kmem::mmio_remap(SOFTRES_REGISTER, sizeof(Unsigned32)));
+    Register_block<32> r(Kmem_mmio::map(SOFTRES_REGISTER, sizeof(Unsigned32)));
     r[0] = GORESET;
 
     L4::infinite_loop();

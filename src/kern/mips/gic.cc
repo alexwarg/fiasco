@@ -89,7 +89,7 @@ Gic::set_cpu(Mword, Cpu_number)
 
 #endif // CONFIG_MP
 
-Gic::Gic(Address mmio, unsigned cpu_int) : _r(mmio), _mode_lock(Spin_lock<>::Unlocked)
+Gic::Gic(void *mmio, unsigned cpu_int) : _r(mmio), _mode_lock(Spin_lock<>::Unlocked)
 {
   Reg_type cfg = _r[Sh_config];
   unsigned vpes = (cfg & 0x3f) + 1;
@@ -97,7 +97,7 @@ Gic::Gic(Address mmio, unsigned cpu_int) : _r(mmio), _mode_lock(Spin_lock<>::Unl
   Reg_type rev = _r[Sh_revision_id];
 
   printf("MIPS GIC[%08lx]: %u IRQs %u VPEs%s, V%d.%d\n",
-         mmio, nrirqs, vpes, (cfg & (1 << 31)) ? "VZP" : "",
+         reinterpret_cast<Address>(mmio), nrirqs, vpes, (cfg & (1 << 31)) ? "VZP" : "",
          (unsigned) rev >> 8, (unsigned) rev & 0xff);
 
   assert (vpes <= 32); // this limit is due to set_cpu limitations

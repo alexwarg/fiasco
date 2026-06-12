@@ -1,6 +1,6 @@
 #include <pfc-mips.h>
 #include <infinite_loop.h>
-#include <kmem.h>
+#include <kmem_mmio.h>
 #include <mmio_register_block.h>
 
 namespace {
@@ -9,7 +9,7 @@ struct Pfc_pf : Pfc_mips
 {
   [[noreturn]] void system_reboot() override
   {
-    Register_block<32> r(Kmem::mmio_remap(0x1f04c000, 0x10));
+    Register_block<32> r(Kmem_mmio::map(0x1f04c000, 0x10));
     r[0x0] = r[0] & ~3;
     r[0x4] = 0;
     r[0x0] = r[0] | 1;
