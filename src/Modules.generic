@@ -49,6 +49,7 @@ CXXSRC_KERNEL += \
 	kmem_alloc.cc \
 	kmem_slab.cc \
 	kmem.cc \
+	kmem_mmio.cc \
 	kobject.cc \
 	kobject_helper.cc \
 	kobject_iface.cc \
