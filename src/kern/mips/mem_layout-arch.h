@@ -61,6 +61,4 @@ public:
 
   static inline bool is_user_space(Address addr)
   { return addr < KSEG0; }
-
-  static Address ioremap_nocache(Address phys_addr, Address size);
 };

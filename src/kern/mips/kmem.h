@@ -1,10 +1,11 @@
 #pragma once
 
 #include <mem_layout.h>
+#include <kmem-generic-api.h>
 #include <paging.h>
 #include <globalconfig.h>
 
-class Kmem : public Mem_layout
+class Kmem : public Mem_layout, public Kmem_generic_api
 {
 public:
 #ifdef CONFIG_BIT32
@@ -21,8 +22,6 @@ public:
 
   // currently a dummy the kernel runs unpaged
   static Pdir *const kdir;
-
-  static Address mmio_remap(Address phys, Address size);
 };
 
 
