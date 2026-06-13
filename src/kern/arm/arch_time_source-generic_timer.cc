@@ -9,45 +9,15 @@
 #include <kip_asm.h>
 #include <kip_clock_init.h>
 
-Arch_time_source_generic_timer::Scaler_shift Arch_time_source_generic_timer::_scaler_shift_ts_to_ns;
-Arch_time_source_generic_timer::Scaler_shift Arch_time_source_generic_timer::_scaler_shift_ts_to_us;
+Fix_point_multiplier Arch_time_source_generic_timer::_scaler_shift_ts_to_ns;
+Fix_point_multiplier Arch_time_source_generic_timer::_scaler_shift_ts_to_us;
 
-/**
- * Determine scaling factor and shift value for transforming a time stamp
- * (timer value) into a time value (microseconds or nanoseconds).
- *
- * \param period  Time period: 10^6: microseconds; 10^9: nanoseconds.
- * \param freq    Timer frequency.
- * \param scaler  Determined scaling factor (32-bit).
- * \param shift   Determined shift value (0-31).
- *
- * The following formula is used to translate a timer value into a time value:
- *
- * \code
- *             timer value * scaler                 timer value * scaler
- *   time  =  ---------------------- * 2^shift  =  ---------------------
- *                     2^32                             2^(32-shift)
- * \endcode
- *
- * The shift value is important for low timer frequencies to keep a sane amount
- * of usable digits.
- */
-static
-void freq_to_scaler_shift(Unsigned64 period, Unsigned32 freq,
-                          Arch_time_source_generic_timer::Scaler_shift *scaler_shift)
-{
-  Mword s = 0;
-  while ((period / (1 << s)) / freq > 0)
-    ++s;
-  scaler_shift->scaler = (((1ULL << 32) / (1ULL << s)) * period) / freq;
-  scaler_shift->shift = s;
-}
 
 void
 Arch_time_source_generic_timer::setup_scalers(Unsigned32 freq)
 {
-  freq_to_scaler_shift(1'000'000'000, freq, &_scaler_shift_ts_to_ns);
-  freq_to_scaler_shift(1'000'000, freq, &_scaler_shift_ts_to_us);
+  _scaler_shift_ts_to_ns = Fix_point_multiplier::calc(freq, 1'000'000'000);
+  _scaler_shift_ts_to_us = Fix_point_multiplier::calc(freq, 1'000'000);
 }
 
 void
