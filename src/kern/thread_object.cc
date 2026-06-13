@@ -314,12 +314,14 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
   if (vcpu)
     {
       Mword size = sizeof(Vcpu_state);
-      if (utcb->values[0] & Vcpu_ctl_extended_vcpu)
+      bool ext_state = false;
+      if (access_once(&utcb->values[0]) & Vcpu_ctl_extended_vcpu)
         {
           if (!Thread_vcpu::ext_vcpu_available())
             return commit_result(-L4_err::ENosys);
           size = Config::ext_vcpu_size();
           add_state.vcpu_enabled() = true;
+          ext_state = true;
         }
 
       Space::Ku_mem const *vcpu_m = space()->find_ku_mem(vcpu, size);
@@ -333,7 +335,7 @@ Thread_object::sys_vcpu_control(L4_fpage::Rights, L4_msg_tag const &tag,
       _vcpu_state.set(vcpu, vcpu_m->kern_addr(vcpu));
 
       Vcpu_state *s = new (_vcpu_state.access()) Vcpu_state;
-      Thread_vcpu::init_state(this, s, add_state.vcpu_enabled());
+      Thread_vcpu::init_state(this, s, ext_state);
       arch_update_vcpu_state(s);
     }
   else
