@@ -165,6 +165,34 @@ private:
   /**
    * Update the timer interrupt to the next timeout.
    *
+   * \param now current time
+   */
+  void update_timer_max_oneshot(Unsigned64 now)
+  {
+    if constexpr (!Config::Scheduler_one_shot)
+      return;
+
+    if (Rcu::idle(current_cpu()))
+      update_timer(now + Config::One_shot_max_interval_us);
+    else
+      update_timer(now + Config::Rcu_grace_period);
+  }
+
+public:
+  static Per_cpu<Timeout_q> timeout_queue;
+
+  To_list &first(int index)
+  { return _q[index & (Wakeup_queue_count-1)]; }
+
+  To_list const &first(int index) const
+  { return _q[index & (Wakeup_queue_count-1)]; }
+
+  unsigned queues() const
+  { return Wakeup_queue_count; }
+
+  /**
+   * Update the timer interrupt to the next timeout.
+   *
    * Set the timer to the next timeout in one-shot mode. The parameter
    * gives a hint for the maximum timeout to set.
    *
@@ -192,33 +220,6 @@ private:
     program_timer(next_timeout);
   }
 
-  /**
-   * Update the timer interrupt to the next timeout.
-   *
-   * \param now current time
-   */
-  void update_timer_max_oneshot(Unsigned64 now)
-  {
-    if constexpr (!Config::Scheduler_one_shot)
-      return;
-
-    if (Rcu::idle(current_cpu()))
-      update_timer(now + Config::One_shot_max_interval_us);
-    else
-      update_timer(now + Config::Rcu_grace_period);
-  }
-
-public:
-  static Per_cpu<Timeout_q> timeout_queue;
-
-  To_list &first(int index)
-  { return _q[index & (Wakeup_queue_count-1)]; }
-
-  To_list const &first(int index) const
-  { return _q[index & (Wakeup_queue_count-1)]; }
-
-  unsigned queues() const
-  { return Wakeup_queue_count; }
 
   /**
    * Enqueue a new timeout.
