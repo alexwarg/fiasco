@@ -15,28 +15,15 @@ class Sender : private Prio_list_elem
 {
   MEMBER_OFFSET();
 public:
+
+  using Prio_list_elem::wait_queue;
+
   /** Receiver-ready callback. Receivers call this function on waiting senders
       when they get ready to receive a message from that sender. Senders need
       to implement this interface. */
   virtual void ipc_send_msg(Receiver *, bool open_wait) = 0;
   virtual void ipc_receiver_aborted() = 0;
   virtual void modify_label(Mword const *todo, int cnt) = 0;
-
-  /** Current receiver.
-      @return receiver this sender is currently trying to send a message to.
-   */
-  Iterable_prio_list *wait_queue() const
-  {
-    return _wq;
-  }
-
-  /** Set current receiver.
-      @param receiver the receiver we're going to send a message to
-   */
-  void set_wait_queue(Iterable_prio_list *wq)
-  {
-    _wq = wq;
-  }
 
   unsigned short sender_prio() const
   {
@@ -62,28 +49,28 @@ public:
     return static_cast<Sender*>(e);
   }
 
-  void sender_enqueue(Prio_list *head, unsigned short prio)
+  bool sender_enqueue(Prio_list *head, unsigned short prio)
   {
     assert(prio < 256);
 
     auto guard = lock_guard(cpu_lock);
-    head->insert(this, prio);
+    return head->insert(this, prio);
   }
 
   template< typename P_LIST >
-  void sender_dequeue(P_LIST list)
+  bool sender_dequeue(P_LIST list)
   {
     if (!in_sender_list())
-      return;
+      return false;
 
     auto guard = lock_guard(cpu_lock);
-    list->dequeue(this);
+    return list->dequeue(this);
   }
+
+  Prio_list_elem *qitem() { return this; }
 
 protected:
   Sender() = default;
-
-  Iterable_prio_list *_wq;
 
 private:
   friend class Jdb;

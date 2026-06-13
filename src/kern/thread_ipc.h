@@ -428,7 +428,6 @@ private:
         return Check_sender::Failed;
       }
 
-    sender->set_wait_queue(_this()->sender_list());
     sender->sender_enqueue(_this()->sender_list(), sender->sched_context()->prio());
     _this()->vcpu_set_irq_pending();
     return Check_sender::Queued;
@@ -598,9 +597,8 @@ private:
 
     if (partner->home_cpu() == current_cpu())
       {
-        if (in_sender_list())
+        if (sender_dequeue(partner->sender_list()))
           {
-            sender_dequeue(partner->sender_list());
             partner->vcpu_update_state();
             abt = Receiver::Abt_ipc_cancel;
           }
@@ -913,8 +911,6 @@ Thread_ipc<T>::remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
   rq.have_rcv = have_receive;
   rq.partner = partner;
   rq.zero_timeout = snd_t.is_zero();
-
-  _this()->set_wait_queue(partner->sender_list());
 
   _this()->state.add_dirty(Thread_send_wait);
 

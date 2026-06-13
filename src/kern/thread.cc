@@ -234,9 +234,8 @@ Thread::do_kill()
   // operations
   {
     auto guard = lock_guard(cpu_lock);
-    while (Sender *s = Sender::cast(sender_list()->first()))
+    while (Sender *s = Sender::cast(sender_list()->dequeue_first()))
       {
-        s->sender_dequeue(sender_list());
         s->ipc_receiver_aborted();
         Proc::preemption_point();
       }
@@ -244,18 +243,8 @@ Thread::do_kill()
 
   // if engaged in IPC operation, stop it
   if (in_sender_list())
-    {
-      while (Locked_prio_list *q = wait_queue())
-        {
-          auto g = lock_guard(q->lock());
-          if (wait_queue() == q)
-            {
-              sender_dequeue(q);
-              set_wait_queue(0);
-              break;
-            }
-        }
-    }
+    while (Locked_prio_list *q = wait_queue())
+      sender_dequeue(q);
 
   if (utcb().kern())
     utcb().access()->free_marker = Utcb::Free_marker;
@@ -336,8 +325,6 @@ void
 Thread::ipc_receiver_aborted()
 {
   assert (cpu_lock.test());
-  assert (wait_queue());
-  set_wait_queue(0);
 
   utcb().access()->error = L4_error::Canceled;
 

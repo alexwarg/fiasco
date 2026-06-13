@@ -35,7 +35,7 @@ public:
         // because we are still running with interrupts turned off
         receiver->state.add_dirty(Thread_ready);
 
-        if (!Config::Irq_shortcut)
+        if constexpr (!Config::Irq_shortcut)
           {
             // no shortcut: switch to the interrupt thread which will
             // calls Irq::ipc_receiver_ready
@@ -99,16 +99,13 @@ public:
   {
     assert (wait_queue());
     check(derived()->dequeue_sender());
-    set_wait_queue(0);
   }
 
 
 protected:
   bool send_msg(Receiver *receiver, bool is_not_xcpu)
   {
-    set_wait_queue(receiver->sender_list());
-
-    if (!Config::Irq_shortcut)
+    if constexpr (!Config::Irq_shortcut)
       {
         // enqueue _after_ shortcut if still necessary
         sender_enqueue(receiver->sender_list(), 255);
@@ -161,7 +158,7 @@ protected:
         return false;
       }
 
-    if (Config::Irq_shortcut)
+    if constexpr (Config::Irq_shortcut)
       {
         // enqueue after shortcut if still necessary
         sender_enqueue(receiver->sender_list(), 255);

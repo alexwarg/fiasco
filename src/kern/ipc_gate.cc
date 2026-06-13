@@ -76,18 +76,18 @@ Ipc_gate_obj::get_infos(L4_obj_ref, L4_fpage::Rights,
 void
 Ipc_gate_obj::unblock_all()
 {
-  while (::Prio_list_elem *h = _wait_q.first())
+  for (;;)
     {
-      auto g1 = lock_guard(cpu_lock);
-      Thread *w;
+      Prio_list_elem *h;
         {
-          auto g2 = lock_guard(_wait_q.lock());
-          if (EXPECT_FALSE(h != _wait_q.first()))
-            continue;
-
-          w = static_cast<Thread*>(Sender::cast(h));
-          w->sender_dequeue(&_wait_q);
+          auto g1 = lock_guard(cpu_lock);
+          h = _wait_q.dequeue_first();
         }
+
+      if (!h)
+        return;
+
+      Thread *w = static_cast<Thread*>(Sender::cast(h));
       w->activate();
     }
 }
@@ -199,11 +199,7 @@ Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
         return L4_error::Timeout;
     }
 
-    {
-      auto g = lock_guard(Ipc_gate_obj::from_poly(this)->_wait_q.lock());
-      ct->set_wait_queue(&Ipc_gate_obj::from_poly(this)->_wait_q);
-      ct->sender_enqueue(&Ipc_gate_obj::from_poly(this)->_wait_q, ct->sched_context()->prio());
-    }
+  ct->sender_enqueue(&Ipc_gate_obj::from_poly(this)->_wait_q, ct->sched_context()->prio());
   ct->state.change_dirty(~Thread_ready, Thread_send_wait);
 
   IPC_timeout timeout;
@@ -219,20 +215,14 @@ Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
   Mword state = ct->state.change(~Thread_full_ipc_mask, Thread_ready);
   ct->reset_timeout();
 
-  if (EXPECT_FALSE(ct->in_sender_list()))
+  // Recheck under lock whether thread is still in waiting queue.
+  if (ct->sender_dequeue(&Ipc_gate_obj::from_poly(this)->_wait_q))
     {
-      auto g = lock_guard(Ipc_gate_obj::from_poly(this)->_wait_q.lock());
-      // Recheck under lock whether thread is still in waiting queue.
-      if (ct->in_sender_list())
-        {
-          ct->sender_dequeue(&Ipc_gate_obj::from_poly(this)->_wait_q);
+      if (state & Thread_timeout)
+        return L4_error::Timeout;
 
-          if (state & Thread_timeout)
-            return L4_error::Timeout;
-
-          if (state & Thread_cancel)
-            return L4_error::Canceled;
-        }
+      if (state & Thread_cancel)
+        return L4_error::Canceled;
     }
 
   return L4_error::None;

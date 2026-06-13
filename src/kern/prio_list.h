@@ -5,6 +5,7 @@
 #include <cxx/hlist>
 #include "member_offs.h"
 #include "spin_lock.h"
+#include <lock_guard.h>
 #include "types.h"
 
 /**
@@ -32,11 +33,19 @@ public:
    */
   bool in_list() const { return S_list::in_list(this); }
 
+  /** Current receiver.
+      @return receiver this sender is currently trying to send a message to.
+   */
+  Prio_list *wait_queue() const
+  {
+    return _queue;
+  }
 
 private:
   friend class Prio_list;
   friend class Jdb_sender_list;
   typedef cxx::D_list_cyclic<Prio_list_elem> S_list;
+  cxx::atomic<Prio_list *> _queue = nullptr;
 
   /**
    * Priority, the higher the better.
@@ -70,12 +79,15 @@ class Prio_list : private cxx::H_list<Prio_list_elem>
   MEMBER_OFFSET();
   friend class Jdb_sender_list;
   friend class Prio_list_tester;
+
 public:
   typedef cxx::H_list<Prio_list_elem> P_list;
   typedef cxx::D_list_cyclic<Prio_list_elem> S_list;
 
   using P_list::front;
   using P_list::empty;
+
+  Spin_lock<> *qlock() { return &_lock; }
 
   Prio_list_elem *first() const { return front(); }
 
@@ -92,9 +104,12 @@ public:
    * @param e the element to insert
    * @param prio the priority for the element
    */
-  void insert(Prio_list_elem *e, unsigned short prio)
+  bool insert_dirty(Prio_list_elem *e, unsigned short prio) __attribute__((nonnull))
   {
-    assert (e);
+    Prio_list *old = nullptr;
+    if (!e->_queue.compare_exchange_strong(old, this, cxx::memory_order_acquire))
+      return false;
+
     e->init(prio);
 
     Iterator pos = begin();
@@ -109,13 +124,77 @@ public:
         S_list::self_insert(e);
         insert_before(e, pos);
       }
+
+    return true;
+  }
+
+  bool insert(Prio_list_elem *e, unsigned short prio) __attribute__((nonnull))
+  {
+    auto guard = lock_guard(_lock);
+    return insert_dirty(e, prio);
   }
 
   /**
    * Dequeue a given element from the list.
    * @param e the element to dequeue
    */
-  void dequeue(Prio_list_elem *e, Prio_list_elem **next = 0)
+  bool dequeue(Prio_list_elem *e)
+  {
+    if (e->_queue.load() != this)
+      return false;
+
+    auto guard = lock_guard(_lock);
+    Prio_list *old = this;
+    if (!e->_queue.compare_exchange_strong(old, nullptr, cxx::memory_order_release))
+      return false;
+
+    Prio_list_elem **c = 0;
+    if (EXPECT_FALSE(_cursor != 0) && EXPECT_FALSE(_cursor == e))
+      c = &_cursor;
+
+    _dequeue(e, c);
+    return true;
+  }
+
+  Prio_list_elem *dequeue_first_dirty()
+  {
+    Prio_list_elem *f = first();
+    if (!f)
+      return nullptr;
+
+    Prio_list *old = this;
+    if (!f->_queue.compare_exchange_strong(old, nullptr, cxx::memory_order_release))
+      return nullptr;
+
+    Prio_list_elem **c = 0;
+    if (EXPECT_FALSE(_cursor != 0) && EXPECT_FALSE(_cursor == f))
+      c = &_cursor;
+
+    _dequeue(f, c);
+    return f;
+  }
+
+  Prio_list_elem *dequeue_first()
+  {
+    auto guard = lock_guard(_lock);
+    return dequeue_first_dirty();
+  }
+
+  void cursor(Prio_list_elem *e)
+  { _cursor = e; }
+
+  Prio_list_elem *cursor() const
+  { return _cursor; }
+
+private:
+  Prio_list_elem *_cursor = nullptr;
+  Spin_lock<> _lock{Spin_lock<>::Unlocked};
+
+  /**
+   * Dequeue a given element from the list.
+   * @param e the element to dequeue
+   */
+  void _dequeue(Prio_list_elem *e, Prio_list_elem **next)
   {
     if (P_list::in_list(e))
       {
@@ -139,41 +218,8 @@ public:
       }
     S_list::remove(e);
   }
-
-
-
 };
 
-class Iterable_prio_list : public Prio_list
-{
-public:
-  Spin_lock<> *lock() { return &_lock; }
-
-  Iterable_prio_list() : _cursor(0), _lock(Spin_lock<>::Unlocked) {}
-
-  /**
-   * Dequeue a given element from the list.
-   * @param e the element to dequeue
-   */
-  void dequeue(Prio_list_elem *e)
-  {
-    Prio_list_elem **c = 0;
-    if (EXPECT_FALSE(_cursor != 0) && EXPECT_FALSE(_cursor == e))
-      c = &_cursor;
-
-    Prio_list::dequeue(e, c);
-  }
-
-  void cursor(Prio_list_elem *e)
-  { _cursor = e; }
-
-  Prio_list_elem *cursor() const
-  { return _cursor; }
-
-private:
-  Prio_list_elem *_cursor;
-  Spin_lock<> _lock;
-};
-
-typedef Iterable_prio_list Locked_prio_list;
+using Iterable_prio_list = Prio_list;
+using Locked_prio_list = Iterable_prio_list;
 

@@ -140,15 +140,8 @@ public:
    *
    * \retval L4_error::Not_existent  Irq_sender object was deleted
    */
-  L4_msg_tag bind_irq_thread(Thread *t, Utcb const *utcb, Utcb *utcb_out)
+  L4_msg_tag bind_irq_thread(Thread *t, Utcb const *utcb, Utcb *)
   {
-    if (t == nullptr)
-      return commit_result(-L4_err::EInval);
-
-    Lock_guard<Lock> guard;
-    if (!guard.check_and_lock(&existence_lock))
-      return commit_error(utcb_out, L4_error::Not_existent);
-
     Thread *old = _irq_thread.load(cxx::memory_order_relaxed);
     for (;;)
       {
@@ -171,34 +164,20 @@ public:
     if (old == t)
       return commit_result(0);
 
-    auto g = lock_guard(cpu_lock);
-    bool reinject = false;
-
-    if (is_valid_thread(old))
-      {
-        switch (old->Receiver::abort_send(this))
-          {
-          case Receiver::Abt_ipc_done:
-            break; // was not queued
-
-          case Receiver::Abt_ipc_cancel:
-            reinject = true;
-            break;
-
-          default:
-            // this must not happen as this is only the case
-            // for IPC including message items and an IRQ never
-            // sends message items.
-            panic("IRQ IPC flagged as in progress");
-          }
-
-        if (old->dec_ref() == 0)
-          delete old;
-      }
-
     t->inc_ref();
     if (Cpu::online(t->home_cpu()))
       _chip->set_cpu(pin(), t->home_cpu());
+
+    bool reinject = false;
+
+    if (!is_valid_thread(old))
+      return commit_result(0);
+
+    if (sender_dequeue(old->sender_list()))
+      reinject = true;
+
+    if (old->dec_ref() == 0)
+      delete old;
 
     if (reinject)
       {
@@ -332,7 +311,7 @@ private:
     auto guard = lock_guard(cpu_lock);
     mask();
 
-    t->Receiver::abort_send(this);
+    sender_dequeue(t->sender_list());
 
     _irq_thread.store(nullptr, cxx::memory_order_release);
     // release cpu-lock early, actually before delete

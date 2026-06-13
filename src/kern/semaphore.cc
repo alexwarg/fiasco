@@ -43,8 +43,10 @@ public:
   bool down(Thread *ct)
   {
     bool run = true;
+    bool unmask_edge = false;
+
       {
-        auto g = lock_guard(_waiting.lock());
+        auto g = lock_guard(_waiting.qlock());
         if (_queued == 0)
           {
             // This check is necessary to ensure that a thread does not enqueue
@@ -61,15 +63,14 @@ public:
             //       dereferenced (use C++ types)
             ct->set_partner(sem_partner());
             ct->state.change_dirty(~Thread_ready, Thread_receive_wait);
-            ct->set_wait_queue(&_waiting);
-            ct->sender_enqueue(&_waiting, ct->sched()->prio());
+            _waiting.insert_dirty(ct->qitem(), ct->sched()->prio());
           }
         else
-          --_queued;
+          unmask_edge = (--_queued == 1) && hit_func == &hit_edge_irq;
       }
 
      // auto unmask edge triggered IRQs if there is just one pending IRQ left
-     if (access_once(&_queued) == 1 && hit_func == &hit_edge_irq)
+     if (unmask_edge)
        unmask();
 
      return run;
@@ -117,7 +118,8 @@ public:
 
     if (EXPECT_FALSE(s & (Thread_cancel | Thread_timeout)))
       {
-        if (c_thread->wait_queue())
+        if (c_thread->wait_queue() == &_waiting
+            && _waiting.dequeue(c_thread->qitem()))
           {
             // While waiting we released the CPU lock, therefore, we would
             // normally have to assume that our ephemeral reference to the
@@ -135,18 +137,8 @@ public:
             // passed the RCU wait and will not pass it until we release the CPU
             // lock the next time.
             // Thus it is safe to access the semaphore's waiting queue here.
-            auto g = lock_guard(_waiting.lock());
-
-            // Recheck under lock whether thread is still in semaphore's waiting
-            // queue.
-            if (c_thread->wait_queue())
-              {
-                c_thread->set_wait_queue(0);
-                c_thread->sender_dequeue(&_waiting);
-                return commit_error(utcb, (s & Thread_cancel) ? L4_error::R_canceled
-                                                              : L4_error::R_timeout);
-              }
-            // else fall-through (cancel/timeout raced with unblock)
+            return commit_error(utcb, (s & Thread_cancel) ? L4_error::R_canceled
+                                                          : L4_error::R_timeout);
           }
 
         // While our wait was cancelled or timed out, Semaphore::count_up()
@@ -172,21 +164,14 @@ public:
 
     for (;;)
       {
-        Thread *t;
-          {
-            auto g = lock_guard(_waiting.lock());
-            Prio_list_elem *f = _waiting.first();
-            if (!f)
-              break;
+        Prio_list_elem *f = _waiting.dequeue_first();
+        if (!f)
+          break;
 
-            _waiting.dequeue(f);
-            t = static_cast<Thread*>(Sender::cast(f));
-            // Do not reset t´s partner because t still has Thread_receive_wait
-            // set. The fake partner avoids IPCs to that thread.
-            t->set_wait_queue(0);
-            t->utcb().access(true)->error = L4_error::Not_existent;
-          }
-
+        Thread *t = static_cast<Thread*>(Sender::cast(f));
+        // Do not reset t´s partner because t still has Thread_receive_wait
+        // set. The fake partner avoids IPCs to that thread.
+        t->utcb().access(true)->error = L4_error::Not_existent;
         t->activate();
       }
   }
@@ -229,16 +214,11 @@ private:
   {
     Smword old;
       {
-        auto g = lock_guard(_waiting.lock());
+        auto g = lock_guard(_waiting.qlock());
         old = _queued;
-        Prio_list_elem *f = _waiting.first();
+        Prio_list_elem *f = _waiting.dequeue_first_dirty();
         if (f)
-          {
-            _waiting.dequeue(f);
-            Thread *t = static_cast<Thread*>(Sender::cast(f));
-            t->set_wait_queue(0);
-            *wakeup = t;
-          }
+          *wakeup = static_cast<Thread*>(Sender::cast(f));
         else
           // avoid wrapping the _queued counter around to 0
           if (_queued < LONG_MAX)
