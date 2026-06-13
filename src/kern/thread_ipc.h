@@ -212,6 +212,11 @@ private:
     return false; // this is a dummy
  }
 
+  static
+  L4_error map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
+                        Ref_ptr<Task> const &receiver_t,
+                        L4_buf_iter::Item const *buf,
+                        Utcb *rcv_utcb, Kobject::Reap_list *rl);
 
 private:
   // Used by Thread::ipc_send_msg().
@@ -707,6 +712,43 @@ Thread_ipc<T>::modify_label(Mword const *todo, int cnt)
     }
 }
 
+template<typename THREAD>
+inline L4_error
+Thread_ipc<THREAD>::map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
+                                 Ref_ptr<Task> const &receiver_t,
+                                 L4_buf_iter::Item const *buf,
+                                 Utcb *rcv_utcb, Kobject::Reap_list *rl)
+{
+  Ref_ptr<Task> rcv_t;
+  if (EXPECT_FALSE(buf->b.compound()))
+    {
+      unsigned cap_br = buf->b.cap_br_idx();
+      if (cap_br >= Utcb::Max_buffers)
+        return L4_error::Overflow;
+
+      L4_obj_ref tc(rcv_utcb->buffers[cap_br]);
+      if (EXPECT_FALSE(!tc.valid()))
+        return L4_error::Overflow;
+
+      L4_fpage::Rights task_rights = L4_fpage::Rights(0);
+      rcv_t = Ref_ptr<Task>(cxx::dyn_cast<Task*>(receiver_t->lookup_local(tc.cap(),
+              &task_rights)));
+
+      if (EXPECT_FALSE(!rcv_t || !(task_rights & L4_fpage::Rights::W())))
+        return L4_error::Overflow;
+    }
+  else
+    rcv_t = receiver_t;
+
+  // Take the existence_lock for synchronizing maps -- kind of
+  // coarse-grained.
+  auto sp_lock = lock_guard_dont_lock(rcv_t->existence_lock);
+  if (!sp_lock.check_and_lock(&rcv_t->existence_lock))
+    return L4_error::Overflow;
+
+  auto c_lock = lock_guard<Lock_guard_inverse_policy>(cpu_lock);
+  return fpage_map(snd->space(), sfp, rcv_t.get(), L4_fpage(buf->d), item, rl);
+}
 
 template<typename THREAD>
 bool
@@ -789,63 +831,15 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag const &tag,
           if (!try_transfer_local_id(buf, sfp, rcv_word, snd, rcv))
             {
               // we need to do a real mapping
-              L4_error err;
-
-                {
-                  Ref_ptr<Task> rcv_t;
-                  if (EXPECT_FALSE(buf->b.compound()))
-                    {
-                      unsigned cap_br = buf->b.cap_br_idx();
-                      if (cap_br >= Utcb::Max_buffers)
-                        {
-                          // LOG_MSG_3VAL(snd, "lIPCm1", buf->b.raw(), item->b.raw(), 0);
-                          snd->set_ipc_error(L4_error::Overflow, rcv);
-                          return false;
-                        }
-
-                      L4_obj_ref tc(rcv_utcb->buffers[cap_br]);
-                      if (EXPECT_FALSE(!tc.valid()))
-                        {
-                          // LOG_MSG_3VAL(snd, "lIPCm1", buf->b.raw(), item->b.raw(), 0);
-                          snd->set_ipc_error(L4_error::Overflow, rcv);
-                          return false;
-                        }
-
-                      L4_fpage::Rights task_rights = L4_fpage::Rights(0);
-                      rcv_t = Ref_ptr<Task>(cxx::dyn_cast<Task*>(receiver_t->lookup_local(tc.cap(),
-                              &task_rights)));
-
-                      if (EXPECT_FALSE(!rcv_t || !(task_rights & L4_fpage::Rights::W())))
-                        {
-                          // LOG_MSG_3VAL(snd, "lIPCm1", buf->b.raw(), item->b.raw(), 0);
-                          snd->set_ipc_error(L4_error::Overflow, rcv);
-                          return false;
-                        }
-                    }
-                  else
-                    rcv_t = receiver_t;
-
-                  // Take the existence_lock for synchronizing maps -- kind of
-                  // coarse-grained.
-                  auto sp_lock = lock_guard_dont_lock(rcv_t->existence_lock);
-                  if (!sp_lock.check_and_lock(&rcv_t->existence_lock))
-                    {
-                      snd->set_ipc_error(L4_error::Overflow, rcv);
-                      return false;
-                    }
-
-                  auto c_lock = lock_guard<Lock_guard_inverse_policy>(cpu_lock);
-                  err = fpage_map(snd->space(), sfp,
-                                  rcv_t.get(), L4_fpage(buf->d), item->b, &rl);
-                  if (err.empty_map())
-                    rcv_word[-2] |= 2;
-                }
-
+              L4_error err = map_one_item(snd, item->b, sfp, receiver_t, buf, rcv_utcb, &rl);
               if (EXPECT_FALSE(!err.ok()))
                 {
                   snd->set_ipc_error(err, rcv);
                   return false;
                 }
+
+              if (err.empty_map())
+                rcv_word[-2] |= 2;
             }
         }
 
