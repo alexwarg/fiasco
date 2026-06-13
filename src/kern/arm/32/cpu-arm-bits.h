@@ -185,27 +185,27 @@ class Cpu_arm_v6 : public Cpu_arm_v6plus<C, B>
   C const *self() const noexcept { return static_cast<C const *>(this); }
 
 public:
-  enum
-  {
-    Cp15_c1_l4              = 1 << 15,
-    Cp15_c1_u               = 1 << 22,
-    Cp15_c1_xp              = 1 << 23,
-    Cp15_c1_ee              = 1 << 25,
-    Cp15_c1_nmfi            = 1 << 27,
-    Cp15_c1_tre             = 1 << 28,
-    Cp15_c1_force_ap        = 1 << 29,
+  static constexpr Mword Cp15_c1_l4          = 1 << 15;
+  static constexpr Mword Cp15_c1_u           = 1 << 22;
+  static constexpr Mword Cp15_c1_xp          = 1 << 23;
+  static constexpr Mword Cp15_c1_ee          = 1 << 25;
+  static constexpr Mword Cp15_c1_nmfi        = 1 << 27;
+  static constexpr Mword Cp15_c1_tre         = 1 << 28;
+  static constexpr Mword Cp15_c1_force_ap    = 1 << 29;
 
-    Cp15_c1_cache_bits      = B::Cp15_c1_cache
-                              | B::Cp15_c1_insn_cache,
+  static constexpr Mword Cp15_c1_cache_bits  = B::Cp15_c1_cache
+                                               | B::Cp15_c1_insn_cache;
 
 #ifndef CONFIG_ARM_MPCORE
+  static constexpr Mword
     Cp15_c1_generic         = B::Cp15_c1_mmu
                               | (Config::Cp15_c1_use_alignment_check ?  B::Cp15_c1_alignment_check : 0)
                               | B::Cp15_c1_branch_predict
                               | B::Cp15_c1_high_vector
                               | Cp15_c1_u
-                              | Cp15_c1_xp,
+                              | Cp15_c1_xp;
 #else // CONFIG_ARM_MPCORE
+  static constexpr Mword
     Cp15_c1_generic         = B::Cp15_c1_mmu
                               | (Config::Cp15_c1_use_alignment_check
                                  ? B::Cp15_c1_alignment_check : 0)
@@ -213,9 +213,8 @@ public:
                               | B::Cp15_c1_high_vector
                               | Cp15_c1_u
                               | Cp15_c1_xp
-                              | Cp15_c1_tre,
+                              | Cp15_c1_tre;
 #endif // CONFIG_ARM_MPCORE
-  };
 
   static void modify_actrl(Mword set_mask, Mword clear_mask)
   {
@@ -247,11 +246,10 @@ private:
   C const *self() const noexcept { return static_cast<C const *>(this); }
 
 public:
-  enum : Unsigned32
-  {
+  static constexpr Unsigned32
     Hcr_must_set_bits = D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
                       | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
-                      | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr,
+                      | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr;
 
     /**
      * HCR value to be used for the VMM.
@@ -259,7 +257,8 @@ public:
      * The VMM runs in system mode (PL1), but has extended
      * CP15 access allowed.
      */
-    Hcr_host_bits = Hcr_must_set_bits | D::Hcr_dc,
+  static constexpr Unsigned32
+    Hcr_host_bits = Hcr_must_set_bits | D::Hcr_dc;
 
     /**
      * HCR value to be used for normal threads.
@@ -267,15 +266,15 @@ public:
      * On a hyp kernel all threads run per default in system mode (PL1).
      * However, all but the TPIDxyz CP15 accesses are disabled.
      */
+  static constexpr Unsigned32
     Hcr_non_vm_bits = Hcr_must_set_bits | D::Hcr_dc | D::Hcr_tsw
-                      | D::Hcr_ttlb | D::Hcr_tvm
-  };
+                      | D::Hcr_ttlb | D::Hcr_tvm;
 
-  enum
-  {
-    Cp15_c1_cache_enabled  = D::Cp15_c1_generic | D::Cp15_c1_cache_bits,
-    Cp15_c1_cache_disabled = D::Cp15_c1_generic,
-  };
+  static constexpr Mword
+    Cp15_c1_cache_enabled  = D::Cp15_c1_generic | D::Cp15_c1_cache_bits;
+
+  static constexpr Mword
+    Cp15_c1_cache_disabled = D::Cp15_c1_generic;
 
 #ifndef CONFIG_ARM_LPAE
   static unsigned phys_bits() { return 32; }
@@ -404,20 +403,6 @@ public:
 
     // enable nonsecure access to vfp coprocessor
     asm volatile("mcr p15, 0, %0, c1, c1, 2" : : "r" (0xc00));
-
-    enum
-    {
-      SCR_NS  = 1 << 0,
-      SCR_IRQ = 1 << 1,
-      SCR_FIQ = 1 << 2,
-      SCR_EA  = 1 << 3,
-      SCR_FW  = 1 << 4,
-      SCR_AW  = 1 << 5,
-      SCR_nET = 1 << 6,
-      SCR_SCD = 1 << 7,
-      SCR_HCE = 1 << 8,
-      SCR_SIF = 1 << 9,
-    };
   }
 
   static Mword tz_scr() noexcept
@@ -433,12 +418,10 @@ public:
   }
 #endif
 #ifdef CONFIG_CPU_VIRT
-  enum : Mword
-  {
+  static constexpr Mword
     Hdcr_bits = (IS_ENABLED(CONFIG_PERF_CNT_USER) ? (D::Mdcr_tpmcr | D::Mdcr_tpm) : 0)
                 | D::Mdcr_tde
-                | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_ttrf,
-  };
+                | D::Mdcr_tda | D::Mdcr_tdosa | D::Mdcr_tdra | D::Mdcr_ttrf;
 
   void init_hyp_mode()
   {

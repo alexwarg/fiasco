@@ -20,85 +20,74 @@ private:
   C const *self() const noexcept { return static_cast<C const *>(this); }
 
 public:
-  enum Scr_bits
-  {
-    Scr_ns   = 1UL <<  0, ///< Non-Secure mode
-    Scr_irq  = 1UL <<  1, ///< IRQ to EL3
-    Scr_fiq  = 1UL <<  2, ///< FIQ to EL3
-    Scr_ea   = 1UL <<  3, ///< External Abort and SError to EL3
-    Scr_smd  = 1UL <<  7, ///< SMC disable
-    Scr_hce  = 1UL <<  8, ///< HVC enable at EL1, EL2, and EL3
-    Scr_sif  = 1UL <<  9, ///< Secure instruction fetch enable
-    Scr_rw   = 1UL << 10, ///< EL2 / EL1 is AArch64
-    Scr_st   = 1UL << 11, ///< Trap Secure EL1 access to timer to EL3
-    Scr_twi  = 1UL << 12, ///< Trap WFI to EL3
-    Scr_twe  = 1UL << 13, ///< Trap WFE to EL3
-    Scr_apk  = 1UL << 16, ///< Do not trap on Pointer Authentication key accesses
-    Scr_api  = 1UL << 17, ///< Do not trap on Pointer Authentication instructions
-    Scr_eel2 = 1UL << 18, ///< Secure EL2 enable
-  };
+  static constexpr Mword Scr_ns   = 1UL <<  0; ///< Non-Secure mode
+  static constexpr Mword Scr_irq  = 1UL <<  1; ///< IRQ to EL3
+  static constexpr Mword Scr_fiq  = 1UL <<  2; ///< FIQ to EL3
+  static constexpr Mword Scr_ea   = 1UL <<  3; ///< External Abort and SError to EL3
+  static constexpr Mword Scr_smd  = 1UL <<  7; ///< SMC disable
+  static constexpr Mword Scr_hce  = 1UL <<  8; ///< HVC enable at EL1, EL2, and EL3
+  static constexpr Mword Scr_sif  = 1UL <<  9; ///< Secure instruction fetch enable
+  static constexpr Mword Scr_rw   = 1UL << 10; ///< EL2 / EL1 is AArch64
+  static constexpr Mword Scr_st   = 1UL << 11; ///< Trap Secure EL1 access to timer to EL3
+  static constexpr Mword Scr_twi  = 1UL << 12; ///< Trap WFI to EL3
+  static constexpr Mword Scr_twe  = 1UL << 13; ///< Trap WFE to EL3
+  static constexpr Mword Scr_apk  = 1UL << 16; ///< Do not trap on Pointer Authentication key accesses
+  static constexpr Mword Scr_api  = 1UL << 17; ///< Do not trap on Pointer Authentication instructions
+  static constexpr Mword Scr_eel2 = 1UL << 18; ///< Secure EL2 enable
 
-  enum : Mword {
-    Sctlr_m       = 1UL << 0,
-    Sctlr_a       = 1UL << 1,
-    Sctlr_c       = 1UL << 2,
-    Sctlr_sa      = 1UL << 3,
-    Sctlr_sa0     = 1UL << 4,
-    Sctlr_cp15ben = 1UL << 5,
-    Sctlr_itd     = 1UL << 7,
-    Sctlr_sed     = 1UL << 8,
-    Sctlr_uma     = 1UL << 9,
-    Sctlr_i       = 1UL << 12,
-    Sctlr_dze     = 1UL << 14,
-    Sctlr_uct     = 1UL << 15,
-    Sctlr_ntwi    = 1UL << 16,
-    Sctlr_ntwe    = 1UL << 18,
-    Sctlr_wxn     = 1UL << 19,
-    Sctlr_e0e     = 1UL << 24,
-    Sctlr_ee      = 1UL << 25,
-    Sctlr_uci     = 1UL << 26,
+  static constexpr Mword Sctlr_m       = 1UL << 0;
+  static constexpr Mword Sctlr_a       = 1UL << 1;
+  static constexpr Mword Sctlr_c       = 1UL << 2;
+  static constexpr Mword Sctlr_sa      = 1UL << 3;
+  static constexpr Mword Sctlr_sa0     = 1UL << 4;
+  static constexpr Mword Sctlr_cp15ben = 1UL << 5;
+  static constexpr Mword Sctlr_itd     = 1UL << 7;
+  static constexpr Mword Sctlr_sed     = 1UL << 8;
+  static constexpr Mword Sctlr_uma     = 1UL << 9;
+  static constexpr Mword Sctlr_i       = 1UL << 12;
+  static constexpr Mword Sctlr_dze     = 1UL << 14;
+  static constexpr Mword Sctlr_uct     = 1UL << 15;
+  static constexpr Mword Sctlr_ntwi    = 1UL << 16;
+  static constexpr Mword Sctlr_ntwe    = 1UL << 18;
+  static constexpr Mword Sctlr_wxn     = 1UL << 19;
+  static constexpr Mword Sctlr_e0e     = 1UL << 24;
+  static constexpr Mword Sctlr_ee      = 1UL << 25;
+  static constexpr Mword Sctlr_uci     = 1UL << 26;
 
-    Sctlr_el1_res = (1UL << 11) | (1UL << 20) | (3UL << 22) | (3UL << 28),
+  static constexpr Mword Sctlr_el1_res = (1UL << 11) | (1UL << 20) | (3UL << 22) | (3UL << 28);
 
-    Sctlr_el1_generic = Sctlr_c
-                    | Sctlr_cp15ben
-                    | Sctlr_i
-                    | Sctlr_dze
-                    | Sctlr_uct
-                    | Sctlr_uci
-                    | Sctlr_el1_res,
-  };
+  static constexpr Mword Sctlr_el1_generic = Sctlr_c
+                                             | Sctlr_cp15ben
+                                             | Sctlr_i
+                                             | Sctlr_dze
+                                             | Sctlr_uct
+                                             | Sctlr_uci
+                                             | Sctlr_el1_res;
 
-  enum : Mword
-  {
-    Cptr_el2_generic    = 0x33ffUL, // Reserved(RES1): 0-9, 12-13
-    Cptr_el2_tfp        = 1UL << 10, // Trap advanced SIMD and floating-point
-    Cptr_el2_tta        = 1UL << 20, // Trap accesses to trace registers
+  static constexpr Mword Cptr_el2_generic    = 0x33ffUL; // Reserved(RES1): 0-9, 12-13
+  static constexpr Mword Cptr_el2_tfp        = 1UL << 10; // Trap advanced SIMD and floating-point
+  static constexpr Mword Cptr_el2_tta        = 1UL << 20; // Trap accesses to trace registers
 
-    Cptr_el3_ez         = 1UL << 8, // Do not trap SVE instructions.
+  static constexpr Mword Cptr_el3_ez         = 1UL << 8; // Do not trap SVE instructions.
 
-    Cptr_el2_tz         = 1UL << 8, // Trap SVE instructions.
+  static constexpr Mword Cptr_el2_tz         = 1UL << 8; // Trap SVE instructions.
 
-    // Trap advanced SVE instructions at both EL0 and EL1.
-    Cpacr_el1_zen_full  = 3UL << 16,
+  // Trap advanced SVE instructions at both EL0 and EL1.
+  static constexpr Mword Cpacr_el1_zen_full  = 3UL << 16;
 
-    // Trap advanced SIMD and floating-point instructions at both EL0 and EL1.
-    Cpacr_el1_fpen_full = 3UL << 20,
+  // Trap advanced SIMD and floating-point instructions at both EL0 and EL1.
+  static constexpr Mword Cpacr_el1_fpen_full = 3UL << 20;
 
-    // When we run at EL2 we have to make sure that CPACR_EL1.FPEN is 3 when
-    // user-mode runs with HCR.TGE = 1, otherwise we get undefined instruction
-    // exceptions instead of FPU traps into EL2.
-    Cpacr_el1_generic_hyp = Cpacr_el1_fpen_full
-                            | (IS_ENABLED(CONFIG_ARM_SVE) ? Cpacr_el1_zen_full : 0)
-  };
+  // When we run at EL2 we have to make sure that CPACR_EL1.FPEN is 3 when
+  // user-mode runs with HCR.TGE = 1, otherwise we get undefined instruction
+  // exceptions instead of FPU traps into EL2.
+  static constexpr Mword Cpacr_el1_generic_hyp = Cpacr_el1_fpen_full
+                            | (IS_ENABLED(CONFIG_ARM_SVE) ? Cpacr_el1_zen_full : 0);
 
-  enum : Mword
-  {
-    Zcr_vl_128             = 0,
-    Zcr_vl_2048            = 15,
-    Zcr_vl_max             = Zcr_vl_2048,
-    Zcr_vl_mask            = 0xf,
-  };
+  static constexpr Mword Zcr_vl_128  = 0;
+  static constexpr Mword Zcr_vl_2048 = 15;
+  static constexpr Mword Zcr_vl_max  = Zcr_vl_2048;
+  static constexpr Mword Zcr_vl_mask = 0xf;
 
   struct has_aarch32_el1 : public Alternative_static_functor<has_aarch32_el1>
   {
@@ -206,39 +195,36 @@ public:
   }
 
 #ifndef CONFIG_CPU_VIRT
-  enum : Unsigned64
-  {
-    Hcr_must_set_bits = D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
-                      | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
-                      | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr
-                      | D::Hcr_tlor,
-    /**
-     * HCR value to be used for the VMM.
-     *
-     * The AArch64 VMM is currently running in EL1.
-     */
-    Hcr_host_bits = Hcr_must_set_bits | D::Hcr_rw | D::Hcr_dc,
+  static constexpr Unsigned64
+  Hcr_must_set_bits = D::Hcr_vm | D::Hcr_swio | D::Hcr_ptw
+                    | D::Hcr_amo | D::Hcr_imo | D::Hcr_fmo
+                    | D::Hcr_tidcp | D::Hcr_tsc | D::Hcr_tactlr
+                    | D::Hcr_tlor;
 
-    /**
-     * HCR value to be used for normal threads.
-     *
-     * On AArch64 (with virtualization support) running in EL1.
-     */
-    Hcr_non_vm_bits = Hcr_must_set_bits | D::Hcr_rw | D::Hcr_dc | D::Hcr_tsw
-                      | D::Hcr_ttlb | D::Hcr_tvm | D::Hcr_trvm
-  };
+  /**
+   * HCR value to be used for the VMM.
+   *
+   * The AArch64 VMM is currently running in EL1.
+   */
+  static constexpr Unsigned64
+  Hcr_host_bits  = Hcr_must_set_bits | D::Hcr_rw | D::Hcr_dc;
 
-  enum
-  {
-    Sctlr_generic = Sctlr_el1_generic
-                    | Sctlr_m
-                    | (Config::Cp15_c1_use_alignment_check ?  Sctlr_a : 0)
-  };
+  /**
+   * HCR value to be used for normal threads.
+   *
+   * On AArch64 (with virtualization support) running in EL1.
+   */
+  static constexpr Unsigned64
+  Hcr_non_vm_bits = Hcr_must_set_bits | D::Hcr_rw | D::Hcr_dc | D::Hcr_tsw
+                    | D::Hcr_ttlb | D::Hcr_tvm | D::Hcr_trvm;
 
-  enum : Unsigned64
-  {
-    Scr_default_bits = Scr_ns | Scr_rw | Scr_smd,
-  };
+  static constexpr Mword
+  Sctlr_generic = Sctlr_el1_generic
+                  | Sctlr_m
+                  | (Config::Cp15_c1_use_alignment_check ?  Sctlr_a : 0);
+
+  static constexpr Unsigned64
+  Scr_default_bits = Scr_ns | Scr_rw | Scr_smd;
 
   unsigned asid_bits() const noexcept
   { return (self()->_cpu_id._mmfr[0] & 0xf0U) == 0x20 ? 16 : 8; }
