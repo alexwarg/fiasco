@@ -294,17 +294,47 @@ private:
   remote_handshake_receiver(L4_msg_tag const &tag, Thread *partner,
                             bool have_receive, L4_timeout snd_t);
 
+  class Rcv_side_item
+  {
+  private:
+    Mword *_i;
+
+  public:
+    constexpr explicit Rcv_side_item(Mword *item) : _i(item) {}
+
+    constexpr void copy_snd_item(L4_msg_item item, L4_fpage sfp) const
+    {
+      _i[0] = (item.raw() & ~0x0ff6) | (sfp.raw() & 0x0ff0);
+    }
+
+    constexpr void local_fpage_received(L4_fpage sfp) const
+    {
+      _i[0] |= 6;
+      _i[1] = sfp.raw();
+    }
+
+    constexpr void obj_id_received(Mword id_n_rights) const
+    {
+      _i[0] |= 4;
+      _i[1] = id_n_rights;
+    }
+
+    constexpr void flag_empty_map() const
+    {
+      _i[0] |= 2;
+    }
+  };
+
   static bool
   try_transfer_local_id(L4_buf_iter::Item const *const buf,
-                        L4_fpage sfp, Mword *rcv_word, Thread* snd,
+                        L4_fpage sfp, Rcv_side_item rcv_item, Thread* snd,
                         Thread *rcv)
   {
     if (buf->b.is_rcv_id())
       {
         if (snd->space() == rcv->space())
           {
-            rcv_word[-2] |= 6;
-            rcv_word[-1] = sfp.raw();
+            rcv_item.local_fpage_received(sfp);
             return true;
           }
         else
@@ -315,8 +345,7 @@ private:
               {
                 Mword rights = cap.rights()
                                & cxx::int_value<L4_fpage::Rights>(sfp.rights());
-                rcv_word[-2] |= 4;
-                rcv_word[-1] = o->obj_id() | rights;
+                rcv_item.obj_id_received(o->obj_id() | rights);
                 return true;
               }
           }
@@ -820,7 +849,10 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag const &tag,
         {
           assert (item->b.type() == L4_msg_item::Map);
           L4_fpage sfp(item->d);
-          *rcv_word = (item->b.raw() & ~0x0ff6) | (sfp.raw() & 0x0ff0);
+
+          Rcv_side_item rcv_item(rcv_word);
+
+          rcv_item.copy_snd_item(item->b, sfp);
 
           rcv_word += 2;
 
@@ -828,7 +860,7 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag const &tag,
           if (sfp.type() == L4_fpage::Obj)
             sfp.mask_rights(rights | L4_fpage::Rights::CRW() | L4_fpage::Rights::CD());
 
-          if (!try_transfer_local_id(buf, sfp, rcv_word, snd, rcv))
+          if (!try_transfer_local_id(buf, sfp, rcv_item, snd, rcv))
             {
               // we need to do a real mapping
               L4_error err = map_one_item(snd, item->b, sfp, receiver_t, buf, rcv_utcb, &rl);
@@ -839,7 +871,7 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag const &tag,
                 }
 
               if (err.empty_map())
-                rcv_word[-2] |= 2;
+                rcv_item.flag_empty_map();
             }
         }
 
