@@ -18,7 +18,7 @@ public:
 
   static void update_timer(Unsigned64 wakeup)
   {
-    if (Config::Scheduler_one_shot)
+    if constexpr (Config::Scheduler_one_shot)
       update_one_shot(wakeup);
   }
 
