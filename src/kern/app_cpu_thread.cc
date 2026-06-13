@@ -90,6 +90,7 @@ App_cpu_thread::bootstrap(Mword resume)
 
   Scheduler_iface::root()->trigger_hotplug_event();
   Timer_tick::enable(ccpu);
+  Timeout_q::timeout_queue.current().do_timeouts(System_clock::clock());
   cpu_lock.clear();
 
   if (!resume)

@@ -132,6 +132,7 @@ Kernel_thread::run()
     {
       auto g = lock_guard(cpu_lock);
       Rcu::leave_idle(home_cpu());
+      Timeout_q::timeout_queue.current().do_timeouts(System_clock::clock());
     }
 
   check_debug_koptions();
