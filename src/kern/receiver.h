@@ -2,16 +2,15 @@
 
 #include <cxx/atomic>
 
-#include "context.h"
 #include "l4_error.h"
 #include "logdefs.h"
 #include "member_offs.h"
 #include "timeout.h"
 #include "prio_list.h"
-#include "ref_obj.h"
 #include "sender.h"
 #include "std_macros.h"
 #include "thread_state.h"
+#include <vcpu_log.h>
 
 class Syscall_frame;
 class Sender;
@@ -25,12 +24,16 @@ class Sender;
     layout for Thread.  Otherwise, Receiver could just embed or reference
     a Context.
  */
-class Receiver : public Context,  public Ref_cnt_obj
+template<typename CONTEXT>
+class Receiver
 {
   friend class Jdb_tcb;
   friend class Jdb_thread;
 
   MEMBER_OFFSET();
+
+  CONTEXT *_this() { return static_cast<CONTEXT *>(this); }
+  CONTEXT const *_this() const { return static_cast<CONTEXT const *>(this); }
 
 public:
   struct Rcv_state
@@ -60,31 +63,53 @@ public:
     constexpr bool is_ipc() const { return s & 0x2; }
   };
 
-  enum Abort_state
+  /** Head of sender list.
+      @return a reference to the receiver's list of senders
+   */
+  Iterable_prio_list *sender_list()
   {
-    /// IPC was already finished -- IPC not aborted. No error.
-    Abt_ipc_done,
-    /// IPC was really aborted, error code will be set.
-    Abt_ipc_cancel,
-    /// Abort while IPC already in progress. IPC operation will be finished.
-    /// No error.
-    Abt_ipc_in_progress,
-  };
+    return &_sender_list;
+  }
 
-  Abort_state abort_send(Sender *sender);
-
-  Rcv_state sender_ok(const Sender* sender) const
+  /** Head of sender list.
+      @return a reference to the receiver's list of senders
+   */
+  Iterable_prio_list const *sender_list() const
   {
-    unsigned ipc_state = state() & Thread_ipc_mask;
+    return &_sender_list;
+  }
+
+  Rcv_state sender_ok(const Sender* sender, bool on_receiver_core) const
+  {
+    unsigned state = _this()->state();
+    unsigned ipc_state = state & Thread_ipc_mask;
 
     // If Thread_send_in_progress is still set, we're still in the send phase
     if (EXPECT_FALSE(ipc_state != Thread_receive_wait))
-      return vcpu_async_ipc(sender);
+      {
+        if (!on_receiver_core)
+          return  Rcv_state::Not_receiving;
+
+        if (EXPECT_TRUE(! (state & Thread_vcpu_enabled)))
+          return Rcv_state::Not_receiving;
+
+        if (EXPECT_FALSE(ipc_state & Thread_ipc_mask))
+          return Rcv_state::Not_receiving;
+
+        auto *vcpu = _this()->vcpu_state().access();
+        if (EXPECT_FALSE(!vcpu->irqs_enabled()))
+          return Rcv_state::Not_receiving;
+
+        vcpu_async_ipc(sender, vcpu);
+        return Rcv_state::Irq_receive;
+      }
 
     // Check open wait; test if this sender is really the first in queue
-    if (EXPECT_TRUE(!_partner
-                    && (_sender_list.empty()
-                      || sender->is_head_of(&_sender_list))))
+    if (EXPECT_TRUE(!_partner))
+#if 0
+                    && (sender_list()->empty()
+                       || sender->is_head_of(sender_list()))))
+#endif
       return Rcv_state::Ipc_open_wait;
 
     // Check closed wait; test if this sender is really who we specified
@@ -93,8 +118,6 @@ public:
 
     return Rcv_state::Not_receiving;
   }
-
-  virtual ~Receiver() = 0;
 
   class Caller
   {
@@ -166,14 +189,6 @@ public:
     return _rcv_regs;
   }
 
-  /** Head of sender list.
-      @return a reference to the receiver's list of senders
-   */
-  Iterable_prio_list *sender_list()
-  {
-    return &_sender_list;
-  }
-
   /**
    * Set the IPC partner (sender).
    *
@@ -197,19 +212,19 @@ public:
    */
   bool in_ipc(Sender *sender) const
   {
-    return (state() & Thread_receive_in_progress) && (_partner == sender);
+    return (_this()->state() & Thread_receive_in_progress) && (_partner == sender);
   }
 
   void vcpu_update_state()
   {
-    if (EXPECT_TRUE(!(state() & Thread_vcpu_enabled)))
+    if (EXPECT_TRUE(!(_this()->state() & Thread_vcpu_enabled)))
       return;
 
     if (sender_list()->empty())
-      vcpu_state().access()->clear_irq_pending();
+      _this()->vcpu_state().access()->clear_irq_pending();
   }
 
-  bool prepared() const
+  bool rcv_prepared() const
   {
     return _rcv_regs;
   }
@@ -249,6 +264,30 @@ protected:
     set_partner(partner);
   }
 
+  bool try_vcpu_irq_receive(unsigned ipc_state)
+  {
+    if ((ipc_state & (Thread_ipc_mask | Thread_vcpu_enabled)) != Thread_vcpu_enabled)
+      return false;
+
+    if (sender_list()->empty())
+      return false;
+
+    auto *vcpu = _this()->vcpu_state().access();
+    if (EXPECT_FALSE(!vcpu->irqs_enabled()))
+      return false;
+
+    Sender *s = Sender::cast(sender_list()->dequeue_first());
+    if (!s)
+      return false;
+
+    if (!sender_list()->empty())
+      _this()->vcpu_set_irq_pending();
+
+    vcpu_async_ipc(s, vcpu);
+    s->ipc_send_msg(_this(), false);
+    return true;
+  }
+
 private:
   /**
    * IPC partner this Receiver is waiting for/involved with.
@@ -263,31 +302,22 @@ private:
   cxx::atomic<Mword> _caller{0};
   Iterable_prio_list _sender_list;
 
-  static Context::Drq::Result handle_remote_abort_send(Drq *, Context *, void *_rq);
-
-  Rcv_state vcpu_async_ipc(Sender const *sender) const
+  template<typename VCPU_STATE>
+  void vcpu_async_ipc(Sender const *sender, VCPU_STATE *vcpu) const
   {
-    if (EXPECT_FALSE(state() & Thread_ipc_mask))
-      return Rcv_state::Not_receiving;
-
-    Vcpu_state *vcpu = vcpu_state().access();
-
-    if (EXPECT_FALSE(!vcpu_irqs_enabled(vcpu)))
-      return Rcv_state::Not_receiving;
-
-    Receiver *self = const_cast<Receiver*>(this);
+    CONTEXT *self = const_cast<CONTEXT*>(_this());
 
     if (this == current())
       self->spill_user_state();
 
     if (self->vcpu_enter_kernel_mode(vcpu))
-      vcpu = vcpu_state().access();
+      vcpu = _this()->vcpu_state().access();
 
-    LOG_TRACE("VCPU events", "vcpu", this, Vcpu_log,
+    LOG_TRACE("VCPU events", "vcpu", _this(), Vcpu_log,
         l->type = 1;
         l->state = vcpu->saved_state();
         l->ip = Mword(sender);
-        l->sp = regs()->sp();
+        l->sp = _this()->regs()->sp();
         l->space = ~0; //vcpu_user_space() ? static_cast<Task*>(vcpu_user_space())->dbg_id() : ~0;
         );
 
@@ -296,11 +326,7 @@ private:
     self->set_partner(const_cast<Sender*>(sender));
     self->state.add_dirty(Thread_receive_wait);
     self->vcpu_save_state_and_upcall();
-    return Rcv_state::Irq_receive;
   }
 };
 
-typedef Context_ptr_base<Receiver> Receiver_ptr;
-
-inline Receiver::~Receiver() {}
 

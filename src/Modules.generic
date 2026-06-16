@@ -65,7 +65,6 @@ CXXSRC_KERNEL += \
 	platform_control_object.cc \
 	ram_quota.cc \
 	rcupdate.cc \
-	receiver.cc \
 	sched.cc \
 	sched_context.cc \
 	scheduler.cc \

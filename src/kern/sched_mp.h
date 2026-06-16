@@ -155,8 +155,9 @@ public:
       c->finish_migration();
   }
 
+  template<typename CONTEXT>
   static bool
-  handle_remote_request(Context *self, Context **mq, Context *curr)
+  handle_remote_request(CONTEXT *self, Context **mq, Context *curr)
   {
     assert (self->check_for_current_cpu());
 

@@ -13,6 +13,7 @@
 #include "queue.h"
 #include "queue_item.h"
 #include "rcupdate.h"
+#include <receiver.h>
 #include "sched_context.h"
 #include "space.h"
 #include "spin_lock.h"
@@ -79,7 +80,8 @@ class Context :
   public Context_drq_x<Context>,
   protected Rcu_item,
   public Context_fpu_x<Context>,
-  public Context_vcpu_x<Context>
+  public Context_vcpu_x<Context>,
+  public Receiver<Context>
 {
   MEMBER_OFFSET();
   friend class Jdb_thread;
@@ -104,7 +106,9 @@ class Context :
     Mword add;
     Mword del;
 
-    bool pending() const { return access_once(&add) || access_once(&del); }
+    cxx::atomic<Mword> flags;
+
+    bool pending() const { return flags.load(); }
   };
 
 public:
@@ -234,7 +238,7 @@ public:
     return r;
   }
 
-  bool is_invalid(bool check_cpu_local = false) const
+  bool is_invalid(bool check_cpu_local = true) const
   {
     (void) check_cpu_local;
     assert(check_cpu_local || check_for_current_cpu());
@@ -265,16 +269,6 @@ public:
   void set_home_cpu(Cpu_number cpu)
   {
     auto guard = lock_guard(_remote_state_change.lock);
-
-    if (_remote_state_change.pending())
-      {
-        Mword add = access_once(&_remote_state_change.add);
-        Mword del = access_once(&_remote_state_change.del);
-        _remote_state_change.add = 0;
-        _remote_state_change.del = 0;
-        state.change_dirty(~del, add);
-      }
-
     write_now(&_home_cpu, cpu);
   }
 
@@ -423,25 +417,24 @@ public:
    */
   bool xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
   {
-    Cpu_number current_cpu = ::current_cpu();
-    if (EXPECT_FALSE(access_once(&_home_cpu) != current_cpu))
-      {
-        auto guard = lock_guard(_remote_state_change.lock);
-        if (EXPECT_TRUE(access_once(&_home_cpu) != current_cpu))
-          {
-            _remote_state_change.add = (_remote_state_change.add & mask) | add;
-            _remote_state_change.del = (_remote_state_change.del & ~add)  | ~mask;
-            guard.reset();
-            pending_rqq_enqueue();
-            return false;
-          }
-      }
-
-    state.change_dirty(mask, add);
+    state.change(mask, add);
     if (add & Thread_ready_mask)
-      return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
+      {
+       if (EXPECT_FALSE(access_once(&_home_cpu) == current_cpu()))
+         return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
+       else
+         pending_rqq_enqueue();
+      }
     return false;
   }
+
+  void set_xcpu_ipc_pending()
+  {
+    Mword f = _remote_state_change.flags.fetch_or(2);
+    if (!(f & 2))
+      pending_rqq_enqueue();
+  }
+
 
   void set_timeout(Timeout *t)
   {
@@ -531,16 +524,13 @@ protected:
     if (!_remote_state_change.pending())
       return;
 
-    Mword add, del;
-      {
-        auto guard = lock_guard(_remote_state_change.lock);
-        add = access_once(&_remote_state_change.add);
-        del = access_once(&_remote_state_change.del);
-        _remote_state_change.add = 0;
-        _remote_state_change.del = 0;
-      }
+    Mword flags = _remote_state_change.flags.fetch_and(0);
 
-    state.change_dirty(~del, add);
+    if (!flags)
+      return;
+
+    if (flags & 2)
+      try_vcpu_irq_receive(state());
   }
 
   // -- static fns --

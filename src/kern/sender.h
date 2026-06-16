@@ -7,7 +7,7 @@
 
 #include <cassert>
 
-class Receiver;
+class Context;
 
 /** A sender.  This is a role class, so real senders need to inherit from it.
  */
@@ -21,7 +21,7 @@ public:
   /** Receiver-ready callback. Receivers call this function on waiting senders
       when they get ready to receive a message from that sender. Senders need
       to implement this interface. */
-  virtual void ipc_send_msg(Receiver *, bool open_wait) = 0;
+  virtual void ipc_send_msg(Context *, bool open_wait) = 0;
   virtual void ipc_receiver_aborted() = 0;
   virtual void modify_label(Mword const *todo, int cnt) = 0;
 
@@ -37,6 +37,11 @@ public:
   bool in_sender_list() const
   {
     return Prio_list_elem::in_list();
+  }
+
+  bool in_sender_list(Prio_list *list) const
+  {
+    return Prio_list_elem::wait_queue() == list;
   }
 
   bool is_head_of(Prio_list const *l) const

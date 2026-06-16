@@ -69,13 +69,9 @@ enum Thread_state_
   /// next sender.
   Thread_receive_in_progress = 0x10,
 
+  Thread_ipc_receive_mask    = Thread_receive_wait | Thread_receive_in_progress,
   Thread_ipc_mask            = Thread_send_wait | Thread_receive_wait
                              | Thread_receive_in_progress,
-
-  /// Passively waiting until this flag is cleared by the partner. Either we are
-  /// receiving a message from the partner or the partner is sending a message
-  /// in our context (see Thread::abort_send(), Abt_ipc_in_progress).
-  Thread_ipc_transfer        = 0x20,
 
   /// The IPC operation is canceled by the receiver.
   Thread_transfer_failed      = 0x40,
@@ -86,12 +82,11 @@ enum Thread_state_
   Thread_timeout              = 0x100,
 
   Thread_full_ipc_mask        = Thread_ipc_mask | Thread_cancel | Thread_transfer_failed
-                                | Thread_timeout | Thread_ipc_transfer,
+                                | Thread_timeout,
 
   /// If any of these flags is set, the IPC sender will stop waiting for the
   /// receiver.
-  Thread_ipc_abort_mask       = Thread_transfer_failed | Thread_cancel | Thread_timeout
-                                | Thread_ipc_transfer,
+  Thread_ipc_abort_mask       = Thread_transfer_failed | Thread_cancel | Thread_timeout,
 
   /// TCB allocated, but inactive (not in any queue).
   Thread_dead                 = 0x200,

@@ -39,27 +39,6 @@ Irq_sender::modify_label(Mword const *todo, int cnt)
     }
 }
 
-Context::Drq::Result
-Irq_sender::handle_remote_hit(Context::Drq *, Context *target, void *arg)
-{
-  Irq_sender *irq = reinterpret_cast<Irq_sender*>(arg);
-  irq->set_cpu(current_cpu());
-  auto t = irq->_irq_thread.load(cxx::memory_order_acquire);
-  if (EXPECT_TRUE(t == target))
-    {
-#ifdef CONFIG_JDB
-      ++irq->_xcpu;
-#endif
-      if (EXPECT_TRUE(irq->send_msg(t, false)))
-        return Context::Drq::no_answer_resched();
-    }
-  else if (EXPECT_TRUE(is_valid_thread(t)))
-    t->drq(&irq->_drq, handle_remote_hit, irq,
-           Context::Drq::No_wait);
-
-  return Context::Drq::no_answer();
-}
-
 inline void
 Irq_sender::_hit_level_irq(Upstream_irq const *ui)
 {

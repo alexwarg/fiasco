@@ -188,7 +188,7 @@ public:
     return commit_result(0);
   }
 
-  Receiver *owner() const
+  Context *owner() const
   { return _irq_thread.load(cxx::memory_order_relaxed); }
 
   void switch_mode(bool is_edge_triggered) override
@@ -218,14 +218,7 @@ public:
   bool requeue_sender()
   { return consume() > 0; }
 
-  /**
-   * Predicate used to figure out if the sender shall be dequeued after
-   * sending the request.
-   */
-  bool dequeue_sender()
-  { return consume() < 1; }
-
-  Syscall_frame *transfer_msg(Receiver *recv)
+  Syscall_frame *transfer_msg(Context *recv)
   {
     Syscall_frame* dst_regs = recv->rcv_regs();
 
@@ -268,12 +261,7 @@ protected:
 
 private:
   Mword _irq_id;
-  // Must only be used for sending async DRQs (no answer), because for regular
-  // DRQs the DRQ reply is sent to Drq::context(), which assumes that the Drq
-  // object is member of a Context.
-  Context::Drq _drq;
 
-  static Context::Drq::Result handle_remote_hit(Context::Drq *, Context *target, void *arg);
   void _hit_level_irq(Upstream_irq const *ui);
   static void hit_level_irq(Irq_base *i, Upstream_irq const *ui);
   void _hit_edge_irq(Upstream_irq const *ui);
@@ -327,7 +315,7 @@ private:
    */
   Smword consume()
   {
-    Smword old = _queued.load(cxx::memory_order_relaxed);
+    Smword old = _queued.load(cxx::memory_order_acquire);
     while (!_queued.compare_exchange_strong(old, 0L, cxx::memory_order_acquire))
       ;
 
@@ -344,11 +332,7 @@ private:
 
   void send(Thread *t)
   {
-    if (EXPECT_FALSE(t->home_cpu() != current_cpu()))
-      t->drq(&_drq, handle_remote_hit, this,
-             Context::Drq::No_wait);
-    else
-      send_msg(t, true);
+    send_msg(t, t->home_cpu() == current_cpu());
   }
 };
 

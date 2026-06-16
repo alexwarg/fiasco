@@ -1,7 +1,6 @@
 #pragma once
 
 #include "timeout.h"
-#include "receiver.h"
 #include "context.h"
 
 class IPC_timeout : public Timeout
@@ -19,14 +18,14 @@ public:
     owner()->set_timeout (0);	// reset owner's timeout field
   }
 
-  Receiver *owner() const noexcept
+  Context *owner() const noexcept
   {
     // We could have saved our context in our constructor, but computing
     // it this way is easier and saves space. We can do this as we know
     // that IPC_timeouts are always created on the kernel stack of the
     // owner context.
 
-    return reinterpret_cast<Receiver *>(context_of (this));
+    return context_of (this);
   }
 
 private:

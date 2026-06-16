@@ -8,7 +8,7 @@
 bool
 IPC_timeout::expired()
 {
-  Receiver * const _owner = owner();
+  Context * const _owner = owner();
 
   Mword ipc_state = _owner->state() & Thread_ipc_mask;
   if (!ipc_state || (ipc_state & Thread_receive_in_progress))

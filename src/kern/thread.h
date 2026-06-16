@@ -10,7 +10,7 @@
 #include "kobject.h"
 #include "mem_layout.h"
 #include "member_offs.h"
-#include "receiver.h"
+#include "context.h"
 #include "ref_obj.h"
 #include "sender.h"
 #include "spin_lock.h"
@@ -46,11 +46,12 @@ class Irq_base;
 /** A thread.  This class is the driver class for most kernel functionality.
  */
 class Thread :
-  public Receiver,
+  public Context,
   public Thread_ipc<Thread>,
   public cxx::Dyn_castable<Thread, Kobject>,
   public Thread_fpu_x<Thread>,
-  public Thread_arch_x<Thread>
+  public Thread_arch_x<Thread>,
+  public Ref_cnt_obj
 {
   MEMBER_OFFSET();
 
@@ -307,8 +308,7 @@ public:
     assert(Sched_context::rq.current().schedule_in_progress
            || current()->state.has(  Thread_ready_mask
                                    | Thread_drq_wait
-                                   | Thread_waiting
-                                   | Thread_ipc_transfer));
+                                   | Thread_waiting));
   }
 
   [[noreturn]] static void system_abort();

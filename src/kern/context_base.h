@@ -41,7 +41,10 @@ public:
     { return s.load(cxx::memory_order_relaxed); }
 
     Mword has(Mword flags) const noexcept
-    { return dirty() & flags; }
+    { return s.load(cxx::memory_order_acquire) & flags; }
+
+    Mword mask_eq(Mword mask, Mword val) const noexcept
+    { return (s.load(cxx::memory_order_acquire) & mask) == val; }
 
     Mword operator () () const noexcept
     { return s.load(); }
@@ -77,6 +80,20 @@ public:
       while (!s.compare_exchange_weak(old, (old & mask) | bits));
 
       return 1;
+    }
+
+    template<typename TEST>
+    bool change_if(TEST &&test, Mword mask, Mword bits)
+    {
+      Mword old = s.load(cxx::memory_order_acquire);
+      do
+        {
+          if (!test(old))
+            return false;
+        }
+      while (!s.compare_exchange_weak(old, (old & mask) | bits));
+
+      return true;
     }
 
     /**
