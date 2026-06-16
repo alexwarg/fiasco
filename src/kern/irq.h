@@ -101,8 +101,6 @@ protected:
         return commit_result(-L4_err::ENosys);
       }
   }
-
-
 };
 
 
@@ -352,29 +350,5 @@ private:
     else
       send_msg(t, true);
   }
-
-
 };
-
-#if 0
-//-----------------------------------------------------------------------------
-IMPLEMENTATION:
-
-#include "assert_opt.h"
-#include "config.h"
-#include "cpu_lock.h"
-#include "globals.h"
-#include "ipc_sender.h"
-#include "kmem_slab.h"
-#include "kobject_rpc.h"
-#include "lock_guard.h"
-#include "minmax.h"
-#include "std_macros.h"
-#include "thread_object.h"
-#include "thread_state.h"
-#include "l4_buf_iter.h"
-#include "vkey.h"
-#endif
-
-
 
