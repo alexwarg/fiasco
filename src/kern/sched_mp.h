@@ -23,7 +23,7 @@ public:
 
   // return remove us from the pending rqq with grabbing the q lock and
   // returning a Lock_guard if we actually locked the queue.
-  [[gnu::warn_unused_result]]
+  [[nodiscard]]
   static decltype(lock_guard(Context::_pending_rqq.current().q_lock()))
   lock_and_dequeue_rqq(Context *c, bool do_lock)
   {
@@ -132,7 +132,7 @@ public:
         l->user_ip = c->regs()->ip();
     );
       {
-        Migration *old = c->_migration.exchange(info);;
+        Migration *old = c->_migration.exchange(info);
 
         // flag old migration to be done / stale
         if (old)
@@ -262,7 +262,7 @@ public:
     // printf("CPU[%2u]: > RQ IPI (current=%p)\n", current_cpu(), current());
     Context *const c = current();
     Ipi::eoi(Ipi::Request, current_cpu());
-    //LOG_MSG_3VAL(c, "ipi", c->cpu(), (Mword)c, c->drq_pending());
+    //LOG_MSG_3VAL(c, "ipi", cxx::int_value<Cpu_number>(c->home_cpu()), (Mword)c, c->drq_pending());
 
     // we might have to migrate the currently running thread, and we cannot do
     // this during the processing of the request queue. In this case we get the
