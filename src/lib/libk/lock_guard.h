@@ -65,6 +65,10 @@ public:
   : _lock(l), _state(Policy::test_and_set(l))
     {}
 
+  constexpr explicit Lock_guard(Lock *l, bool) noexcept
+  : _lock(l), _state(Lock::Not_locked)
+    {}
+
   /**
    * Acquire the lock and release it on destruction.
    */
@@ -85,6 +89,9 @@ public:
     _state = Policy::test_and_set(l);
     return _state != Lock::Invalid;
   }
+
+  bool invalid() const noexcept
+  { return _state == Lock::Invalid; }
 
 
   /**
