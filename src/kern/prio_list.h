@@ -87,7 +87,54 @@ public:
   using P_list::front;
   using P_list::empty;
 
-  Spin_lock<> *qlock() { return &_lock; }
+  class Pq_lock
+  {
+    cxx::atomic<char> _l{0};
+  public:
+    enum Status
+    {
+      Not_locked = 0,
+      Locked = 2,
+      Invalid = 4,
+    };
+
+    Status test_and_set() noexcept
+    {
+      char old = _l.load(cxx::memory_order_acquire);
+      for (;;)
+        {
+          if (old & 4)
+            return Invalid;
+
+          if (old & 2)
+            {
+              Proc::pause();
+              old = _l.load(cxx::memory_order_acquire);
+              continue;
+            }
+
+          if (_l.compare_exchange_weak(old, old | 2, cxx::memory_order_acquire))
+            return Not_locked;
+        }
+    }
+
+    void set(Status) noexcept
+    {
+      _l.fetch_and(char{~2});
+    }
+
+    void invalidate() noexcept
+    {
+      _l.fetch_or(4);
+    }
+
+    bool invalid() const noexcept
+    {
+      return _l.load() & 4;
+    }
+  };
+
+  Pq_lock *qlock() { return &_lock; }
 
   Prio_list_elem *first() const { return front(); }
 
@@ -133,6 +180,8 @@ public:
     auto guard = lock_guard(_lock);
     return insert_dirty(e, prio);
   }
+
+
 
   /**
    * Dequeue a given element from the list.
@@ -188,7 +237,8 @@ public:
 
 private:
   Prio_list_elem *_cursor = nullptr;
-  Spin_lock<> _lock{Spin_lock<>::Unlocked};
+  //Spin_lock<> _lock{Spin_lock<>::Unlocked};
+  Pq_lock _lock;
 
   /**
    * Dequeue a given element from the list.
