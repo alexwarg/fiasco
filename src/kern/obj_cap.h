@@ -30,7 +30,8 @@ public:
         return current;
       }
 
-    return current->space()->lookup_local(cap(), rights);
+    return current->space()->lookup_local(cap(), L4_fpage::Rights::NONE())
+      .deref_nocheck(nullptr, rights);
   }
 };
 

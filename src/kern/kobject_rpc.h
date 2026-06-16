@@ -85,51 +85,46 @@ check_basics(L4_msg_tag *tag, long label)
  * Helper function to dereference a capability send message
  * item and check the correct object type.
  */
-template<typename OBJ> __attribute__((nonnull(5)))
-OBJ *deref_next(L4_msg_tag *tag, Utcb const *utcb,
-                L4_snd_item_iter &snd_items, Space *space,
-                Rights *rights)
+__attribute__((nonnull))
+inline Obj_space::Cap_ref
+next_cap(L4_msg_tag *tag, Utcb const *utcb,
+         L4_snd_item_iter &snd_items, Space *space,
+         Rights expected)
 {
   if (!snd_items.more() || !snd_items.next() || snd_items.get()->b.is_void())
     {
       *tag = commit_result(-L4_err::EInval);
-      return 0;
+      return nullptr;
     }
 
   L4_fpage fp(snd_items.get()->d);
   if (EXPECT_FALSE(!fp.is_objpage()))
     {
       *tag = commit_error(utcb, L4_error::Overflow);
-      return 0;
+      return nullptr;
     }
 
-  OBJ *o = cxx::dyn_cast<OBJ*>(space->lookup_local(fp.obj_index(), rights));
-  if (EXPECT_FALSE(!o))
-    {
-      *tag = commit_result(-L4_err::EInval);
-      return 0;
-    }
-
-  return o;
+  return space->lookup_local(fp.obj_index(), expected);
 }
 
 /**
  * Helper to dereference exactly the first send message item as capability
  * of type `OBJ`.
  */
-template<typename OBJ> __attribute__((nonnull(3)))
-OBJ *deref(L4_msg_tag *tag, Utcb const *utcb, Rights *rights)
+__attribute__((nonnull))
+inline Obj_space::Cap_ref
+first_cap(L4_msg_tag *tag, Utcb const *utcb, Rights expected)
 {
   L4_snd_item_iter snd_items(utcb, tag->words());
   if (!tag->items())
     {
       *tag = commit_result(-L4_err::EInval);
-      return 0;
+      return nullptr;
     }
   Space *const space = ::current()->space();
   if (!space)
     __builtin_unreachable();
-  return deref_next<OBJ>(tag, utcb, snd_items, space, rights);
+  return next_cap(tag, utcb, snd_items, space, expected);
 }
 
 /// Helper to calculate the number of message words for given `bytes`.
@@ -147,11 +142,22 @@ inline bool check_message_size(L4_msg_tag tag, unsigned long size)
 }
 
 /// A typed capability input parameter for RPC
-template<typename OBJ> struct Cap
+template<typename OBJ, Rights::Value_enum Expected = Rights::NONE()>
+struct Cap
 {
   typedef OBJ Obj_type; ///< Type of the referenced kernel object
   Obj_type *obj;        ///< Pointer to the kernel object
   Rights rights;        ///< Rights bits from the capability (only CS | CW)
+};
+
+/// A typed capability input parameter for RPC
+template<typename OBJ, Rights::Value_enum Expected>
+struct Cap_ref : Obj_space::Typed_cap_ref<OBJ>
+{
+  typedef OBJ Obj_type; ///< Type of the referenced kernel object
+  static constexpr Rights expected{Expected};
+  Cap_ref() = default;
+  Cap_ref(Obj_space::Typed_cap_ref<OBJ> const &o) : Obj_space::Typed_cap_ref<OBJ>(o) {}
 };
 
 namespace Detail {
@@ -185,9 +191,9 @@ template<typename T> struct Msg_item
 };
 
 /// Descriptor for an RPC input capability argument
-template<typename T> struct Msg_item<Cap<T> >
+template<typename T, Rights::Value_enum Expected> struct Msg_item<Cap<T, Expected> >
 {
-  typedef Cap<T> Arg_type;
+  typedef Cap<T, Expected> Arg_type;
 
   enum
   {
@@ -202,8 +208,45 @@ template<typename T> struct Msg_item<Cap<T> >
   static bool read_items(Arg_type *arg, L4_msg_tag *tag, Utcb const *in,
                          L4_snd_item_iter &snd_items, Space *s)
   {
-    arg->obj = deref_next<T>(tag, in, snd_items, s, &arg->rights);
-    return arg->obj != 0;
+    auto cr = next_cap(tag, in, snd_items, s, Rights::NONE());
+    if (EXPECT_FALSE(!cr.valid()))
+      return false;
+
+    Rights rights;
+    arg->obj = cr.deref_nocheck<T>(tag, &rights);
+    if (EXPECT_FALSE(!arg->obj))
+      return false;
+
+    if (EXPECT_FALSE(!rights.fulfills(Expected)))
+      return false;
+
+    return true;
+  }
+
+  static void read_data(Arg_type *, char const *, char *)
+  {}
+};
+
+/// Descriptor for an RPC input capability argument
+template<typename T, Rights::Value_enum Expected> struct Msg_item<Cap_ref<T, Expected> >
+{
+  typedef Cap_ref<T, Expected> Arg_type;
+
+  enum
+  {
+    in_size   = 0,
+    in_align  = 1,
+    out_size  = 0,
+    out_align = 1,
+    in_items  = 1,
+    out_items = 0,
+  };
+
+  static bool read_items(Arg_type *arg, L4_msg_tag *tag, Utcb const *in,
+                         L4_snd_item_iter &snd_items, Space *s)
+  {
+    arg = next_cap(tag, in, snd_items, s, Arg_type::expected).template as<T>();
+    return arg.valid();
   }
 
   static void read_data(Arg_type *, char const *, char *)

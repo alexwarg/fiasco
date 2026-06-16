@@ -116,22 +116,25 @@ public:
     return c->capability();
   }
 
+  class Cap_ref : public Obj::Cap_reference<Cap_ref>
+  {
+  public:
+    using Obj::Cap_reference<Cap_ref>::Cap_reference;
+    static Capability read_cap_safely(Capability const *c)
+    { return access_once(c); }
+  };
 
-  Kobject_iface *  __attribute__((nonnull))
-  lookup_local(Cap_index virt, L4_fpage::Rights *rights)
+
+  Cap_ref
+  lookup_local(Cap_index virt, L4_fpage::Rights expected)
   {
     Entry *c = get_cap(virt);
 
     if (EXPECT_FALSE(!c))
-      return 0;
+      return nullptr;
 
-    Capability cap = c->capability();
-
-    *rights = L4_fpage::Rights(cap.rights());
-
-    return cap.obj();
+    return Cap_ref(&c->capability(), expected);
   }
-
 
   void caps_free()
   {

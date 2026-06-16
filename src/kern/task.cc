@@ -246,7 +246,8 @@ Task::sys_map(L4_fpage::Rights rights, Syscall_frame *f, Utcb *utcb)
   L4_msg_tag tag = f->tag();
 
   L4_fpage::Rights mask;
-  Task *_from = Ko::deref<Task>(&tag, utcb, &mask);
+  Task *_from = Ko::first_cap(&tag, utcb, L4_fpage::Rights::NONE())
+    .deref_nocheck<Task>(&tag, &mask);
   if (!_from)
     return tag;
 

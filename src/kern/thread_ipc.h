@@ -746,7 +746,7 @@ Thread_ipc<THREAD>::map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
                                  L4_buf_iter::Item const *buf,
                                  Utcb *rcv_utcb, Kobject::Reap_list *rl)
 {
-  Ref_ptr<Task> rcv_t;
+  Kobject::Locked<Task> rcv_t;
   if (EXPECT_FALSE(buf->b.compound()))
     {
       unsigned cap_br = buf->b.cap_br_idx();
@@ -757,21 +757,18 @@ Thread_ipc<THREAD>::map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
       if (EXPECT_FALSE(!tc.valid()))
         return L4_error::Overflow;
 
-      L4_fpage::Rights task_rights = L4_fpage::Rights(0);
-      rcv_t = Ref_ptr<Task>(cxx::dyn_cast<Task*>(receiver_t->lookup_local(tc.cap(),
-              &task_rights)));
-
-      if (EXPECT_FALSE(!rcv_t || !(task_rights & L4_fpage::Rights::W())))
-        return L4_error::Overflow;
+      auto task_ref = receiver_t->lookup_local(tc.cap(), L4_fpage::Rights::CS());
+      rcv_t = Kobject::Locked<Task>(task_ref.as<Task>());
     }
   else
-    rcv_t = receiver_t;
+    rcv_t = Kobject::Locked<Task>(receiver_t);
+
+  if (EXPECT_FALSE(!rcv_t))
+    return L4_error::Overflow;
 
   // Take the existence_lock for synchronizing maps -- kind of
-  // coarse-grained.
-  auto sp_lock = lock_guard_dont_lock(rcv_t->existence_lock);
-  if (!sp_lock.check_and_lock(&rcv_t->existence_lock))
-    return L4_error::Overflow;
+  // coarse-grained. We could go for ref counting and more
+  // fine-grained locks internally...
 
   auto c_lock = lock_guard<Lock_guard_inverse_policy>(cpu_lock);
   return fpage_map(snd->space(), sfp, rcv_t.get(), L4_fpage(buf->d), item, rl);

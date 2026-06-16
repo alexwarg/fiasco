@@ -18,6 +18,7 @@
 #include "kmem.h"
 #include "mem_layout.h"
 #include <paging_bits.h>
+#include <cxx/dyn_cast>
 
 template<typename SPACE>
 class Obj_space_virt
@@ -173,15 +174,21 @@ public:
     return Mem_layout::read_special_safe(&c->capability());
   }
 
+  class Cap_ref : public Obj::Cap_reference<Cap_ref>
+  {
+  public:
+    using Obj::Cap_reference<Cap_ref>::Cap_reference;
+    static Capability read_cap_safely(Capability const *c)
+    { return Mem_layout::read_special_safe(c); }
+  };
+
   /// lookup_local
-  Kobject_iface * __attribute__((nonnull))
-  lookup_local(Cap_index virt, L4_fpage::Rights *rights)
+  Cap_ref
+  lookup_local(Cap_index virt, L4_fpage::Rights expected)
   {
     virt &= Cap_index(~(~0UL << Whole_space));
     Entry *c = cap_virt(virt);
-    Capability cap = Mem_layout::read_special_safe(&c->capability());
-    *rights = L4_fpage::Rights(cap.rights());
-    return cap.obj();
+    return Cap_ref(&c->capability(), expected);
   }
 
   V_pfn obj_map_max_address() const

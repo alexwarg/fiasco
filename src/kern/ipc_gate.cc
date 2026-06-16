@@ -33,13 +33,9 @@ Ipc_gate_obj::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
   if (tag.words() < 2)
     return commit_result(-L4_err::EMsgtooshort);
 
-  L4_fpage::Rights t_rights(0);
-  auto *t = Ko::deref<Thread>(&tag, in, &t_rights);
+  auto *t = Ko::first_cap(&tag, in, L4_fpage::Rights::CS()).deref<Thread>(&tag);
   if (!t)
     return tag;
-
-  if (!(t_rights & L4_fpage::Rights::CS()))
-    return commit_result(-L4_err::EPerm);
 
   Poly_ipc_gate x;
   x.construct<Ipc_gate>();
@@ -343,19 +339,12 @@ ipc_gate_factory(Ram_quota *q, Space *space,
       if (EXPECT_FALSE(!bind_thread.is_objpage()))
         return 0;
 
-      L4_fpage::Rights thread_rights = L4_fpage::Rights(0);
-      thread = cxx::dyn_cast<Thread*>(space->lookup_local(bind_thread.obj_index(),
-                                                          &thread_rights));
+      L4_msg_tag res;
+      thread = space->lookup_local(bind_thread.obj_index(), L4_fpage::Rights::CS()).deref<Thread>(&res);
 
       if (EXPECT_FALSE(!thread))
         {
-          *err = L4_err::EInval;
-          return 0;
-        }
-
-      if (EXPECT_FALSE(!(thread_rights & L4_fpage::Rights::CS())))
-        {
-          *err = L4_err::EPerm;
+          *err = -res.proto();
           return 0;
         }
 

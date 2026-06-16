@@ -31,12 +31,11 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
   L4_obj_ref user_task = vcpu->user_task;
   if (user_task.valid() && user_task.op() == 0)
     {
-      L4_fpage::Rights task_rights = L4_fpage::Rights(0);
-      Task *task = cxx::dyn_cast<Task*>(s->lookup_local(user_task.cap(),
-                                                         &task_rights));
-
-      if (EXPECT_FALSE(task && !(task_rights & L4_fpage::Rights::CS())))
-        return commit_result(-L4_err::EPerm);
+      L4_msg_tag res;
+      Task *task = s->lookup_local(user_task.cap(), L4_fpage::Rights::CS())
+        .deref<Task>(&res);
+      if (EXPECT_FALSE(!task))
+        return res;
 
       if (task != vcpu_user_space())
         set_vcpu_user_space(task);
@@ -201,26 +200,14 @@ inline
 L4_msg_tag
 Thread_object::sys_register_delete_irq(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
 {
-  L4_snd_item_iter snd_items(in, tag.words());
+  Kobject_iface *i = Ko::first_cap(&tag, in, L4_fpage::Rights::CW()).deref(&tag);
+  if (!i)
+    return tag;
 
-  if (!tag.items() || !snd_items.more() || !snd_items.next())
-    return Kobject_iface::commit_result(-L4_err::EInval);
-
-  L4_fpage bind_irq(snd_items.get()->d);
-  if (EXPECT_FALSE(!bind_irq.is_objpage()))
-    return Kobject_iface::commit_error(in, L4_error::Overflow);
-
-  Context *const c_thread = ::current();
-  Space *const c_space = c_thread->space();
-  L4_fpage::Rights irq_rights = L4_fpage::Rights(0);
-  Irq_base *irq
-    = Irq_base::dcast(c_space->lookup_local(bind_irq.obj_index(), &irq_rights));
+  Irq_base *irq = Irq_base::dcast(i);
 
   if (!irq)
     return Kobject_iface::commit_result(-L4_err::EInval);
-
-  if (EXPECT_FALSE(!(irq_rights & L4_fpage::Rights::CW())))
-    return Kobject_iface::commit_result(-L4_err::EPerm);
 
   if (register_delete_irq(irq))
     return Kobject_iface::commit_result(0);
@@ -259,13 +246,9 @@ Thread_object::sys_control(L4_fpage::Rights rights, L4_msg_tag tag,
 
   if (flags & Ctl_bind_task)
     {
-      L4_fpage::Rights task_rights = L4_fpage::Rights(0);
-      task = Ko::deref<Task>(&tag, utcb, &task_rights);
+      task = Ko::first_cap(&tag, utcb, L4_fpage::Rights::CS()).deref<Task>(&tag);
       if (!task)
         return tag;
-
-      if (EXPECT_FALSE(!(task_rights & L4_fpage::Rights::CS())))
-        return commit_result(-L4_err::EPerm);
 
       if (EXPECT_FALSE(!(task->caps() & Task::Caps::threads())))
         return commit_result(-L4_err::EInval);

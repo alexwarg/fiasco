@@ -66,8 +66,7 @@ Scheduler::sys_run(L4_fpage::Rights, Syscall_frame *f, Utcb const *utcb)
     return commit_result(-L4_err::EInval);
   sz -= sizeof(Mword); // skip first Mword containing the Opcode
 
-  Ko::Rights rights;
-  Thread *thread = Ko::deref<Thread>(&tag, utcb, &rights);
+  Thread *thread = Ko::first_cap(&tag, utcb, Ko::Rights::NONE()).deref<Thread>(&tag);
   if (!thread)
     return tag;
 

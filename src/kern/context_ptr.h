@@ -18,8 +18,8 @@ public:
   Kobject_iface *ptr(Space *s, L4_fpage::Rights *rights) const noexcept
   {
     assert (cpu_lock.test());
-
-    return nonull_static_cast<Obj_space*>(s)->lookup_local(_t, rights);
+    auto ref = nonull_static_cast<Obj_space*>(s)->lookup_local(_t, L4_fpage::Rights::NONE());
+    return ref.deref_nocheck(nullptr, rights);
   }
 
 

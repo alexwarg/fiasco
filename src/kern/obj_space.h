@@ -81,6 +81,9 @@ public:
   };
 
   using Base::initialize;
+  using Base::Cap_ref;
+  template<typename T>
+  using Typed_cap_ref = typename Base::Cap_ref::template Typed_cap_ref<T>;
 
   static Ram_quota *ram_quota(Base const *base)
   {
@@ -144,9 +147,9 @@ public:
   void caps_free() FIASCO_FLATTEN
   { Base::caps_free(); }
 
-  Kobject_iface * FIASCO_FLATTEN __attribute__((nonnull))
-  lookup_local(Cap_index virt, L4_fpage::Rights *rights = 0)
-  { return Base::lookup_local(virt, rights); }
+  auto FIASCO_FLATTEN
+  lookup_local(Cap_index virt, L4_fpage::Rights expected)
+  { return Base::lookup_local(virt, expected); }
 
   inline V_pfn map_max_address() const
   { return obj_map_max_address(); }

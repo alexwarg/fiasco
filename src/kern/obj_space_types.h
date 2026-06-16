@@ -2,6 +2,7 @@
 
 #include <cxx/cxx_int>
 #include <cxx/hlist>
+#include <cxx/dyn_cast>
 
 #include "config.h"
 #include "types.h"
@@ -60,6 +61,128 @@ namespace Obj {
     { _obj &= ~(cxx::int_value<L4_fpage::Rights>(r) & 3); }
 
     bool operator == (Capability const &c) const { return _obj == c._obj; }
+  };
+
+  template<typename DERIVED>
+  class Cap_reference
+  {
+  private:
+    Address _c; // stores kernel pointer to the cap and the required rights
+
+    Capability const *_cap() const
+    {
+      return reinterpret_cast<Capability const *>(_c & ~3ul);
+    }
+
+    unsigned char _rights() const
+    {
+      return _c & 3ul;
+    }
+
+    DERIVED *_self() { return static_cast<DERIVED *>(this); }
+    DERIVED const *_self() const { return static_cast<DERIVED const *>(this); }
+
+    Kobject_iface *_deref(L4_msg_tag *tag, unsigned char *rights) const
+    {
+      if (EXPECT_FALSE(!_c))
+        return nullptr;
+
+      auto c = _self()->read_cap_safely(_cap());
+      if (EXPECT_FALSE(!c.obj()))
+        {
+          if (tag) *tag = L4_msg_tag(0, 0, 0, -L4_err::ENoent);
+          return nullptr;
+        }
+
+      *rights = c.rights();
+      return c.obj();
+    }
+
+
+  public:
+    constexpr Cap_reference(nullptr_t) : _c(0) {}
+
+    __attribute__((nonnull)) constexpr Cap_reference(Capability const *c, L4_fpage::Rights expected)
+    : _c(reinterpret_cast<Address>(c) | (cxx::int_value<L4_fpage::Rights>(expected) & 3))
+    {}
+
+    constexpr bool valid() const { return _c != 0; }
+
+    Kobject_iface *deref(L4_msg_tag *tag = nullptr) const
+    {
+      unsigned char r;
+      Kobject_iface *o = _deref(tag, &r);
+      if (EXPECT_FALSE(!o))
+        return nullptr;
+
+      if (EXPECT_FALSE((r & _rights()) != _rights()))
+        {
+          if (tag) *tag = L4_msg_tag(0, 0, 0, -L4_err::EPerm);
+          return nullptr;
+        }
+
+      return o;
+    }
+
+    template<typename T>
+    T *deref(L4_msg_tag *tag = nullptr) const
+    {
+      auto *o = this->deref(tag);
+      if (EXPECT_FALSE(!o))
+        return nullptr;
+
+      T *r = cxx::dyn_cast<T *>(o);
+      if (EXPECT_FALSE(!r) && tag)
+        *tag = L4_msg_tag(0, 0, 0, -L4_err::EInval);
+
+      return r;
+    }
+
+    Kobject_iface *deref_nocheck(L4_msg_tag *tag, L4_fpage::Rights *r) const
+    {
+      unsigned char rx;
+      Kobject_iface *o = _deref(tag, &rx);
+      if (EXPECT_FALSE(!o))
+        return nullptr;
+
+      *r = L4_fpage::Rights(rx);
+      return o;
+    }
+
+    template<typename T>
+    T *deref_nocheck(L4_msg_tag *tag, L4_fpage::Rights *r) const
+    {
+      auto *o = this->deref_nocheck(tag, r);
+      if (EXPECT_FALSE(!o))
+        return nullptr;
+
+      T *res = cxx::dyn_cast<T *>(o);
+      if (EXPECT_FALSE(!res) && tag)
+        *tag = L4_msg_tag(0, 0, 0, -L4_err::EInval);
+
+      return res;
+    }
+
+    template<typename T>
+    class Typed_cap_ref
+    {
+    private:
+      DERIVED _r;
+      friend class Cap_reference<DERIVED>;
+      constexpr Typed_cap_ref(DERIVED const &o) : _r(o) {}
+
+    public:
+      T *deref(L4_msg_tag *tag = nullptr) const
+      { return _r.template deref<T>(tag); }
+
+      T *deref_nocheck(L4_msg_tag *tag, L4_fpage::Rights *r) const
+      { return _r.template deref_nocheck<T>(tag, r); }
+
+      T *operator () () const { return this->deref(); }
+    };
+
+    template<typename T>
+    Typed_cap_ref<T> as() const { return Typed_cap_ref<T>(*_self()); }
   };
 
   /**

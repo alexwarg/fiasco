@@ -90,7 +90,7 @@ private:
     (void)op;
     if (sys_invoke_debug)
       {
-        Kobject_iface *i = Ko::deref<Kobject_iface>(&tag, r_msg, &rights);
+        Kobject_iface *i = Ko::first_cap(&tag, r_msg, L4_fpage::Rights::NONE()).deref(&tag);
         if (!i)
           return tag;
 
