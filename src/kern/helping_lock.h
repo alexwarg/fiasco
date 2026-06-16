@@ -18,6 +18,7 @@
  */
 class Helping_lock : private Switch_lock
 {
+  friend class Switch_lock;
 
 public:
   using Switch_lock::Status;
@@ -28,6 +29,7 @@ public:
   using Switch_lock::invalidate;
   using Switch_lock::valid;
   using Switch_lock::wait_free;
+  using Switch_lock::try_lock;
 
   static bool threading_system_active;
 

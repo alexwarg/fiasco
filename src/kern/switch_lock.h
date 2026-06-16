@@ -152,6 +152,46 @@ public:
     return Not_locked;
   }
 
+  template<typename DEREF, typename GETLOCK>
+  static auto NO_INSTRUMENT try_lock(DEREF &&lo, GETLOCK &&get_lock) -> decltype(lo())
+  {
+    auto *obj = lo();
+    if (!obj)
+      return nullptr;
+
+    auto *l = get_lock(obj);
+
+    Mword o = l->_lock_owner.load(cxx::memory_order_relaxed);
+    if (EXPECT_FALSE(o & 1))
+      return nullptr;
+
+    Context *c = current();
+    assert (o != Address(c));
+
+    do
+      {
+        for (;;)
+          {
+            Mword o = l->_lock_owner.load(cxx::memory_order_relaxed);
+            if (o & 1)
+              return nullptr;
+
+            if (!o)
+              break;
+
+            l->help(c, reinterpret_cast<Context *>(o), o);
+            obj = lo();
+            if (!obj)
+              return nullptr;
+            l = get_lock(obj);
+          }
+      }
+    while (!l->set_lock_owner(c));
+    Mem::mp_wmb();
+    c->inc_lock_cnt();   // Do not lose this lock if current is deleted
+    return obj;
+  }
+
   Status NO_INSTRUMENT test_and_set()
   {
     return lock();
