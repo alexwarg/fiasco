@@ -219,7 +219,7 @@ Gic_its::init(Gic_cpu_v3 *gic_cpu, void *base, unsigned num_lpis)
   ctlr.enabled() = true;
   _its.write<Unsigned32>(ctlr.raw, GITS_CTLR);
 
-  printf("ITS: %lx rev=%x num_lpis=%u num_cols=%u num_devs=%u dev_bits=%u\n",
+  printf("ITS: %p rev=%x num_lpis=%u num_cols=%u num_devs=%u dev_bits=%u\n",
          base, arch_rev, _num_lpis, Num_cols, Max_num_devs,
          cxx::log2u(_max_device_id + 1));
 }
