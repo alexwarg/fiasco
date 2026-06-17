@@ -164,6 +164,81 @@ public:
     }
   };
 
+  /**
+   * RAII smart pointer to an existence locked Kobject.
+   *
+   * The pointer is either initialized from a reference counted pointer, or from a
+   * function-like that safely retuns a Kobject pointer that stays valid until
+   * the next preemption point. If a function-like is used it shall be reevaluated
+   * after each preeption point, to make sure the object is still alive.
+   * If a nullptr is returned from the function-like, or the existence_lock is marked
+   * invalid, the smart pointer shall be nullptr / invalid.
+   * If the pointer is valid, the objects existence lock is held, and will be released
+   * in the destructor.
+   */
+  template<typename T>
+  class Locked
+  {
+  private:
+    T *_o = nullptr;
+
+  public:
+    Locked(Locked const &) = delete;
+    void operator = (Locked const &) = delete;
+
+    constexpr Locked() noexcept = default;
+    constexpr Locked(Locked &&o) noexcept : _o(o.release()) {}
+    constexpr Locked &operator = (Locked &&o) noexcept
+    {
+      if (&o != this)
+        _o = o.release();
+
+      return *this;
+    }
+
+    constexpr T *release()
+    {
+      T *tmp = _o;
+      _o = nullptr;
+      return tmp;
+    }
+
+    ~Locked() noexcept
+    {
+      if (_o)
+        _o->existence_lock.clear();
+      _o = nullptr;
+    }
+
+    /**
+     * initialize from frunction-like ref.
+     * The ref will be called before trying to take the exisence lock, and must
+     * always return a valid object pointer or nullptr. after each possible
+     * preemption point ref will be called again.
+     */
+    template<typename REF>
+    explicit Locked(REF &&ref)
+    : _o(Lock::try_lock(ref, [](T *o){ return &o->existence_lock; }))
+    {}
+
+    /**
+     * initialize from Ref_ptr<T>.
+     * The pointer is assumed to stay valid until the lock is taken, or the object
+     * is marked invalid. (Note, there is no reevaluation needed)
+     */
+    explicit Locked(Ref_ptr<T> const &o)
+    {
+      if (o->existence_lock.lock() == Lock::Invalid)
+        return;
+      _o = o.get();
+    }
+
+    constexpr explicit operator bool () const { return _o != nullptr; }
+    constexpr T *get() const  { return _o; }
+    T &operator * () const { return *_o; }
+    T *operator -> () const { return _o; }
+  };
+
   using Kobject_dbg::dbg_id;
 
   Lock existence_lock;
