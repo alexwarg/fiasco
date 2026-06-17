@@ -120,8 +120,8 @@ protected:
   REAL_ICU *this_icu()
   { return nonull_static_cast<REAL_ICU *>(this); }
 
-  L4_RPC(Op_bind,     icu_bind,     (Mword irqnum, Ko::Cap<Irq> irq));
-  L4_RPC(Op_unbind,   icu_unbind,   (Mword irqnum, Ko::Cap<Irq> irq));
+  L4_RPC(Op_bind,     icu_bind,     (Mword irqnum, Ko::Cap<Irq, Ko::Rights::CW()> irq));
+  L4_RPC(Op_unbind,   icu_unbind,   (Mword irqnum, Ko::Cap<Irq, Ko::Rights::NONE()> irq));
   L4_RPC(Op_set_mode, icu_set_mode, (Mword irqnum, Irq_chip::Mode mode));
   L4_RPC(Op_info,     icu_get_info, (Mword *features, Mword *num_irqs, Mword *num_msis));
   L4_RPC(Op_msi_info, icu_msi_info, (Mword msinum, Unsigned64 src_id, Msi_info *info));
@@ -140,11 +140,8 @@ public:
       i->unmask();
   }
 
-  L4_msg_tag op_icu_bind(unsigned irqnum, Ko::Cap<Irq> const &irq)
+  L4_msg_tag op_icu_bind(unsigned irqnum, Ko::Cap<Irq, Ko::Rights::CW()> const &irq)
   {
-    if (!Ko::check_rights(irq.rights, Ko::Rights::CW()))
-      return Kobject_iface::commit_result(-L4_err::EPerm);
-
     auto g = lock_guard(irq.obj->irq_lock());
     irq.obj->unbind();
 
