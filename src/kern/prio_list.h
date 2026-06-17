@@ -118,6 +118,11 @@ public:
         }
     }
 
+    Status test() noexcept
+    {
+      return Status(_l.load() & char(Locked));
+    }
+
     void set(Status) noexcept
     {
       _l.fetch_and(char{~2});
