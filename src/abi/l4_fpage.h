@@ -88,6 +88,12 @@ public:
 
     constexpr Rights apply(Rights r) const { return *this & r; }
 
+    /// check if this rights fulfill the expeted rights, or not.
+    constexpr bool fulfills(Rights expected) const { return (*this & expected) == expected; }
+
+    /// empty fpage rights
+    static constexpr Rights NONE() { return Rights(0); }
+
     /// Memory flex page is user accessible
     static constexpr Rights U() { return Rights(8); }
 
