@@ -125,7 +125,7 @@ public:
 
     void set(Status) noexcept
     {
-      _l.fetch_and(char{~2});
+      _l.fetch_and(static_cast<char>(~2));
     }
 
     void invalidate() noexcept
