@@ -238,15 +238,18 @@ public:
                                  Thread *rcv, Utcb *rcv_utcb,
                                  L4_fpage::Rights rights);
 
-  void set_ipc_from_spec(Mword from_spec, bool do_set = true)
+  void set_ipc_from_spec(Mword from_spec, L4_fpage::Rights rights, bool do_set = true)
   {
-    if (do_set)
-      _from_spec = from_spec;
+    if (!do_set)
+      return;
+
+    _from_spec = from_spec;
+    _ipc_send_rights = rights;
   }
 
   void do_ipc(L4_msg_tag const &tag, Thread *partner,
               bool have_receive, Sender *sender, L4_timeout_pair t,
-              Syscall_frame *regs, L4_fpage::Rights rights);
+              Syscall_frame *regs);
 
   bool handle_page_fault_pager(Address pfa, Mword error_code,
                                L4_msg_tag::Protocol protocol);
@@ -393,11 +396,11 @@ private:
       return copy_utcb_to_utcb(tag, _this(), receiver, rights);
   }
 
-  bool transfer_msg(L4_msg_tag tag, Thread *receiver,
-                    L4_fpage::Rights rights, bool open_wait)
+  bool transfer_msg(L4_msg_tag tag, Thread *receiver, bool open_wait)
   {
     Syscall_frame* dst_regs = receiver->rcv_regs();
 
+    auto rights = _ipc_send_rights;
     bool success = copy_utcb_to(tag, receiver, rights);
     tag.set_error(!success);
     dst_regs->tag(tag);
@@ -477,8 +480,7 @@ private:
         rq->result = r;
         return true;
       }
-    bool success = transfer_msg(rq->tag, rq->partner,
-                                _ipc_send_rights, r.is_open_wait());
+    bool success = transfer_msg(rq->tag, rq->partner, r.is_open_wait());
     if (success && rq->have_rcv)
       _xcpu_state_change(~Thread_send_wait, Thread_receive_wait);
     else
@@ -695,7 +697,7 @@ Thread_ipc<THREAD>::ipc_send_msg(Receiver *recv, bool open_wait)
   sender_dequeue(recv->sender_list());
   recv->vcpu_update_state();
   bool success = transfer_msg(regs->tag(), nonull_static_cast<Thread*>(recv),
-                              _ipc_send_rights, open_wait);
+                              open_wait);
 
   Mword state_del;
   Mword state_add;
@@ -949,7 +951,7 @@ template<typename T>
 void
 Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
                       bool have_receive, Sender *sender, L4_timeout_pair t,
-                      Syscall_frame *regs, L4_fpage::Rights rights)
+                      Syscall_frame *regs)
 {
   assert (cpu_lock.test());
   assert (_this() == current());
@@ -964,6 +966,9 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
 
   if (partner)
     {
+      // this resets the reply capability even if it was not used
+      // for this reply, but the message is sent via some other
+      // capability
       _this()->reset_caller(partner);
 
       assert(!in_sender_list());
@@ -971,8 +976,6 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
 
       bool ok;
       Check_sender result;
-
-      _ipc_send_rights = rights;
 
       if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
         result = handshake_receiver(partner, t.snd);
@@ -1016,7 +1019,7 @@ Thread_ipc<T>::do_ipc(L4_msg_tag const &tag, Thread *partner,
           if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
             partner->reset_timeout();
 
-          ok = transfer_msg(tag, partner, rights, result.is_open_wait());
+          ok = transfer_msg(tag, partner, result.is_open_wait());
 
           // transfer is also a possible migration point
           current_cpu = ::current_cpu();

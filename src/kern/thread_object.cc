@@ -85,7 +85,7 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
       assert(cpu_lock.test());
       do_ipc(L4_msg_tag(), 0, true, 0,
              L4_timeout_pair(L4_timeout::Zero, L4_timeout::Zero),
-             &vcpu->_ipc_regs, L4_fpage::Rights::FULL());
+             &vcpu->_ipc_regs);
 
       vcpu = vcpu_state().access(true);
 
@@ -569,9 +569,9 @@ Thread_object::invoke(L4_obj_ref self, L4_fpage::Rights rights,
           return;
         }
 
-      ct->set_ipc_from_spec(f->from_spec(), partner);
+      ct->set_ipc_from_spec(f->from_spec(), rights, partner);
       ct->do_ipc(f->tag(), partner, have_rcv, sender,
-                 f->timeout(), f, rights);
+                 f->timeout(), f);
       return;
     }
 

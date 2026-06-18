@@ -317,8 +317,8 @@ Ipc_gate::invoke(L4_obj_ref, L4_fpage::Rights rights,
   else
     {
       ct->set_ipc_from_spec(Ipc_gate_obj::from_poly(this)->_id.load()
-                            | cxx::int_value<L4_fpage::Rights>(rights), partner);
-      ct->do_ipc(f->tag(), partner, have_rcv, sender, f->timeout(), f, rights);
+                            | cxx::int_value<L4_fpage::Rights>(rights), rights, partner);
+      ct->do_ipc(f->tag(), partner, have_rcv, sender, f->timeout(), f);
     }
 }
 
