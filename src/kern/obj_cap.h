@@ -14,8 +14,9 @@ public:
     Thread *current = current_thread();
     if (op() & L4_obj_ref::Ipc_reply)
       {
-        if (rights) *rights = current->caller_rights();
-        Thread *ca = static_cast<Thread*>(current->caller());
+        Receiver::Caller caller = current->caller();
+        if (rights) *rights = caller.rights();
+        Thread *ca = static_cast<Thread*>(caller.receiver());
         if (EXPECT_TRUE(!dbg && ca))
           current->reset_caller();
         return ca;

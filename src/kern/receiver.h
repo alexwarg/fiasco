@@ -96,14 +96,38 @@ public:
 
   virtual ~Receiver() = 0;
 
-  Receiver *caller() const
+  class Caller
   {
-    return reinterpret_cast<Receiver*>(_caller.load(cxx::memory_order_relaxed) & ~0x03UL);
-  }
+  private:
+    friend class Receiver;
+    constexpr explicit Caller(Mword v) : _v(v) {}
+    Mword _v;
 
-  L4_fpage::Rights caller_rights() const
+  public:
+    constexpr bool valid() const
+    {
+      return _v != 0;
+    }
+
+    constexpr L4_fpage::Rights rights() const
+    {
+      return L4_fpage::Rights(_v & 0x03);
+    }
+
+    constexpr Receiver *receiver() const
+    {
+      return reinterpret_cast<Receiver *>(_v & ~0x03ul);
+    }
+
+    constexpr operator Receiver * () const
+    {
+      return receiver();
+    }
+  };
+
+  Caller caller() const
   {
-    return L4_fpage::Rights(_caller.load(cxx::memory_order_relaxed) & 0x3);
+    return Caller(_caller.load(cxx::memory_order_relaxed));
   }
 
   void set_caller(Receiver *caller, L4_fpage::Rights rights)
