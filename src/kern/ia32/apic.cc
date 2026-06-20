@@ -149,7 +149,7 @@ Apic::init_spiv()
   tmp_val |= (1<<8);            // enable APIC
   tmp_val &= ~(1<<9);           // enable Focus Processor Checking
   tmp_val &= ~0xff;
-  tmp_val |= APIC_IRQ_BASE + 0xf; // Set spurious IRQ vector to 0x3f
+  tmp_val |= APIC_IRQ_BASE | 0xf; // Set spurious IRQ vector to 0x3f
                               // bit 0..3 are hardwired to 1 on PPro!
   reg_write(APIC_spiv, tmp_val);
 }
