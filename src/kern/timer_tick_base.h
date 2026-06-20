@@ -105,8 +105,8 @@ public:
   [[gnu::flatten]]
   static void handler_static_ack()
   {
-    handle_timer_noack(current_thread(), current_cpu());
     TT::ack();
+    handle_timer_noack(current_thread(), current_cpu());
   }
 
 private:
