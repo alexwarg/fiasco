@@ -28,6 +28,7 @@ extern "C" FIASCO_FASTCALL
 void thread_timer_interrupt(Address ip);
 
 // We are entering with disabled interrupts!
+[[gnu::flatten]]
 FIASCO_FASTCALL
 void thread_timer_interrupt(Address ip)
 {
