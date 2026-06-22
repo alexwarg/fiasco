@@ -83,7 +83,7 @@ public:
           if (sdt->ptrs[i])
             _tables[i] = this->map_entry(i, sdt->ptrs[i]);
           else
-            _tables[i] = 0;
+            _tables[i] = nullptr;
       }
   }
 
