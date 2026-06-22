@@ -23,7 +23,7 @@ void sys_ipc_wrapper()
   Utcb *utcb = curr->utcb().access(true);
   L4_fpage::Rights rights;
   Kobject_iface *o = obj.deref(&rights);
-  if (EXPECT_TRUE(o!=0))
+  if (EXPECT_TRUE(o != nullptr))
     o->invoke(obj, rights, f, utcb);
   else
     f->tag(curr->commit_error(utcb, L4_error::Not_existent));

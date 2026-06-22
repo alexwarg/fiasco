@@ -88,7 +88,7 @@ Thread::unbind()
         Kernel_task::kernel_task()->switchin_context(old);
 
       if (old->dec_ref())
-        old = 0;
+        old = nullptr;
     }
 
   if (old)

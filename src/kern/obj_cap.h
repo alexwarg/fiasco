@@ -9,7 +9,7 @@ class Obj_cap : public L4_obj_ref
 public:
   Obj_cap(L4_obj_ref const &o) : L4_obj_ref(o) {}
 
-  Kobject_iface *deref(L4_fpage::Rights *rights = 0, bool dbg = false)
+  Kobject_iface *deref(L4_fpage::Rights *rights = nullptr, bool dbg = false)
   {
     Thread *current = current_thread();
     if (op() & L4_obj_ref::Ipc_reply)
@@ -25,7 +25,7 @@ public:
     if (EXPECT_FALSE(special()))
       {
         if (!self())
-          return 0;
+          return nullptr;
 
         if (rights) *rights = L4_fpage::Rights::CRWS();
         return current;

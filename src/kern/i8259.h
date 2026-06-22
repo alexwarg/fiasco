@@ -334,13 +334,13 @@ public:
   : Irq_chip_i8259<IO>(master, slave)
   {
     for (auto &i: _irqs)
-      i = 0;
+      i = nullptr;
   }
 
   Irq_base *irq(Mword pin) const override
   {
     if (pin >= 16)
-      return 0;
+      return nullptr;
 
     return _irqs[pin];
   }

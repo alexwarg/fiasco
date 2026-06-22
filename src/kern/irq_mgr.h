@@ -28,7 +28,7 @@ public:
     Irq(Init) {}
 
     /// Invalid IRQ.
-    Irq() : chip(0) {}
+    Irq() : chip(nullptr) {}
 
     /// Create a chip-pin pair.
     Irq(Irq_chip_icu *chip, Mword pin) : chip(chip), pin(pin) {}
@@ -104,7 +104,7 @@ public:
   {
     Irq i = chip(irqnum);
     if (!i.chip)
-      return 0;
+      return nullptr;
 
     return i.chip->irq(i.pin);
   }

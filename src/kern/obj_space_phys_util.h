@@ -203,16 +203,16 @@ private:
   Entry *get_cap(Cap_index index)
   {
     if (EXPECT_FALSE(!_dir))
-      return 0;
+      return nullptr;
 
     unsigned d_idx = cxx::int_value<Cap_index>(index) >> Obj::Caps_per_page_ld2;
     if (EXPECT_FALSE(d_idx >= Slots_per_dir))
-      return 0;
+      return nullptr;
 
     Cap_table *tab = _dir->d[d_idx];
 
     if (EXPECT_FALSE(!tab))
-      return 0;
+      return nullptr;
 
     unsigned offs  = cxx::get_lsb(cxx::int_value<Cap_index>(index), Obj::Caps_per_page_ld2);
     return &tab->e[offs];
@@ -221,17 +221,17 @@ private:
   Entry *caps_alloc(Cap_index virt)
   {
     if (EXPECT_FALSE(!_dir && !alloc_dir()))
-      return 0;
+      return nullptr;
 
     static_assert(sizeof(Cap_table) == Config::PAGE_SIZE, "cap table size mismatch");
     unsigned d_idx = cxx::int_value<Cap_index>(virt) >> Obj::Caps_per_page_ld2;
     if (EXPECT_FALSE(d_idx >= Slots_per_dir))
-      return 0;
+      return nullptr;
 
     void *mem = Kmem_alloc::allocator()->q_alloc(ram_quota(), Config::page_size());
 
     if (!mem)
-      return 0;
+      return nullptr;
 
     Obj::add_cap_page_dbg_info(mem, SPACE::get_space(this),  cxx::int_value<Cap_index>(virt));
 

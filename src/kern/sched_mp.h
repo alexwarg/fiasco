@@ -231,7 +231,7 @@ public:
 
         // Pending_rqq::handle_requests must be called without the
         // queue lock held.
-        Context *migration_q = 0;
+        Context *migration_q = nullptr;
         q.handle_requests<T>(current(), &migration_q);
         // assume we run from the idle thread, and the idle thread does
         // never migrate so `migration_q` must be 0
@@ -268,7 +268,7 @@ public:
     // we might have to migrate the currently running thread, and we cannot do
     // this during the processing of the request queue. In this case we get the
     // thread in migration_q and do this here.
-    Context *migration_q = 0;
+    Context *migration_q = nullptr;
     bool resched = Context::_pending_rqq.current()
       .handle_requests<T>(c, &migration_q);
 

@@ -119,11 +119,11 @@ Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
   Auto_quota<Ram_quota> quota(q, sizeof(Ipc_gate_obj));
 
   if (EXPECT_FALSE(!quota))
-    return 0;
+    return nullptr;
 
   void *nq = Ipc_gate_obj::allocator()->alloc();
   if (EXPECT_FALSE(!nq))
-    return 0;
+    return nullptr;
 
   quota.release();
   return new (nq) Ipc_gate_obj(q, t, id);
@@ -293,8 +293,8 @@ Ipc_gate::invoke(L4_obj_ref, L4_fpage::Rights rights,
   //LOG_MSG_3VAL(current(), "gIPC", Mword(_thread), _id, f->obj_2_flags());
   //printf("Invoke: Ipc_gate(%lx->%p)...\n", _id, _thread);
   Thread *ct = current_thread();
-  Thread *sender = 0;
-  Thread *partner = 0;
+  Thread *sender = nullptr;
+  Thread *partner = nullptr;
   bool have_rcv = false;
 
   Thread *t = Ipc_gate_obj::target_thread(this);
@@ -329,7 +329,7 @@ ipc_gate_factory(Ram_quota *q, Space *space,
                  int *err)
 {
   L4_snd_item_iter snd_items(utcb, tag.words());
-  Thread *thread = 0;
+  Thread *thread = nullptr;
   Mword id = 0;
 
   if (tag.items() && snd_items.next())
@@ -337,7 +337,7 @@ ipc_gate_factory(Ram_quota *q, Space *space,
       L4_fpage bind_thread(snd_items.get()->d);
       *err = L4_err::EInval;
       if (EXPECT_FALSE(!bind_thread.is_objpage()))
-        return 0;
+        return nullptr;
 
       L4_msg_tag res;
       thread = space->lookup_local(bind_thread.obj_index(), L4_fpage::Rights::CS()).deref<Thread>(&res);
@@ -345,13 +345,13 @@ ipc_gate_factory(Ram_quota *q, Space *space,
       if (EXPECT_FALSE(!thread))
         {
           *err = -res.proto();
-          return 0;
+          return nullptr;
         }
 
       if (EXPECT_FALSE(tag.words() < 3))
         {
           *err = L4_err::EMsgtooshort;
-          return 0;
+          return nullptr;
         }
 
       id = utcb->values[2];

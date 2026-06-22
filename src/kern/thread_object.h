@@ -25,8 +25,8 @@ public:
               Syscall_frame *f, Utcb *utcb) override;
 
   bool ex_regs(Address ip, Address sp,
-               Address *o_ip = 0, Address *o_sp = 0, Mword *o_flags = 0,
-               Mword ops = 0);
+               Address *o_ip = nullptr, Address *o_sp = nullptr,
+               Mword *o_flags = nullptr, Mword ops = 0);
 
 private:
   struct Remote_syscall

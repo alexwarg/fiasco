@@ -69,7 +69,7 @@ static bool add(const char *seq)
 static void trigger()
 {
   if (*vkey_irq)
-    (*vkey_irq)->hit(0);
+    (*vkey_irq)->hit(nullptr);
 }
 
 int check_()

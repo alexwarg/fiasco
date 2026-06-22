@@ -202,8 +202,8 @@ public:
     if (!e->_queue.compare_exchange_strong(old, nullptr, cxx::memory_order_release))
       return false;
 
-    Prio_list_elem **c = 0;
-    if (EXPECT_FALSE(_cursor != 0) && EXPECT_FALSE(_cursor == e))
+    Prio_list_elem **c = nullptr;
+    if (EXPECT_FALSE(_cursor != nullptr) && EXPECT_FALSE(_cursor == e))
       c = &_cursor;
 
     _dequeue(e, c);
@@ -220,8 +220,8 @@ public:
     if (!f->_queue.compare_exchange_strong(old, nullptr, cxx::memory_order_release))
       return nullptr;
 
-    Prio_list_elem **c = 0;
-    if (EXPECT_FALSE(_cursor != 0) && EXPECT_FALSE(_cursor == f))
+    Prio_list_elem **c = nullptr;
+    if (EXPECT_FALSE(_cursor != nullptr) && EXPECT_FALSE(_cursor == f))
       c = &_cursor;
 
     _dequeue(f, c);

@@ -111,8 +111,8 @@ public:
   { return V_pfc(1) << p; }
 
   FIASCO_SPACE_VIRTUAL
-  bool v_lookup(V_pfn const &virt, Phys_addr *phys = 0,
-                Page_order *size = 0, Attr *attribs = 0) FIASCO_FLATTEN
+  bool v_lookup(V_pfn const &virt, Phys_addr *phys = nullptr,
+                Page_order *size = nullptr, Attr *attribs = nullptr) FIASCO_FLATTEN
   { return Base::v_lookup(virt, phys, size, attribs); }
 
 
@@ -129,7 +129,7 @@ public:
 
   bool v_fabricate(V_pfn const &address,
                    Phys_addr *phys, Page_order *size,
-                   Attr* attribs = 0)
+                   Attr* attribs = nullptr)
   {
     return this->v_lookup(address, phys, size, attribs);
   }
@@ -179,7 +179,7 @@ public:
 #else // CONFIG_JDB
 
   static SPACE *get_space(Base *)
-  { return 0; }
+  { return nullptr; }
 
 #endif // CONFIG_JDB
 };

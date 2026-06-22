@@ -70,7 +70,7 @@ Hpet::init()
   _hpet->reset_counter();
 
   int i = 2;
-  Hpet_timer *t = 0;
+  Hpet_timer *t = nullptr;
   for (; i < _hpet->num_timers(); ++i)
     {
       t = _hpet->timer(i);

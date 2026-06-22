@@ -18,7 +18,7 @@ Irq_base *
 Irq_chip_gen::irq(Mword pin) const
 {
   if (pin >= _nirqs)
-    return 0;
+    return nullptr;
 
   return _irqs[pin];
 }
@@ -42,7 +42,7 @@ Irq_chip_gen::unbind(Irq_base *irq)
 {
   mask(irq->pin());
   Mem::barrier();
-  _irqs[irq->pin()] = 0;
+  _irqs[irq->pin()] = nullptr;
   Irq_chip_icu::unbind(irq);
 }
 

@@ -118,8 +118,8 @@ public:
     Op_bind     = 0x10,
   };
 
-  explicit Irq_sender(Ram_quota *q = 0) noexcept
-  : Kobject_h<Irq_sender, Irq>(q), _queued(0), _irq_thread(0), _irq_id(~0UL)
+  explicit Irq_sender(Ram_quota *q = nullptr) noexcept
+  : Kobject_h<Irq_sender, Irq>(q), _queued(0), _irq_thread(nullptr), _irq_id(~0UL)
   {
     hit_func = &hit_level_irq;
   }

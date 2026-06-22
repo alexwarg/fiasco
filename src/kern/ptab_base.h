@@ -9,7 +9,7 @@ namespace Ptab
 
   struct Null_alloc
   {
-    static void *alloc(Bytes) { return 0; }
+    static void *alloc(Bytes) { return nullptr; }
     static void free(void *, Bytes) {}
     static bool valid() { return false; }
     static unsigned to_phys(void *) { return 0; }

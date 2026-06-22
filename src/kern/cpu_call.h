@@ -96,7 +96,7 @@ public:
   {
     if (_used < Max)
       return &_cs[_used++];
-    return 0;
+    return nullptr;
   }
 
   Cpu_call *find_done(bool async)
@@ -105,7 +105,7 @@ public:
       if (_cs[i].is_done(async))
         return &_cs[i];
 
-    return 0;
+    return nullptr;
   }
 
   void wait_all(bool async)

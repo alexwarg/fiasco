@@ -233,7 +233,7 @@ private:
 
     Address phys = Address(ms->virt_to_phys((Address)cap_virt(index)));
     if (EXPECT_FALSE(phys == ~0UL))
-      return 0;
+      return nullptr;
 
     return reinterpret_cast<Entry*>(Mem_layout::phys_to_pmem(phys));
   }
@@ -245,7 +245,7 @@ private:
                                                  Config::page_size());
 
     if (!mem)
-      return 0;
+      return nullptr;
 
     Obj::add_cap_page_dbg_info(mem, SPACE::get_space(this), cxx::int_value<Cap_index>(virt));
 
@@ -275,7 +275,7 @@ private:
       case Mem_space::Insert_err_nomem:
         Kmem_alloc::allocator()->q_free(SPACE::ram_quota(this),
                                         Config::page_size(), mem);
-        return 0;
+        return nullptr;
       };
 
     unsigned long cap = reinterpret_cast<unsigned long>(mem) | Pg::offset(cv);

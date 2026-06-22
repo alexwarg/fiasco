@@ -78,11 +78,11 @@ public:
   {
     Auto_quota<Q> q(quota, order);
     if (EXPECT_FALSE(!q))
-      return 0;
+      return nullptr;
 
     void *b = alloc(order);
     if (EXPECT_FALSE(!b))
-      return 0;
+      return nullptr;
 
     q.release();
     return reinterpret_cast<T*>(b);
@@ -216,11 +216,11 @@ public:
   {
     Auto_quota<Q> q(_q, size);
     if (EXPECT_FALSE(!q))
-      return 0;
+      return nullptr;
 
     void *b;
     if (EXPECT_FALSE(!(b = _a->alloc(size))))
-      return 0;
+      return nullptr;
 
     q.release();
     return b;

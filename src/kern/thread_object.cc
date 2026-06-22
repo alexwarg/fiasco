@@ -227,7 +227,7 @@ Thread_object::sys_control(L4_fpage::Rights rights, L4_msg_tag tag,
   if (EXPECT_FALSE(tag.words() < 6))
     return commit_result(-L4_err::EInval);
 
-  Task *task = 0;
+  Task *task = nullptr;
   User_ptr<Utcb> utcb_addr(0);
 
   Mword flags = utcb->values[0];
@@ -563,8 +563,8 @@ Thread_object::invoke(L4_obj_ref self, L4_fpage::Rights rights,
     {
       /* we do IPC */
       Thread *ct = current_thread();
-      Thread *sender = 0;
-      Thread *partner = 0;
+      Thread *sender = nullptr;
+      Thread *partner = nullptr;
       bool have_rcv = false;
 
       if (EXPECT_FALSE(!check_sys_ipc(op, &partner, &sender, &have_rcv)))

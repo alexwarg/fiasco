@@ -122,11 +122,11 @@ public:
   class Reap_list
   {
   private:
-    Kobject *_h;
-    Kobject **_t;
+    Kobject *_h = nullptr;
+    Kobject **_t = &_h;
 
   public:
-    Reap_list() : _h(0), _t(&_h) {}
+    Reap_list() = default;
     ~Reap_list() { del(); }
     Kobject ***list() { return &_t; }
     bool empty() const { return _h == nullptr; }
@@ -146,7 +146,7 @@ public:
             delete d;
         }
 
-      _h = 0;
+      _h = nullptr;
       _t = &_h;
     }
 

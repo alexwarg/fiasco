@@ -231,7 +231,7 @@ private:
   void _hit_edge_irq(Upstream_irq const *ui)
   {
     assert (cpu_lock.test());
-    Thread *t = 0;
+    Thread *t = nullptr;
     Smword q = count_up(&t);
 
     // if we get a second edge triggered IRQ before the first is
@@ -256,7 +256,7 @@ private:
     assert (cpu_lock.test());
     mask_and_ack();
     Upstream_irq::ack(ui);
-    Thread *t = 0;
+    Thread *t = nullptr;
     count_up(&t);
 
     if (t)

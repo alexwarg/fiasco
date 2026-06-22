@@ -71,7 +71,7 @@ public:
 
   Mem_space_base() = default;
 
-  explicit Mem_space_base(Ram_quota *q, Dir_type *dir = 0)
+  explicit Mem_space_base(Ram_quota *q, Dir_type *dir = nullptr)
   : _quota(q), _dir(dir)
   {}
 
@@ -126,8 +126,9 @@ public:
    * @return True if an entry was found, false otherwise.
    */
   FIASCO_SPACE_VIRTUAL
-  bool v_lookup(Vaddr virt, Phys_addr *phys = 0, Page_order *order = 0,
-                Attr *page_attribs = 0);
+  bool v_lookup(Vaddr virt, Phys_addr *phys = nullptr,
+                Page_order *order = nullptr,
+                Attr *page_attribs = nullptr);
 
   /** Invalidate page-table entries, or some of the entries' attributes.
    *
@@ -281,7 +282,7 @@ class Mem_space_x : public Mem_space_base
 public:
   Mem_space_x() = default;
 
-  explicit Mem_space_x(Ram_quota *q, Dir_type *dir = 0)
+  explicit Mem_space_x(Ram_quota *q, Dir_type *dir = nullptr)
   : Mem_space_base(q, dir)
   {}
 
@@ -293,7 +294,7 @@ public:
 
   virtual
   bool v_fabricate(Vaddr address, Phys_addr *phys, Page_order *order,
-                   Attr *attribs = 0)
+                   Attr *attribs = nullptr)
   {
     return static_cast<M *>(this)->v_lookup(
         cxx::mask_lsb(address, Page_order(Config::PAGE_SHIFT)),

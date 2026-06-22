@@ -36,8 +36,8 @@ public:
     // more important than runtime we always initialize frame to 0 in the
     // constructor, even if this would probably cause more harm than good if
     // used with a 0 pointer as there could be a page mapped at 0 as well
-    Kobject_mappable* frame = 0;
-    Mapping *m = 0;
+    Kobject_mappable* frame = nullptr;
+    Mapping *m = nullptr;
 
     void clear()
     {

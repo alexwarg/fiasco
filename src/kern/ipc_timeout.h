@@ -15,7 +15,7 @@ public:
    */
   ~IPC_timeout() override
   {
-    owner()->set_timeout (0);	// reset owner's timeout field
+    owner()->set_timeout(nullptr); // reset owner's timeout field
   }
 
   Context *owner() const noexcept

@@ -47,7 +47,7 @@ public:
         {
           deblock_refill(sc);
 
-          if ((EXPECT_TRUE(cs != 0) && cs->dominates(sc))
+          if ((EXPECT_TRUE(cs != nullptr) && cs->dominates(sc))
               || (crs && crs->dominates(sc)))
             res = false;
         }

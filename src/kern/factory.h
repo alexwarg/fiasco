@@ -41,15 +41,15 @@ public:
   Factory *create_factory(Mword max)
   {
     if (!check_max(max))
-      return 0;
+      return nullptr;
 
     Auto_quota<Ram_quota> q(this, sizeof(Factory) + max);
     if (EXPECT_FALSE(!q))
-      return 0;
+      return nullptr;
 
     void *nq = allocator()->alloc();
     if (EXPECT_FALSE(!nq))
-      return 0;
+      return nullptr;
 
     q.release();
     return new (nq) Factory(this, max);

@@ -790,7 +790,7 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag tag,
           continue;
         }
 
-      L4_buf_iter *buf_iter = 0;
+      L4_buf_iter *buf_iter = nullptr;
 
       switch (item->b.type())
         {
@@ -903,7 +903,7 @@ Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
 
   assert (!_this()->state.has(Thread_ipc_mask));
 
-  _this()->prepare_receive(sender, have_receive ? regs : 0);
+  _this()->prepare_receive(sender, have_receive ? regs : nullptr);
   bool activate_partner = false;
   Cpu_number current_cpu = ::current_cpu();
 
@@ -982,7 +982,7 @@ Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
     bool rcv_timeout_expired = false;
 
     // Holds the next sender if the IPC has a receive phase.
-    Sender *next = 0;
+    Sender *next = nullptr;
 
     bool rcv_in_progress = _this()->state() & Thread_ipc_receive_mask;
 

@@ -38,7 +38,7 @@ commit_error(Utcb const *utcb, L4_error e,
 
 /// Check if `rights` has at least all `need` rights.
 inline bool
-check_rights(Rights rights, Rights need, L4_msg_tag *tag = 0)
+check_rights(Rights rights, Rights need, L4_msg_tag *tag = nullptr)
 {
   need &= Rights::CS() | Rights::CW();
   if (EXPECT_TRUE((rights & need) == need))
