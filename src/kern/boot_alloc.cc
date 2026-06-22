@@ -21,8 +21,8 @@ Boot_alloced::alloc(size_t size)
   for (Block_list::Iterator curr = _free.begin(); curr != _free.end(); ++curr)
     {
       if (((best == _free.end()) || curr->size < best->size)
-	  && curr->size >= size)
-	best = curr;
+          && curr->size >= size)
+        best = curr;
     }
 
   if (best == _free.end())
@@ -32,7 +32,7 @@ Boot_alloced::alloc(size_t size)
 
       // look for a size suitable and buddy friendly
       while (alloc_size < size)
-	alloc_size <<= 1;
+        alloc_size <<= 1;
 
       Block *b =
         static_cast<Block*>(Kmem_alloc::allocator()->alloc(Bytes(alloc_size)));
@@ -41,7 +41,7 @@ Boot_alloced::alloc(size_t size)
                static_cast<void *>(b), alloc_size);
 
       if (!b)
-	return 0;
+        return nullptr;
 
       b->size = alloc_size;
       _free.add(b);
