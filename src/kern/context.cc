@@ -108,7 +108,7 @@ Context::schedule()
       rq->schedule_in_progress = this;
       Proc::preemption_point();
       if (EXPECT_TRUE(current_cpu == ::current_cpu()))
-        rq->schedule_in_progress = 0;
+        rq->schedule_in_progress = nullptr;
       else
         return; // we got migrated and selected on our new CPU, so we may run
     }

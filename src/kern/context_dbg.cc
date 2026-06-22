@@ -8,7 +8,7 @@
 void
 Tb_entry_ctx_sw::print(String_buffer *buf) const
 {
-  Context *sctx = 0;
+  Context *sctx = nullptr;
   Mword sctxid = ~0UL;
   Mword dst;
   Mword dst_orig;

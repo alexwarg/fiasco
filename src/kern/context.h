@@ -472,7 +472,7 @@ public:
       return;
 
     _timeout->reset();
-    _timeout = 0;
+    _timeout = nullptr;
   }
 
   bool have_timeout() const
