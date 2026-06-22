@@ -52,7 +52,7 @@ private:
     unsigned long const size = Min_size << index;
     unsigned long const n_size = size << 1;
     if (index + 1 >= Num_sizes)
-      return 0;
+      return nullptr;
     unsigned long b = reinterpret_cast<unsigned long>(block);
     unsigned long _buddy = b & ~(n_size-1);
     *new_block = reinterpret_cast<Head*>(_buddy);
@@ -66,7 +66,7 @@ private:
     if (_free_map[(_buddy - _base)/Min_size] && _buddy_h->index == index)
       return _buddy_h;
 
-    return 0;
+    return nullptr;
   }
 
   void split(Head *b, unsigned size_index, unsigned i)
@@ -197,7 +197,7 @@ public:
             return f;
           }
       }
-    return 0;
+    return nullptr;
   }
 
   void dump() const
