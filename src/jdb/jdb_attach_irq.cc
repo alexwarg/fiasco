@@ -5,6 +5,7 @@
 #include "irq.h"
 #include "irq_mgr.h"
 #include "jdb_module.h"
+#include "jdb.h"
 #include "kernel_console.h"
 #include "static_init.h"
 #include "thread.h"
@@ -105,8 +106,16 @@ public:
     return k ? k : o;
   }
 
-  bool show_kobject(Kobject_common *, int) override
-  { return true; }
+  bool show_kobject(Kobject_common *o, int) override
+  {
+    Irq *ir = cxx::dyn_cast<Irq*>(o);
+    if (ir)
+      {
+        printf("IRQ: in_sender_list=%s\n", static_cast<Irq_sender *>(ir)->in_sender_list() ? "yes" : "no");
+        Jdb::getchar();
+      }
+    return true;
+  }
 
   void show_kobject_short(String_buffer *buf, Kobject_common *o, bool) override
   {
