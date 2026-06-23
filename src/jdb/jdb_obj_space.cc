@@ -28,7 +28,7 @@ public:
   Jdb_obj_space(Address base = 0, int level = 0)
   : Jdb_table(1),
     _base(base),
-    _task(0),
+    _task(nullptr),
     _mode(Name)
   {
     (void)level;
@@ -58,7 +58,7 @@ public:
     Obj_space::Entry *c = _task->jdb_lookup_cap(entry);
 
     if (!c)
-      return 0;
+      return nullptr;
 
     Kobject_iface *o = c->obj();
     *rights = cxx::int_value<Obj::Attr>(c->rights());
@@ -241,7 +241,7 @@ Jdb_obj_space::help_text(Kobject_common *o) const
   if (cxx::dyn_cast<Task*>(o) || ((t = cxx::dyn_cast<Thread *>(o)) && t->space()))
     return "o=objspace";
 
-  return 0;
+  return nullptr;
 }
 
 static Jdb_obj_space jdb_obj_space INIT_PRIORITY(JDB_MODULE_INIT_PRIO);

@@ -29,7 +29,7 @@ public:
   Cmd const *cmds() const override
   {
     static Cmd cs[] =
-      { { 0, "", "cpucalls", "", "cpucalls\tshow CPU calls", 0 } };
+      { { 0, "", "cpucalls", "", "cpucalls\tshow CPU calls", nullptr } };
 
     return cs;
   }

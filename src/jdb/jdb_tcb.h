@@ -127,7 +127,7 @@ public:
   {
     Thread *t = cxx::dyn_cast<Thread*>(o);
     if (!t)
-      return 0;
+      return nullptr;
 
     return static_cast<Task*>(t->space());
   }

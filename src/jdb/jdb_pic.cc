@@ -65,7 +65,7 @@ public:
   Cmd const *cmds() const override
   {
     static Cmd cs[] =
-      {{ 0, "i", "pic", "", "i\tshow pic state", 0 }};
+      {{ 0, "i", "pic", "", "i\tshow pic state", nullptr }};
 
     return cs;
   }

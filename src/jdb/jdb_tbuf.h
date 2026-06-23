@@ -132,7 +132,7 @@ public:
   static Tb_entry *unfiltered_lookup(Mword idx)
   {
     if (!event_valid(idx))
-      return 0;
+      return nullptr;
 
     return buffer() + ((_number.load() - idx - 1) & (_max_entries - 1));
   }
@@ -151,7 +151,7 @@ public:
       if (e->number() == nr)
         return e;
 
-    return 0;
+    return nullptr;
   }
 
   static void enable_filter()

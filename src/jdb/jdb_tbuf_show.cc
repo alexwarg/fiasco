@@ -28,13 +28,10 @@ public:
 
   struct Item
   {
-    Tb_entry const *e;
-    Mword y;
-    Group_order order;
-    Item() : e(0), y(0), order(Group_order::none()) {}
+    Tb_entry const *e = nullptr;
+    Mword y = 0;
+    Group_order order = Group_order::none();
   };
-
-  Entry_group() : _c(0) {}
 
   Item const &operator [] (unsigned i) const { return _i[i]; }
   Item &operator [] (unsigned i) { return _i[i]; }
@@ -51,7 +48,7 @@ public:
   }
 
 private:
-  unsigned _c;
+  unsigned _c = 0;
   Item _i[Max_group_size];
 };
 
@@ -136,7 +133,7 @@ Mword Jdb_tbuf_show::y_offset = 0;
 void
 Jdb_tbuf_show::error(const char * const msg)
 {
-  Jdb::printf_statline("tbuf", 0, "\033[31;1m=== %s! ===\033[m", msg);
+  Jdb::printf_statline("tbuf", nullptr, "\033[31;1m=== %s! ===\033[m", msg);
   _status_type = Status_error;
 }
 
@@ -848,7 +845,7 @@ restart:
               redraw = true;
               break;
             case 'F': // filter view by regex
-              Jdb::printf_statline("tbuf", 0, "Filter(%s)=%s",
+              Jdb::printf_statline("tbuf", nullptr, "Filter(%s)=%s",
                                    Jdb_regex::avail() ? "regex" : "instr",
                                    _filter_str);
               _status_type = Status_redraw;
@@ -941,7 +938,7 @@ restart:
             case KEY_RETURN: // disassemble eip of current entry
             case KEY_RETURN_2:
                 {
-                  Thread const *t = 0;
+                  Thread const *t = nullptr;
                   Mword eip;
                   if (Jdb_tbuf_output::thread_ip(_absy+addy, &t, &eip))
                     {
@@ -996,7 +993,7 @@ restart:
                 _nr_pos[n] = Nil;
               goto restart;
             case 's': // set mark
-              Jdb::printf_statline("tbuf", 0, "set mark [0-9] ");
+              Jdb::printf_statline("tbuf", nullptr, "set mark [0-9] ");
               _status_type = Status_redraw;
               c = Jdb_core::getchar();
               if (!entries || c < '0' || c > '9')
@@ -1017,7 +1014,7 @@ restart:
               redraw     = true;
               break;
             case 'j': // jump to mark or reference element
-              Jdb::printf_statline("tbuf", 0, "jump to mark [0-9] or ref [r] ");
+              Jdb::printf_statline("tbuf", nullptr, "jump to mark [0-9] or ref [r] ");
               _status_type = Status_redraw;
               c = Jdb_core::getchar();
               if ((c < '0' || c > '9') && c != 'r')
@@ -1043,7 +1040,7 @@ restart:
             case '/': // search forward
               direction = d;
               // search in tracebuffer events
-              Jdb::printf_statline("tbuf", 0, "%s=%s",
+              Jdb::printf_statline("tbuf", nullptr, "%s=%s",
                                    Jdb_regex::avail() ? "Regexp" : "Search",
                                    _search_str);
               _status_type = Status_redraw;
@@ -1131,9 +1128,9 @@ Jdb_tbuf_show::cmds() const
     {
         { 0, "T", "tbuf", "",
           "T{P{+|-|k|u|<event>}}\tenter tracebuffer, on/off/kernel/user perf",
-          0 },
-        { 1, "", "tbufdumptext", "", 0 /* invisible */, 0 },
-        { 2, "", "tbufdumpgzip", "", 0 /* invisible */, 0 },
+          nullptr },
+        { 1, "", "tbufdumptext", "", nullptr /* invisible */, nullptr },
+        { 2, "", "tbufdumpgzip", "", nullptr /* invisible */, nullptr },
     };
 
   return cs;

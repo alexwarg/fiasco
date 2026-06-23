@@ -180,7 +180,7 @@ Jdb_ptab::key_pressed(int c, unsigned long &row, unsigned long &col)
               int c1 = Jdb_core::getchar();
               if (c1 != KEY_RETURN && c1 != ' ' && c != KEY_RETURN_2)
                 {
-                  Jdb::printf_statline("p", 0, "u");
+                  Jdb::printf_statline("p", nullptr, "u");
                   Jdb::execute_command("u", c1);
                   return Exit;
                 }
@@ -217,7 +217,7 @@ Jdb_ptab::key_pressed(int c, unsigned long &row, unsigned long &col)
                 return Exit;
               return Redraw;
             }
-          else if (jdb_dump_addr_task != 0)
+          else if (jdb_dump_addr_task != nullptr)
             {
               if (!jdb_dump_addr_task(Jdb_address(disp_virt(idx), _task), _level + 1))
                 return Exit;
@@ -266,7 +266,7 @@ Jdb_ptab_m::help_text(Kobject_common *o) const
   if (cxx::dyn_cast<Task*>(o) || ((t = cxx::dyn_cast<Thread*>(o)) && t->space()))
     return "p=ptab";
 
-  return 0;
+  return nullptr;
 }
 
 Jdb_module::Action_code

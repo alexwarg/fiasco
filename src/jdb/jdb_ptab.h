@@ -10,7 +10,7 @@
 class Jdb_ptab : public Jdb_table
 {
 public:
-  Jdb_ptab(void *pt_base = 0, Space *task = 0,
+  Jdb_ptab(void *pt_base = nullptr, Space *task = nullptr,
            unsigned char pt_level = 0, unsigned entries = 0,
            Address virt_base = 0, int level = 0);
 

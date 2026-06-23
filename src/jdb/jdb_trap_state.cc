@@ -21,7 +21,7 @@ public:
   Jdb_trap_state_module() FIASCO_INIT;
 
   Action_code action(int cmd, void *&argbuf, char const *&fmt, int &next) override;
-  int num_cmds() const;
+  int num_cmds() const override;
   Cmd const *cmds() const override;
 
 private:

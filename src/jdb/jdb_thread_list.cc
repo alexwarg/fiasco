@@ -172,7 +172,7 @@ private:
   static Cpu_number cpu;
 
   static bool iter(int count, Thread **t_start,
-                   void (*iter)(Thread *t)=0);
+                   void (*iter)(Thread *t) = nullptr);
 
 private:
   static int _mode;
@@ -374,7 +374,7 @@ Jdb_thread_list::iter(int count, Thread **t_start,
   int i = 0;
   int forw = (count >= 0);
   Thread *t, *t_new = *t_start, *t_head = _t_head;
-  long (*get_key)(Thread *t) = 0;
+  long (*get_key)(Thread *t) =  nullptr;
 
   if (count == 0)
     return false;  // nothing changed
@@ -727,7 +727,7 @@ Jdb_thread_list::list_threads(Thread *t_start, char pr)
 #endif
 		case KEY_RETURN: // show current tcb
 		case KEY_RETURN_2:
-		  if (jdb_show_tcb != 0)
+		  if (jdb_show_tcb !=  nullptr)
 		    {
 		      t = Jdb_thread_list::index(y);
 		      if (!jdb_show_tcb(t, 1))
@@ -754,7 +754,7 @@ Jdb_thread_list::cmds() const
   static Cmd cs[] =
     {
 	{ 0, "l", "list", "%C", "l{r|p}\tshow ready/present list", &subcmd },
-        { 1, "", "threadlist", "%C", 0 /* invisible */, &subcmd },
+        { 1, "", "threadlist", "%C",  nullptr /* invisible */, &subcmd },
     };
 
   return cs;

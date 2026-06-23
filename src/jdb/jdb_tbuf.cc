@@ -88,11 +88,11 @@ Jdb_tbuf::lookup(Mword look_idx)
       Tb_entry *e = unfiltered_lookup(idx);
 
       if (!e)
-	return 0;
+        return nullptr;
       if (e->is_hidden())
-	continue;
+        continue;
       if (!look_idx--)
-	return e;
+        return e;
     }
 }
 

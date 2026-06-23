@@ -132,7 +132,7 @@ Jdb_core::Cmd Jdb_core::has_cmd(char const *cmd)
         return c;
     }
 
-  return Cmd(0);
+  return Cmd(nullptr);
 }
 
 unsigned
@@ -150,7 +150,7 @@ unsigned
 Jdb_core::print_alternatives(char const *prefix)
 {
   unsigned prefix_len = 0;
-  char const *match = 0;
+  char const *match = nullptr;
 
   for (auto const &&m: Jdb_module::modules)
     {
@@ -177,7 +177,7 @@ Jdb_core::print_alternatives(char const *prefix)
 Jdb_core::Cmd
 Jdb_core::complete_cmd(char const *prefix, bool &multi_match)
 {
-  Cmd match(0, 0);
+  Cmd match(nullptr, nullptr);
   multi_match = false;
 
   for (auto const &&m: Jdb_module::modules)
@@ -666,7 +666,7 @@ public:
       { 
           { 0, "g", "go", "",
              "g\tleave kernel debugger\n"
-             "Return\tshow debug message", 0 },
+             "Return\tshow debug message", nullptr },
       };
 
     return cs;
@@ -788,8 +788,8 @@ public:
   {
     static Cmd cs[] =
       {
-          { 0, "h", "help", "", "h\tShow this help screen.", 0 },
-          { 0, "?", 0, "", 0, 0 },
+          { 0, "h", "help", "", "h\tShow this help screen.", nullptr },
+          { 0, "?", nullptr, "", nullptr, nullptr },
       };
 
     return cs;

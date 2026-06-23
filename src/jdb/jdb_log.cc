@@ -99,7 +99,7 @@ private:
       if (   !strcmp(name, i->name)
           || !strcmp(sc, i->name + strlen(i->name) + 1))
         return i;
-    return 0;
+    return nullptr;
   }
 
   static void
@@ -347,7 +347,7 @@ Jdb_log::cmds() const
 {
   static Cmd cs[] =
     {
-	{ 0, "O", "log", "", "O\tselect log events", 0 },
+	{ 0, "O", "log", "", "O\tselect log events", nullptr },
     };
   return cs;
 }

@@ -120,7 +120,7 @@ private:
       }
   }
 
-  void delim(const char *text = 0)
+  void delim(const char *text = nullptr)
   {
     puts(Jdb_screen::Line);
     if (text)

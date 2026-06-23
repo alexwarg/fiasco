@@ -27,7 +27,7 @@ public:
   {
     if(out_buf)
       Kmem_alloc::allocator()->free(Bytes(out_buf_size), out_buf);
-    out_buf = 0;
+    out_buf = nullptr;
   }
 
   /**

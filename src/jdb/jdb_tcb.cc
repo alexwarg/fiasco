@@ -583,7 +583,7 @@ dump_stack:
                   int c1 = Jdb_core::getchar();
                   if ((c1 != KEY_RETURN) && c1 != KEY_RETURN_2 && (c1 != ' '))
                     {
-                      Jdb::printf_statline("tcb", 0, "u");
+                      Jdb::printf_statline("tcb", nullptr, "u");
                       Jdb::execute_command("u", c1);
                       return NOTHING;
                     }
@@ -692,7 +692,7 @@ Jdb_tcb::action(int cmd, void *&args, char const *&fmt, int &next_char)
               case ' ':
               case KEY_RETURN:
               case KEY_RETURN_2:
-                show(0, 0, false);
+                show(nullptr, 0, false);
                 return NOTHING;
               default:
                 args      = &threadid;
@@ -792,7 +792,7 @@ Jdb_tcb::cmds() const
           "t[<threadid>]\tshow current/given thread control block (TCB)\n"
           "t{+|-}\tshow current thread control block at every JDB entry",
           &first_char },
-        { 1, "", "tcbdump", "%C", 0, &first_char },
+        { 1, "", "tcbdump", "%C", nullptr, &first_char },
     };
   return cs;
 }

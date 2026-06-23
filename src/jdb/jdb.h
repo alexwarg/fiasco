@@ -212,7 +212,7 @@ public:
   static Space *get_task(Cpu_number cpu)
   {
     if (!get_thread(cpu))
-      return 0;
+      return nullptr;
     else
       return get_thread(cpu)->space();
   }

@@ -52,7 +52,7 @@ class Jdb_kobject_handler : public cxx::S_list_item
 public:
   template<typename T>
   Jdb_kobject_handler(T const *) : kobj_type(cxx::Typeid<T>::get()) {}
-  Jdb_kobject_handler() : kobj_type(0) {}
+  Jdb_kobject_handler() : kobj_type(nullptr) {}
   cxx::Type_info const *kobj_type;
   virtual bool show_kobject(Kobject_common *o, int level) = 0;
   virtual void show_kobject_short(String_buffer *, Kobject_common *, bool) {}
@@ -60,8 +60,8 @@ public:
   virtual ~Jdb_kobject_handler() {}
   virtual bool invoke(Kobject_common *o, Syscall_frame *f, Utcb *utcb);
   virtual bool handle_key(Kobject_common *, int /*keycode*/) { return false; }
-  virtual char const *help_text(Kobject_common *) const { return 0; };
-  virtual Kobject *parent(Kobject_common *) { return 0; }
+  virtual char const *help_text(Kobject_common *) const { return nullptr; };
+  virtual Kobject *parent(Kobject_common *) { return nullptr; }
   char const *kobject_type(Kobject_common *o) const
   { return _kobject_type(o); }
   static char const *_kobject_type(Kobject_common *o);

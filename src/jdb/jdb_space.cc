@@ -116,7 +116,7 @@ Jdb_space::cmds() const
 {
   static Cmd cs[] =
     {
-        { 0, "s", "spacelist", "", "s\tshow task list", 0 },
+        { 0, "s", "spacelist", "", "s\tshow task list", nullptr },
     };
   return cs;
 }

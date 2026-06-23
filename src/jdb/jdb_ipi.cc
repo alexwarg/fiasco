@@ -35,7 +35,7 @@ public:
   Cmd const *cmds() const override
   {
     static Cmd cs[] =
-      { { 0, "", "ipi", "", "ipi\tIPI information", 0 } };
+      { { 0, "", "ipi", "", "ipi\tIPI information", nullptr } };
 
     return cs;
   }

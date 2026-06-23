@@ -49,7 +49,7 @@ public:
   Cmd const *cmds() const override
   {
     static Cmd cs[] =
-      { { 0, "^", "exit", "", "^\treboot the system", 0 } };
+      { { 0, "^", "exit", "", "^\treboot the system", nullptr } };
 
     return cs;
   }

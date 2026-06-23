@@ -46,7 +46,7 @@ public:
      * @param _mod the Jdb_module providing the command.
      * @param _cmd the command structure (see Jdb_module::Cmd).
      */
-    Cmd(Jdb_module *_mod, Jdb_module::Cmd const *_cmd = 0)
+    Cmd(Jdb_module *_mod = nullptr, Jdb_module::Cmd const *_cmd = nullptr)
       : mod(_mod), cmd(_cmd)
     {}
   };

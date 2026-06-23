@@ -121,7 +121,7 @@ Kobject *
 Jdb_kobject_list::next(Kobject *obj)
 {
   if (!obj)
-    return 0;
+    return nullptr;
 
   Kobject_dbg::Iterator o = Kobject_dbg::Kobject_list::iter(obj->dbg_info());
 
@@ -129,7 +129,7 @@ Jdb_kobject_list::next(Kobject *obj)
     {
       ++o;
       if (o == Kobject_dbg::end())
-	return 0;
+	return nullptr;
     }
   while (_filter && !_filter(Kobject::from_dbg(*o)));
   return Kobject::from_dbg(*o);
@@ -140,7 +140,7 @@ Kobject *
 Jdb_kobject_list::prev(Kobject *obj)
 {
   if (!obj)
-    return 0;
+    return nullptr;
 
   Kobject_dbg::Iterator o = Kobject_dbg::Kobject_list::iter(obj->dbg_info());
 
@@ -148,7 +148,7 @@ Jdb_kobject_list::prev(Kobject *obj)
     {
       --o;
       if (o == Kobject_dbg::end())
-	return 0;
+	return nullptr;
     }
   while (_filter && !_filter(Kobject::from_dbg(*o)));
   return Kobject::from_dbg(*o);
@@ -284,7 +284,7 @@ Jdb_kobject::find_handler(Kobject_common *o)
         return *h;
     }
 
-  return 0;
+  return nullptr;
 }
 
 bool
@@ -371,7 +371,7 @@ Jdb_kobject::cmds() const
     {
 	{ 0, "K", "kobj", "%p", "K<kobj_ptr>\tshow information for kernel object", 
 	  &kobjp },
-	{ 1, "Q", "listkobj", "", "Q\tshow information for kernel objects", 0 },
+	{ 1, "Q", "listkobj", "", "Q\tshow information for kernel objects", nullptr },
     };
   return cs;
 }
@@ -422,7 +422,7 @@ Jdb_kobject::fmt_handler(char /*fmt*/, int *size, char const *cmd_str, void *arg
 
   if (!pos)
     {
-      *a = 0;
+      *a = nullptr;
       return 0;
     }
 
@@ -430,7 +430,7 @@ Jdb_kobject::fmt_handler(char /*fmt*/, int *size, char const *cmd_str, void *arg
   if (buffer[0] == 'P')
     num = buffer + 1;
 
-  n = strtoul(num, 0, 16);
+  n = strtoul(num, nullptr, 16);
 
   Kobject_dbg::Iterator ko;
 
@@ -442,7 +442,7 @@ Jdb_kobject::fmt_handler(char /*fmt*/, int *size, char const *cmd_str, void *arg
   if (ko != Kobject_dbg::end())
     *a = Kobject::from_dbg(ko);
   else
-    *a = 0;
+    *a = nullptr;
 
   return 0;
 }

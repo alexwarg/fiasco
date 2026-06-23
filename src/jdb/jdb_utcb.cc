@@ -128,7 +128,7 @@ public:
     if (cxx::dyn_cast<Thread *>(o))
       return "z=UTCB/vCPU";
 
-    return 0;
+    return nullptr;
   }
 };
 

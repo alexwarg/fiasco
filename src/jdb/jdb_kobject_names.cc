@@ -45,7 +45,7 @@ Jdb_kobject_name::operator new (size_t) noexcept
       ++n;
 
       if ((n - _names) >= Name_entries)
-        return 0;
+        return nullptr;
     }
 }
 
@@ -54,7 +54,7 @@ Jdb_kobject_name::operator delete (void *p)
 {
   auto g = lock_guard(allocator_lock);
   void **o = reinterpret_cast<void**>(p);
-  *o = 0;
+  *o = nullptr;
 }
 
 void

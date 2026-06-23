@@ -48,7 +48,7 @@ Jdb_list::index(int y)
 void
 Jdb_list::handle_string_filter_input()
 {
-  Jdb::printf_statline("filter", 0, "%s=%s",
+  Jdb::printf_statline("filter", nullptr, "%s=%s",
                        Jdb_regex::avail() ? "Regexp" : "Search",
                        _filter_str);
 
@@ -60,7 +60,7 @@ Jdb_list::handle_string_filter_input()
   if (!_regex.start(_filter_str))
     {
       _filter_str[0] = 0;
-      Jdb::printf_statline("search", 0, "Error in regexp");
+      Jdb::printf_statline("search", nullptr, "Error in regexp");
       Jdb::getchar();
     }
 }
@@ -81,19 +81,19 @@ Jdb_list::render_visible(void *i, String_buffer *help_text)
       if (Jdb_regex::avail())
         {
           if (!_regex.find(buffer.begin(), 0, 0))
-            i = 0;
+            i = nullptr;
         }
       else
         {
           if (!strstr(buffer.begin(), _filter_str))
-            i = 0;
+            i = nullptr;
         }
     }
 
   if (i)
     return &buffer;
 
-  return 0;
+  return nullptr;
 }
 
 int

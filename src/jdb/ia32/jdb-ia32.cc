@@ -309,7 +309,7 @@ Jdb_ia32_base::guess_thread_state(Thread *t)
 
   for (int i=-1; i>-26; i--)
     {
-      if (ktop[i] != 0)
+      if (ktop[i] != nullptr)
 	{
 	  if (ktop[i] == &in_page_fault)
 	    state = s_pagefault;

@@ -87,6 +87,6 @@ Jdb_module::has_cmd(char const* cmd, bool short_mode, bool full) const
 	}
     }
 
-  return 0;
+  return nullptr;
 }
 

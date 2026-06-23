@@ -7,7 +7,7 @@
 class Jdb_list
 {
 public:
-  Jdb_list() : _start(0), _current(0), _screen_height(Jdb_screen::height() - 4)
+  Jdb_list() : _start(nullptr), _current(nullptr), _screen_height(Jdb_screen::height() - 4)
   {
     _filter_str[0] = 0;
   }
@@ -71,7 +71,7 @@ public:
   virtual bool enter_item(void * /*item*/) const { return true; }
   virtual void *follow_link(void *a) { return a; }
   virtual bool handle_key(void * /*item*/, int /*keycode*/) { return false; }
-  virtual void *parent(void * /*item*/) { return 0; }
+  virtual void *parent(void * /*item*/) { return nullptr; }
   virtual void *get_valid(void *a) { return a; }
 
 private:
@@ -89,7 +89,7 @@ private:
   int print_limit(const char *s, int visible_len);
   void show_line(Jdb_list::Line_buf *b);
   void *get_visible(void *i);
-  int filtered_seek(int cnt, void **item, Jdb_list::Line_buf **buf = 0);
+  int filtered_seek(int cnt, void **item, Jdb_list::Line_buf **buf = nullptr);
 };
 
 

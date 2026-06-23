@@ -52,7 +52,7 @@ public:
     if (cxx::dyn_cast<Thread *>(o) || cxx::dyn_cast<Ipc_gate_obj *>(o))
       return "S=sndlist";
 
-    return 0;
+    return nullptr;
   }
 
   int num_cmds() const override
@@ -73,7 +73,7 @@ private:
   static Kobject *object;
 
   void show_sender_list(Prio_list *t, int overlayprint, int printnone,
-                        const char *tag = 0, unsigned long dbgid = 0);
+                        const char *tag = nullptr, unsigned long dbgid = 0);
   bool show_obj(Kobject *o, int printnone);
 };
 
