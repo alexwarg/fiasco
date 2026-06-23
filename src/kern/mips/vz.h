@@ -19,7 +19,7 @@ public:
 
   struct Owner
   {
-    Context *ctxt = 0;
+    Context *ctxt = nullptr;
     int guest_id = -1;
   };
 

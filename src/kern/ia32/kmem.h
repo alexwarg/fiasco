@@ -94,7 +94,7 @@ public:
   }
 
   static void map_phys_page(Address phys, Address virt,
-                            bool cached, bool global, Address *offs = 0);
+                            bool cached, bool global, Address *offs = nullptr);
 
   static void init_mmu();
 

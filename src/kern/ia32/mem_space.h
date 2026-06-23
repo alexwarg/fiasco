@@ -94,8 +94,8 @@ public:
 
   Status v_insert(Phys_addr phys, Vaddr virt, Page_order size,
                   Attr page_attribs) FIASCO_SPACE_OVERRIDE;
-  bool v_lookup(Vaddr virt, Phys_addr *phys = 0, Page_order *order = 0,
-                Attr *page_attribs = 0) FIASCO_SPACE_OVERRIDE;
+  bool v_lookup(Vaddr virt, Phys_addr *phys = nullptr, Page_order *order = nullptr,
+                Attr *page_attribs = nullptr) FIASCO_SPACE_OVERRIDE;
   L4_fpage::Rights v_delete(Vaddr virt, Page_order size,
                             L4_fpage::Rights page_attribs) FIASCO_SPACE_OVERRIDE;
   void v_set_access_flags(Vaddr virt, L4_fpage::Rights access_flags) FIASCO_SPACE_OVERRIDE;

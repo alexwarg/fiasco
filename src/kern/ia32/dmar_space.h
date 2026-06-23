@@ -202,7 +202,7 @@ public:
         _dmarpt->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Dmar_pt::Depth,
                          Kmem_alloc::q_allocator(ram_quota()));
         Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _dmarpt);
-        _dmarpt = 0;
+        _dmarpt = nullptr;
         return false;
       }
 

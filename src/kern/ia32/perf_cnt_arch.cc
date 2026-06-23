@@ -322,10 +322,10 @@ int setup_pmc(Mword slot, Mword event, Mword user, Mword kern, Mword edge)
 
   unsigned nr, evntsel;
   Mword bitmask, unit_mask;
-  const struct perfctr_event *pe = 0;
+  const struct perfctr_event *pe = nullptr;
 
   split_event(event, &evntsel, &unit_mask);
-  if (perfctr_lookup_event != 0)
+  if (perfctr_lookup_event != nullptr)
     pe = perfctr_lookup_event(evntsel, &nr);
   bitmask = pe ? pe->counters_set : 0xffff;
   pcnt->setup_pmc(slot, bitmask, event, user, kern, edge);
@@ -345,29 +345,29 @@ int mode(Mword slot, const char **mode, const char **name,
 
   unsigned nr, evntsel;
   Mword unit_mask;
-  const struct perfctr_event *pe = 0;
+  const struct perfctr_event *pe = nullptr;
 
   pcnt->mode(slot, mode, event, user, kern, edge);
   split_event(*event, &evntsel, &unit_mask);
-  if (perfctr_lookup_event != 0)
+  if (perfctr_lookup_event != nullptr)
     pe = perfctr_lookup_event(evntsel, &nr);
   *name  = pe ? pe->name : "";
   return 1;
 }
 
 Mword get_max_perf_event()
-{ return (perfctr_get_max_event != 0) ? perfctr_get_max_event() : 0; }
+{ return (perfctr_get_max_event != nullptr) ? perfctr_get_max_event() : 0; }
 
 void get_perf_event(Mword nr, unsigned *evntsel, 
                     const char **name, const char **desc)
 {
-  const struct perfctr_event *pe = 0;
+  const struct perfctr_event *pe = nullptr;
 
-  if (perfctr_index_event != 0)
+  if (perfctr_index_event != nullptr)
     pe = perfctr_index_event(nr);
 
-  *name    = pe ? pe->name        : 0;
-  *desc    = pe ? pe->description : 0;
+  *name    = pe ? pe->name        : nullptr;
+  *desc    = pe ? pe->description : nullptr;
   *evntsel = pe ? pe->evntsel     : 0;
 }
 
@@ -375,7 +375,7 @@ Mword lookup_event(unsigned evntsel)
 {
   unsigned nr;
 
-  if (perfctr_lookup_event != 0 && perfctr_lookup_event(evntsel, &nr) != 0)
+  if (perfctr_lookup_event != nullptr && perfctr_lookup_event(evntsel, &nr) != nullptr)
     return nr;
   return static_cast<Mword>(-1l);
 }
@@ -383,9 +383,9 @@ Mword lookup_event(unsigned evntsel)
 void get_unit_mask(Mword nr, Unit_mask_type *type,
                    Mword *default_value, Mword *nvalues)
 {
-  const struct perfctr_event *event = 0;
+  const struct perfctr_event *event = nullptr;
 
-  if (perfctr_index_event != 0) 
+  if (perfctr_index_event != nullptr) 
     event = perfctr_index_event(nr);
 
   *type = None;
@@ -405,13 +405,13 @@ void get_unit_mask(Mword nr, Unit_mask_type *type,
 void get_unit_mask_entry(Mword nr, Mword idx,
                          Mword *value, const char **desc)
 {
-  const struct perfctr_event *event = 0;
+  const struct perfctr_event *event = nullptr;
 
-  if (perfctr_index_event != 0)
+  if (perfctr_index_event != nullptr)
     event = perfctr_index_event(nr);
 
   *value = 0;
-  *desc  = 0;
+  *desc  = nullptr;
   if (event && event->unit_mask && (idx < event->unit_mask->nvalues))
     {
       *value = event->unit_mask->values[idx].value;
@@ -989,18 +989,18 @@ void init()
     {
       perfctr_type = Perfctr_x86_generic;
       perf_cnt.destroy();
-      pcnt         = 0;  // init failed, no performance counters available
+      pcnt         = nullptr;  // init failed, no performance counters available
     }
 
-  if (perfctr_cpu_event_set != 0 && perfctr_cpu_event_set(perfctr_type) == 0)
+  if (perfctr_cpu_event_set != nullptr && perfctr_cpu_event_set(perfctr_type) == 0)
     {
       perfctr_type = Perfctr_x86_generic;
       perf_cnt.destroy();
-      pcnt         = 0;  // init failed, no performance counters available
+      pcnt         = nullptr;  // init failed, no performance counters available
     }
 
   // tell perflib the cpu type
-  if (perfctr_set_cputype != 0)
+  if (perfctr_set_cputype != nullptr)
     perfctr_set_cputype(perfctr_type);
 
 }

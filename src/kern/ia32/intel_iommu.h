@@ -360,9 +360,9 @@ public:
   unsigned inv_q_size = 0;
   Inv_desc *inv_q;
 
-  Rte *_root_table = 0;
+  Rte *_root_table = nullptr;
 
-  Irte volatile *_irq_remapping_table = 0;
+  Irte volatile *_irq_remapping_table = nullptr;
   unsigned _irq_remap_table_size = 0;
 
   Io_mmu()

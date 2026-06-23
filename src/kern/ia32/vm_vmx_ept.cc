@@ -51,7 +51,7 @@ public:
         _ept->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Ept::Depth,
                       Kmem_alloc::q_allocator(ram_quota()));
         Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _ept);
-        _ept = 0;
+        _ept = nullptr;
         _ept_phys = 0;
       }
   }

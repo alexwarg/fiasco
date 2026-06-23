@@ -119,7 +119,7 @@ private:
             // PCI sub-hierarchy
           }
       }
-    return 0;
+    return nullptr;
   }
 
   Mword parse_src_id(Unsigned64 src_id, Unsigned8 *bus, unsigned *dfs,

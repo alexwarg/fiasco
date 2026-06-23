@@ -73,7 +73,7 @@ Io_apic_mgr::init_ap(Cpu_number cpu, bool resume)
 
 Io_apic::Io_apic(Unsigned64 phys, unsigned gsi_base)
 : Irq_chip_ia32(0), _l(Spin_lock<>::Unlocked),
-  _offset(gsi_base), _next(0)
+  _offset(gsi_base), _next(nullptr)
 {
   if (Print_info)
     printf("IO-APIC: addr=%lx\n", static_cast<Mword>(phys));
@@ -295,7 +295,7 @@ Io_apic::find_apic(unsigned irqnum)
       if (a->_offset <= irqnum && a->_offset + a->_irqs > irqnum)
 	return a;
     }
-  return 0;
+  return nullptr;
 };
 
 void

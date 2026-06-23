@@ -14,7 +14,7 @@ protected:
   class Ldt
   {
   public:
-    Ldt() : _addr(0), _size(0) {}
+    Ldt() : _addr(nullptr), _size(0) {}
     Address addr() const { return reinterpret_cast<Address>(_addr); }
     Mword   size() const { return _size; }
 

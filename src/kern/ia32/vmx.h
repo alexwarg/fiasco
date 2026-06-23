@@ -199,10 +199,9 @@ struct Vmx_user_info
       Foi_size = 4
     };
 
-    template<typename T>
-    static T *field(T *b, unsigned vm_field)
+    static void *field(void const *b, unsigned vm_field)
     {
-      return (void*)((Address)b + master_offsets[vm_field >> 10] * 64
+      return reinterpret_cast<void *>((Address)b + master_offsets[vm_field >> 10] * 64
              + ((vm_field & 0x3ff) << master_offsets[Foi_size + (vm_field >> 13)]));
     }
 
@@ -221,8 +220,8 @@ struct Vmx_user_info
                   unsigned s2 = ((t2 << 10) | (w2 << 13));
                   unsigned e1 = s1 | max_idx;
                   unsigned e2 = s2 | max_idx;
-                  assert (field((void*)0, s1) > field((void*)0, e2)
-                          || field((void*)0, s2) > field((void*)0, e1));
+                  assert (field(nullptr, s1) > field(nullptr, e2)
+                          || field(nullptr, s2) > field(nullptr, e1));
                   (void) s1; (void) s2; (void) e1; (void) e2;
                 }
     }
