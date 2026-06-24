@@ -6,7 +6,7 @@
 void *
 Slab_cache::alloc()	// request initialized member from cache
 {
-  void *unused_block = 0;
+  void *unused_block = nullptr;
   void *ret;
     {
       auto guard = lock_guard(lock);
@@ -18,7 +18,7 @@ Slab_cache::alloc()	// request initialized member from cache
           guard.reset();
 
           char *m = static_cast<char*>(block_alloc(_slab_size, _slab_size));
-          Slab *new_slab = 0;
+          Slab *new_slab = nullptr;
           if (m)
             new_slab = new (m + _slab_size - sizeof(Slab)) Slab(_elem_num, _entry_size, m);
 
@@ -32,7 +32,7 @@ Slab_cache::alloc()	// request initialized member from cache
             {
               // real OOM
               if (!m)
-                return 0;
+                return nullptr;
 
               _partial.add(new_slab);
               s = new_slab;
@@ -60,7 +60,7 @@ Slab_cache::alloc()	// request initialized member from cache
 void
 Slab_cache::free(void *cache_entry) // return initialized member to cache
 {
-  Slab *to_free = 0;
+  Slab *to_free = nullptr;
     {
       auto guard = lock_guard(lock);
 
@@ -99,7 +99,7 @@ Slab_cache::free(void *cache_entry) // return initialized member to cache
 unsigned long
 Slab_cache::reap()		// request that cache returns memory to system
 {
-  Slab *s = 0;
+  Slab *s = nullptr;
   unsigned long sz = 0;
 
   for (;;)
