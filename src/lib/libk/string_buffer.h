@@ -6,13 +6,13 @@
 class String_buffer
 {
 public:
-  String_buffer() : _buf(0), _len(0) {}
-  String_buffer(char *buf, int len) : _buf(buf), _len(len) {}
+  String_buffer() = default;
+  constexpr String_buffer(char *buf, int len) : _buf(buf), _len(len) {}
 
-  int space() const { return _len; }
-  char *remaining_buffer() const { return _buf; }
-  void reset(char *buf, int len) { _buf = buf; _len = len; }
-  bool append(char c)
+  constexpr int space() const { return _len; }
+  constexpr char *remaining_buffer() const { return _buf; }
+  constexpr void reset(char *buf, int len) { _buf = buf; _len = len; }
+  constexpr bool append(char c)
   {
     if (_len <= 0)
       return false;
@@ -22,13 +22,13 @@ public:
     return true;
   }
 
-  void fill(char c)
+  constexpr void fill(char c)
   {
     for (; _len > 0; ++_buf, --_len)
       *_buf = c;
   }
 
-  void terminate()
+  constexpr void terminate()
   {
     if (_len)
       *_buf = 0;
@@ -60,23 +60,23 @@ public:
   }
 
 private:
-  char *_buf;
-  int _len;
+  char *_buf = nullptr;
+  int _len = 0;
 };
 
 template<unsigned LEN>
 class String_buf : public String_buffer
 {
 public:
-  String_buf() : String_buffer(_s, LEN) {}
+  constexpr String_buf() : String_buffer(_s, LEN) {}
 
-  int length() const { return LEN - space(); }
-  char *begin() { return _s; }
-  char const *begin() const { return _s; }
-  char const *end() const { return remaining_buffer(); }
-  void reset() { String_buffer::reset(_s, LEN); }
-  void clear() { reset(); terminate(); }
-  char const *c_str()
+  constexpr int length() const { return LEN - space(); }
+  constexpr char *begin() { return _s; }
+  constexpr char const *begin() const { return _s; }
+  constexpr char const *end() const { return remaining_buffer(); }
+  constexpr void reset() { String_buffer::reset(_s, LEN); }
+  constexpr void clear() { reset(); terminate(); }
+  constexpr char const *c_str()
   {
     terminate();
     return begin();
