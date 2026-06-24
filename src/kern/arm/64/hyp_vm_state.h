@@ -275,13 +275,10 @@ Context_hyp::save()
   asm volatile ("mrs %x0, SPSR_EL1"  : "=r"(spsr_svc));
   asm volatile ("mrs %x0, CSSELR_EL1": "=r"(csselr));
 
-  if (EXPECT_TRUE(Cpu::boot_cpu_has_aarch32_el1()))
-    {
-      asm volatile ("mrs %x0, SPSR_fiq"  : "=r"(spsr_fiq));
-      asm volatile ("mrs %x0, SPSR_irq"  : "=r"(spsr_irq));
-      asm volatile ("mrs %x0, SPSR_abt"  : "=r"(spsr_abt));
-      asm volatile ("mrs %x0, SPSR_und"  : "=r"(spsr_und));
-    }
+  asm volatile ("mrs %x0, SPSR_fiq"  : "=r"(spsr_fiq));
+  asm volatile ("mrs %x0, SPSR_irq"  : "=r"(spsr_irq));
+  asm volatile ("mrs %x0, SPSR_abt"  : "=r"(spsr_abt));
+  asm volatile ("mrs %x0, SPSR_und"  : "=r"(spsr_und));
 }
 
 inline
@@ -306,12 +303,9 @@ Context_hyp::load()
   asm volatile ("msr SPSR_EL1, %x0"       : : "r"(spsr_svc));
   asm volatile ("msr CSSELR_EL1, %x0"     : : "r"(csselr));
 
-  if (EXPECT_TRUE(Cpu::boot_cpu_has_aarch32_el1()))
-    {
-      asm volatile ("msr SPSR_fiq, %x0"       : : "r"(spsr_fiq));
-      asm volatile ("msr SPSR_irq, %x0"       : : "r"(spsr_irq));
-      asm volatile ("msr SPSR_abt, %x0"       : : "r"(spsr_abt));
-      asm volatile ("msr SPSR_und, %x0"       : : "r"(spsr_und));
-    }
+  asm volatile ("msr SPSR_fiq, %x0"       : : "r"(spsr_fiq));
+  asm volatile ("msr SPSR_irq, %x0"       : : "r"(spsr_irq));
+  asm volatile ("msr SPSR_abt, %x0"       : : "r"(spsr_abt));
+  asm volatile ("msr SPSR_und, %x0"       : : "r"(spsr_und));
 }
 
