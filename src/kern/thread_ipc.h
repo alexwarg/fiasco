@@ -471,6 +471,8 @@ private:
   bool activate_ipc_partner(Thread *partner, Cpu_number current_cpu,
                             bool do_switch)
   {
+    // the existence of the 'partner' is ensured by having
+    // Thread_receive_in_progress still flagged
     partner->state.change(~Thread_receive_in_progress, Thread_ready);
     if (partner->home_cpu() == current_cpu)
       {
@@ -659,6 +661,11 @@ private:
     return true;
   }
 
+  inline bool
+  _ipc_send(L4_msg_tag tag, Thread *partner,
+            bool have_receive, L4_timeout_pair t,
+            Syscall_frame *regs,
+            Cpu_number current_cpu);
 };
 
 /**
@@ -865,6 +872,72 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag tag,
   return true;
 }
 
+template<typename T>
+inline bool
+Thread_ipc<T>::_ipc_send(L4_msg_tag tag, Thread *partner,
+                         bool have_receive, L4_timeout_pair t,
+                         Syscall_frame *regs,
+                         Cpu_number current_cpu)
+{
+  bool ok;
+  bool activate_partner = false;
+  Check_sender result = partner->check_sender(_this(), t.snd.is_zero(),
+                                              EXPECT_TRUE(current_cpu == partner->home_cpu()));
+  switch (result.s)
+    {
+    case Check_sender::Queued:
+      // set _snd_msg_tag to enable active receiving
+      _snd_msg_tag = tag;
+      if (partner->home_cpu() != current_cpu && partner->are_vcpu_irqs_enabled())
+        partner->set_xcpu_ipc_pending();
+
+      // --- do_send_wait is blocking... RCU references need protection.
+      ok = _this()->do_send_wait(partner, t.snd); // --- blocking point ---
+
+      // --- partner is invalid here
+      // FIXME: sender might be gone from here
+      break;
+
+    case Check_sender::Failed:
+      _this()->state.del(Thread_ipc_mask);
+      ok = false;
+      break;
+
+    default:
+      // ping pong with timeouts will profit from resetting the receiver´s
+      // timeout, because it will require much less sorting overhead. If we
+      // don't reset the timeout, the probability is very high that the
+      // receiver timeout is in the timeout queue.
+      if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
+        partner->reset_timeout();
+
+      // --- transfer is possibly blocking... RCU references need protection.
+      ok = transfer_msg(tag, partner, result.is_open_wait());
+      partner->state.del(Thread_receive_in_progress);
+      // --- from here partner is valid until the next preemption point
+      // FIXME: sender might be gone already
+
+      // switch to receiving state
+      Mword state_to_add = 0;
+      if (ok && have_receive)
+        state_to_add = Thread_receive_wait;
+
+      _this()->state.change(~Thread_ipc_mask, state_to_add);
+      activate_partner = partner != this;
+      break;
+    }
+
+  if (EXPECT_FALSE(!ok))
+    {
+      // Send failed. Skip the receive phase (Thread_receive_wait was not
+      // set) but still activate the partner (may include a switch to it)
+      // to inform the partner about the failed IPC.
+      regs->tag(L4_msg_tag(0, 0, L4_msg_tag::Error, 0));
+    }
+
+  return activate_partner;
+}
+
 /**
  * Send an IPC message and/or receive an IPC message.
  *
@@ -905,7 +978,6 @@ Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
 
   _this()->prepare_receive(sender, have_receive ? regs : nullptr);
   bool activate_partner = false;
-  Cpu_number current_cpu = ::current_cpu();
 
   if (partner)
     {
@@ -916,58 +988,7 @@ Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
 
       assert(!in_sender_list());
       do_switch = tag.do_switch();
-
-      bool ok;
-      Check_sender result = partner->check_sender(_this(), t.snd.is_zero(),
-                                                  EXPECT_TRUE(current_cpu == partner->home_cpu()));
-      switch (result.s)
-        {
-        case Check_sender::Queued:
-          // set _snd_msg_tag to enable active receiving
-          _snd_msg_tag = tag;
-          if (partner->home_cpu() != current_cpu && partner->are_vcpu_irqs_enabled())
-            partner->set_xcpu_ipc_pending();
-          ok = _this()->do_send_wait(partner, t.snd); // --- blocking point ---
-          current_cpu = ::current_cpu();
-          break;
-
-        case Check_sender::Failed:
-          _this()->state.del(Thread_ipc_mask);
-          ok = false;
-          break;
-
-        default:
-          // ping pong with timeouts will profit from resetting the receiver´s
-          // timeout, because it will require much less sorting overhead. If we
-          // don't reset the timeout, the probability is very high that the
-          // receiver timeout is in the timeout queue.
-          if (EXPECT_TRUE(current_cpu == partner->home_cpu()))
-            partner->reset_timeout();
-
-          ok = transfer_msg(tag, partner, result.is_open_wait());
-
-          partner->state.del(Thread_receive_in_progress);
-
-          // transfer is also a possible migration point
-          current_cpu = ::current_cpu();
-
-          // switch to receiving state
-          Mword state_to_add = 0;
-          if (ok && have_receive)
-            state_to_add = Thread_receive_wait;
-
-          _this()->state.change(~Thread_ipc_mask, state_to_add);
-          activate_partner = partner != this;
-          break;
-        }
-
-      if (EXPECT_FALSE(!ok))
-        {
-          // Send failed. Skip the receive phase (Thread_receive_wait was not
-          // set) but still activate the partner (may include a switch to it)
-          // to inform the partner about the failed IPC.
-          regs->tag(L4_msg_tag(0, 0, L4_msg_tag::Error, 0));
-        }
+      activate_partner = _ipc_send(tag, partner, have_receive, t, regs, ::current_cpu());
     }
   else
     {
@@ -1018,15 +1039,13 @@ Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
           && (   (rcv_in_progress && sender) // closed wait (call)
               || (Sched_context::rq.current().current_sched() != _this()->sched()));
 
-        activate_ipc_partner(partner, current_cpu, do_direct_switch);
+        activate_ipc_partner(cxx::move(partner), ::current_cpu(), do_direct_switch);
+        // --- partner no longer valid from this point ...
       }
 
     if (have_receive && rcv_in_progress)
       do_receive(next, sender, t.rcv, rcv_timeout);
   }
-
-  if (sender && sender == partner)
-    partner->reset_caller(_this());
 
   Mword state = _this()->state();
 
