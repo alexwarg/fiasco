@@ -328,7 +328,8 @@ Thread::ipc_receiver_aborted()
 
   utcb().access()->error = L4_error::Canceled;
 
-  if (xcpu_state_change(~0UL, Thread_transfer_failed | Thread_ready, true))
+  state.change(~Thread_send_wait, Thread_transfer_failed | Thread_ready);
+  if (xcpu_lazy_ready_enqueue())
     current()->switch_to_locked(this);
 }
 

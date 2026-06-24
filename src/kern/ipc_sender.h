@@ -116,7 +116,8 @@ protected:
     // ipc completed
     if (!cpu_local_receiver)
       {
-        receiver->xcpu_state_change(~Thread_ipc_mask, Thread_ready);
+        receiver->state.change(~Thread_ipc_mask, Thread_ready);
+        receiver->remote_ready_enqueue();
         return false;
       }
 

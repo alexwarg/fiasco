@@ -57,16 +57,6 @@ protected:
     constexpr bool is_open_wait() const { return s & Open_wait_flag; }
   };
 
-  struct Ipc_remote_request
-  {
-    L4_msg_tag tag;
-    Thread *partner;
-    bool zero_timeout;
-    bool have_rcv;
-
-    Check_sender result;
-  };
-
   class Buf_utcb_saver
   {
   public:
@@ -152,11 +142,6 @@ private:
   template<typename T>
   Thread const *_thread(T const *t)
   { return t; }
-
-  bool _xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
-  {
-    return _this()->xcpu_state_change(mask, add, lazy_q);
-  }
 
   static void clear_fpu_before_receive(Thread *partner)
   {
@@ -486,9 +471,9 @@ private:
   bool activate_ipc_partner(Thread *partner, Cpu_number current_cpu,
                             bool do_switch)
   {
+    partner->state.change(~Thread_receive_in_progress, Thread_ready);
     if (partner->home_cpu() == current_cpu)
       {
-        partner->state.change(~Thread_receive_in_progress, Thread_ready);
         if (do_switch)
           {
             _this()->schedule_if(_this()->switch_exec_locked(
@@ -499,7 +484,7 @@ private:
           return _this()->deblock_and_schedule(partner);
       }
 
-    partner->xcpu_state_change(~Thread_receive_in_progress, Thread_ready);
+    partner->remote_ready_enqueue();
     return false;
   }
 
@@ -707,7 +692,9 @@ Thread_ipc<THREAD>::ipc_send_msg(Context *recv, bool open_wait)
       state_add = Thread_transfer_failed | Thread_ready;
     }
 
-  if (_xcpu_state_change(~state_del, state_add, true))
+  _this()->state.change(~state_del, state_add);
+  // state_add always has ready set, so unconditionally enqueue
+  if (_this()->xcpu_lazy_ready_enqueue())
     recv->switch_to_locked(_this());
 }
 

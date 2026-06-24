@@ -102,11 +102,8 @@ class Context :
 
   struct State_request
   {
-    Spin_lock<> lock;
-    Mword add;
-    Mword del;
-
-    cxx::atomic<Mword> flags;
+    Spin_lock<> lock{Spin_lock<>::Unlocked};
+    cxx::atomic<Mword> flags{0};
 
     bool pending() const { return flags.load(); }
   };
@@ -407,25 +404,41 @@ public:
   Switch switch_exec_helping(Context *t, cxx::atomic<Mword> const *lock, Mword val);
 
   /**
-   * \brief Queue a DRQ for changing the contexts state.
-   * \param mask bit mask for the state (state &= mask).
-   * \param add bits to add to the state (state |= add).
-   * \note This function is a preemption point.
+   * Ready queue a potentially remote context.
    *
-   * This function must be used to change the state of contexts that are
-   * potentially running on a different CPU.
+   * \param lazy_q  If true and the context is on the current CPU and has the higest
+   *                priority it will not be enqueued, instead true is returned and
+   *                the caller is responsible for switching to this context.
+   *                If true the context will be queued and the result indicates if
+   *                local scheduling is required.
    */
-  bool xcpu_state_change(Mword mask, Mword add, bool lazy_q = false)
+  bool xcpu_ready_enqueue(bool lazy_q = false)
   {
-    state.change(mask, add);
-    if (add & Thread_ready_mask)
-      {
-       if (EXPECT_FALSE(access_once(&_home_cpu) == current_cpu()))
-         return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
-       else
-         pending_rqq_enqueue();
-      }
+    if (EXPECT_FALSE(access_once(&_home_cpu) == current_cpu()))
+      return Sched_context::rq.current().deblock(sched(), current()->sched(), lazy_q);
+
+    pending_rqq_enqueue();
     return false;
+  }
+
+  /**
+   * Lazyly ready queue a potentially remote context.
+   *
+   * If the context is on the current CPU and has the higest priority it
+   * will not be enqueued, instead true is returned and the caller is
+   * responsible for switching to this context.
+   */
+  bool xcpu_lazy_ready_enqueue()
+  {
+    return xcpu_ready_enqueue(true);
+  }
+
+  /**
+   * Ready queue a context on another CPU.
+   */
+  void remote_ready_enqueue()
+  {
+    pending_rqq_enqueue();
   }
 
   void set_xcpu_ipc_pending()

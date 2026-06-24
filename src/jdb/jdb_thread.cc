@@ -55,21 +55,6 @@ void
 Jdb_thread::print_state_long(Thread *t, unsigned max_size)
 {
   max_size = print_state_bits(t->state(), max_size);
-  if (!t->_remote_state_change.pending())
-    return;
-
-  if (max_size > 7)
-    {
-      putstr(" [add: ");
-      max_size = print_state_bits(t->_remote_state_change.add, max_size - 7);
-    }
-  if (max_size > 7)
-    {
-      putstr("; del: ");
-      max_size = print_state_bits(t->_remote_state_change.del, max_size - 7);
-    }
-  if (max_size > 0)
-    putchar(']');
 }
 
 void

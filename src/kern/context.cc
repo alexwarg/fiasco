@@ -118,7 +118,8 @@ void
 Context::activate()
 {
   auto guard = lock_guard(cpu_lock);
-  if (xcpu_state_change(~0UL, Thread_ready, true))
+  state.add(Thread_ready);
+  if (xcpu_lazy_ready_enqueue())
     current()->switch_to_locked(this);
 }
 
@@ -223,6 +224,8 @@ bool
 Context::rcu_unblock(Rcu_item *i)
 {
   assert(cpu_lock.test());
-  return static_cast<Context*>(i)->xcpu_state_change(~Thread_waiting, Thread_ready);
+  auto *ctxt = static_cast<Context*>(i);
+  ctxt->state.change(~Thread_waiting, Thread_ready);
+  return ctxt->xcpu_ready_enqueue();
 }
 
