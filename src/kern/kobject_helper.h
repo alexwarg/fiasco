@@ -60,7 +60,7 @@ public:
             Sender *s = (self.op() & L4_obj_ref::Ipc_open_wait)
                           ? nullptr
                           : _sender(t, static_cast<T*>(this));
-            t->do_ipc(f->tag(), 0, true, s, f->timeout(), f);
+            t->do_ipc_recv(f->tag(), s, f->timeout(), f);
             return;
           }
         else

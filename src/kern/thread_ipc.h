@@ -235,6 +235,12 @@ public:
               bool have_receive, Sender *sender, L4_timeout_pair t,
               Syscall_frame *regs);
 
+  void do_ipc_recv(L4_msg_tag tag, Sender *sender, L4_timeout_pair t,
+                   Syscall_frame *regs);
+
+  void do_ipc_open_wait(L4_msg_tag tag, L4_timeout_pair t,
+                        Syscall_frame *regs);
+
   bool handle_page_fault_pager(Address pfa, Mword error_code,
                                L4_msg_tag::Protocol protocol);
 
@@ -271,6 +277,10 @@ public:
   }
 
 private:
+
+  void _do_ipc(L4_msg_tag tag, Thread *partner,
+               bool have_receive, Sender *sender, L4_timeout_pair t,
+               Syscall_frame *regs);
 
   bool exception(Kobject_iface *handler, Trap_state *ts, L4_fpage::Rights rights);
 
@@ -972,10 +982,10 @@ Thread_ipc<T>::_ipc_send(L4_msg_tag tag, Thread *partner,
  *       quiescent states and blocking.
  */
 template<typename T>
-void
-Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
-                      bool have_receive, Sender *sender, L4_timeout_pair t,
-                      Syscall_frame *regs)
+inline void
+Thread_ipc<T>::_do_ipc(L4_msg_tag tag, Thread *partner,
+                       bool have_receive, Sender *sender, L4_timeout_pair t,
+                       Syscall_frame *regs)
 {
   assert (cpu_lock.test());
   assert (_this() == current());
@@ -1075,6 +1085,38 @@ Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
         regs->tag(Kobject::commit_error(utcb, L4_error::R_timeout, regs->tag()));
     }
   _this()->state.del(Thread_full_ipc_mask);
+}
+
+#ifdef FIASCO_THREAD_IMPL
+
+template<typename T>
+FIASCO_FLATTEN
+void
+Thread_ipc<T>::do_ipc_recv(L4_msg_tag tag, Sender *sender, L4_timeout_pair t,
+                           Syscall_frame *regs)
+{
+  _do_ipc(tag, nullptr, true, sender, t, regs);
+}
+
+template<typename T>
+FIASCO_FLATTEN
+void
+Thread_ipc<T>::do_ipc(L4_msg_tag tag, Thread *partner,
+                      bool have_receive, Sender *sender, L4_timeout_pair t,
+                      Syscall_frame *regs)
+{
+  _do_ipc(tag, partner, have_receive, sender, t, regs);
+}
+
+#endif
+
+template<typename T>
+FIASCO_FLATTEN inline
+void
+Thread_ipc<T>::do_ipc_open_wait(L4_msg_tag tag, L4_timeout_pair t,
+                                Syscall_frame *regs)
+{
+  _do_ipc(tag, nullptr, true, nullptr, t, regs);
 }
 
 /** Page fault handler.

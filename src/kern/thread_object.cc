@@ -83,9 +83,9 @@ Thread_object::sys_vcpu_resume(L4_msg_tag const &tag, Utcb const *utcb, Utcb *)
   if (vcpu->saved_irqs_enabled() && vcpu->pending_irqs())
     {
       assert(cpu_lock.test());
-      do_ipc(L4_msg_tag(), 0, true, 0,
-             L4_timeout_pair(L4_timeout::Zero, L4_timeout::Zero),
-             &vcpu->_ipc_regs);
+      do_ipc_open_wait(L4_msg_tag(),
+                       L4_timeout_pair(L4_timeout::Zero, L4_timeout::Zero),
+                       &vcpu->_ipc_regs);
 
       vcpu = vcpu_state().access(true);
 
@@ -552,6 +552,7 @@ Thread_object::destroy(Kobject ***rl)
   assert(_magic == magic);
 }
 
+FIASCO_FLATTEN
 void
 Thread_object::invoke(L4_obj_ref self, L4_fpage::Rights rights,
                       Syscall_frame *f, Utcb *utcb)

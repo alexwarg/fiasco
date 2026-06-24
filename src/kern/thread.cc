@@ -1,3 +1,8 @@
+
+// define this to make sure all (non-inline) Thread_ipc<>
+// implementations are available (must be before <thread.h>)
+#define FIASCO_THREAD_IMPL 1
+
 #include <thread.h>
 
 #include <cassert>
@@ -17,6 +22,10 @@
 #include <task.h>
 #include <thread_state.h>
 #include <timeout.h>
+
+// explicitely instantiate Thread_ipc<Thread> to make sure template
+// functions are available
+template class Thread_ipc<Thread>;
 
 JDB_DEFINE_TYPENAME(Thread,  "\033[32mThread\033[m");
 DEFINE_PER_CPU Per_cpu<unsigned long> Thread::nested_trap_recover;

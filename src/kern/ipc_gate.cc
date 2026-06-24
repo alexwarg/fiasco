@@ -286,6 +286,7 @@ Ipc_gate::del_notify()
   Ipc_gate_obj::target_thread(this)->ipc_gate_deleted(Ipc_gate_obj::from_poly(this)->id());
 }
 
+FIASCO_FLATTEN
 void
 Ipc_gate::invoke(L4_obj_ref, L4_fpage::Rights rights,
                  Syscall_frame *f, Utcb *utcb)
