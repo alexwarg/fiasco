@@ -376,7 +376,9 @@ public:
 
   void unbind(Irq_base *irq) override
   {
-    _irqs[irq->pin()] = 0;
+    auto pin = irq->pin();
+    _irqs[pin] = 0;
+    this->mask(pin);
     Irq_chip_icu::unbind(irq);
   }
 
