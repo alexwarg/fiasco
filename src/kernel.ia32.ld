@@ -105,13 +105,13 @@ SECTIONS {
     KEEP(*(__exc_table __exc_table.*))
     PROVIDE(__exc_table_end = .);
 
-    KEEP(*(.rodata.log.*))
+    *(.rodata.log.*)
 
     . = ALIGN(4);
     JDB_TABLE(log);
 
     . = ALIGN(4);
-    JDB_TABLE(typeinfo);
+    JDB_TABLE_KEEP(typeinfo);
 
     . = ALIGN(0x40);
 

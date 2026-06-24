@@ -102,7 +102,7 @@ SECTIONS {
     PROVIDE (_ecode = .);
 
     *(.rodata .rodata.* .gnu.linkonce.r.*)
-    KEEP(*(.rodata.log.*))
+    *(.rodata.log.*)
 
     . = ALIGN(8);
     PROVIDE(__exc_table_start = .);
@@ -117,7 +117,7 @@ SECTIONS {
     . = ALIGN(8);
     JDB_TABLE(log);
     . = ALIGN(8);
-    JDB_TABLE(typeinfo);
+    JDB_TABLE_KEEP(typeinfo);
 
     . = ALIGN(0x40);
 

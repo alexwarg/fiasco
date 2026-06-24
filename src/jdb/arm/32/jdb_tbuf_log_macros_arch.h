@@ -8,11 +8,12 @@
     {								\
       Mword __do_log__;						\
       asm volatile ("1:  mov    %0, #0		\n\t"		\
-		    ".pushsection \".debug.jdb.log_table\" \n\t" \
+                    ".subsection 10\n\t.reloc 0, R_ARM_NONE, 3f\n\t.previous\n\t" \
+		    ".pushsection .debug.jdb.log_table, \"a?\" \n\t" \
 		    "3: .long 2f		\n\t"		\
 		    "   .long 1b		\n\t"		\
 		    "   .long %c[xfmt]		\n\t"		\
-		    ".section \".rodata.log.str\" \n\t"		\
+		    ".section .rodata.log.str, \"a?\" \n\t"	\
 		    "2: .asciz "#name"		\n\t"           \
 		    "   .asciz "#sc"		\n\t"		\
 		    ".popsection		\n\t"		\

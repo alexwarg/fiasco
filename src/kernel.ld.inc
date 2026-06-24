@@ -14,10 +14,16 @@
 # define MWORD LONG
 #endif
 
-#define JDB_TABLE(name) \
+#define JDB_TABLE_KEEP(name) \
   . = ALIGN(32);                               \
   PROVIDE(_jdb_ ## name ## _table = .);        \
   KEEP(*(SORT(.debug.jdb.name ## _table)));    \
+  PROVIDE(_jdb_ ## name ## _table_end = .);
+
+#define JDB_TABLE(name) \
+  . = ALIGN(32);                               \
+  PROVIDE(_jdb_ ## name ## _table = .);        \
+  *(SORT(.debug.jdb.name ## _table));          \
   PROVIDE(_jdb_ ## name ## _table_end = .);
 
 /* 

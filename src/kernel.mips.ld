@@ -79,12 +79,12 @@ SECTIONS {
     KEEP(*(.mips.cpu_type))
     LONG(0); LONG(0); LONG(0); LONG(0);
 
-    KEEP(*(.rodata.log.*))
+    *(.rodata.log.*)
 
     . = ALIGN(WORD_ALIGN);
     JDB_TABLE(log);
     . = ALIGN(WORD_ALIGN);
-    JDB_TABLE(typeinfo);
+    JDB_TABLE_KEEP(typeinfo);
 
     . = ALIGN(0x40);
 
