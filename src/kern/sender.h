@@ -14,6 +14,9 @@ class Context;
 class Sender : private Prio_list_elem
 {
   MEMBER_OFFSET();
+
+  // allow Prio_list to deal with Sender gracefully
+  friend class Prio_list;
 public:
 
   using Prio_list_elem::wait_queue;
@@ -39,14 +42,18 @@ public:
     return Prio_list_elem::in_list();
   }
 
-  bool in_sender_list(Prio_list *list) const
+  static bool in_sender_list(Sender const *s, Prio_list const *list)
   {
-    return Prio_list_elem::wait_queue() == list;
+    if (auto p = list->current_poi())
+      if (p == s)
+        return p.queued();
+
+    return s->Prio_list_elem::wait_queue() == list;
   }
 
-  bool is_head_of(Prio_list const *l) const
+  static bool is_head_of(Sender const *s, Prio_list const *l)
   {
-    return l->first() == this;
+    return l->first() == s;
   }
 
   static Sender *cast(Prio_list_elem *e)

@@ -36,9 +36,6 @@ public:
     hit_func = is_edge_triggered ? &hit_edge_irq : &hit_level_irq;
   }
 
-  static Sender *sem_partner()
-  { return reinterpret_cast<Sender *>(5); }
-
   ALWAYS_INLINE
   bool down(Thread *ct)
   {
@@ -61,7 +58,7 @@ public:
             // set fake partner to avoid IPCs to the thread
             // TODO: make really sure that the partner pointer never gets
             //       dereferenced (use C++ types)
-            ct->set_partner(sem_partner());
+            ct->sender_list()->reset_poi(33);
             ct->state.change_dirty(~Thread_ready, Thread_receive_wait);
             _waiting.insert_dirty(ct->qitem(), ct->sched()->prio());
           }
@@ -113,7 +110,7 @@ public:
 
         // Reset partner only after clearing the Thread_receive_wait flag, otherwise
         // the thread can be misperceived as being in an IPC open wait.
-        c_thread->set_partner(nullptr);
+        c_thread->reset_partner();
       }
 
     if (EXPECT_FALSE(s & (Thread_cancel | Thread_timeout)))

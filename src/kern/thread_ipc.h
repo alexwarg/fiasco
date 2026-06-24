@@ -390,48 +390,6 @@ private:
     return success;
   }
 
-  Check_sender
-  check_sender(Thread *sender, bool zero_timeout, bool cpu_local)
-  {
-    if (EXPECT_FALSE(_this()->is_invalid()))
-      {
-        sender->utcb().access()->error = L4_error::Not_existent;
-        return Check_sender::Failed;
-      }
-
-    if (auto ok = _this()->sender_ok(sender, cpu_local))
-      if (_this()->state.change_safely(~Thread_receive_wait, Thread_receive_in_progress))
-        return ok;
-
-    if (zero_timeout)
-      {
-        sender->utcb().access()->error = L4_error::Timeout;
-        return Check_sender::Failed;
-      }
-
-    for (;;)
-      {
-        sender->state.add(Thread_send_wait);
-        sender->sender_enqueue(_this()->sender_list(), sender->sched_context()->prio());
-        if (auto ok = _this()->sender_ok(sender, cpu_local))
-          {
-            if (!sender->sender_dequeue(_this()->sender_list()))
-              return Check_sender::Queued;
-
-            if (_this()->state.change_safely(~Thread_receive_wait, Thread_receive_in_progress))
-              {
-                sender->state.del(Thread_send_wait);
-                return ok;
-              }
-          }
-        else
-          break;
-      }
-
-    _this()->vcpu_set_irq_pending();
-    return Check_sender::Queued;
-  }
-
   bool are_vcpu_irqs_enabled() const
   {
     Thread_state state = _this()->state();
@@ -445,7 +403,7 @@ private:
   {
     if (sender) // closed wait
       {
-        if (sender->in_sender_list(_this()->sender_list()))
+        if (Sender::in_sender_list(sender, _this()->sender_list()))
           return sender;
         return nullptr;
       }
@@ -459,6 +417,9 @@ private:
 
   Sender *dequeue_next_sender(Sender *next)
   {
+    if (EXPECT_FALSE(!Sender::in_sender_list(next, _this()->sender_list())))
+      return nullptr;
+
     if (_this()->sender_list()->dequeue(next->qitem()))
       {
         _this()->set_partner(next);
@@ -660,6 +621,53 @@ private:
 
     return true;
   }
+
+  Check_sender
+  check_send_fail(L4_error error)
+  {
+    _this()->utcb().access()->error = error;
+    return Check_sender::Failed;
+  }
+
+  Check_sender
+  check_send(Thread *receiver, bool zero_timeout, bool cpu_local)
+  {
+    if (EXPECT_FALSE(receiver->is_invalid()))
+      return check_send_fail(L4_error::Not_existent);
+
+    if (auto ok = receiver->sender_ok(_this(), cpu_local))
+      if (receiver->state.change_safely(~Thread_receive_wait, Thread_receive_in_progress))
+        return ok;
+
+    if (zero_timeout)
+      return check_send_fail(L4_error::Timeout);
+
+    for (;;)
+      {
+        _this()->state.add(Thread_send_wait);
+        if (EXPECT_FALSE(!_this()->sender_enqueue(receiver->sender_list(),
+                                                  _this()->sched_context()->prio())))
+          return check_send_fail(L4_error::Not_existent);
+
+        if (auto ok = receiver->sender_ok(_this(), cpu_local))
+          {
+            if (!_this()->sender_dequeue(receiver->sender_list()))
+              return Check_sender::Queued;
+
+            if (receiver->state.change_safely(~Thread_receive_wait, Thread_receive_in_progress))
+              {
+                _this()->state.del(Thread_send_wait);
+                return ok;
+              }
+          }
+        else
+          break;
+      }
+
+    receiver->vcpu_set_irq_pending();
+    return Check_sender::Queued;
+  }
+
 
   inline bool
   _ipc_send(L4_msg_tag tag, Thread *partner,
@@ -881,8 +889,8 @@ Thread_ipc<T>::_ipc_send(L4_msg_tag tag, Thread *partner,
 {
   bool ok;
   bool activate_partner = false;
-  Check_sender result = partner->check_sender(_this(), t.snd.is_zero(),
-                                              EXPECT_TRUE(current_cpu == partner->home_cpu()));
+  Check_sender result = check_send(partner, t.snd.is_zero(),
+                                   EXPECT_TRUE(current_cpu == partner->home_cpu()));
   switch (result.s)
     {
     case Check_sender::Queued:

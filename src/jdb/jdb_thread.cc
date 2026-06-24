@@ -70,7 +70,7 @@ Jdb_thread::print_snd_partner(Thread *t, int task_format)
 void
 Jdb_thread::print_partner(Thread *t, int task_format)
 {
-  void const *p = t->_partner;
+  void const *p = reinterpret_cast<void const *>(t->sender_list()->current_poi()._v);
 
   if (!has_partner(t))
     {

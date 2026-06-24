@@ -386,7 +386,7 @@ whole_screen:
   Jdb_thread::print_state_long(t);
 
   putstr("\nwait for: ");
-  if (!t->has_partner())
+  if (!t->sender_list()->current_poi())
     putstr("---  ");
   else
     Jdb_thread::print_partner(t, 4);

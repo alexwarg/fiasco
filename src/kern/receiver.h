@@ -105,15 +105,14 @@ public:
       }
 
     // Check open wait; test if this sender is really the first in queue
-    if (EXPECT_TRUE(!_partner))
-#if 0
+    auto partner = sender_list()->current_poi();
+    if (EXPECT_TRUE(!partner
                     && (sender_list()->empty()
-                       || sender->is_head_of(sender_list()))))
-#endif
+                       || Sender::is_head_of(sender, sender_list()))))
       return Rcv_state::Ipc_open_wait;
 
     // Check closed wait; test if this sender is really who we specified
-    if (EXPECT_TRUE(sender == _partner))
+    if (EXPECT_TRUE(sender == partner))
       return Rcv_state::Ipc_receive;
 
     return Rcv_state::Not_receiving;
@@ -198,9 +197,14 @@ public:
    *
    * \param partner IPC partner
    */
-  void set_partner(Sender* partner)
+  void set_partner(Sender* partner) __attribute__((nonnull))
   {
-    _partner = partner;
+    sender_list()->set_poi(partner);
+  }
+
+  void reset_partner()
+  {
+    sender_list()->reset_poi();
   }
 
   /**
@@ -212,7 +216,7 @@ public:
    */
   bool in_ipc(Sender *sender) const
   {
-    return (_this()->state() & Thread_receive_in_progress) && (_partner == sender);
+    return (_this()->state() & Thread_receive_in_progress) && is_partner(sender);
   }
 
   void vcpu_update_state()
@@ -242,12 +246,7 @@ public:
    */
   bool is_partner(Sender *s) const
   {
-    return _partner == s;
-  }
-
-  bool has_partner() const
-  {
-    return _partner != nullptr;
+    return sender_list()->current_poi() == s;
   }
 
 protected:
@@ -261,7 +260,10 @@ protected:
   void prepare_receive(Sender *partner, Syscall_frame *regs)
   {
     set_rcv_regs(regs);  // message should be poked in here
-    set_partner(partner);
+    if (partner)
+      set_partner(partner);
+    else
+      reset_partner();
   }
 
   bool try_vcpu_irq_receive(unsigned ipc_state)
@@ -289,15 +291,6 @@ protected:
   }
 
 private:
-  /**
-   * IPC partner this Receiver is waiting for/involved with.
-   *
-   * Not reset after a receive operation is finished, so it might contain an old
-   * value from the last receive operation (see also `Receiver::in_ipc()`).
-   *
-   * Must never be dereferenced, only compared.
-   */
-  void const *_partner;     // IPC partner I'm waiting for/involved with
   Syscall_frame *_rcv_regs; // registers used for receive
   cxx::atomic<Mword> _caller{0};
   Iterable_prio_list _sender_list;

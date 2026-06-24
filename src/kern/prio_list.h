@@ -80,6 +80,14 @@ class Prio_list : private cxx::H_list<Prio_list_elem>
   friend class Jdb_sender_list;
   friend class Prio_list_tester;
 
+  /*
+   * allow for firendly conversion of some object that privately inhertits
+   * from Prio_list_elem, but has Prio_list as friend.
+   */
+  template<typename T>
+  constexpr static Prio_list_elem const *_as_prio_list_elem(T const *e)
+  { return e; }
+
 public:
   typedef cxx::H_list<Prio_list_elem> P_list;
   typedef cxx::D_list_cyclic<Prio_list_elem> S_list;
@@ -151,6 +159,81 @@ public:
     return *i;
   }
 
+  /*
+   * Prio list element of interest.
+   *
+   * represents a prio list element of interrest, which is not
+   * required to be a pointer to a valid object al the time.
+   * The Poi is used to track a potentially enqueued and dequeued
+   * Prio_list_elem that's status gets tracked on enqueue and dequeue.
+   * The Poi can be checked if it is enqueued without dereferencing.
+   */
+  class Poi
+  {
+  private:
+    friend class Prio_list;
+    friend class Jdb_thread;
+
+    constexpr explicit Poi(Address v) : _v(v) {}
+
+    Address _v = 0;
+
+  public:
+    Poi() = default;
+
+    /// test if the Poi is valid
+    constexpr bool valid() const { return _v != 0; }
+
+    /// test if the Poi is valid
+    constexpr explicit operator bool () const { return _v != 0; }
+
+    /// compare against a Prio_list_elem pointer (queue status does not matter)
+    constexpr bool operator == (Prio_list_elem const *e) const
+    { return (_v & ~3ul) == reinterpret_cast<Address>(e); }
+
+    /// returns true if the Poi is queued.
+    constexpr bool queued() const { return (_v & 3) == 1; }
+  };
+
+  /// friendly compare of (derived) list elements with Poi
+  template<typename T>
+  friend constexpr bool operator == (Poi const &lhs, T const *rhs)
+  { return lhs.operator == (_as_prio_list_elem(rhs)); }
+
+  /// friendly compare of (derived) list elements with Poi
+  template<typename T>
+  friend constexpr bool operator == (T const *lhs, Poi const &rhs)
+  { return rhs.operator == (_as_prio_list_elem(lhs)); }
+
+  /// get the current Poi of this list
+  Poi current_poi() const
+  {
+    return Poi(_poi.load(cxx::memory_order_relaxed));
+  }
+
+  /// set the current Poi safely (includes current queue status)
+  void set_poi(Prio_list_elem const *e) __attribute__((nonnull))
+  {
+    _poi.store(reinterpret_cast<Address>(e) | 2, cxx::memory_order_relaxed);
+    if (e->_queue.load() == this)
+      _poi.store(reinterpret_cast<Address>(e) | 1, cxx::memory_order_release);
+    else
+      _poi.store(reinterpret_cast<Address>(e), cxx::memory_order_release);
+  }
+
+  /// set the current Poi friendly from a derived list element
+  template<typename T>
+  void set_poi(T const *e)
+  {
+    set_poi(_as_prio_list_elem(e));
+  }
+
+  /// reset the current Poi to invalid
+  void reset_poi(Address reset_value = 0)
+  {
+    _poi.store(reset_value);
+  }
+
   /**
    * Insert a new element into the priority list.
    * @param e the element to insert
@@ -163,6 +246,11 @@ public:
       return false;
 
     e->init(prio);
+
+    // track Poi state
+    Address p = _poi.load(cxx::memory_order_acquire) & ~3ul;
+    if (Poi(p) == e)
+      _poi.compare_exchange_strong(p, p | 1);
 
     Iterator pos = begin();
 
@@ -202,6 +290,11 @@ public:
     if (!e->_queue.compare_exchange_strong(old, nullptr, cxx::memory_order_release))
       return false;
 
+    // track Poi state
+    Address p = (_poi.load(cxx::memory_order_acquire) & ~3ul) | 1;
+    if (Poi(p) == e)
+      _poi.compare_exchange_strong(p, p & ~1ul);
+
     Prio_list_elem **c = nullptr;
     if (EXPECT_FALSE(_cursor != nullptr) && EXPECT_FALSE(_cursor == e))
       c = &_cursor;
@@ -219,6 +312,11 @@ public:
     Prio_list *old = this;
     if (!f->_queue.compare_exchange_strong(old, nullptr, cxx::memory_order_release))
       return nullptr;
+
+    // track Poi state
+    Address p = (_poi.load(cxx::memory_order_acquire) & ~3ul) | 1;
+    if (Poi(p) == f)
+      _poi.compare_exchange_strong(p, p & ~1ul);
 
     Prio_list_elem **c = nullptr;
     if (EXPECT_FALSE(_cursor != nullptr) && EXPECT_FALSE(_cursor == f))
@@ -242,6 +340,7 @@ public:
 
 private:
   Prio_list_elem *_cursor = nullptr;
+  cxx::atomic<Address> _poi{0};
   //Spin_lock<> _lock{Spin_lock<>::Unlocked};
   Pq_lock _lock;
 
