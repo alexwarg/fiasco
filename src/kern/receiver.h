@@ -164,9 +164,9 @@ public:
    */
   void reset_caller(Receiver const *old_caller)
   {
-    Mword ov = Mword(old_caller) | (_caller.load(cxx::memory_order_relaxed) & 0x3);
+    Mword ov = _caller.load(cxx::memory_order_relaxed);
     // avoid exclusive access (do test, test-and-set)
-    if (_caller.load(cxx::memory_order_relaxed) != ov)
+    if (reinterpret_cast<Mword>(old_caller) != (ov & ~3ul))
       return;
 
     _caller.compare_exchange_strong(ov, 0UL);
