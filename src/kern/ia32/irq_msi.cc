@@ -8,6 +8,8 @@
 #include <static_init.h>
 #include <boot_alloc.h>
 
+#include <cstdio>
+
 class Irq_chip_msi : public Irq_chip_icu, private Irq_chip_ia32
 {
   friend class Irq_chip_ia32;
