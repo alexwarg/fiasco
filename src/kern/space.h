@@ -5,6 +5,7 @@
 #include <obj_space.h>
 #include <mem_space.h>
 #include <space-arch.h>
+#include <slab_cache.h>
 
 #include <globalconfig.h>
 #ifdef CONFIG_PF_PC
