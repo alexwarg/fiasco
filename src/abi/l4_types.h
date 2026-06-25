@@ -166,14 +166,14 @@ public:
    * Capability. All special capability selectors must have the #Special_bit
    * set.
    */
-  L4_obj_ref(Special s = Invalid) : _raw(s) {}
+  constexpr L4_obj_ref(Special s = Invalid) : _raw(s) {}
 
   /**
    * Create a capability selector from it's binary representation.
    * \param raw the raw binary representation of a capability selector. As
    *            passed from user land.
    */
-  static L4_obj_ref from_raw(Mword raw) { return L4_obj_ref(true, raw); }
+  static constexpr L4_obj_ref from_raw(Mword raw) { return L4_obj_ref(true, raw); }
 
   /**
    * Is the capability selector a valid capability (no special capability).
@@ -181,7 +181,7 @@ public:
    *         capability table, or false if the selector is a special
    *         capability.
    */
-  bool valid() const { return !(_raw & Special_bit); }
+  constexpr bool valid() const { return !(_raw & Special_bit); }
 
   /**
    * Is the capability selector a special capability (i.e., not an index
@@ -191,14 +191,14 @@ public:
    *         valid index into a capability table.
    *
    */
-  bool special() const { return _raw & Special_bit; }
+  constexpr bool special() const { return _raw & Special_bit; }
 
   /**
    * Is this capability selector the special `self` capability.
    * \return true if this capability is the special self capability for the
    *         invoking thread.
    */
-  bool self() const { return special(); }
+  constexpr bool self() const { return special(); }
 
   /**
    * Get the value of a special capability.
@@ -206,7 +206,7 @@ public:
    * \return the value of a special capability selector, see
    *         L4_obj_ref::Special.
    */
-  Special special_cap() const { return Special(_raw & Special_mask); }
+  constexpr Special special_cap() const { return Special(_raw & Special_mask); }
   //bool self() const { return (_raw & Invalid_mask) == Self; }
 
   /**
@@ -214,7 +214,7 @@ public:
    * \return true if the operation encoded in the capability selector
    *              comprises a receive phase, see #L4_obj_ref::Ipc_recv.
    */
-  unsigned have_recv() const { return _raw & Ipc_recv; }
+  constexpr unsigned have_recv() const { return _raw & Ipc_recv; }
 
   /**
    * Get the index into the capability table.
@@ -222,20 +222,20 @@ public:
    * \return The index into the capability table stored in the capability
    *         selector (i.e., the most significant bits of the selector).
    */
-  Cap_index cap() const { return Cap_index(_raw >> Cap_shift); }
+  constexpr Cap_index cap() const { return Cap_index(_raw >> Cap_shift); }
 
   /**
    * Get the operation stored in this selector (see L4_obj_ref::Operation).
    * \return The operation encoded in the lower 4 bits of the capability
    *         selector, see L4_obj_ref::Operation.
    */
-  Operation op() const { return Operation(_raw & 0xf); }
+  constexpr Operation op() const { return Operation(_raw & 0xf); }
 
   /**
    * Get the raw binary representation of this capability selector.
    * \return the binary representation of this cap selector.
    */
-  Mword raw() const { return _raw; }
+  constexpr Mword raw() const { return _raw; }
 
   /**
    * Create a valid capability selector for the shifted cap-table index
@@ -243,8 +243,8 @@ public:
    * \param cap the shifted (<< #Cap_shift) capability-table index.
    * \param op the operation to be encoded in bits 0..3.
    */
-  explicit L4_obj_ref(Mword cap, Operation op = None) : _raw(cap | op) {}
-  explicit L4_obj_ref(Cap_index cap, Operation op = None)
+  constexpr explicit L4_obj_ref(Mword cap, Operation op = None) : _raw(cap | op) {}
+  constexpr explicit L4_obj_ref(Cap_index cap, Operation op = None)
   : _raw((cxx::int_value<Cap_index>(cap) << L4_obj_ref::Cap_shift) | op) {}
 
   /**
@@ -252,17 +252,17 @@ public:
    * \param op the operation to be encoded into the capability selector,
    *        see L4_obj_ref::Operation.
    */
-  L4_obj_ref(Operation op) : _raw(op) {}
+  constexpr L4_obj_ref(Operation op) : _raw(op) {}
 
   /**
    * Compare two capability selectors for equality.
    * \param o the right hand side for the comparison.
    * \note Capability selectors are compared by their binary representation.
    */
-  bool operator == (L4_obj_ref const &o) const { return _raw == o._raw; }
+  constexpr bool operator == (L4_obj_ref const &o) const { return _raw == o._raw; }
 
 private:
-  L4_obj_ref(bool, Mword raw) : _raw(raw) {}
+  constexpr L4_obj_ref(bool, Mword raw) : _raw(raw) {}
   Mword _raw;
 };
 
@@ -278,32 +278,32 @@ public:
    * Create a map mask from binary representation.
    * \param raw the binary representation, as passed from user level.
    */
-  explicit L4_map_mask(Mword raw = 0) : _raw(raw) {}
+  constexpr explicit L4_map_mask(Mword raw = 0) : _raw(raw) {}
 
   /**
    * Get the flags for a full unmap.
    * \return A L4_map_mask for doing a full unmap operation.
    */
-  static L4_map_mask full() { return L4_map_mask(0xc0000002); }
+  static constexpr L4_map_mask full() { return L4_map_mask(0xc0000002); }
 
   /**
    * Get the raw binary representation for the map mask.
    * \return the binary value of the flags.
    */
-  Mword raw() const { return _raw; }
+  constexpr Mword raw() const { return _raw; }
 
   /**
    * Unmap from the calling task too.
    * \return true if the caller wishes to unmap from its own address space too.
    */
-  Mword self_unmap() const { return _raw & 0x80000000; }
+  constexpr Mword self_unmap() const { return _raw & 0x80000000; }
 
   /**
    * Shall the unmap delete the object if allowed?
    * \return true if the unmap operation shall also delete the kernel
    * object if permitted to the caller.
    */
-  Mword do_delete() const { return _raw & 0x40000000; }
+  constexpr Mword do_delete() const { return _raw & 0x40000000; }
 
 private:
   Mword _raw;
@@ -523,7 +523,7 @@ public:
    * Set the error flag to \a e.
    * \param e the value of the error flag to be set.
    */
-  void set_error(bool e = true) noexcept
+  constexpr void set_error(bool e = true) noexcept
   {
     if (e)
       _tag |= Error;
@@ -608,10 +608,10 @@ public:
     Unsigned64    val64[Max_words / (sizeof(Unsigned64) / sizeof(Mword))];
   } __attribute__((packed));
 
-  static unsigned val64_idx(unsigned validx)
+  static constexpr unsigned val64_idx(unsigned validx)
   { return validx / (sizeof(Unsigned64) / sizeof(Mword)); }
 
-  static unsigned val_idx(unsigned val64_idx)
+  static constexpr unsigned val_idx(unsigned val64_idx)
   { return val64_idx * (sizeof(Unsigned64) / sizeof(Mword)); }
 
   Mword           utcb_addr;
@@ -681,7 +681,7 @@ public:
    * Get the binary representation of the timeout.
    * @return The timeout as binary representation.
    */
-  unsigned short raw() const noexcept
+  constexpr unsigned short raw() const noexcept
   { return _t; }
 
   /**
@@ -689,7 +689,7 @@ public:
    * @return The exponent of the receive timeout.
    * @see rcv_man()
    */
-  Mword exp() const noexcept
+  constexpr Mword exp() const noexcept
   { return (_t & Exp_mask) >> Exp_shift; }
 
   /**
@@ -697,7 +697,7 @@ public:
    * @param er the exponent for the receive timeout (see L4_timeout()).
    * @see rcv_man()
    */
-  void exp(Mword er)
+  constexpr void exp(Mword er)
   { _t = (_t & ~Exp_mask) | ((er << Exp_shift) & Exp_mask); }
 
 
@@ -706,7 +706,7 @@ public:
    * @return The mantissa of the receive timeout (see L4_timeout()).
    * @see rcv_exp()
    */
-  Mword man() const noexcept
+  constexpr Mword man() const noexcept
   { return (_t & Man_mask) >> Man_shift; }
 
   /**
@@ -714,7 +714,7 @@ public:
    * @param mr the mantissa of the receive timeout (see L4_timeout()).
    * @see rcv_exp()
    */
-  void man(Mword mr)
+  constexpr void man(Mword mr)
   { _t = (_t & ~Man_mask) | ((mr << Man_shift) & Man_mask); }
 
   /**
@@ -722,7 +722,7 @@ public:
    * @param clock Current value of kernel clock
    * @return The receive timeout in microseconds.
    */
-  Unsigned64 microsecs_rel(Unsigned64 clock) const noexcept
+  constexpr Unsigned64 microsecs_rel(Unsigned64 clock) const noexcept
   {
     if (man() == 0)
       return 0;
@@ -743,7 +743,7 @@ public:
     return top->t;
   }
 
-  bool is_absolute() const noexcept
+  constexpr bool is_absolute() const noexcept
   { return _t & Abs_mask; }
 
   Unsigned64 microsecs(Unsigned64 clock, Utcb const *u) const noexcept
@@ -754,13 +754,13 @@ public:
       return microsecs_rel(clock);
   }
 
-  bool is_never() const noexcept
+  constexpr bool is_never() const noexcept
   { return !_t; }
 
-  bool is_zero() const noexcept
+  constexpr bool is_zero() const noexcept
   { return _t == Zero; }
 
-  unsigned short is_finite() const noexcept
+  constexpr unsigned short is_finite() const noexcept
   { return _t; }
 
   void print() const;
@@ -785,12 +785,12 @@ struct L4_timeout_pair
   L4_timeout rcv;
   L4_timeout snd;
 
-  L4_timeout_pair(L4_timeout const &rcv, L4_timeout const &snd)
+  constexpr L4_timeout_pair(L4_timeout const &rcv, L4_timeout const &snd)
     : rcv(rcv), snd(snd) {}
 
-  explicit L4_timeout_pair(unsigned long v) : rcv(v), snd(v >> 16) {}
+  constexpr explicit L4_timeout_pair(unsigned long v) : rcv(v), snd(v >> 16) {}
 
-  Mword raw() const { return Mword{rcv.raw()} | Mword{snd.raw()} << 16; }
+  constexpr Mword raw() const { return Mword{rcv.raw()} | Mword{snd.raw()} << 16; }
 
   void print() const;
 };
@@ -829,14 +829,14 @@ private:
   Mword _w;
 
 public:
-  Order granularity() const
+  constexpr Order granularity() const
   {
     Mword g = (_w >> 24) & 0xff;
     if (g > 24) g = 24; // limit granularity to 2**24
     return Order(g);
   }
 
-  Cpu_number offset() const
+  constexpr Cpu_number offset() const
   { return cxx::mask_lsb(Cpu_number(_w & 0x00ffffff), granularity()); }
 };
 
@@ -848,7 +848,7 @@ private:
   Mword _map;
 
 public:
-  bool contains(Cpu_number cpu) const
+  constexpr bool contains(Cpu_number cpu) const
   {
     if (offset() > cpu)
       return false;
@@ -862,7 +862,7 @@ public:
   }
 
   template<typename MAP>
-  Cpu_number first(MAP const &bm, Cpu_number max) const
+  constexpr Cpu_number first(MAP const &bm, Cpu_number max) const
   {
     Cpu_number cpu = offset();
 
@@ -893,9 +893,9 @@ struct L4_sched_param
   Mword length;       // sizeof (...)
 
   template<typename T>
-  bool check_length() const { return length >= sizeof(T); }
+  constexpr bool check_length() const { return length >= sizeof(T); }
 
-  inline bool is_legacy() const
+  constexpr bool is_legacy() const
   { return sched_class >= 0; }
 };
 
