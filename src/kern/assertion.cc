@@ -8,7 +8,7 @@
 extern "C"
 void
 assert_fail(char const *expr_msg, char const *file, unsigned int line,
-            void *caller)
+            void const *caller)
 {
   printf("\nAssertion failed at %s:%u:%p: %s\n", file, line, caller, expr_msg);
 
