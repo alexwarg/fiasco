@@ -400,9 +400,7 @@ protected:
   unsigned _magic = magic;
 
 public:
-#ifdef CONFIG_JDB
   static Trap_state::Handler nested_trap_handler FIASCO_FASTCALL;
-#endif
 };
 
 /** Currently executing thread.
