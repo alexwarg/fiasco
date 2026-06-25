@@ -33,6 +33,6 @@ namespace Perf_cnt
   inline void touch_watchdog() {}
   inline int  have_watchdog() { return 0; }
   inline void setup_watchdog(Mword) {}
-  inline void init_ap() {}
+  static inline void init_ap(Cpu &) {}
 }
 #endif
