@@ -41,7 +41,7 @@ public:
   {
     // Compute pointer to first data element, now taking into account
     // the latest colorization offset
-    char *data = reinterpret_cast<char*>(mem);
+    char *data = static_cast<char*>(mem);
 
     // Initialize the cache elements
     for (unsigned i = elems; i > 0; --i)
@@ -65,7 +65,7 @@ public:
 
   void free(void *entry)
   {
-    _free.add(reinterpret_cast<Slab_entry *>(entry));
+    _free.add(static_cast<Slab_entry *>(entry));
 
     assert(_in_use);
     --_in_use;
@@ -117,11 +117,10 @@ public:
   {
     lock.init();
 
-    for (
-        _slab_size = min_size;
-        (_slab_size - sizeof(Slab)) / _entry_size < 8
-          && _slab_size < max_size;
-        _slab_size <<= 1) ;
+    for (_slab_size = min_size;
+         (_slab_size - sizeof(Slab)) / _entry_size < 8 && _slab_size < max_size;
+         _slab_size <<= 1)
+      ;
 
     _elem_num = (_slab_size - sizeof(Slab)) / _entry_size;
   }
