@@ -17,9 +17,9 @@ struct Mem_space_ia32_bits
   {
     Mem_space_base::add_page_size(Mem_space_base::Page_order(Config::PAGE_SHIFT));
     if (Cpu::cpus.cpu(Cpu_number::boot_cpu()).superpages())
-      Mem_space_base::add_page_size(Mem_space_base::Page_order(21)); // 2MB
+      Mem_space_base::add_page_size(Mem_space_base::Page_order(21)); // 2 MiB
 
     if (Cpu::cpus.cpu(Cpu_number::boot_cpu()).ext_8000_0001_edx() & (1UL<<26))
-      Mem_space_base::add_page_size(Mem_space_base::Page_order(30)); // 1GB
+      Mem_space_base::add_page_size(Mem_space_base::Page_order(30)); // 1 GiB
   }
 };

@@ -369,7 +369,7 @@ Vmx::Vmx(Cpu_number cpu)
       return;
     }
 
-  // allocate a 4kb region for kernel vmcs
+  // allocate a 4 KiB region for kernel vmcs
   // FIXME: MUST NOT PANIC ON CPU HOTPLUG
   check(_kernel_vmcs = Kmem_alloc::allocator()->alloc(Order(12)));
   _kernel_vmcs_pa = Kmem::virt_to_phys(_kernel_vmcs);
@@ -378,7 +378,7 @@ Vmx::Vmx(Cpu_number cpu)
   // init vmcs with revision identifier
   *(int *)_kernel_vmcs = (info.basic & 0xFFFFFFFF);
 
-  // allocate a 4kb aligned region for VMXON
+  // allocate a 4 KiB aligned region for VMXON
   // FIXME: MUST NOT PANIC ON CPU HOTPLUG
   check(_vmxon = Kmem_alloc::allocator()->alloc(Order(12)));
 

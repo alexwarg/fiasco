@@ -19,7 +19,7 @@ namespace Outer_cache
 
     aux_control &= 0x8200c3fe;
     aux_control |=   (1 <<  0)  // Full Line of Zero Enable
-                   | (4 << 17)  // 128kb waysize
+                   | (4 << 17)  // 128 KiB waysize
                    | (1 << 28)  // data prefetch
                    | (1 << 29)  // insn prefetch
                    | (1 << 30)  // early BRESP enable

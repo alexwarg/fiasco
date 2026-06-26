@@ -113,13 +113,13 @@ public:
   {
     add_page_size(Page_order(Config::PAGE_SHIFT));
 #ifdef CONFIG_ARM_LPAE
-    add_page_size(Page_order(21)); // 2MB
-    add_page_size(Page_order(30)); // 1GB
+    add_page_size(Page_order(21)); // 2 MiB
+    add_page_size(Page_order(30)); // 1 GiB
 #ifdef CONFIG_ARM_PT48
-    add_page_size(Page_order(39)); // 512GB
+    add_page_size(Page_order(39)); // 512 GiB
 #endif
 #else
-    add_page_size(Page_order(20)); // 1MB
+    add_page_size(Page_order(20)); // 1 MiB
 #endif
   }
 

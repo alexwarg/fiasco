@@ -24,7 +24,7 @@ Idt::set_writable(bool writable)
 {
   auto e = Kmem::current_cpu_kdir()->walk(Virt_addr(_idt));
 
-  // Make sure page directory entry is valid and not a 4MB page
+  // Make sure page directory entry is valid and not a superpage
   assert (e.is_valid() && e.level == Pdir::Depth);
 
   if (writable)

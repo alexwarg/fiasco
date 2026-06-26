@@ -64,7 +64,7 @@ public:
     phys_wake_vector = reinterpret_cast<Address>(_tramp_acpi_wakeup);
     if (phys_wake_vector >= 1UL << 20)
       {
-        printf("ACPI: invalid wake vector (1MB): %lx\n", phys_wake_vector);
+        printf("ACPI: invalid wake vector (>1 MiB): %lx\n", phys_wake_vector);
         return;
       }
 

@@ -52,7 +52,7 @@ Kmem_alloc_arch::base_init()
 
   if (0)
     {
-      printf("Kmem_alloc: available_memory=%lu KB alloc_size=%lu KB\n",
+      printf("Kmem_alloc: available_memory=%lu KiB alloc_size=%lu KiB\n",
              available_size / 1024, alloc_size / 1024);
 
       printf("Kmem_alloc: available blocks:\n");

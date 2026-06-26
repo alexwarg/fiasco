@@ -141,9 +141,9 @@ choice
         default MIPS_PAGE_SIZE_16K
 
 config MIPS_PAGE_SIZE_4K
-        bool "4KB minimum page size"
+        bool "4 KiB minimum page size"
 
 config MIPS_PAGE_SIZE_16K
-        bool "16KB minimum page size"
+        bool "16 KiB minimum page size"
 
 endchoice

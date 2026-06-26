@@ -6,7 +6,7 @@
 
 #include <kmem.h>
 
-// always 16kB also for LPAE we use 4 consecutive second level tables
+// always 16 KiB also for LPAE we use 4 consecutive second level tables
 static char kernel_page_directory[0x4000]
   __attribute__((aligned(0x4000), section(".bss.kernel_page_dir")));
 

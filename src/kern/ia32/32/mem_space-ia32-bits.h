@@ -13,6 +13,6 @@ struct Mem_space_ia32_bits
   {
     Mem_space_base::add_page_size(Mem_space_base::Page_order(Config::PAGE_SHIFT));
     if (Cpu::cpus.cpu(Cpu_number::boot_cpu()).superpages())
-      Mem_space_base::add_page_size(Mem_space_base::Page_order(22)); // 4MB
+      Mem_space_base::add_page_size(Mem_space_base::Page_order(22)); // 4 MiB
   }
 };

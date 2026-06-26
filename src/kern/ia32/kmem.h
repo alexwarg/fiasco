@@ -207,7 +207,7 @@ public:
   get_realmode_startup_pdbr()
   {
     // for amd64 we need to make sure that our boot-up page directory is below
-    // 4GB in physical memory
+    // 4 GiB in physical memory
     static char _boot_pdir_page[Config::PAGE_SIZE] __attribute__((aligned(4096)));
     void *pd = current_cpu_kdir();
     memcpy(_boot_pdir_page, pd, sizeof(_boot_pdir_page));

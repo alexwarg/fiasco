@@ -79,7 +79,7 @@ Svm::Svm(Cpu_number cpu)
     State_save_area_size = 0x1000,
   };
 
-  /* 16kB IO permission map and Vmcb (16kB are good for the buddy allocator)*/
+  /* 16 KiB IO permission map and Vmcb (16 KiB are good for the buddy allocator)*/
   // FIXME: MUST NOT PANIC ON CPU HOTPLUG
   check(_iopm = Kmem_alloc::allocator()->alloc(Bytes(Io_pm_size + Vmcb_size)));
   _iopm_base_pa = Kmem::virt_to_phys(_iopm);
@@ -93,7 +93,7 @@ Svm::Svm(Cpu_number cpu)
   /* clean out vmcb */
   memset(_kernel_vmcb, 0, Vmcb_size);
 
-  /* 8kB MSR permission map */
+  /* 8 KiB MSR permission map */
   // FIXME: MUST NOT PANIC ON CPU HOTPLUG
   check(_msrpm = Kmem_alloc::allocator()->alloc(Bytes(Msr_pm_size)));
   _msrpm_base_pa = Kmem::virt_to_phys(_msrpm);
@@ -111,7 +111,7 @@ Svm::Svm(Cpu_number cpu)
   set_msr_perm(MSR_LSTAR, Msr_rw);
   set_msr_perm(MSR_SFMASK, Msr_rw);
 
-  /* 4kB Host state-safe area */
+  /* 4 KiB Host state-safe area */
   // FIXME: MUST NOT PANIC ON CPU HOTPLUG
   check(_vm_hsave_area = Kmem_alloc::allocator()->alloc(Bytes(State_save_area_size)));
   Unsigned64 vm_hsave_pa = Kmem::virt_to_phys(_vm_hsave_area);

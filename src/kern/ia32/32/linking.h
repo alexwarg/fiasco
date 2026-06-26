@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIASCO_MP_TRAMP_PAGE     0x1000   // must be below 1MB
+#define FIASCO_MP_TRAMP_PAGE     0x1000   // must be below 1 MiB
 #define FIASCO_IMAGE_PHYS_START  0x400000
 //#define FIASCO_IMAGE_PHYS_START  0x2000
 #define FIASCO_IMAGE_VIRT_START  0xf0000000

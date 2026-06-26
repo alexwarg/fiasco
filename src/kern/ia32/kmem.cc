@@ -44,7 +44,7 @@ Kmem::map_phys_page_tmp(Address phys, Mword idx)
   return virt + phys - pte;
 }
 
-// Establish a 4k-mapping
+// Establish a 4 KiB mapping
 void
 Kmem::map_phys_page(Address phys, Address virt,
                     bool cached, bool global, Address *offs)
@@ -78,11 +78,11 @@ Kmem::map_initial_ram()
   // we also set up a one-to-one virt-to-phys mapping for two reasons:
   // (1) so that we switch to the new page table early and re-use the
   //     segment descriptors set up by boot_cpu.cc.  (we'll set up our
-  //     own descriptors later.) we only need the first 4MB for that.
+  //     own descriptors later.) we only need the first 4 MiB for that.
   // (2) a one-to-one phys-to-virt mapping in the kernel's page directory
   //     sometimes comes in handy (mostly useful for debugging)
 
-  // first 4MB page
+  // first 4 MiB page
   if (!kdir->map(0, Virt_addr(0UL), Virt_size(4 << 20),
                  Pt_entry::Dirty | Pt_entry::Writable | Pt_entry::Referenced,
                  Pt_entry::super_level(), false, pdir_alloc(alloc)))
@@ -138,7 +138,7 @@ Kmem::init_mmu()
                     | Pt_entry::global(), Pt_entry::super_level(),
                     false, pdir_alloc(alloc));
 
-  // map the last 64MB of physical memory as kernel memory
+  // map the last 64 MiB of physical memory as kernel memory
   ok &= kdir->map(Mem_layout::pmem_to_phys(Mem_layout::Physmem),
                   Virt_addr(Mem_layout::Physmem), Virt_size(Mem_layout::pmem_size),
                   Pt_entry::Writable | Pt_entry::Referenced | Pt_entry::global(),
@@ -242,8 +242,8 @@ Kmem::init_cpu(Cpu &cpu)
   auto dst = cpu_dir->walk(Virt_addr(0), 0);
   write_now(dst.pte, *src.pte);
 
-  static_assert ((Kglobal_area & ((1UL << 30) - 1)) == 0, "Kglobal area must be 1GB aligned");
-  static_assert ((Kglobal_area_end & ((1UL << 30) - 1)) == 0, "Kglobal area must be 1GB aligned");
+  static_assert ((Kglobal_area & ((1UL << 30) - 1)) == 0, "Kglobal area must be 1 GiB aligned");
+  static_assert ((Kglobal_area_end & ((1UL << 30) - 1)) == 0, "Kglobal area must be 1 GiB aligned");
 
   for (unsigned i = 0; i < ((Kglobal_area_end - Kglobal_area) >> 30); ++i)
     {
@@ -290,7 +290,7 @@ Kmem::init_cpu(Cpu &cpu)
                 }
 
               if (Print_info)
-                printf("physmem sync(2M): va:%16lx pte:%16lx\n", a, *src.pte);
+                printf("physmem sync(2 MiB): va:%16lx pte:%16lx\n", a, *src.pte);
 
               write_now(dst.pte, *src.pte);
             }
@@ -298,7 +298,7 @@ Kmem::init_cpu(Cpu &cpu)
         }
       else
         {
-          // copy a 1GB slot
+          // copy a 1 GiB slot
           auto src = kdir->walk(Virt_addr(a), 1);
           if (src.level != 1)
             panic("could not setup per-cpu page table, invalid source mapping: %d\n", __LINE__);
@@ -314,7 +314,7 @@ Kmem::init_cpu(Cpu &cpu)
               if (dst.is_valid())
                 {
                   assert (*dst.pte == *src.pte);
-                  i += 512; // skip 512 2MB entries == 1G
+                  i += 512; // skip 512 x 2 MiB entries == 1 GiB
                   continue;
                 }
 
@@ -324,7 +324,7 @@ Kmem::init_cpu(Cpu &cpu)
               write_now(dst.pte, *src.pte);
             }
 
-          i += 512; // skip 512 2MB entries == 1G
+          i += 512; // skip 512 x 2 MiB entries == 1 GiB
         }
     }
 
@@ -482,7 +482,7 @@ Kmem::setup_global_cpu_structures(bool superpages)
   if (superpages
       && Config::SUPERPAGE_SIZE - Super_pg::offset(tss_mem_pm) < 0x10000)
     {
-      // can map as 4MB page because the cpu_page will land within a
+      // can map as 4 MiB page because the cpu_page will land within a
       // 16-bit range from io_bitmap
       auto e = kdir->walk(Virt_addr(Mem_layout::Io_bitmap - Config::SUPERPAGE_SIZE),
                           Pdir::Super_level, false, pdir_alloc(alloc));

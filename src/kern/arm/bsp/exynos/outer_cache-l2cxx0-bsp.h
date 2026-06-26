@@ -19,7 +19,7 @@ namespace Outer_cache
     Mword auxc_mask = 0xc200ffff;
     Mword auxc_bits =   (1 <<  0)  // Full Line of Zero Enable
                       | (1 << 16)  // 16 way
-                      | (3 << 17)  // way size == 64KB
+                      | (3 << 17)  // way size == 64 KiB
                       | (1 << 22)  // shared ignored
                       | (3 << 26)  // tz
                       | (1 << 28)  // data prefetch enable

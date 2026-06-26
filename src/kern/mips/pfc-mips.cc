@@ -32,7 +32,7 @@ static void *alloc_secondary_boot_code()
    copy_code(pos, name, name ## _end); \
    })
 
-  // allocate 4KB as we need a 4KB alignemnt for the boot vector
+  // allocate 4 KiB as we need a 4 KiB alignemnt for the boot vector
   _bev = Kmem_alloc::allocator()->alloc(Bytes(4096));
   Unsigned32 *p = (Unsigned32 *)_bev;
 

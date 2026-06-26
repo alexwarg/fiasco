@@ -81,13 +81,13 @@ namespace Config
   { return Bytes(PAGE_SIZE); }
 
 #if defined (CONFIG_BIT32)
-  // 8 percent of total RAM, >=750MB RAM => 60MB kmem
+  // 8 percent of total RAM, >=750 MiB RAM => 60 MiB kmem
   constexpr unsigned kmem_per_cent() { return 8; };
   constexpr unsigned long kmem_max() { return 60UL << 20; }
 # define TARGET_WORD_LEN "32"
 #endif
 #if defined(CONFIG_BIT64)
-  // 6 percent of total RAM, >=55466MB RAM => 3328MB kmem
+  // 6 percent of total RAM, >=55466 MiB RAM => 3328 MiB kmem
   constexpr unsigned kmem_per_cent() { return 6; }
   constexpr unsigned long kmem_max() { return 3328UL << 20; }
 # define TARGET_WORD_LEN "64"

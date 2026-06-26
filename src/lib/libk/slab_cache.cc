@@ -128,7 +128,7 @@ Slab_cache::reap()		// request that cache returns memory to system
 void
 Slab_cache::debug_dump() const
 {
-  printf ("%s: %lu-KB slabs (elems per slab=%u ",
+  printf ("%s: %lu KiB slabs (elems per slab=%u ",
           _name, _slab_size / 1024, _elem_num);
 
   unsigned count = 0, total = 0, total_elems = 0;
@@ -170,7 +170,7 @@ Slab_cache::debug_dump() const
   unsigned total_used = total;
   total += count;
 
-  printf ("%u empty = %u total) = %lu KB,\n  %u elems (size=%u)",
+  printf ("%u empty = %u total) = %lu KiB,\n  %u elems (size=%u)",
           count, total, total * _slab_size / 1024,
           total_elems, _entry_size);
 
