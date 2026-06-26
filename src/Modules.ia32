@@ -199,8 +199,6 @@ PRIVATE_INCDIR  += lib/libk/$(CONFIG_XARCH) lib/libk
 CSRC_LIBK	+= gcc_lib.c
 CXXSRC_LIBK     += construction.cc
 
-VPATH += lib/contrib/compiler-rt/lib/builtins/i386 lib/contrib/compiler-rt/lib/builtins
-CSRC_LIBK += ashldi3.c
 ASSRC_LIBK += $(ASSRC_LIBK-y)
 CSRC_LIBK  += $(CSRC_LIBK-y)
 
