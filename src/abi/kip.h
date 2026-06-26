@@ -27,7 +27,8 @@ public:
 
   enum Ext_type_info
   {
-    Info_acpi_rsdp = 0
+    Info_acpi_rsdp = 0,
+    Info_device_tree = 1,
   };
 
   constexpr Mem_desc(Address start, Address end, Mem_type t,
@@ -39,6 +40,9 @@ public:
 
   Address start() const noexcept
   { return _l & ~0x3ffUL; }
+
+  Address raw_end() const noexcept
+  { return _h; }
 
   Address end() const noexcept
   { return _h | 0x3ffUL; }
