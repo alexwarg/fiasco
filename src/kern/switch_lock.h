@@ -373,7 +373,7 @@ Switch_lock::clear_lock_owner()
 inline bool NO_INSTRUMENT
 Switch_lock::set_lock_owner(Context *o)
 {
-  _lock_owner.store(Address(o) | (_lock_owner.load(cxx::memory_order_relaxed) & 1), cxx::memory_order_acquire);
+  _lock_owner.store(Address(o) | (_lock_owner.load(cxx::memory_order_relaxed) & 1));
   return true;
 }
 
