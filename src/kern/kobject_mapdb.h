@@ -61,20 +61,66 @@ public:
   static void foreach_mapping(Frame const &, Obj_space::V_pfn, Obj_space::V_pfn, F)
   {}
 
+  // Reference to a kobject that can be used in Lock::try_loc.
+  //
+  // Tests if the object referenced by capability is still the given object.
+  // Note, this also catches transitions from valid to invalid.
+  struct Ref
+  {
+    Phys_addr obj;
+    Obj::Capability const *cap;
+
+    Ref() = default;
+    Ref(Vaddr va, Phys_addr obj) : obj(obj), cap(&va._c->capability()) {}
+
+    Kobject_mappable *operator () () const
+    {
+      if (obj == cap->obj())
+        return obj->map_root();
+      return nullptr;
+    }
+  };
+
+  static Kobject_mappable *lock_safely(Ref const &ref)
+  {
+    auto guard = lock_guard(cpu_lock);
+    return Lock::try_lock(ref, [](Kobject_mappable *m){ return &m->_lock; });
+  }
+
+  static bool lock2_safely(Ref const &a, Ref const &b, bool order)
+  {
+    Ref _a, _b;
+    if (order)
+      {
+        _a = a;
+        _b = b;
+      }
+    else
+      {
+        _a = b;
+        _b = a;
+      }
+
+    auto guard = lock_guard(cpu_lock);
+    auto *x = Lock::try_lock(_a, [](Kobject_mappable *m){ return &m->_lock; });
+    if (!x)
+      return false;
+    if (Lock::try_lock(_b, [](Kobject_mappable *m){ return &m->_lock; }))
+      return true;
+    x->_lock.clear();
+    return false;
+  }
+
   inline static
   bool lookup(Space const *, Vaddr va, Phys_addr obj,
               Frame *out)
   {
-    Kobject_mappable *rn = obj->map_root(); 
-    rn->_lock.lock();
-    if (va._c->obj() == obj)
+    if (Kobject_mappable *rn = lock_safely(Ref(va, obj)))
       {
         out->m = va._c;
         out->frame = rn;
         return true;
       }
-
-    rn->_lock.clear();
     return false;
   }
 
@@ -88,32 +134,14 @@ public:
     bool same_obj = drn == srn;
 
     if (same_obj)
-      srn->_lock.lock();
-    else if (sobj > dobj)
       {
-        srn->_lock.lock();
-        drn->_lock.lock();
+        if (!(srn = lock_safely(Ref(sva, sobj))))
+          return -1;
       }
     else
       {
-        drn->_lock.lock();
-        srn->_lock.lock();
-      }
-
-    if (sva._c->obj() != sobj)
-      {
-        if (!same_obj)
-          drn->_lock.clear();
-        srn->_lock.clear();
-        return -1;
-      }
-
-    if (dva._c->obj() != dobj)
-      {
-        if (!same_obj)
-          drn->_lock.clear();
-        srn->_lock.clear();
-        return -1;
+        if (!lock2_safely(Ref(sva, sobj), Ref(dva, dobj), sobj > dobj))
+          return -1;
       }
 
     dframe->m = dva._c;
