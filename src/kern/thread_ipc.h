@@ -475,6 +475,12 @@ private:
     Mword rcv_state;
     auto test_in_progress = [&rcv_state](Mword s) -> bool
       {
+        if (s & Thread_ipc_abort_mask)
+          {
+            rcv_state = 0;
+            return false;
+          }
+
         rcv_state = s & Thread_ipc_receive_mask;
         return s & Thread_receive_in_progress;
       };
@@ -500,6 +506,12 @@ private:
 
         auto test_waiting = [&rcv_state](Mword s) -> bool
           {
+            if (s & Thread_ipc_abort_mask)
+              {
+                rcv_state = 0;
+                return false;
+              }
+
             rcv_state = s & Thread_ipc_receive_mask;
             return s & Thread_receive_wait;
           };
