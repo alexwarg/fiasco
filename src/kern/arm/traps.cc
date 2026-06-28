@@ -199,11 +199,7 @@ void arm_esr_entry(Return_frame *rf)
       break;
 
     case 0x07: // SVE, Advanced SIMD or floating-point trap
-      if ((Proc::Is_64bit // Always FPU trap on Aarch64, not used for other CPs.
-           || esr.cpt_simd() == 1
-           || esr.cpt_cpnr() == 10  // CP10: Floating-point
-           || esr.cpt_cpnr() == 11) // CP11: Advanced SIMD
-          && handle_fpu_trap(ts))
+      if (handle_fpu_trap(ts))
         return;
 
       ct->send_exception(ts);
