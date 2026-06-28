@@ -85,7 +85,7 @@ Ipc_gate_obj::unblock_all(bool abort)
 
       Thread *w = static_cast<Thread*>(Sender::cast(h));
       if (abort)
-        w->state.add(Thread_cancel);
+        w->state.change(~Thread_send_wait, Thread_cancel);
       w->activate();
     }
 }
