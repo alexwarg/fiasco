@@ -3,10 +3,20 @@
 #include <cassert>
 #include <cpu.h>
 #include <globalconfig.h>
-
-class Context;
+#include <context.h>
 
 namespace Entry {
+
+[[noreturn]]
+inline void reenter_syscall(Context *current)
+{
+  asm volatile ("mov %0, %%rsp\n\t"
+                "jmp sys_ipc_wrapper"
+                : : "r"(reinterpret_cast<Mword *>(current->regs()) - 1)
+                : "memory");
+  __builtin_unreachable();
+}
+
 
 #ifdef CONFIG_KERNEL_ISOLATION
 

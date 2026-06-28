@@ -207,7 +207,6 @@ Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
   Mword state = ct->state.change(~Thread_full_ipc_mask, Thread_ready);
   ct->reset_timeout();
 
-  // Recheck under lock whether thread is still in waiting queue.
   ct->sender_dequeue(&Ipc_gate_obj::from_poly(this)->_wait_q);
 
   if (state & Thread_timeout)
@@ -234,7 +233,7 @@ Ipc_gate_unbound::invoke(L4_obj_ref self, L4_fpage::Rights rights,
       return;
     }
 
-  cxx::launder(Ipc_gate_obj::from_poly(this)->poly().get())->invoke(self, rights, f, utcb);
+  Entry::reenter_syscall(ct);
 }
 
 

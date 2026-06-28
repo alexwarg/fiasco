@@ -1,10 +1,32 @@
 #pragma once
 
 #include <cp0_status.h>
-
-class Context;
+#include <context.h>
 
 namespace Entry {
+
+[[noreturn]]
+inline void reenter_syscall(Context *current)
+{
+  extern char sys_ipc_call_patch[] asm ("sys_ipc_call_patch");
+#ifdef __mips64
+  static constexpr int sp_offset = 0;
+#else
+  static constexpr int sp_offset = 4 * 4;
+#endif
+  register Mword lr asm("ra") = reinterpret_cast<Mword>(&sys_ipc_call_patch) + 8;
+  asm volatile
+      (".set push                     \n"
+       ".set noat                     \n"
+       "move $29, %0 \n"
+       "j sys_ipc_wrapper \n"
+       ".set pop                      \n"
+       : : "r"(reinterpret_cast<char *>(current->regs()) - sp_offset),
+           "r"(lr)
+       : "memory");
+  __builtin_unreachable();
+}
+
 
 [[noreturn]] inline void
 vcpu_return_to_kernel(Context *, Mword ip, Mword sp, void *arg)

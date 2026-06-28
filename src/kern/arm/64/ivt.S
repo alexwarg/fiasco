@@ -90,6 +90,8 @@ leave_by_trigger_exception:
 .global	__return_from_user_invoke
 .type	__iret, function
 .global	__iret
+.type	__return_from_syscall_fn, function
+.global	__return_from_syscall_fn
 __iret:
 	load_eret_state sp
 	add	sp, sp, #EF_SIZE
@@ -104,6 +106,7 @@ __return_from_user_invoke:
 	b 6f
 
 .Lret_from_exception:
+__return_from_syscall_fn:
 	ldr	x0, [sp, #EF_KSP]
 6:
 	ldr	x1, [x0, #EF_ERETW]
