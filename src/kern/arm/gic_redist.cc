@@ -6,6 +6,7 @@
 #include "panic.h"
 #include "poll_timeout_counter.h"
 #include <cstdio>
+#include <cstring>
 #include <arithmetic.h>
 
 Mmio_register_block
