@@ -40,8 +40,11 @@ public:
 
     Gic_h_global::gic->setup_state(&v->gic);
 
-    v->vmpidr = c->_hyp.vmpidr;
-    v->vpidr = c->_hyp.vpidr;
+    // Bit 31 is RES1. The VMM will initialize the other bits.
+    v->vmpidr = 1UL << 31;
+
+    // Use real MIDR as initial value.
+    v->vpidr = Cpu::midr();
 
     if (current() == c)
       {

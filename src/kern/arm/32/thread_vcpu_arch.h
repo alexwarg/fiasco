@@ -40,12 +40,13 @@ public:
 
     Gic_h_global::gic->setup_state(&v->gic);
 
-    // use the real MPIDR as initial value, we might change this later
-    // on and mask bits that should not be known to the user
-    asm ("mrc p15, 0, %0, c0, c0, 5" : "=r" (v->vmpidr));
+    // The 'M' bit indicates the presence of the Multiprocessing Extensions which
+    // is mandatory if the processor implements the Virtualization Extension. The
+    // VMM will initialize the other bits.
+    v->vmpidr = 1UL << 31;
 
-    // use the real MIDR as initial value
-    asm ("mrc p15, 0, %0, c0, c0, 0" : "=r" (v->vpidr));
+    // Use real MIDR as initial value.
+    v->vpidr = Cpu::midr();
 
     if (current() == c)
       v->load(false);
