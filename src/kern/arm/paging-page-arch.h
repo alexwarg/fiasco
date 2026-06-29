@@ -67,6 +67,8 @@ namespace Page
 #endif
 
 #ifdef CONFIG_BIT64
+  static char constexpr pa_range_bits[16] = { 32, 36, 40, 42, 44, 48, 52, 56 };
+
 #ifdef CONFIG_CPU_VIRT
   static constexpr Mword Ttbcr_bits =
       (1UL << 31) | (1UL << 23) // RES1
@@ -84,7 +86,6 @@ namespace Page
 #endif
   static unsigned inline ipa_bits(unsigned pa_range)
   {
-    static char const pa_range_bits[] = { 32, 36, 40, 42, 44, 48, 52 };
     if (pa_range > Max_pa_range)
       pa_range = Max_pa_range;
 
