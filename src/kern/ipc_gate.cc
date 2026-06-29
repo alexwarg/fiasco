@@ -70,7 +70,7 @@ Ipc_gate_obj::get_infos(L4_obj_ref, L4_fpage::Rights,
 
 
 void
-Ipc_gate_obj::unblock_all()
+Ipc_gate_obj::unblock_all(bool abort)
 {
   for (;;)
     {
@@ -84,6 +84,8 @@ Ipc_gate_obj::unblock_all()
         return;
 
       Thread *w = static_cast<Thread*>(Sender::cast(h));
+      if (abort)
+        w->state.add(Thread_cancel);
       w->activate();
     }
 }
@@ -103,7 +105,7 @@ Ipc_gate_obj::destroy(Kobject ***r)
   if (tmp)
     {
       _tgt.store(nullptr, cxx::memory_order_release);
-      unblock_all();
+      unblock_all(true);
       poly()->del(tmp);
       poly().construct<Ipc_gate_unbound>();
     }
@@ -212,14 +214,13 @@ Ipc_gate_unbound::block(Thread *ct, L4_timeout const &to, Utcb *u)
   ct->reset_timeout();
 
   // Recheck under lock whether thread is still in waiting queue.
-  if (ct->sender_dequeue(&Ipc_gate_obj::from_poly(this)->_wait_q))
-    {
-      if (state & Thread_timeout)
-        return L4_error::Timeout;
+  ct->sender_dequeue(&Ipc_gate_obj::from_poly(this)->_wait_q);
 
-      if (state & Thread_cancel)
-        return L4_error::Canceled;
-    }
+  if (state & Thread_timeout)
+    return L4_error::Timeout;
+
+  if (state & Thread_cancel)
+    return L4_error::Canceled;
 
   return L4_error::None;
 }

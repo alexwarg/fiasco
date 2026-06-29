@@ -208,13 +208,13 @@ public:
   //::Kobject_mappable *map_root() override
   //{ return Kobject::map_root(); }
 
-  void unblock_all();
+  void unblock_all(bool abort = false);
   void initiate_deletion(Kobject ***r) override;
   void destroy(Kobject ***r) override;
 
   ~Ipc_gate_obj() noexcept
   {
-    unblock_all();
+    unblock_all(true);
   }
 
   void *operator new (size_t, void *b) noexcept
