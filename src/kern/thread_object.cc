@@ -171,6 +171,10 @@ Thread_object::sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/
   if (elems < 5)
     return Kobject_iface::commit_result(0);
 
+  Mword flags = in->values[0];
+  if (flags & 0x10000)
+    this->rcu_wait();
+
   --elems;
 
   elems = elems / 4;
