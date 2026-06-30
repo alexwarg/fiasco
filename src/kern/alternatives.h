@@ -116,12 +116,12 @@ private:
  * called once at boot time. Depending on the return value of the function, the
  * static branch is then patched accordingly.
  */
-template<typename BASE>
+template<typename DERIVED>
 struct Alternative_static_functor
 {
   inline ALWAYS_INLINE operator bool()
   {
-    asm inline goto (ARCH_ALTERNATIVE_ASM_GOTO(BASE::probe, no));
+    asm inline goto (ARCH_ALTERNATIVE_ASM_GOTO(DERIVED::probe, no));
     return true;
   no:
     return false;
