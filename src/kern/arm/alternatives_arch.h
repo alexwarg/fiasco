@@ -30,5 +30,5 @@ struct Alternative_insn_entry
 #endif
 
 #define ARCH_ALTERNATIVE_ASM_GOTO(probe, no) \
-  ALTERNATIVE_INSN("b %l[no]", "nop") : : [alt_probe] "i"(probe) : : no
+  ALTERNATIVE_INSN("b %l[no]", "nop") : : [alt_probe] "Si"(probe) : : no
 
