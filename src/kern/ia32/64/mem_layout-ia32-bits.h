@@ -20,17 +20,17 @@ public:
 
   enum : Mword
   {
-    Kentry_start      = 0xffff810000000000UL, ///< 512 GiB slot 258
-    Kentry_cpu_page   = 0xffff817fffffc000UL, ///< last 16 KiB in slot 258
-    Io_bitmap         = 0xffff818000000000UL, ///< 512 GiB slot 259 first page
-    Caps_start        = 0xffff818000800000UL,    ///< % 4 MiB
-    Caps_end          = 0xffff81800c400000UL,    ///< % 4 MiB
+    Kentry_start      = 0xffff8100'00000000UL, ///< 512 GiB slot 258
+    Kentry_cpu_page   = 0xffff817f'ffffc000UL, ///< last 16 KiB in slot 258
+    Io_bitmap         = 0xffff8180'00000000UL, ///< 512 GiB slot 259 first page
+    Caps_start        = 0xffff8180'00800000UL,    ///< % 4 MiB
+    Caps_end          = 0xffff8180'0c400000UL,    ///< % 4 MiB
 
-    Utcb_addr         = 0x0000007fff000000UL,    ///< % 4 KiB UTCB map address
-    User_max          = 0x00007fffffffffffUL,
+    Utcb_addr         = 0x0000007f'ff000000UL,    ///< % 4 KiB UTCB map address
+    User_max          = 0x00007fff'ffffffffUL,
 
-    Kglobal_area      = 0xffffffff00000000UL,    ///< % 1 GiB to share 1 GiB tables (start)
-    Kglobal_area_end  = 0xffffffff80000000UL,    ///< % 1 GiB to share 1 GiB tables (end)
+    Kglobal_area      = 0xffffffff'00000000UL,    ///< % 1 GiB to share 1 GiB tables (start)
+    Kglobal_area_end  = 0xffffffff'80000000UL,    ///< % 1 GiB to share 1 GiB tables (end)
     Service_page      = Kglobal_area,            ///< % 4 MiB global mappings
     Local_apic_page   = Service_page + 0x0000,   ///< % 4 KiB
     Kmem_tmp_page_1   = Service_page + 0x2000,   ///< % 4 KiB size 8 KiB
@@ -43,8 +43,8 @@ public:
     // 0xffffffffeb800000-0xfffffffffec000000 (8 MiB) free
     Registers_map_start = Kglobal_area + 0xc000000UL,
     Registers_map_end   = Kglobal_area_end,
-    Kstatic           = 0xffffffffef800000UL,    ///< % 4 MiB Io_bitmap
-    Vmem_end          = 0xfffffffff0000000UL,
+    Kstatic           = 0xffffffff'ef800000UL,    ///< % 4 MiB Io_bitmap
+    Vmem_end          = 0xffffffff'f0000000UL,
 
     Kernel_image        = FIASCO_IMAGE_VIRT_START,
     Kernel_image_size   = FIASCO_IMAGE_VIRT_SIZE,
@@ -59,10 +59,10 @@ public:
     Adap_vram_cga_beg = Adap_image + 0xb8000, ///< % 8 KiB video RAM CGA memory
     Adap_vram_cga_end = Adap_image + 0xc0000,
 
-    Kentry_cpu_pdir   = 0xfffffffff0800000UL,
+    Kentry_cpu_pdir   = 0xffffffff'f0800000UL,
 
-    Physmem           = 0xffffffff10000000UL,    ///< % 4 MiB   kernel memory
-    Physmem_end       = 0xffffffffe0000000UL,    ///< % 4 MiB   kernel memory
+    Physmem           = 0xffffffff'10000000UL,    ///< % 4 MiB   kernel memory
+    Physmem_end       = 0xffffffff'e0000000UL,    ///< % 4 MiB   kernel memory
     Physmem_max_size  = Physmem_end - Physmem,
   };
 
@@ -86,7 +86,7 @@ public:
 #else
   enum : Mword
   {
-    Idt = 0xffff817fffffa000UL,                  ///< IDT in Kentry area
+    Idt = 0xffff817f'ffffa000UL,                  ///< IDT in Kentry area
     Kentry_cpu_syscall_entry = Kentry_cpu_page + 0x30
   };
 #endif
