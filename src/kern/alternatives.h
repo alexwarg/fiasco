@@ -16,6 +16,9 @@ struct Alternative_insn
 {
   enum { Debug = false };
   static void init();
+
+private:
+  static void patch_finish();
 };
 
 #if !defined(ASM_ALTERNATIVE_ENTRY_PTR)

@@ -1,4 +1,5 @@
 
+
 #include <alternatives.h>
 #include <cstdio>
 
@@ -101,24 +102,9 @@ Alternative_insn_entry::enable() const
   Mem_unit::make_coherent_to_pou(insn, len);
 }
 
+inline
 void
-Alternative_insn::init()
+Alternative_insn::patch_finish()
 {
-  extern Alternative_insn_entry const _alt_insns_begin[];
-  extern Alternative_insn_entry const _alt_insns_end[];
-
-  if (Debug)
-    printf("patching alternative instructions\n");
-
-  if (&_alt_insns_begin[0] == &_alt_insns_end[0])
-    return;
-
-  for (auto const *i = _alt_insns_begin; i != _alt_insns_end; ++i)
-    {
-      if (i->probe())
-        i->enable();
-    }
-
   Boot_info::reset_checksum_ro();
 }
-

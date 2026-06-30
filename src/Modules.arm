@@ -122,7 +122,7 @@ CXXSRC_KERNEL += main_arm.cc \
 	startup-arm.cc \
 	irq_entry_$(BITS).cc \
 	mem_op.cc mem_op-arm-$(BITS).cc \
-	alternatives.cc \
+	alternatives-generic.cc \
 	mem_chunk.cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
