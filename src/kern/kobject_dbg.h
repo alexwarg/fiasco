@@ -42,7 +42,7 @@ private:
   Mword _dbg_id;
 
 public:
-  Mword dbg_id() const { return _dbg_id; }
+  constexpr Mword dbg_id() const { return _dbg_id; }
 
   virtual cxx::_dyn::Type _cxx_dyn_type() const = 0;
   virtual ~Kobject_dbg() = 0;
@@ -143,31 +143,31 @@ class Kobject_dbg
 public:
   typedef unsigned long Iterator;
 
-  unsigned long dbg_id() const
+  constexpr unsigned long dbg_id() const
   { return 0; }
 
-  static
+  static constexpr
   unsigned long dbg_id(void const *)
   { return ~0UL; }
 
-  static
+  static constexpr
   Iterator pointer_to_obj(void const *)
   { return 0; }
 
 
-  static
+  static constexpr
   unsigned long pointer_to_id(void const *)
   { return ~0UL; }
 
-  static
+  static constexpr
   bool is_kobj(void const *)
   { return false; }
 
-  static
+  static constexpr
   Iterator id_to_obj(unsigned long)
   { return 0; }
 
-  static
+  static constexpr
   unsigned long obj_to_id(void const *)
   { return ~0UL; }
 };
