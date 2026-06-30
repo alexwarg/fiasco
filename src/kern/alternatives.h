@@ -121,7 +121,7 @@ struct Alternative_static_functor
 {
   inline ALWAYS_INLINE operator bool()
   {
-    asm goto (ARCH_ALTERNATIVE_ASM_GOTO(BASE::probe, no));
+    asm inline goto (ARCH_ALTERNATIVE_ASM_GOTO(BASE::probe, no));
     return true;
   no:
     return false;
