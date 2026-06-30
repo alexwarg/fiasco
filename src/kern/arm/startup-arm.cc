@@ -15,6 +15,7 @@
 #include <static_init.h>
 #include <thread.h>
 #include <timer.h>
+#include <alternatives.h>
 #include <utcb_init.h>
 #include <arm_ipis.h>
 #include <platform_iface.h>
@@ -51,6 +52,8 @@ static void stage2()
 
   if (Platform_if::pf)
     Platform_if::pf->init();
+
+  Alternative_insn::init();
 
   // Initialize cpu-local data management and run constructors for CPU 0
   Per_cpu_data::init_ctors();
