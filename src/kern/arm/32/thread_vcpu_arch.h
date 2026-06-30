@@ -40,20 +40,15 @@ public:
 
     Gic_h_global::gic->setup_state(&v->gic);
 
-    if (current() == c)
-      {
-        asm volatile ("mcr p15, 4, %0, c1, c1, 0" : : "r"(Cpu::Hcr_host_bits));
-        asm volatile ("mcr p15, 0, %0, c1, c0, 0" : : "r"(v->sctlr));
-        asm volatile ("mcr p15, 0, %0, c1, c0, 2" : : "r"(v->cpacr));
-        asm volatile ("mcr p15, 4, %0, c1, c1, 3" : : "r"(Cpu::Hstr_vm)); // HSTR
-      }
-
     // use the real MPIDR as initial value, we might change this later
     // on and mask bits that should not be known to the user
     asm ("mrc p15, 0, %0, c0, c0, 5" : "=r" (v->vmpidr));
 
     // use the real MIDR as initial value
     asm ("mrc p15, 0, %0, c0, c0, 0" : "=r" (v->vpidr));
+
+    if (current() == c)
+      v->load(false);
   }
 };
 #endif
