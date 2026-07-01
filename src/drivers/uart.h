@@ -80,6 +80,7 @@ public:
   }
 
 protected:
+  using L4::Uart_iface::startup;
   bool startup(L4::Io_register_block const *reg, int irq, Unsigned32 base_baud,
                bool /*resume*/)
   {
