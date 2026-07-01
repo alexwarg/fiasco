@@ -11,7 +11,7 @@ class Jdb_ptab : public Jdb_table
 {
 public:
   Jdb_ptab(void *pt_base = nullptr, Space *task = nullptr,
-           unsigned char pt_level = 0, unsigned entries = 0,
+           Pdir::Level_id pt_level = Pdir::root_level(), unsigned entries = 0,
            Address virt_base = 0, int level = 0);
 
   unsigned col_width(unsigned column) const override;
@@ -27,11 +27,12 @@ private:
   int _level;
   Space *_task;
   unsigned entries;
-  unsigned char cur_pt_level;
+  Pdir::Level_id cur_pt_level;
   char dump_raw;
 
   static unsigned entry_is_pt_ptr(Pdir::Pte_ptr const &entry,
-                                  unsigned *entries, unsigned *next_level);
+                                  unsigned *entries,
+                                  Pdir::Level_id *next_level);
   static Address   entry_phys(Pdir::Pte_ptr const &entry);
   static void     *entry_virt(Pdir::Pte_ptr const &entry);
 
@@ -43,7 +44,7 @@ private:
   inline int index(unsigned row, unsigned col)
   {
     Mword e = (col-1) + (row * (cols()-1));
-    if (e < Pdir::Levels::length(cur_pt_level))
+    if (e < Pdir::Levels::get(cur_pt_level).length())
       return static_cast<int>(e);
     else
       return -1;
@@ -51,7 +52,7 @@ private:
 
   inline void *pte(int index)
   {
-    return reinterpret_cast<void *>(base + index * Pdir::Levels::entry_size(cur_pt_level));
+    return reinterpret_cast<void *>(base + index * Pdir::Levels::get(cur_pt_level).entry_size());
   }
 };
 

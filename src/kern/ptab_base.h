@@ -15,109 +15,85 @@ namespace Ptab
     static unsigned to_phys(void *) { return 0; }
   };
 
-  template< typename _Head, typename _Tail >
-  struct List
+  /// index value fo a page-table level
+  //
+  // note it is undefined if a lower or higher value is of
+  // _l is closer to the root or to the leaf level.
+  class Level_id
   {
-    typedef _Head Head;
-    typedef _Tail Tail;
+  public:
+    Level_id() = default;
+    explicit constexpr Level_id(unsigned char l) : _l(l) {}
+    constexpr unsigned get() const { return _l; }
+    constexpr bool operator == (Level_id rhs) const { return _l == rhs._l; }
+    constexpr bool operator != (Level_id rhs) const { return _l != rhs._l; }
+
+  private:
+    unsigned char _l;
   };
 
   template< typename ...T >
-  struct Tupel;
+  struct List;
 
   template< typename T >
-  struct Tupel<T>;
-
-  template< typename H, typename T >
-  struct Tupel<H, T> { typedef Ptab::List<H, T> List; };
-
-  template<typename T1, typename T2, typename T3, typename ...X>
-  struct Tupel<T1, T2, T3, X...>
-  { typedef Ptab::List<T1, typename Tupel<T2, T3, X...>::List > List; };
-
-  template< typename _T >
-  struct Level
+  struct List<T>
   {
-    typedef _T Traits;
-    enum { Max_level = 0 };
-
-    static constexpr unsigned shift(unsigned)
-    { return Traits::Shift; }
-
-    static constexpr unsigned size(unsigned)
-    { return Traits::Size; }
-
-    static constexpr unsigned long length(unsigned)
-    { return 1UL << Traits::Size; }
-
-    static constexpr Address index(unsigned /*level*/, Address addr)
-    { return (addr >> Traits::Shift) & ((1UL << Traits::Size)-1); }
-
-    static constexpr unsigned entry_size(unsigned)
-    { return sizeof(typename Traits::Entry); }
-
-    static constexpr unsigned may_be_leaf(unsigned)
-    { return Traits::May_be_leaf; }
-
-    static constexpr unsigned lower_bound_level(unsigned, unsigned level = 0)
-    { return level; }
+    using First = T; ///< first element of the type-list
+    static constexpr unsigned size = 1; ///< size of the list (number of elements)
   };
 
-  template< typename _Head, typename _Tail >
-  struct Level< List<_Head, _Tail> >
+  template< typename H, typename ...T >
+  struct List<H, T...>
   {
-    typedef Level<_Tail> Next_level;
-    typedef _Head Traits;
-    enum { Max_level = Next_level::Max_level + 1 };
+    using First = H;
+    using Next = List<T...>;
+    static constexpr unsigned size = Next::size + 1;
+  };
 
-    static constexpr unsigned shift(unsigned level)
+  template< typename T >
+  struct Level;
+
+  template<typename T>
+  struct Level<List<T>>
+  {
+    using Tr = List<T>;
+    using Traits = T;
+    enum { Id = 0 };
+
+    static constexpr auto get(Level_id)
+    { return Traits::get(); }
+
+    static constexpr int lower_bound_level(unsigned order)
     {
-      return (!level)
-        ? unsigned{Traits::Shift}
-        : Next_level::shift(level - 1);
+      constexpr unsigned o = T::Shift + T::Base_shift;
+      if (o <= order)
+        return Id;
+      else
+        return -1;
+    }
+  };
+
+  template<typename F, typename ...T>
+  struct Level<List<F, T...>>
+  {
+    using Next_level = Level<List<T...>>;
+    using Traits = F;
+    enum { Id = Next_level::Id + 1 };
+
+    static constexpr auto get(Level_id level)
+    {
+      return (level.get() == Id)
+        ? Traits::get()
+        : Next_level::get(level);
     }
 
-    static constexpr unsigned size(unsigned level)
+    static constexpr int lower_bound_level(unsigned order)
     {
-      return (!level)
-        ? unsigned{Traits::Size}
-        : Next_level::size(level - 1);
-    }
-
-    static constexpr unsigned long length(unsigned level)
-    {
-      return (!level)
-        ? (1UL << Traits::Size)
-        : Next_level::length(level - 1);
-    }
-
-    static constexpr Address index(unsigned level, Address addr)
-    {
-      return (!level)
-        ? (addr >> Traits::Shift) & ((1UL << Traits::Size)-1)
-        : Next_level::index(level - 1, addr);
-    }
-
-    static constexpr unsigned entry_size(unsigned level)
-    {
-      return (!level)
-        ? sizeof(typename Traits::Entry)
-        : Next_level::entry_size(level - 1);
-    }
-
-    static constexpr bool may_be_leaf(unsigned level)
-    {
-      return (!level)
-        ? bool{Traits::May_be_leaf}
-        : Next_level::may_be_leaf(level - 1);
-    }
-
-    static constexpr unsigned
-    lower_bound_level(unsigned max_shift, unsigned level = 0)
-    {
-      return (max_shift >= Traits::Shift)
-        ? level
-        : Next_level::lower_bound_level(max_shift, level + 1);
+      constexpr unsigned o = F::Shift + F::Base_shift;
+      if (o <= order)
+        return Id;
+      else
+        return Next_level::lower_bound_level(order);
     }
   };
 
@@ -148,7 +124,7 @@ namespace Ptab
     Entry const &operator [] (unsigned idx) const { return _e[idx]; }
 
     template<typename PTE_PTR>
-    void clear(unsigned level, bool force_write_back)
+    void clear(Level_id level, bool force_write_back)
     {
       for (unsigned i=0; i < Length; ++i)
         PTE_PTR(&_e[i], level).clear();
@@ -168,27 +144,29 @@ namespace Ptab
   as_difference(Phys_addr a)
   { return a; }
 
-  template< typename _Last, typename PTE_PTR, int DEPTH = 0 >
-  class Walk
+  template<typename Traits, typename PTE_PTR, unsigned Level>
+  class Pt_level_impl
   {
   public:
-    enum { Max_depth = 0 };
-    enum { Depth = DEPTH };
-    typedef typename _Last::Entry Entry;
-    typedef _Last Traits;
-
-  private:
-    typedef Walk<_Last, PTE_PTR, DEPTH> This;
-    typedef Entry_vec<Traits> Vec;
+    using Self = Pt_level_impl<Traits, PTE_PTR, Level>;
+    using Entry = typename Traits::Entry;
+    using Vec = Entry_vec<Traits>;
+    static constexpr Level_id level_id{Level};
     Vec _e;
 
-  public:
     void clear(bool force_write_back)
-    { _e.template clear<PTE_PTR>(Depth, force_write_back); }
+    { _e.template clear<PTE_PTR>(level_id, force_write_back); }
+
+    PTE_PTR get_entry(Address virt)
+    { return PTE_PTR(&_e[Vec::idx(virt)], level_id); }
+
+    PTE_PTR get_entry(Address virt) const
+    { return PTE_PTR(const_cast<Entry *>(&_e[Vec::idx(virt)]), level_id); }
+
 
     template< typename _Alloc, typename MEM >
     PTE_PTR walk(Address virt, unsigned, bool, _Alloc &&, MEM &&)
-    { return PTE_PTR(&_e[Vec::idx(virt)], Depth); }
+    { return get_entry(virt); }
 
     template< typename MEM >
     void unmap(Address &start, unsigned long &size, unsigned, bool force_write_back, MEM &&)
@@ -200,7 +178,7 @@ namespace Ptab
       unsigned const e = idx + cnt;
 
       for (unsigned i = idx; i != e; ++i)
-        PTE_PTR(&_e[i], Depth).clear();
+        PTE_PTR(&_e[i], level_id).clear();
 
       if (force_write_back)
         PTE_PTR::write_back(&_e[idx], &_e[e]);
@@ -221,7 +199,7 @@ namespace Ptab
       unsigned const e = idx + cnt;
 
       for (unsigned i = idx; i != e; ++i, phys += as_difference(Phys_addr(1ULL << (Traits::Shift + Traits::Base_shift))))
-        PTE_PTR(&_e[i], Depth).set_page(phys, attr);
+        PTE_PTR(&_e[i], level_id).set_page(phys, attr);
 
       if (force_write_back)
         PTE_PTR::write_back(&_e[idx], &_e[e]);
@@ -248,7 +226,7 @@ namespace Ptab
     {}
 
     template< typename _Alloc, typename MEM >
-    int sync(Address &l_addr, This const &_r, Address &r_addr,
+    int sync(Address &l_addr, Self const &_r, Address &r_addr,
              Address &size, unsigned, bool force_write_back, _Alloc &&, MEM &&)
     {
       unsigned count = size >> Traits::Shift;
@@ -266,7 +244,7 @@ namespace Ptab
 
       for (unsigned n = count; n > 0; --n)
 	{
-	  if (PTE_PTR(&le[n-1], Depth).is_valid())
+	  if (PTE_PTR(&le[n-1], level_id).is_valid())
 	    need_flush = true;
 #if 0
 	  // This loop seems unnecessary, but remote_update is also used for
@@ -305,24 +283,32 @@ namespace Ptab
     }
   };
 
+  template< typename _Last, typename PTE_PTR>
+  class Walk;
 
-
-  template< typename _Head, typename _Tail, typename PTE_PTR, int DEPTH >
-  class Walk <List <_Head,_Tail>, PTE_PTR, DEPTH >
+  template< typename _Last, typename PTE_PTR>
+  class Walk<List<_Last>, PTE_PTR> : public Pt_level_impl<_Last, PTE_PTR, 0>
   {
   public:
-    typedef Walk<_Tail, PTE_PTR, DEPTH + 1> Next;
+    enum { Level = 0 };
+    typedef typename _Last::Entry Entry;
+    typedef _Last Traits;
+  };
+
+  template< typename _Head, typename ..._Tail, typename PTE_PTR>
+  class Walk<List <_Head, _Tail...>, PTE_PTR>
+  {
+  public:
+    typedef Walk<List<_Tail...>, PTE_PTR> Next;
     typedef typename _Head::Entry Entry;
     typedef _Head Traits;
 
-    enum { Max_depth = Next::Max_depth + 1 };
-    enum { Depth = DEPTH };
+    enum { Level = Next::Level + 1 };
 
   private:
-    typedef Walk<_Head, PTE_PTR, DEPTH> This;
-    typedef Walk< List< _Head, _Tail >, PTE_PTR, DEPTH> This2;
-    typedef Entry_vec<_Head> Vec;
-    Vec _e;
+    using Impl = Pt_level_impl<_Head, PTE_PTR, Level>;
+    Impl _impl;
+    typedef Walk<List<_Head, _Tail...>, PTE_PTR> Self;
 
     template< typename _Alloc >
     Next *alloc_next(PTE_PTR e, _Alloc &&a, bool force_write_back)
@@ -340,20 +326,20 @@ namespace Ptab
 
   public:
     void clear(bool force_write_back)
-    { _e.template clear<PTE_PTR>(Depth, force_write_back); }
+    { _impl.clear(force_write_back); }
 
     template< typename _Alloc, typename MEM >
     PTE_PTR walk(Address virt, unsigned level, bool force_write_back, _Alloc &&alloc, MEM &&mem)
     {
-      PTE_PTR e(&_e[Vec::idx(virt)], Depth);
+      PTE_PTR e = _impl.get_entry(virt);
 
-      if (!level)
+      if (level == Level)
         return e;
       else if (!e.is_valid())
         {
           Next *n;
           if (alloc.valid() && (n = alloc_next(e, alloc, force_write_back)))
-            return n->walk(virt, level - 1, force_write_back,
+            return n->walk(virt, level, force_write_back,
                            cxx::forward<_Alloc>(alloc),
                            cxx::forward<MEM>(mem));
           else
@@ -364,7 +350,7 @@ namespace Ptab
       else
         {
           Next *n = reinterpret_cast<Next*>(mem.phys_to_pmem(e.next_level()));
-          return n->walk(virt, level - 1, force_write_back,
+          return n->walk(virt, level, force_write_back,
                          cxx::forward<_Alloc>(alloc),
                          cxx::forward<MEM>(mem));
         }
@@ -372,37 +358,34 @@ namespace Ptab
 
     void skip(Address &start, unsigned long &size, unsigned level)
     {
-      if (!level)
-        reinterpret_cast<This*>(this)->skip(start, size);
+      if (level == Level)
+        _impl.skip(start, size);
       else
-        skip(start, size, level - 1);
+        skip(start, size, level);
     }
 
     template< typename MEM >
     void unmap(Address &start, unsigned long &size, unsigned level,
                bool force_write_back, MEM &&mem)
     {
-      if (!level)
+      if (level == Level)
         {
-          reinterpret_cast<This*>(this)->unmap(start, size, 0,
-                                               force_write_back,
-                                               cxx::forward<MEM>(mem));
+          _impl.unmap(start, size, level, force_write_back, cxx::forward<MEM>(mem));
           return;
         }
 
       while (size)
         {
-          PTE_PTR e(&_e[Vec::idx(start)], Depth);
+          PTE_PTR e = _impl.get_entry(start);
 
           if (!e.is_valid() || e.is_leaf())
             {
-              skip(start, size, level - 1);
+              skip(start, size, level);
               continue;
             }
 
           Next *n = reinterpret_cast<Next*>(mem.phys_to_pmem(e.next_level()));
-          n->unmap(start, size, level - 1, force_write_back,
-                   cxx::forward<MEM>(mem));
+          n->unmap(start, size, level, force_write_back, mem);
         }
     }
 
@@ -412,15 +395,14 @@ namespace Ptab
              Attr attr, unsigned level, bool force_write_back,
              _Alloc &&alloc, MEM &&mem)
     {
-      if (!level)
-        return reinterpret_cast<This*>(this)->map(phys, virt, size, attr, 0,
-                                                  force_write_back,
-                                                  cxx::forward<_Alloc>(alloc),
-                                                  cxx::forward<MEM>(mem));
+      if (level == Level)
+        return _impl.map(phys, virt, size, attr, level,
+                         force_write_back, cxx::forward<_Alloc>(alloc),
+                         cxx::forward<MEM>(mem));
 
       while (size)
         {
-          PTE_PTR e(&_e[Vec::idx(virt)], Depth);
+          PTE_PTR e = _impl.get_entry(virt);
           Next *n;
           if (!e.is_valid())
             {
@@ -432,7 +414,7 @@ namespace Ptab
           else
             n = reinterpret_cast<Next*>(mem.phys_to_pmem(e.next_level()));
 
-          if (!n->map(phys, virt, size, attr, level - 1, force_write_back,
+          if (!n->map(phys, virt, size, attr, level, force_write_back,
                       alloc, mem))
             return false;
         }
@@ -446,16 +428,16 @@ namespace Ptab
                  _Alloc &&alloc, MEM &&mem)
     {
       //printf("destroy: %*.s%lx-%lx lvl=%d:%d depth=%d\n", Depth*2, "            ", start, end, start_level, end_level, Depth);
-      if (!alloc.valid() || Depth >= end_level)
+      if (!alloc.valid() || Level <= end_level)
         return;
 
-      unsigned idx_start = Vec::idx(start);
-      unsigned idx_end = Vec::idx(end) + 1;
+      unsigned idx_start = Impl::Vec::idx(start);
+      unsigned idx_end = Impl::Vec::idx(end) + 1;
       //printf("destroy: %*.sidx: %d:%d\n", Depth*2, "            ", idx_start, idx_end);
 
       for (unsigned idx = idx_start; idx < idx_end; ++idx)
         {
-          PTE_PTR e(&_e[idx], Depth);
+          PTE_PTR e(&_impl._e[idx], Level_id(Level));
           if (!e.is_valid() || (_Head::May_be_leaf && e.is_leaf()))
             continue;
 
@@ -463,7 +445,7 @@ namespace Ptab
           n->destroy(idx > idx_start ? 0 : start,
                      idx + 1 < idx_end ? (1UL << Traits::Shift)-1 : end,
                      start_level, end_level, alloc, mem);
-          if (Depth >= start_level)
+          if (Level <= start_level)
             {
               //printf("destroy: %*.sfree: %p: %p(%zd)\n", Depth*2, "            ", this, n, sizeof(Next));
               alloc.free(n, Bytes(sizeof(Next)));
@@ -472,31 +454,30 @@ namespace Ptab
     }
 
     template< typename _Alloc, typename MEM >
-    int sync(Address &l_a, This2 const &_r, Address &r_a,
+    int sync(Address &l_a, Self const &_r, Address &r_a,
              Address &size, unsigned level, bool force_write_back,
              _Alloc &&alloc, MEM &&mem)
     {
-      if (!level)
-        return reinterpret_cast<This*>(this)
-          ->sync(l_a, reinterpret_cast<This const &>(_r), r_a, size, 0,
+      if (level == Level)
+        return _impl.sync(l_a, _r._impl, r_a, size, Level,
                  force_write_back, cxx::forward<_Alloc>(alloc),
                  cxx::forward<MEM>(mem));
 
       unsigned count = size >> Traits::Shift;
         {
-          unsigned const lx = Vec::idx(l_a);
-          unsigned const rx = Vec::idx(r_a);
+          unsigned const lx = Impl::Vec::idx(l_a);
+          unsigned const rx = Impl::Vec::idx(r_a);
           unsigned const mx = lx > rx ? lx : rx;
-          if (mx + count >= Vec::Length)
-            count = Vec::Length - mx;
+          if (mx + count >= Impl::Vec::Length)
+            count = Impl::Vec::Length - mx;
         }
 
       bool need_flush = false;
 
       for (unsigned i = count; size && i > 0; --i) //while (size)
         {
-          PTE_PTR l(&_e[Vec::idx(l_a)], Depth);
-          PTE_PTR r(const_cast<Entry *>(&_r._e[Vec::idx(r_a)]), Depth);
+          PTE_PTR l = _impl.get_entry(l_a);
+          PTE_PTR r = _r._impl.get_entry(r_a);
           Next *n = 0;
           if (!r.is_valid())
             {
@@ -520,7 +501,7 @@ namespace Ptab
 
           Next *rn = reinterpret_cast<Next*>(mem.phys_to_pmem(r.next_level()));
 
-          int err = n->sync(l_a, *rn, r_a, size, level - 1, force_write_back, alloc, mem);
+          int err = n->sync(l_a, *rn, r_a, size, level, force_write_back, alloc, mem);
           if (err > 0)
             need_flush = true;
 
@@ -533,6 +514,26 @@ namespace Ptab
 
   };
 
+  struct Level_desc
+  {
+    unsigned _entry_len;
+    unsigned _shift;
+    unsigned _size;
+    unsigned _base_shift;
+    bool _may_be_leaf;
+    bool _mask;
+
+    constexpr unsigned shift() const { return _shift; }
+    constexpr unsigned size() const { return _size; }
+    constexpr unsigned long length() const { return 1UL << _size; }
+    constexpr Address index(Address addr) const
+    { return (addr >> _shift) & ((1UL << _size)-1); }
+
+    constexpr unsigned entry_size() const { return _entry_len; }
+    constexpr unsigned may_be_leaf() const { return _may_be_leaf; }
+  };
+
+
   template
   <
     typename _Entry,
@@ -544,42 +545,43 @@ namespace Ptab
   >
   struct Traits
   {
-    typedef _Entry Entry;
+    using Entry = _Entry;
 
-    enum
-    {
-      May_be_leaf = _May_be_leaf,
-      Shift = _Shift,
-      Size = _Size,
-      Mask = _Mask,
-      Base_shift = _Base_shift
-    };
+    static constexpr Level_desc get()
+    { return {sizeof(_Entry), _Shift, _Size, _Base_shift, _May_be_leaf, _Mask}; }
+
+    static constexpr unsigned Shift = _Shift;
+    static constexpr unsigned Size = _Size;
+    static constexpr unsigned Base_shift = _Base_shift;
+    static constexpr bool May_be_leaf = _May_be_leaf;
+    static constexpr bool Mask = _Mask;
   };
 
-  template< typename _T, unsigned _Shift >
-  struct Shift
+  template<typename T, unsigned SHIFT>
+  struct Shifted_helper
   {
-    typedef _T Orig_list;
-    typedef Ptab::Traits
-      < typename _T::Entry,
-        _T::Shift - _Shift,
-        _T::Size,
-        _T::May_be_leaf,
-        _T::Mask,
-        _T::Base_shift + _Shift
-      > List;
+    using type = Traits<typename T::Entry, T::Shift - SHIFT,
+                        T::Size, T::May_be_leaf, T::Mask,
+                        T::Base_shift + SHIFT>;
   };
 
-  template< typename _Head, typename _Tail, unsigned _Shift >
-  struct Shift< List<_Head, _Tail>, _Shift >
+  template<unsigned SHIFT>
+  struct Shifted_helper<void, SHIFT>
   {
-    typedef Ptab::List<_Head, _Tail> Orig_list;
-    typedef Ptab::List
-    <
-      typename Shift<_Head, _Shift>::List,
-      typename Shift<_Tail, _Shift>::List
-    > List;
+    using type = void;
   };
+
+  template<typename T, unsigned SHIFT>
+  using Shifted = typename Shifted_helper<T, SHIFT>::type;
+
+  template< typename T, unsigned _Shift >
+  struct Shift_helper;
+
+  template< typename ...T, unsigned _Shift >
+  struct Shift_helper<List<T...>, _Shift> { using tupel = List<Shifted<T, _Shift>...>; };
+
+  template< typename T, unsigned _Shift >
+  using Shift = typename Shift_helper<T, _Shift>::tupel;
 
   struct Address_wrap
   {
@@ -601,6 +603,19 @@ namespace Ptab
     { return cxx::int_value<typename Value_type::Diff_type>(a); }
   };
 
+  template<typename TRAITS>
+  constexpr unsigned char page_order_for_level(Level_id level)
+  {
+    using Levels = Level<TRAITS>;
+    return Levels::get(level).shift() + Levels::Traits::Base_shift;
+  }
+
+  template<typename TRAITS>
+  constexpr Level_id lower_bound_level(unsigned order)
+  {
+    return Level<TRAITS>::lower_bound_level(order);
+  }
+
   template
   <
     typename PTE_PTR,
@@ -617,7 +632,8 @@ namespace Ptab
     typedef PTE_PTR Pte_ptr;
     typedef _Addr Addr;
     typedef MEM_DFLT Mem_default;
-    typedef typename _Traits::Head L0;
+    using L0 = typename Level<_Traits>::Traits;
+    using Level_id = Ptab::Level_id;
 
     enum
     {
@@ -639,15 +655,34 @@ namespace Ptab
     typedef Ptab::Walk<_Traits, PTE_PTR> Walk;
 
   public:
-    enum { Depth = Walk::Max_depth };
+    static constexpr unsigned depth()
+    { return static_cast<unsigned>(Walk::Level); }
+
+    static constexpr Level_id root_level()
+    { return Level_id(static_cast<unsigned>(Walk::Level)); }
+
+    static constexpr Level_id from_root_level(unsigned l)
+    { return Level_id(static_cast<unsigned>(Walk::Level) - l); }
+
+    static constexpr Level_id next_level(Level_id l)
+    { return Level_id(l.get() - 1); }
+
+    static constexpr Level_id leaf_level()
+    { return Level_id(0); }
+
+    static constexpr Level_id from_leaf_level(unsigned l)
+    { return Level_id(l); }
 
     typedef Level<Traits> Levels;
 
-    static constexpr unsigned lsb_for_level(unsigned level)
-    { return Levels::shift(level); }
+    static constexpr unsigned lsb_for_level(Level_id level)
+    { return Levels::get(level).shift(); }
 
-    static constexpr unsigned page_order_for_level(unsigned level)
-    { return Levels::shift(level) + Base_shift; }
+    static constexpr unsigned page_order_for_level(Level_id level)
+    { return Levels::get(level).shift() + Base_shift; }
+
+    static constexpr Level_id lower_bound_level(unsigned order)
+    { return Level_id(Levels::lower_bound_level(order)); }
 
     /**
      * Create or lookup a page table entry for a virtual address on a particular
@@ -671,8 +706,12 @@ namespace Ptab
      * `alloc`.
      */
     template< typename _Alloc, typename MEM = MEM_DFLT >
-    PTE_PTR walk(Va virt, unsigned level, bool force_write_back, _Alloc &&alloc, MEM &&mem = MEM())
-    { return _base.walk(_Addr::val(virt), level, force_write_back, cxx::forward<_Alloc>(alloc), cxx::forward<MEM>(mem)); }
+    PTE_PTR walk(Va virt, Level_id level, bool force_write_back,
+                 _Alloc &&alloc, MEM &&mem = MEM())
+    {
+      return _base.walk(_Addr::val(virt), level.get(), force_write_back,
+                        cxx::forward<_Alloc>(alloc), cxx::forward<MEM>(mem));
+    }
 
     /**
      * Lookup a page table entry for a virtual address on a particular
@@ -689,8 +728,11 @@ namespace Ptab
      *         instead.
      */
     template< typename MEM = MEM_DFLT >
-    PTE_PTR walk(Va virt, unsigned level = Depth, MEM &&mem = MEM()) const
-    { return const_cast<Walk&>(_base).walk(_Addr::val(virt), level, false, Null_alloc(), cxx::forward<MEM>(mem)); }
+    PTE_PTR walk(Va virt, Level_id level = leaf_level(), MEM &&mem = MEM()) const
+    {
+      return const_cast<Walk&>(_base).walk(_Addr::val(virt), level.get(), false,
+                                           Null_alloc(), cxx::forward<MEM>(mem));
+    }
 
     /**
      * Sync a range within this page table hierarchy from another
@@ -730,7 +772,7 @@ namespace Ptab
      */
     template< typename OPTE_PTR, typename _Alloc = Null_alloc, typename MEM = MEM_DFLT >
     int sync(Va l_addr, Base<OPTE_PTR, _Traits, _Addr, MEM_DFLT> const *_r,
-             Va r_addr, Vs size, unsigned level = Depth,
+             Va r_addr, Vs size, Level_id level = leaf_level(),
              bool force_write_back = false,
              _Alloc &&alloc = _Alloc(), MEM &&mem = MEM())
     {
@@ -738,7 +780,7 @@ namespace Ptab
       Address ra = _Addr::val(r_addr);
       Address sz = _Addr::val(size);
       return _base.sync(la, _r->_base,
-                        ra, sz, level, force_write_back,
+                        ra, sz, level.get(), force_write_back,
                         cxx::forward<_Alloc>(alloc),
                         cxx::forward<MEM>(mem));
     }
@@ -756,22 +798,22 @@ namespace Ptab
     { _base.clear(force_write_back); }
 
     template< typename MEM = MEM_DFLT >
-    void unmap(Va virt, Vs size, unsigned level, bool force_write_back, MEM &&mem = MEM())
+    void unmap(Va virt, Vs size, Level_id level, bool force_write_back, MEM &&mem = MEM())
     {
       Address va = _Addr::val(virt);
       unsigned long sz = _Addr::val(size);
-      _base.unmap(va, sz, level, force_write_back, cxx::forward<MEM>(mem));
+      _base.unmap(va, sz, level.get(), force_write_back, cxx::forward<MEM>(mem));
     }
 
     template< typename Phys_addr, typename Attr, typename _Alloc, typename MEM = MEM_DFLT >
     [[nodiscard]]
     bool map(Phys_addr phys, Va virt, Vs size, Attr attr,
-             unsigned level, bool force_write_back,
+             Level_id level, bool force_write_back,
              _Alloc &&alloc = _Alloc(), MEM &&mem = MEM())
     {
       Address va = _Addr::val(virt);
       unsigned long sz = _Addr::val(size);
-      return _base.map(phys, va, sz, attr, level, force_write_back,
+      return _base.map(phys, va, sz, attr, level.get(), force_write_back,
                        cxx::forward<_Alloc>(alloc), cxx::forward<MEM>(mem));
     }
 
@@ -793,11 +835,12 @@ namespace Ptab
      * page table entries themselves are left untouched.
      */
     template< typename _Alloc, typename MEM = MEM_DFLT >
-    void destroy(Va start, Va end, unsigned start_level, unsigned end_level,
+    void destroy(Va start, Va end, Level_id start_level, Level_id end_level,
                  _Alloc &&alloc = _Alloc(), MEM &&mem = MEM())
     {
       _base.destroy(_Addr::val(start), _Addr::val(end),
-                    start_level, end_level, cxx::forward<_Alloc>(alloc),
+                    start_level.get(), end_level.get(),
+                    cxx::forward<_Alloc>(alloc),
                     cxx::forward<MEM>(mem));
     }
 
@@ -814,11 +857,4 @@ namespace Ptab
   private:
     Walk _base;
   };
-
-  template<typename TRAITS>
-  constexpr unsigned char page_order_for_level(unsigned char level)
-  {
-    using Levels = Level<TRAITS>;
-    return Levels::shift(level) + TRAITS::Head::Base_shift;
-  }
 };

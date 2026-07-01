@@ -16,7 +16,7 @@ private:
 public:
   Entry _attribs_mask() const
   {
-    if (_this()->level == 0)
+    if (_this()->level.get() != 0)
       return ~Entry(0x00000c0c);
     else
       return ~Entry(0x00000ffc);
@@ -51,7 +51,7 @@ public:
     if (attr.type == T::Normal())   r |= Page::CACHEABLE;
     if (attr.type == T::Buffered()) r |= Page::BUFFERED;
     if (attr.type == T::Uncached()) r |= Page::NONCACHEABLE;
-    if (_this()->level == 0)
+    if (_this()->level.get() != 0)
       return r | perms[cxx::int_value<L4_fpage::Rights>(attr.rights)];
     else
       {
@@ -118,7 +118,7 @@ public:
     auto p = access_once(_this()->pte);
     if ((p & 0xc00) == 0xc00)
       {
-        p &= (_this()->level == 0) ? ~Mword(0xc00) : ~Mword(0xff0);
+        p &= (_this()->level.get() != 0) ? ~Mword(0xc00) : ~Mword(0xff0);
         write_now(_this()->pte, p);
       }
   }
@@ -138,7 +138,7 @@ private:
 public:
   Unsigned32 _attribs_mask() const
   {
-    if (_this()->level == 0)
+    if (_this()->level.get() != 0)
       return ~Unsigned32(0x0000881c);
     else
       return ~Unsigned32(0x0000022d);
@@ -169,13 +169,13 @@ public:
 
     if (!(attr.rights & R::X()))
       {
-        if (_this()->level == 0)
+        if (_this()->level.get() != 0)
           lower |= 0x10;
         else
           lower |= 0x01;
       }
 
-    if (_this()->level == 0)
+    if (_this()->level.get() != 0)
       return lower | (upper << 6);
     else
       return lower | upper;
@@ -191,7 +191,7 @@ public:
 
     R rights = R::R();
 
-    if (_this()->level == 0)
+    if (_this()->level.get() != 0)
       {
         if (!(c & 0x10))
           rights |= R::X();
@@ -248,7 +248,7 @@ public:
     Mword n_attr = 0;
     if (r & L4_fpage::Rights::W())
       {
-        if (_this()->level == 0)
+        if (_this()->level.get() != 0)
           n_attr = 0x200 << 6;
         else
           n_attr = 0x200;
@@ -256,7 +256,7 @@ public:
 
     if (r & L4_fpage::Rights::X())
       {
-        if (_this()->level == 0)
+        if (_this()->level.get() != 0)
           n_attr |= 0x10;
         else
           n_attr |= 0x01;
@@ -367,7 +367,7 @@ public:
 
   Unsigned64 _page_bits() const
   {
-    return 0x400 | ((_this()->level == CLASS::Max_level) ? 3 : 1);
+    return 0x400 | ((_this()->level.get() == 0) ? 3 : 1);
   }
 
   Page::Rights access_flags() const
@@ -472,7 +472,7 @@ public:
 
   Unsigned64 _page_bits() const
   {
-    return 0x400 | ((_this()->level == CLASS::Max_level) ? 3 : 1);
+    return 0x400 | ((_this()->level.get() == 0) ? 3 : 1);
   }
 
   Page::Rights access_flags() const

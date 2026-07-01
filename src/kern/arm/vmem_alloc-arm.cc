@@ -27,8 +27,7 @@ void *Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
   Mem_unit::inv_dcache(vpage, offset_cast<void *>(vpage, Config::PAGE_SIZE));
 
   // insert page into master page table
-  auto pte = Kmem::kdir->walk(Virt_addr(address),
-                              Kpdir::Depth, true,
+  auto pte = Kmem::kdir->walk(Virt_addr(address), Kpdir::leaf_level(), true,
                               Kmem_alloc::q_allocator(Ram_quota::root));
 
   Page::Rights r = Page::Rights::RWX();

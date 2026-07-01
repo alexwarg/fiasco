@@ -48,7 +48,8 @@ public:
   {
     if (_ept)
       {
-        _ept->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Ept::Depth,
+        _ept->destroy(Virt_addr(0UL), Virt_addr(~0UL),
+                      Ept::root_level(), Ept::leaf_level(),
                       Kmem_alloc::q_allocator(ram_quota()));
         Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _ept);
         _ept = nullptr;
@@ -98,12 +99,12 @@ private:
   public:
     typedef Mem_space::Attr Attr;
 
-    unsigned char level;
+    Ptab::Level_id level;
     Epte_ptr() = default;
-    Epte_ptr(Unsigned64 *e, unsigned char level) : e(e), level(level) {}
+    Epte_ptr(Unsigned64 *e, Ptab::Level_id level) : e(e), level(level) {}
 
     bool is_valid() const { return *e & 7; }
-    bool is_leaf() const { return (*e & (1 << 7)) || level == 3; }
+    bool is_leaf() const { return level.get() == 0 || (*e & (1 << 7)); }
     Unsigned64 next_level() const
     { return cxx::get_lsb(cxx::mask_lsb(*e, 12), 52); }
 
@@ -165,7 +166,7 @@ private:
       typedef L4_fpage::Rights R;
       typedef Page::Type T;
 
-      Unsigned64 r = (level < 3) ? (Unsigned64)(1 << 7) : 0;
+      Unsigned64 r = level.get() != 0 ? (Unsigned64)(1 << 7) : 0;
       r |= 1; // R
       if (attr.rights & R::W()) r |= 2;
       if (attr.rights & R::X()) r |= 4;
@@ -184,12 +185,12 @@ private:
 
   };
 
-  typedef Ptab::Tupel< Ptab::Traits<Unsigned64, 39, 9, false>,
-                       Ptab::Traits<Unsigned64, 30, 9, true>,
-                       Ptab::Traits<Unsigned64, 21, 9, true>,
-                       Ptab::Traits<Unsigned64, 12, 9, true> >::List Ept_traits;
+  typedef Ptab::List< Ptab::Traits<Unsigned64, 39, 9, false>,
+                      Ptab::Traits<Unsigned64, 30, 9, true>,
+                      Ptab::Traits<Unsigned64, 21, 9, true>,
+                      Ptab::Traits<Unsigned64, 12, 9, true> > Ept_traits;
 
-  typedef Ptab::Shift<Ept_traits, 12>::List Ept_traits_vpn;
+  typedef Ptab::Shift<Ept_traits, 12> Ept_traits_vpn;
   typedef Ptab::Page_addr_wrap<Page_number, 12> Ept_va_vpn;
   typedef Ptab::Base<Epte_ptr, Ept_traits_vpn, Ept_va_vpn, Mem_layout> Ept;
 
@@ -276,11 +277,7 @@ Vm_vmx_ept::v_insert(Mem_space::Phys_addr phys, Mem_space::Vaddr virt,
   assert (cxx::is_zero(cxx::get_lsb(Mem_space::Phys_addr(phys), size)));
   assert (cxx::is_zero(cxx::get_lsb(Virt_addr(virt), size)));
 
-  int level;
-  for (level = 0; level <= Ept::Depth; ++level)
-    if (Mem_space::Page_order(Ept::page_order_for_level(level)) <= size)
-      break;
-
+  Ptab::Level_id level = Ept::lower_bound_level(cxx::int_value<Mem_space::Page_order>(size));
   auto i = _ept->walk(virt, level, false,
                       Kmem_alloc::q_allocator(ram_quota()));
 

@@ -25,7 +25,7 @@ Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
     return 0;
 
   // insert page into master page table
-  auto e = Kmem::kdir->walk(Virt_addr(address), Pdir::Depth,
+  auto e = Kmem::kdir->walk(Virt_addr(address), Pdir::leaf_level(),
                             false, pdir_alloc(Kmem_alloc::allocator()));
   if (EXPECT_FALSE(e.is_valid()))
     {
@@ -33,7 +33,7 @@ Vmem_alloc::page_alloc(void *address, Zero_fill zf, unsigned mode)
       goto error;
     }
 
-  if (e.level != Pdir::Depth)
+  if (e.level != Pdir::leaf_level())
     goto error;
 
   if (zf == ZERO_FILL)

@@ -19,10 +19,10 @@ void Kern_lib_page::init()
 {
   extern char kern_lib_start;
   auto pte = Kmem::kdir->walk(Virt_addr(Kmem_space::Kern_lib_base),
-                              Pdir::Depth, true,
+                              Kpdir::leaf_level(), true,
                               Kmem_alloc::q_allocator(Ram_quota::root));
 
-  if (pte.level == 0) // allocation of second level faild
+  if (pte.level != Kpdir::leaf_level()) // allocation of second level faild
     panic("Error mapping kernel-lib page to %p", (void *)Kmem_space::Kern_lib_base);
 
   pte.set_page(Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)&kern_lib_start)),

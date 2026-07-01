@@ -23,7 +23,7 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
 
   Address phys = entry_phys(entry);
 
-  if (entry.level != Pdir::Depth && entry.is_leaf())
+  if (entry.level != Pdir::leaf_level() && entry.is_leaf())
     printf((phys >> 20) > 0xFF
            ? "%10lx/2" : "        %02lx/2", phys >> 20);
   else
@@ -32,7 +32,7 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
     printf((phys >> Config::PAGE_SHIFT) > 0xFFFF
            ? "%12lx" : "        %04lx", phys >> Config::PAGE_SHIFT);
 
-  putchar(((cur_pt_level >= Pdir::Depth || entry.is_leaf()) &&
+  putchar(((cur_pt_level == Pdir::leaf_level() || entry.is_leaf()) &&
          (*entry.pte & Pt_entry::Cpu_global)) ? '+' : '-');
   printf("%s%c%s", *entry.pte & Pt_entry::Noncacheable ? JDB_ANSI_COLOR(lightblue) : "",
                    *entry.pte & Pt_entry::Noncacheable

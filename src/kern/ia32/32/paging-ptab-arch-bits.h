@@ -7,15 +7,15 @@ using Ptab_traits =
   Ptab::List< Ptab::Traits<Unsigned32, 22, 10, true, false>,
               Ptab::Traits<Unsigned32, 12, 10, true> >;
 
-using Ptab_traits_vpn = Ptab::Shift<Ptab_traits, Virt_addr::Shift>::List;
+using Ptab_traits_vpn = Ptab::Shift<Ptab_traits, Virt_addr::Shift>;
 using Ptab_va_vpn = Ptab::Page_addr_wrap<Page_number, Virt_addr::Shift>;
 
 class Pt_entry_bits
 {
 public:
+  static constexpr Ptab::Level_id Super_level{1};
   enum
   {
-    Super_level   = 0,
     Valid         = 0x00000001, ///< Valid
     Writable      = 0x00000002, ///< Writable
     User          = 0x00000004, ///< User accessible

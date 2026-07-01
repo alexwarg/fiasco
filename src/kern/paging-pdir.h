@@ -7,7 +7,7 @@ template<typename PTE_PTR, typename TRAITS, typename VA>
 class Pdir_t : public Ptab::Base<PTE_PTR, TRAITS, VA, Mem_layout>
 {
 public:
-  enum { Super_level = PTE_PTR::Super_level };
+  static constexpr Ptab::Level_id Super_level = PTE_PTR::Super_level;
 
   Address
   virt_to_phys(Address virt) const

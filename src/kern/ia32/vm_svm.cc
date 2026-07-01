@@ -87,13 +87,16 @@ Vm_svm::get_vm_cr3(Vmcb *v)
   //    So why is the code still here? Well, QEmu isn't so picky about the
   //    bits in the PDPE and it thus works there...
   assert_opt (this);
-  Address vm_cr3 = static_cast<Mem_space*>(this)->dir()->walk(Virt_addr(0), 0).next_level();
+  Address vm_cr3 = static_cast<Mem_space*>(this)->dir()
+    ->walk(Virt_addr(0), Pdir::root_level()).next_level();
   if (EXPECT_FALSE(!vm_cr3))
     {
       // force allocation of new secondary page-table level
       static_cast<Mem_space*>(this)->dir()
-        ->walk(Virt_addr(0), 1, false, Kmem_alloc::q_allocator(ram_quota()));
-      vm_cr3 = static_cast<Mem_space*>(this)->dir()->walk(Virt_addr(0), 0).next_level();
+        ->walk(Virt_addr(0), Pdir::from_root_level(1), false,
+               Kmem_alloc::q_allocator(ram_quota()));
+      vm_cr3 = static_cast<Mem_space*>(this)->dir()
+        ->walk(Virt_addr(0), Pdir::root_level()).next_level();
     }
 
   if (EXPECT_FALSE(vm_cr3 >= 1UL << 32))

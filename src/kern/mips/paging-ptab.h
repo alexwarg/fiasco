@@ -230,13 +230,19 @@ public:
   Mword _entries[Entries];
 
   // for JDB
+  using Level_id = Ptab::Level_id;
+
+  static constexpr Level_id leaf_level() { return Level_id(PT_level); }
+  static constexpr Level_id next_level(Level_id l) { return Level_id(l.get() + 1); }
+  static constexpr Level_id root_level() { return Level_id(0); }
+
   struct Pte_ptr
   {
     typedef Mword Entry;
     Mword *e;
-    unsigned char level;
+    Ptab::Level_id level;
     Pte_ptr() = default;
-    Pte_ptr(void *p, unsigned char lvl) : e(static_cast<Mword *>(p)), level(lvl) {}
+    Pte_ptr(void *p, Ptab::Level_id lvl) : e(static_cast<Mword *>(p)), level(lvl) {}
     bool is_leaf() const  { return *e & Leaf; }
     bool is_valid() const { return !(*e & Leaf) || (*e & Valid); }
     Address next_level() const { return *e; }
@@ -246,15 +252,19 @@ public:
 
   struct Levels
   {
-    static constexpr unsigned entry_size(unsigned)
+    unsigned _size;
+
+    static constexpr Levels get(Ptab::Level_id l) { return Levels{l_size(l.get())}; }
+
+    static constexpr unsigned entry_size()
     { return sizeof(Mword); }
 
-    static constexpr unsigned long length(unsigned l)
-    { return 1UL << l_size(l); }
+    constexpr unsigned long length() const
+    { return 1UL << _size; }
   };
 
-  static constexpr unsigned lsb_for_level(unsigned l)
-  { /* Va relative */ return l_field(l) - l_field(PT_level); }
+  static constexpr unsigned lsb_for_level(Level_id l)
+  { /* Va relative */ return l_field(l.get()) - l_field(PT_level); }
   // end JDB
 };
 

@@ -30,7 +30,7 @@ namespace Kmem_mmio { namespace {
  */
 static uintptr_t
 find_unmapped_extent(size_t size_adj, uintptr_t start, uintptr_t end,
-                     size_t step, unsigned level)
+                     size_t step, Ptab::Level_id level)
 {
   size_t size_cur = 0;
   uintptr_t candidate = invalid_ptr;
@@ -90,7 +90,7 @@ find_unmapped_extent(size_t size_adj, uintptr_t start, uintptr_t end,
 static uintptr_t
 find_mapped_extent(Address phys_adj, size_t size_adj,
                    uintptr_t start, uintptr_t end, Page::Attr attr,
-                   size_t step, unsigned level)
+                   size_t step, Ptab::Level_id level)
 {
   size_t size_cur = 0;
   uintptr_t candidate = invalid_ptr;
@@ -147,7 +147,7 @@ find_mapped_extent(Address phys_adj, size_t size_adj,
  */
 static bool
 map_extent(Address phys_adj, uintptr_t virt, size_t size_adj,
-           Page::Attr attr, unsigned level)
+           Page::Attr attr, Ptab::Level_id level)
 {
   if (Kmem_alloc::ready())
     return Kmem::kdir->map(Phys_mem_addr{phys_adj}, Virt_addr(virt), Virt_size(size_adj),
@@ -204,7 +204,7 @@ Kmem_mmio::map(Address phys, size_t size, bool cache, bool exec, bool global)
   size_t size_adj;
 
   size_t step;
-  unsigned level;
+  Ptab::Level_id level;
 
   if (Kmem::kdir && Kmem_alloc::ready())
     {
@@ -217,7 +217,7 @@ Kmem_mmio::map(Address phys, size_t size, bool cache, bool exec, bool global)
       size_adj = Pg::ceil(offset + size);
 
       step = Config::PAGE_SIZE;
-      level = Kpdir::Depth;
+      level = Kpdir::leaf_level();
     }
   else
     {
@@ -290,8 +290,8 @@ Kmem_mmio::unmap(void *ptr, size_t size)
       || virt_adj + size_adj > Mem_layout::Registers_map_end)
     return;
 
-  Kmem::kdir->unmap(Virt_addr(virt_adj), Virt_size(size_adj), Kpdir::Depth,
-                    true);
+  Kmem::kdir->unmap(Virt_addr(virt_adj), Virt_size(size_adj),
+                    Kpdir::leaf_level(), true);
 
   for (size_t i = 0; i < size_adj; i += Config::PAGE_SIZE)
     Mem_unit::tlb_flush_kernel(virt + i);

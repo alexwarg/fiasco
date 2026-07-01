@@ -22,13 +22,9 @@ Mem_space::v_insert(Phys_addr phys, Vaddr virt, Page_order size,
   assert (cxx::is_zero(cxx::get_lsb(Phys_addr(phys), size)));
   assert (cxx::is_zero(cxx::get_lsb(Virt_addr(virt), size)));
 
-  int level;
-  for (level = 0; level <= Pdir::Depth; ++level)
-    if (Page_order(Pdir::page_order_for_level(level)) <= size)
-      break;
-
+  Ptab::Level_id level = Pdir::lower_bound_level(cxx::int_value<Page_order>(size));
   auto i = _dir->walk(virt, level, false,
-                            Kmem_alloc::q_allocator(_quota));
+                      Kmem_alloc::q_allocator(_quota));
 
   if (EXPECT_FALSE(!i.is_valid() && i.level != level))
     return Insert_err_nomem;
@@ -130,12 +126,12 @@ Mem_space::dir_shutdown()
   // free all page tables we have allocated for this address space
   // except the ones in kernel space which are always shared
   _dir->destroy(Virt_addr(0UL),
-                Virt_addr(Mem_layout::User_max), 0, Pdir::Depth,
+                Virt_addr(Mem_layout::User_max), Pdir::root_level(), Pdir::leaf_level(),
                 Kmem_alloc::q_allocator(_quota));
 
   // free all unshared page table levels for the kernel space
   _dir->destroy(Virt_addr(Mem_layout::User_max + 1),
-                Virt_addr(Pdir::Max_addr), 0, Pdir::Super_level,
+                Virt_addr(Pdir::Max_addr), Pdir::root_level(), Pdir::Super_level,
                 Kmem_alloc::q_allocator(_quota));
 }
 

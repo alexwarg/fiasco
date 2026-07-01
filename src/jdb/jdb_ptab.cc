@@ -23,13 +23,13 @@
 char Jdb_ptab_m::first_char;
 
 Jdb_ptab::Jdb_ptab(void *pt_base, Space *task,
-                   unsigned char pt_level, unsigned entries,
+                   Pdir::Level_id pt_level, unsigned entries,
                    Address virt_base, int level)
   : base(reinterpret_cast<Address>(pt_base)), virt_base(virt_base), _level(level),
     _task(task), entries(entries), cur_pt_level(pt_level), dump_raw(0)
 {
   if (entries == 0)
-    this->entries = Pdir::Levels::length(pt_level);
+    this->entries = Pdir::Levels::get(pt_level).length();
 }
 
 unsigned
@@ -95,18 +95,18 @@ Jdb_ptab::entry_virt(Pdir::Pte_ptr const &entry)
 
 unsigned
 Jdb_ptab::entry_is_pt_ptr(Pdir::Pte_ptr const &entry,
-                           unsigned *entries, unsigned *next_level)
+                           unsigned *entries, Pdir::Level_id *next_level)
 {
   if (!entry.is_valid() || entry.is_leaf())
     return 0;
 
-  unsigned n = 1;
-  while (   (entry.level + n) < Pdir::Depth
-         && Pdir::Levels::length(entry.level + n) <= 1)
-    ++n;
+  Pdir::Level_id n = Pdir::next_level(entry.level);
+  while (n != Pdir::leaf_level()
+         && Pdir::Levels::get(n).length() <= 1)
+    n = Pdir::next_level(n);
 
-  *entries = Pdir::Levels::length(entry.level + n);
-  *next_level = entry.level + n;
+  *entries = Pdir::Levels::get(n).length();
+  *next_level = n;
   return 1;
 }
 
@@ -136,7 +136,7 @@ Jdb_ptab::print_statline(unsigned long row, unsigned long col)
     va = -1;
 
   Jdb::printf_statline("p:", "<Space>=mode <CR>=goto page/next level",
-                       "<level=%1d> <" L4_PTR_FMT "> task D:%lx", cur_pt_level, va, sid);
+                       "<level=%1d> <" L4_PTR_FMT "> task D:%lx", cur_pt_level.get(), va, sid);
 }
 
 unsigned
@@ -167,9 +167,10 @@ Jdb_ptab::key_pressed(int c, unsigned long &row, unsigned long &col)
           if (!pt_entry.is_valid())
             break;
 
-          unsigned next_level, entries;
+          Pdir::Level_id next_level;
+          unsigned entries;
 
-          if (cur_pt_level >= Pdir::Depth ||
+          if (cur_pt_level == Pdir::leaf_level() ||
               !entry_is_pt_ptr(pt_entry, &entries, &next_level))
             {
               Jdb_address virt(disp_virt(idx), _task);
@@ -206,9 +207,10 @@ Jdb_ptab::key_pressed(int c, unsigned long &row, unsigned long &col)
 
           void *pd_virt = entry_virt(pt_entry);
 
-          unsigned next_level, entries;
+          Pdir::Level_id next_level;
+          unsigned entries;
 
-          if (cur_pt_level < Pdir::Depth
+          if (cur_pt_level != Pdir::leaf_level()
               && entry_is_pt_ptr(pt_entry, &entries, &next_level))
             {
               Jdb_ptab pt_view(pd_virt, _task, next_level, entries,
@@ -253,7 +255,7 @@ Jdb_ptab_m::handle_key(Kobject_common *o, int code)
       t = th->space();
     }
 
-  Jdb_ptab pt_view(static_cast<Mem_space*>(t)->dir(), t, 0, 0, 0, 1);
+  Jdb_ptab pt_view(static_cast<Mem_space*>(t)->dir(), t, Pdir::root_level(), 0, 0, 1);
   pt_view.show(0,0);
 
   return true;

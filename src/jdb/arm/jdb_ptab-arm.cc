@@ -39,7 +39,7 @@ jdb_ptab_arm_ap_char(unsigned ap)
 static inline bool
 jdb_ptab_arm_is_cached(Pdir::Pte_ptr const &entry)
 {
-  if (entry.level == 0)
+  if (entry.level == Pdir::root_level())
     {
       if ((*entry.pte & 3) == 2)
         return (*entry.pte & Page::Section_cache_mask) == Page::Section_cachable_bits;
@@ -89,7 +89,7 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
       unsigned t = *entry.pte & 0x03;
       unsigned ap = *entry.pte >> 4;
       char ps;
-      if (entry.level == 0)
+      if (entry.level == Pdir::root_level())
         switch (t)
           {
           case 1: ps = 'C'; break;
@@ -110,7 +110,7 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
                           jdb_ptab_arm_is_cached(entry)
                            ? "-" : JDB_ANSI_COLOR(lightblue) "n" JDB_ANSI_END,
                           ps);
-      if (entry.level == 0 && t != 2)
+      if (entry.level == Pdir::root_level() && t != 2)
         putchar('-');
       else
         printf("%s%c" JDB_ANSI_END,
@@ -171,14 +171,14 @@ Jdb_ptab::print_entry(Pdir::Pte_ptr const &entry)
       unsigned t = (*entry.pte & 2) >> 1;
 
       char ps;
-      if (entry.level == 0)
+      if (entry.level == Pdir::root_level())
         switch (t)
           {
           case 0: ps = 'G'; break;
           case 1: ps = 'P'; break;
           default: ps = '?'; break;
           }
-      else if (entry.level == 1)
+      else if (entry.level == Pdir::from_root_level(1))
         switch (t)
           {
           case 0: ps = 'M'; break;

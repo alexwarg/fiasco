@@ -4,20 +4,20 @@
 #include <ptab_base.h>
 
 using Ptab_traits =
-  Ptab::Tupel< Ptab::Traits<Unsigned64, 39, 9, false>,
-               Ptab::Traits<Unsigned64, 30, 9, true>,
-               Ptab::Traits<Unsigned64, 21, 9, true>,
-               Ptab::Traits<Unsigned64, 12, 9, true> >::List;
+  Ptab::List< Ptab::Traits<Unsigned64, 39, 9, false>,
+              Ptab::Traits<Unsigned64, 30, 9, true>,
+              Ptab::Traits<Unsigned64, 21, 9, true>,
+              Ptab::Traits<Unsigned64, 12, 9, true> >;
 
-using Ptab_traits_vpn = Ptab::Shift<Ptab_traits, Virt_addr::Shift>::List;
+using Ptab_traits_vpn = Ptab::Shift<Ptab_traits, Virt_addr::Shift>;
 using Ptab_va_vpn = Ptab::Page_addr_wrap<Page_number, Virt_addr::Shift>;
 
 class Pt_entry_bits
 {
 public:
+  static constexpr Ptab::Level_id Super_level{1};
   enum
   {
-    Super_level   = 2,
     Valid         = 0x00000001LL, ///< Valid
     Writable      = 0x00000002LL, ///< Writable
     User          = 0x00000004LL, ///< User accessible

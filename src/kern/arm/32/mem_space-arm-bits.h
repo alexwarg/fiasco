@@ -47,8 +47,8 @@ int
 Mem_space_arm_bits<M>::sync_kernel()
 {
   auto pte = _ths()->_dir->walk(Virt_addr(Mem_layout::Kern_lib_base),
-      Pdir::Depth, true, Kmem_alloc::q_allocator(_ths()->ram_quota()));
-  if (pte.level < Pdir::Depth - 1)
+      Pdir::leaf_level(), true, Kmem_alloc::q_allocator(_ths()->ram_quota()));
+  if (pte.level != Pdir::leaf_level())
     return -1;
 
   extern char kern_lib_start[];
@@ -59,9 +59,9 @@ Mem_space_arm_bits<M>::sync_kernel()
   pte.write_back_if(true, _ths()->c_asid());
 
   pte = _ths()->_dir->walk(Virt_addr(Mem_layout::Syscalls),
-      Pdir::Depth, true, Kmem_alloc::q_allocator(_ths()->ram_quota()));
+      Pdir::leaf_level(), true, Kmem_alloc::q_allocator(_ths()->ram_quota()));
 
-  if (pte.level < Pdir::Depth - 1)
+  if (pte.level != Pdir::leaf_level())
     return -1;
 
   pa = Phys_mem_addr(__mem_space_syscall_page);
@@ -100,10 +100,10 @@ void
 Mem_space_arm_bits<M>::set_syscall_page(void *p)
 {
   auto pte = Kmem::kdir->walk(Virt_addr(Kmem_space::Syscalls),
-                              Pdir::Depth, true,
+                              Kpdir::leaf_level(), true,
                               Kmem_alloc::q_allocator(Ram_quota::root));
 
-  if (pte.level == 0) // allocation of second level faild
+  if (pte.level !=  Kpdir::leaf_level()) // allocation of second level faild
     panic("FATAL: Error mapping syscall page to %p\n",
           (void *)Kmem_space::Syscalls);
 

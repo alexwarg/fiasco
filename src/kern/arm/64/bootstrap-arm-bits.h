@@ -315,8 +315,8 @@ static Phys_addr init_paging(Address load_addr)
   Bs_alloc alloc(kern_to_boot(bs_info.pi.scratch), bs_info.pi.free_map);
 
   // force allocation of MMIO+Pmem page directory
-  d->walk(::Virt_addr(Mem_layout::Registers_map_start), 2, false, alloc, Bs_mem_map());
-  d->walk(::Virt_addr(Mem_layout::Pmem_start), 2, false, alloc, Bs_mem_map());
+  d->walk(::Virt_addr(Mem_layout::Registers_map_start), Kpdir::from_leaf_level(1), false, alloc, Bs_mem_map());
+  d->walk(::Virt_addr(Mem_layout::Pmem_start), Kpdir::from_leaf_level(1), false, alloc, Bs_mem_map());
 
   // map kernel to desired virtual address
   map_ram_range(d, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys,
@@ -483,8 +483,8 @@ static Phys_addr init_paging(Address)
   Bs_alloc alloc(kern_to_boot(bs_info.pi.scratch), bs_info.pi.free_map);
 
   // force allocation of MMIO+Pmem page directory
-  kd->walk(::Virt_addr(Mem_layout::Registers_map_start), 2, false, alloc, Bs_mem_map());
-  kd->walk(::Virt_addr(Mem_layout::Pmem_start), 2, false, alloc, Bs_mem_map());
+  kd->walk(::Virt_addr(Mem_layout::Registers_map_start), Kpdir::from_leaf_level(1), false, alloc, Bs_mem_map());
+  kd->walk(::Virt_addr(Mem_layout::Pmem_start), Kpdir::from_leaf_level(1), false, alloc, Bs_mem_map());
 
   // map kernel to desired virtual address
   map_ram_range(kd, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys,

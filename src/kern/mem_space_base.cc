@@ -47,7 +47,6 @@ Mem_space_base::add_global_page_size(Page_order o)
     _glbl_page_sizes[x] = _glbl_page_sizes[x - 1];
 
   _glbl_page_sizes[i] = o;
-  assert (_glbl_page_sizes[_num_glbl_page_sizes] <= Page_order(Config::PAGE_SHIFT));
 
   ++_num_glbl_page_sizes;
 }

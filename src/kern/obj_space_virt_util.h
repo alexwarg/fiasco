@@ -305,7 +305,7 @@ protected:
     ms->dir()->destroy(Virt_addr(Mem_layout::Caps_start),
                        Virt_addr(Mem_layout::Caps_end-1),
                        Pdir::Super_level,
-                       Pdir::Depth,
+                       Pdir::leaf_level(),
                        Kmem_alloc::q_allocator(SPACE::ram_quota(this)));
   }
 

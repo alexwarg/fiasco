@@ -25,7 +25,7 @@ Idt::set_writable(bool writable)
   auto e = Kmem::current_cpu_kdir()->walk(Virt_addr(_idt));
 
   // Make sure page directory entry is valid and not a superpage
-  assert (e.is_valid() && e.level == Pdir::Depth);
+  assert (e.is_valid() && e.level == Pdir::leaf_level());
 
   if (writable)
     e.add_attribs(Pt_entry::Writable); // Make read-write
@@ -87,10 +87,10 @@ Idt::init()
 void
 Idt::init_current_cpu()
 {
-  auto d = Kmem::current_cpu_kdir()->walk(Virt_addr(_idt), Pdir::Depth);
-  if (d.level != Pdir::Depth)
+  auto d = Kmem::current_cpu_kdir()->walk(Virt_addr(_idt), Pdir::leaf_level());
+  if (d.level != Pdir::leaf_level())
     panic("IDT allocation failure: %d: level=%d %lx", __LINE__,
-          d.level, *d.pte);
+          d.level.get(), *d.pte);
 
   if (!d.is_valid())
     d.set_page(_idt_pa, Pt_entry::Referenced | Pt_entry::global());

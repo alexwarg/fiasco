@@ -80,7 +80,7 @@ Dmar_space::create_identity_map()
   for (Unsigned64 pfn = 0; pfn <= epfn; ++pfn)
     {
       auto i = identity_map->walk(Mem_space::V_pfn(pfn),
-                                  Dmar_pt::Depth, false,
+                                  Dmar_pt::leaf_level(), false,
                                   Kmem_alloc::q_allocator(Ram_quota::root));
       if (i.page_order() != 12)
         panic("IOMMU: cannot allocate identity IO page table, OOM\n");
@@ -127,11 +127,7 @@ Dmar_space::v_insert(Mem_space::Phys_addr phys, Mem_space::Vaddr virt,
   assert (cxx::is_zero(cxx::get_lsb(Mem_space::Phys_addr(phys), order)));
   assert (cxx::is_zero(cxx::get_lsb(Virt_addr(virt), order)));
 
-  int level;
-  for (level = 0; level < Dmar_pt::Depth; ++level)
-    if (Mem_space::Page_order(Dmar_pt::page_order_for_level(level)) <= order)
-      break;
-
+  Ptab::Level_id level = Dmar_pt::lower_bound_level(cxx::int_value<Mem_space::Page_order>(order));
   auto i = _dmarpt->walk(virt, level, false,
                          Kmem_alloc::q_allocator(ram_quota()));
 
@@ -277,7 +273,7 @@ Dmar_space::~Dmar_space()
 
   if (_dmarpt)
     {
-      _dmarpt->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Dmar_pt::Depth,
+      _dmarpt->destroy(Virt_addr(0UL), Virt_addr(~0UL), Dmar_pt::root_level(), Dmar_pt::leaf_level(),
                        Kmem_alloc::q_allocator(ram_quota()));
       Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _dmarpt);
       _dmarpt = nullptr;

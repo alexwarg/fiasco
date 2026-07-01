@@ -28,14 +28,14 @@ private:
   public:
     typedef Mem_space::Attr Attr;
 
-    unsigned char level;
+    Ptab::Level_id level;
     Dmar_ptr() = default;
-    Dmar_ptr(Unsigned64 *e, unsigned char l)
+    Dmar_ptr(Unsigned64 *e, Ptab::Level_id l)
     : e(reinterpret_cast<Dmar_ptr_val*>(e)), level(l) {}
 
     bool is_valid() const { return e->present(); }
     bool is_leaf() const
-    { return (level == Dmar_pt::Depth) || (e->v & (1 << 7)); }
+    { return (level == Dmar_pt::leaf_level()) || (e->v & (1 << 7)); }
     Unsigned64 next_level() const
     { return cxx::mask_lsb(e->v, Config::PAGE_SHIFT); }
 
@@ -48,7 +48,7 @@ private:
     void clear() { set(0); }
 
     unsigned char page_order() const
-    { return Dmar_space::Dmar_pt::page_order_for_level(level); }
+    { return Dmar_pt::page_order_for_level(level); }
 
     Unsigned64 page_addr() const
     {
@@ -121,8 +121,7 @@ private:
     {
       typedef L4_fpage::Rights R;
 
-      assert(level <= Dmar_pt::Depth);
-      Unsigned64 r = (level == Dmar_pt::Depth) ? 0 : (Unsigned64)(1<<7);
+      Unsigned64 r = (level == Dmar_pt::leaf_level()) ? 0 : (Unsigned64)(1<<7);
       r |= 1; // Read
       if (attr.rights & R::W()) r |= 2;
 
@@ -130,12 +129,12 @@ private:
     }
   };
 
-  typedef Ptab::Tupel<Ptab::Traits<Unsigned64, 39, 9, true>,
-                      Ptab::Traits<Unsigned64, 30, 9, true>,
-                      Ptab::Traits<Unsigned64, 21, 9, true>,
-                      Ptab::Traits<Unsigned64, 12, 9, true> >::List Dmar_traits;
+  typedef Ptab::List<Ptab::Traits<Unsigned64, 39, 9, true>,
+                     Ptab::Traits<Unsigned64, 30, 9, true>,
+                     Ptab::Traits<Unsigned64, 21, 9, true>,
+                     Ptab::Traits<Unsigned64, 12, 9, true> > Dmar_traits;
 
-  typedef Ptab::Shift<Dmar_traits, 12>::List Dmar_traits_vpn;
+  typedef Ptab::Shift<Dmar_traits, 12> Dmar_traits_vpn;
   typedef Ptab::Page_addr_wrap<Page_number, 12> Dmar_va_vpn;
   typedef Ptab::Base<Dmar_ptr, Dmar_traits_vpn, Dmar_va_vpn, Mem_layout> Dmar_pt;
 
@@ -192,14 +191,15 @@ public:
      *
      * Force allocation of two levels in entry 0, so get_root works
      */
-    auto i = _dmarpt->walk(Mem_space::V_pfn(0), 2, false,
+    auto i = _dmarpt->walk(Mem_space::V_pfn(0), Dmar_pt::from_root_level(2), false,
                            Kmem_alloc::q_allocator(ram_quota()));
-    if (i.level != 2)
+    if (i.level != Dmar_pt::from_root_level(2))
       {
         // Got a page-table entry with the wrong level. That happens in the
         // case of an out-of-memory situation. So free everything we already
         // allocated and fail.
-        _dmarpt->destroy(Virt_addr(0UL), Virt_addr(~0UL), 0, Dmar_pt::Depth,
+        _dmarpt->destroy(Virt_addr(0UL), Virt_addr(~0UL),
+                         Dmar_pt::root_level(), Dmar_pt::leaf_level(),
                          Kmem_alloc::q_allocator(ram_quota()));
         Kmem_alloc::allocator()->q_free(ram_quota(), Config::page_order(), _dmarpt);
         _dmarpt = nullptr;
@@ -245,12 +245,12 @@ public:
   static Mword get_root(Dmar_pt *pt, unsigned aw_level)
   {
     aw_level += 2;
-    if (aw_level == Dmar_pt::Depth + 1)
+    if (aw_level == Dmar_pt::depth() + 1)
       return Mem_layout::pmem_to_phys(pt);
 
-    assert(aw_level <= Dmar_pt::Depth);
+    assert(aw_level <= Dmar_pt::depth());
 
-    auto i = pt->walk(Mem_space::V_pfn(0), Dmar_pt::Depth - aw_level);
+    auto i = pt->walk(Mem_space::V_pfn(0), Dmar_pt::from_leaf_level(aw_level));
     assert(i.is_valid());
     return i.next_level();
   }

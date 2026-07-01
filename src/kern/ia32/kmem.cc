@@ -21,7 +21,7 @@ Kpdir *Kmem::kdir;
 Address
 Kmem::map_phys_page_tmp(Address phys, Mword idx)
 {
-  unsigned long pte = cxx::mask_lsb(phys, Pdir::page_order_for_level(Pdir::Depth));
+  unsigned long pte = cxx::mask_lsb(phys, Pdir::page_order_for_level(Pdir::leaf_level()));
   Address virt;
 
   switch (idx)
@@ -49,11 +49,11 @@ void
 Kmem::map_phys_page(Address phys, Address virt,
                     bool cached, bool global, Address *offs)
 {
-  auto i = kdir->walk(Virt_addr(virt), Pdir::Depth, false,
+  auto i = kdir->walk(Virt_addr(virt), Pdir::leaf_level(), false,
                       pdir_alloc(Kmem_alloc::allocator()));
   Mword pte = Pg::trunc(phys);
 
-  assert(i.level == Pdir::Depth);
+  assert(i.level == Pdir::leaf_level());
 
   i.set_page(pte, Pt_entry::Writable | Pt_entry::Referenced | Pt_entry::Dirty
                   | (cached ? 0 : (Pt_entry::Write_through | Pt_entry::Noncacheable))
@@ -152,7 +152,7 @@ Kmem::init_mmu()
   // jdb adapter page.
   assert(Super_pg::aligned(Mem_layout::Service_page));
 
-  kdir->walk(Virt_addr(Mem_layout::Service_page), Pdir::Depth,
+  kdir->walk(Virt_addr(Mem_layout::Service_page), Pdir::leaf_level(),
              false, pdir_alloc(alloc));
 
   // kernel mode should acknowledge write-protected page table entries
@@ -238,8 +238,8 @@ Kmem::init_cpu(Cpu &cpu)
   Kpdir *cpu_dir = (Kpdir*)alloc->alloc(Bytes(cpu_dir_sz));
   memset (cpu_dir, 0, cpu_dir_sz);
 
-  auto src = kdir->walk(Virt_addr(0), 0);
-  auto dst = cpu_dir->walk(Virt_addr(0), 0);
+  auto src = kdir->walk(Virt_addr(0), Kpdir::root_level());
+  auto dst = cpu_dir->walk(Virt_addr(0), Kpdinr::root_level());
   write_now(dst.pte, *src.pte);
 
   static_assert ((Kglobal_area & ((1UL << 30) - 1)) == 0, "Kglobal area must be 1 GiB aligned");
@@ -247,8 +247,8 @@ Kmem::init_cpu(Cpu &cpu)
 
   for (unsigned i = 0; i < ((Kglobal_area_end - Kglobal_area) >> 30); ++i)
     {
-      auto src = kdir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), 1);
-      auto dst = cpu_dir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), 1,
+      auto src = kdir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), Kpdir::from_root_level(1));
+      auto dst = cpu_dir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), Kpdinr::from_root_level(1),
                                false, pdir_alloc(alloc));
 
       if (dst.level != 1)
@@ -269,14 +269,14 @@ Kmem::init_cpu(Cpu &cpu)
       if ((a & ((1UL << 30) - 1)) || ((Physmem_end - (1UL << 30)) < a))
         {
           // copy a superpage slot
-          auto src = kdir->walk(Virt_addr(a), 2);
+          auto src = kdir->walk(Virt_addr(a), Kpdir::from_root_level(2));
 
           if (src.level != 2)
             panic("could not setup per-cpu page table, invalid source mapping: %d\n", __LINE__);
 
           if (src.is_valid())
             {
-              auto dst = cpu_dir->walk(Virt_addr(a), 2,
+              auto dst = cpu_dir->walk(Virt_addr(a), Kpdir::from_root_level(2),
                                        false, pdir_alloc(alloc));
 
               if (dst.level != 2)
@@ -299,13 +299,13 @@ Kmem::init_cpu(Cpu &cpu)
       else
         {
           // copy a 1 GiB slot
-          auto src = kdir->walk(Virt_addr(a), 1);
+          auto src = kdir->walk(Virt_addr(a), Kpdinr::from_root_level(1));
           if (src.level != 1)
             panic("could not setup per-cpu page table, invalid source mapping: %d\n", __LINE__);
 
           if (src.is_valid())
             {
-              auto dst = cpu_dir->walk(Virt_addr(a), 1,
+              auto dst = cpu_dir->walk(Virt_addr(a), Kpdinr::from_root_level(1),
                                        false, pdir_alloc(alloc));
 
               if (dst.level != 1)
@@ -345,7 +345,7 @@ Kmem::init_cpu(Cpu &cpu)
                      Virt_size(cpu_dir_sz),
                      Pt_entry::Writable | Pt_entry::Referenced
                      | Pt_entry::Dirty  | Pt_entry::global(),
-                     Pdir::Depth,
+                     Pdir::leaf_level(),
                      false, pdir_alloc(alloc));
 
   unsigned const cpu_mx_sz = Config::PAGE_SIZE;
@@ -355,7 +355,7 @@ Kmem::init_cpu(Cpu &cpu)
   ok &= cpu_dir->map(cpu_mx_pa, Virt_addr(Kentry_cpu_page), Virt_size(cpu_mx_sz),
                      Pt_entry::Writable | Pt_entry::Referenced
                      | Pt_entry::Dirty  | Pt_entry::global(),
-                     Pdir::Depth,
+                     Pdir::leaf_level(),
                      false, pdir_alloc(alloc));
 
   if (!ok)
@@ -387,7 +387,7 @@ Kmem::init_cpu(Cpu &cpu)
   // Sync pte_map bits for context switch optimization.
   // Slots > 255 are CPU local / kernel area.
   for (unsigned long i = 0; i < 256; ++i)
-    if (cpu_dir->walk(Virt_addr(i << 39), 0).is_valid())
+    if (cpu_dir->walk(Virt_addr(i << 39), Kpdir::root_level()).is_valid())
       pte_map->set_bit(i);
 
   if (!_pte_map)
@@ -412,8 +412,8 @@ void
 Kmem::setup_cpu_structures_isolation(Cpu &cpu, Kpdir *cpu_dir, cxx::Simple_alloc *cpu_m)
 {
 
-  auto src = cpu_dir->walk(Virt_addr(Kentry_cpu_page), 0);
-  auto dst = cpu_dir[1].walk(Virt_addr(Kentry_cpu_page), 0);
+  auto src = cpu_dir->walk(Virt_addr(Kentry_cpu_page), Kpdir::root_level());
+  auto dst = cpu_dir[1].walk(Virt_addr(Kentry_cpu_page), Kpdir::root_level());
   write_now(dst.pte, *src.pte);
 
   // map kernel code to user space dir
@@ -430,7 +430,7 @@ Kmem::setup_cpu_structures_isolation(Cpu &cpu, Kpdir *cpu_dir, cxx::Simple_alloc
   if (!cpu_dir[1].map(ki_page - Kernel_image_offset, Virt_addr(ki_page),
                       Virt_size(kie_page - ki_page),
                       Pt_entry::Referenced | Pt_entry::global(),
-                      Pdir::Depth,
+                      Pdir::leaf_level(),
                       false, pdir_alloc(Kmem_alloc::allocator())))
     panic("Cannot map initial memory");
 
@@ -503,7 +503,7 @@ Kmem::setup_global_cpu_structures(bool superpages)
         {
           auto e = kdir->walk(Virt_addr(Mem_layout::Io_bitmap
                                         - Pg::size(i+1)),
-                              Pdir::Depth, false, pdir_alloc(alloc));
+                              Pdir::leaf_level(), false, pdir_alloc(alloc));
 
           e.set_page(tss_mem_pm + Pg::size(i),
                      Pt_entry::Writable | Pt_entry::Referenced | Pt_entry::Dirty

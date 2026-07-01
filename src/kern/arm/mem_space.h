@@ -111,18 +111,8 @@ public:
 
   static void init_page_sizes()
   {
-    add_page_size(Page_order(Config::PAGE_SHIFT));
-#ifdef CONFIG_ARM_LPAE
-    add_page_size(Page_order(21)); // 2 MiB
-    add_page_size(Page_order(30)); // 1 GiB
-#ifdef CONFIG_ARM_PT48
-    add_page_size(Page_order(39)); // 512 GiB
-#endif
-#else
-    add_page_size(Page_order(20)); // 1 MiB
-#endif
+    init_ps(Pdir::Traits{});
   }
-
 
 protected:
   bool initialize()
@@ -137,6 +127,11 @@ protected:
     return true;
   }
 
+  template<typename ...T>
+  static void init_ps(Ptab::List<T...> const &)
+  {
+    (add_page_size(Page_order(T::Shift + T::Base_shift)), ...);
+  }
 
 
 private:

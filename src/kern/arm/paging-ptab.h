@@ -79,19 +79,15 @@ template<typename CLASS>
 class Pte_short_desc
 {
 public:
-  enum
-  {
-    Max_level   = 1,
-    Super_level = 0,
-  };
+  static constexpr Ptab::Level_id Super_level{1};
 
   typedef Unsigned32 Entry;
 
   Unsigned32 *pte;
-  unsigned char level;
+  Ptab::Level_id level;
 
   Pte_short_desc() = default;
-  Pte_short_desc(void *p, unsigned char level)
+  Pte_short_desc(void *p, Ptab::Level_id level)
   : pte((Entry *)p), level(level)
   {}
 
@@ -99,11 +95,10 @@ public:
   void clear() { write_now(pte, 0); }
   bool is_leaf() const
   {
-    switch (level)
-      {
-      case 0: return (access_once(pte) & 3) == 2;
-      default: return true;
-      };
+    if (level.get() == 0)
+      return true;
+
+    return (access_once(pte) & 3) == 2;
   }
 
   Mword next_level() const
@@ -119,7 +114,7 @@ public:
 
   unsigned char page_order() const
   {
-    if (level == 0)
+    if (level.get() == 1)
       return 20; // 1 MiB
     else
       { // no tiny pages
@@ -150,10 +145,10 @@ public:
   typedef Unsigned64 Entry;
 
   Entry *pte;
-  unsigned char level;
+  Ptab::Level_id level;
 
   Pte_long_desc() = default;
-  Pte_long_desc(void *p, unsigned char level)
+  Pte_long_desc(void *p, Ptab::Level_id level)
   : pte((Unsigned64*)p), level(level)
   {}
 
@@ -161,8 +156,9 @@ public:
   void clear() { write_now(pte, 0); }
   bool is_leaf() const
   {
-    if (level >= CLASS::Max_level)
+    if (level.get() == 0)
       return true;
+
     return (*pte & 3) == 1;
   }
 
@@ -257,12 +253,7 @@ struct Kpte_desc_t : Pte_long_desc<M>
 {
   template<typename ...T>
   Kpte_desc_t(T &&...args) : Pte_long_desc<M>(cxx::forward<T>(args)...) {}
-
-  enum
-  {
-    Super_level    = K_ptab_super_level,
-    Max_level      = K_ptab_max_level,
-  };
+  static constexpr Ptab::Level_id Super_level = K_ptab_super_level;
 };
 
 template<typename M>
@@ -295,7 +286,7 @@ class K_pte_ptr :
 {
 public:
   K_pte_ptr() = default;
-  K_pte_ptr(void *p, unsigned char level)
+  K_pte_ptr(void *p, Ptab::Level_id level)
   : Kpte_desc_t<K_pte_ptr>(p, level) {}
 
   [[gnu::always_inline]]
@@ -318,25 +309,22 @@ class Pte_ptr_t :
 {
 public:
   Pte_ptr_t() = default;
-  Pte_ptr_t(void *p, unsigned char level) : Pte_long_desc<CLASS>(p, level) {}
+  Pte_ptr_t(void *p, Ptab::Level_id level) : Pte_long_desc<CLASS>(p, level) {}
 };
 
 class Pte_ptr : public Pte_ptr_t<Pte_ptr>
 {
 public:
-  enum
-  {
-    Super_level = Ptab_super_level,
-    Max_level   = Ptab_max_level,
-  };
+  static constexpr Ptab::Level_id Super_level = Ptab_super_level;
+
   Pte_ptr() = default;
-  Pte_ptr(void *p, unsigned char level) : Pte_ptr_t(p, level) {}
+  Pte_ptr(void *p, Ptab::Level_id level) : Pte_ptr_t(p, level) {}
 
   unsigned char page_order() const
   { return Ptab::page_order_for_level<Ptab_traits_vpn>(level); };
 };
 
-typedef Pdir_t<Pte_ptr, Ptab_traits_vpn, Ptab_va_vpn> Pdir;
+using Pdir = Pdir_t<Pte_ptr, Ptab_traits_vpn, Ptab_va_vpn>;
 
 #else // CONFIG_CPU_VIRT
 

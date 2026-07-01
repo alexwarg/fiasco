@@ -93,7 +93,7 @@ Cpu_arm_bits_generic::init_supervisor_mode(bool is_boot_cpu)
 
   // map the interrupt vector table to 0xffff0000
   auto pte = Kmem::kdir->walk(Virt_addr(Kmem_space::Ivt_base),
-                              Kpdir::Depth, true,
+                              Kpdir::leaf_level(), true,
                               Kmem_alloc::q_allocator(Ram_quota::root));
 
   pte.set_page(Phys_mem_addr(reinterpret_cast<Address>(&ivt_start)),

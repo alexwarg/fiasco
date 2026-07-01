@@ -12,14 +12,13 @@
 class Pt_entry : public Pt_entry_bits
 {
 public:
-  static constexpr unsigned Max_level = Ptab::Level<Ptab_traits_vpn>::Max_level;
   static void have_superpages(bool yes)
   {
     _have_superpages = yes;
-    _super_level = yes ? Super_level : (Super_level + 1);
+    _super_level = yes ? Super_level : Ptab::Level_id(0);
   }
 
-  static unsigned super_level()
+  static Ptab::Level_id super_level()
   { return _super_level; }
 #ifdef CONFIG_KERNEL_ISOLATION
 
@@ -53,7 +52,7 @@ public:
 
 private:
   static Unsigned32 _cpu_global;
-  static unsigned _super_level;
+  static Ptab::Level_id _super_level;
   static bool _have_superpages;
 };
 
@@ -61,14 +60,16 @@ class Pte_ptr : private Pt_entry
 {
 public:
   using Pt_entry::Super_level;
-  Pte_ptr(void *pte, unsigned char level) : pte(static_cast<Mword*>(pte)), level(level) {}
+  Pte_ptr(void *pte, Ptab::Level_id level)
+  : pte(static_cast<Mword*>(pte)), level(level) {}
+
   Pte_ptr() = default;
 
   bool is_valid() const
   { return *pte & Valid; }
 
   bool is_leaf() const
-  { return level == Max_level || (*pte & Pse_bit); }
+  { return level.get() == 0 || (*pte & Pse_bit); }
 
   /**
    * \pre is_leaf() == false
@@ -85,7 +86,7 @@ public:
   void set_page(Mword phys, Mword attr)
   {
     Mword v = phys | Valid | attr;
-    if (level < Max_level)
+    if (!level.get() == 0)
       v |= Pse_bit;
     *pte = v;
   }
@@ -120,7 +121,7 @@ public:
 
   Mword make_page(Phys_mem_addr addr, Page::Attr attr)
   {
-    Mword r = (level < Max_level) ? (Mword)Pse_bit : 0;
+    Mword r = level.get() != 0 ? (Mword)Pse_bit : 0;
     typedef L4_fpage::Rights R;
     typedef Page::Type T;
     typedef Page::Kern K;
@@ -260,7 +261,7 @@ public:
   typedef Mword Entry;
   Entry *pte;
   Entry entry() const { return *pte; }
-  unsigned char level;
+  Ptab::Level_id level;
 };
 
 using Pdir = Pdir_t<Pte_ptr, Ptab_traits_vpn, Ptab_va_vpn>;
