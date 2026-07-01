@@ -47,7 +47,6 @@ STATIC_INITIALIZER_P(stage1, STARTUP1_INIT_PRIO);
 FIASCO_INIT
 static void stage2()
 {
-  // the logical ID of the boot CPU is always 0
   Kip_init::init();
   Kmem_alloc::init();
 
