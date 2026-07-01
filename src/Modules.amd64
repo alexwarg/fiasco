@@ -63,7 +63,6 @@ PRIVATE_INCDIR		+= kern/$(CONFIG_XARCH) kern/ia32/64 kern/ia32 kern
 CXXSRC_KERNEL-$(CONFIG_IOMMU)    += dmar_space.cc
 
 CXXSRC_KERNEL-$(CONFIG_WATCHDOG) += watchdog-ia32.cc
-CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc
 CXXSRC_KERNEL-$(CONFIG_MP) += main_ia32_mp.cc apic_mp.cc
 CXXSRC_KERNEL-$(CONFIG_IOMMU) += intel_dmar.cc
 CXXSRC_KERNEL-$(CONFIG_IA32_PCID) += mem_space-pcid.cc

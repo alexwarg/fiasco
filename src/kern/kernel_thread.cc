@@ -8,6 +8,7 @@
 #include <globals.h>
 #include <helping_lock.h>
 #include <kernel_task.h>
+#include <kernel_uart.h>
 #include <processor.h>
 #include <task.h>
 #include <thread.h>
@@ -74,6 +75,8 @@ Kernel_thread::bootstrap()
 {
   // Initializations done -- Helping_lock can now use helping lock
   Helping_lock::threading_system_active = true;
+
+  Kernel_uart::setup_input();
 
   // we need per CPU data for our never running dummy CPU too
   // FIXME: we in fact need only the _pending_rqq lock

@@ -137,7 +137,7 @@ CXXSRC_KERNEL-$(CONFIG_CPU_VIRT) += task_arm_virt.cc vgic_global.cc hyp_ppi.cc \
 CXXSRC_KERNEL-$(CONFIG_MP) += \
 	main_arm_mp.cc \
 	arm_ipis.cc
-CXXSRC_KERNEL-$(CONFIG_SERIAL) += uart_console.cc boot_uart_init.cc
+CXXSRC_KERNEL-$(CONFIG_SERIAL) += boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc gic_its.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC_MSI)-$(CONFIG_HAVE_ARM_GICV3) += gic_mem.cc gic_msi.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc pic-gic-helper.cc

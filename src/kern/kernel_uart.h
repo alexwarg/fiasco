@@ -20,6 +20,7 @@ public:
   Kernel_uart();
   static void pm_register();
   static void enable_rcv_irq();
+  static void setup_input();
   static bool init(Init_mode = Init_before_mmu);
   static bool init_for_mode(Init_mode init_mode);
   [[gnu::const]] static Uart *uart();
@@ -29,6 +30,10 @@ public:
 bool
 Kernel_uart::init(Init_mode)
 { return false; }
+
+void
+Kernel_uart::setup_input()
+{}
 
 inline
 Kernel_uart::Kernel_uart()
