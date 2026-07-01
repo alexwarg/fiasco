@@ -102,7 +102,7 @@ CXXSRC_KERNEL-$(CONFIG_JDB) += \
 	dbg_page_info.cc kobject_dbg.cc jdb_object.cc \
 	tb_entry_generic.cc \
 	drq_log.cc vcpu_log.cc context_dbg.cc exregs_log.cc \
-	dbg_stack.cc jdb_trace.cc
+	dbg_stack.cc jdb_trace.cc jdb_coredump.cc
 
 ifneq ($(CONFIG_NDEBUG),y)
 CXXSRC_KERNEL-$(CONFIG_JDB)  += assertion-dbg.cc
