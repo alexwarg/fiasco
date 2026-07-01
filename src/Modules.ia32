@@ -118,7 +118,7 @@ CXXSRC_KERNEL-$(CONFIG_SCHED_RTC) += timer_rtc.cc timer_tick-ia32.cc
 CXXSRC_KERNEL-$(CONFIG_SCHED_APIC) += timer_apic.cc timer_tick-apic.cc
 
 ifeq ("$(CONFIG_JDB)","y")
-JDB			:= jdb_compound.o
+JDB			:= jdb_compound.a
 SUBSYSTEMS		+= JDB
 VPATH			+= jdb/ia32/32 jdb/ia32 jdb
 CXXSRC_JDB += tb_entry_output.cc loadcnt.cc jdb_log.cc jdb_io_apic.cc \

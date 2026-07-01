@@ -36,7 +36,7 @@ define gen_kernel_rules =
 $(2): kernel.ia32.lds boot_img.o $$(CRT0) $$(OBJ_KERNEL) $(3) $$(JDB) $$(KERNEL_EXTRA_LIBS) $$(ABI) $$(JABI) libdrivers.a $$(LIBUART) $$(LIBK) $$(CXXLIB) $$(LIBC) libgluedriverslibc.a
 		$$(LINK_MESSAGE)
 		$$(VERBOSE)$$(LD) $$(LDFLAGS) $$(LD_EMULATION_FLAG) -N -o $$@ \
-		   -T $$< -gc-sections $$(filter-out $$<,$$+) \
+		   -T $$< -gc-sections boot_img.o $$(CRT0) $$(OBJ_KERNEL) $(3) --whole-archive $$(JDB) --no-whole-archive $$(KERNEL_EXTRA_LIBS) $$(ABI) $$(JABI) libdrivers.a $$(LIBUART) $$(LIBK) $$(CXXLIB) $$(LIBC) libgluedriverslibc.a \
 		   $$(KERNEL_UNRES_SYMS) -Map=$(2).map --cref
 		$$(call ADD_CONFIGFILE,$$@)
 

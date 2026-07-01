@@ -160,7 +160,7 @@ CXXSRC_KERNEL-$(CONFIG_ARM_SVE) += fpu_arm_sve.cc
 
 
 ifeq ("$(CONFIG_JDB)","y")
-JDB			:= jdb_compound.o
+JDB			:= jdb_compound.a
 SUBSYSTEMS		+= JDB
 
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc jdb_idle_stats.cc \

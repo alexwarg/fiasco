@@ -102,7 +102,7 @@ CXXSRC_KERNEL		+= cpu-mips.cc mem_unit-mips.cc
 CXXSRC_KERNEL-$(CONFIG_PERF_CNT) += perf_cnt_arch.cc
 
 ifeq ("$(CONFIG_JDB)","y")
-JDB			:= jdb_compound.o
+JDB			:= jdb_compound.a
 SUBSYSTEMS		+= JDB
 
 CXXSRC_JDB += tb_entry_output.cc jdb_log.cc jdb-mips.cc jdb_tcb-mips.cc \
