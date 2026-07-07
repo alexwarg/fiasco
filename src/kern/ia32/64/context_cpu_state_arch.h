@@ -10,7 +10,7 @@ class Context_cpu_state_arch : public BASE
 public:
   Gdt_user_entries<4> gdt_user_entries;
   Unsigned16 ds, es, fs, gs;
-  Mword gs_base, fs_base;
+  Mword gs_base = 0, fs_base = 0;
 
   explicit Context_cpu_state_arch(Mword *kernel_sp)
   : BASE(kernel_sp)

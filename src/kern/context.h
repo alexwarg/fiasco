@@ -615,7 +615,7 @@ private:
   Sched_context _sched_context;
   Sched_context *_sched = &_sched_context;
   // Implementation-specific consumed CPU time (TSC ticks or usecs)
-  Clock::Time _consumed_time;
+  Clock::Time _consumed_time{0};
 
   // Pointer to floating point register state
   Fpu_state_ptr _fpu_state;
@@ -637,7 +637,7 @@ private:
   // how many locks does this thread hold on other threads
   // incremented in Thread::lock, decremented in Thread::clear
   // Thread::kill needs to know
-  cxx::atomic<int> _lock_cnt;
+  cxx::atomic<int> _lock_cnt{0};
 
   Migration_ptr _migration;
   State_request _remote_state_change;

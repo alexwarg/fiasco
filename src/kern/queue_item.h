@@ -10,7 +10,7 @@ class alignas(16) Queue_item : public cxx::D_list_item
   friend class Queue;
 
 private:
-  Queue *_q;
+  Queue *_q = nullptr;
 
 public:
   bool queued() const noexcept

@@ -47,7 +47,7 @@ protected:
       Running     = 2,
     };
 
-    cxx::atomic<State> _s;
+    cxx::atomic<State> _s{Not_running};
 
   public:
     /**

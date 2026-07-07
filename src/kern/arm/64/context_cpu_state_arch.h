@@ -7,7 +7,7 @@
 template<typename BASE>
 class Context_cpu_state_arch : public BASE, public Context_cpu_state_arm
 {
-  Mword _tpidr2rw;
+  Mword _tpidr2rw = 0;
 public:
   explicit Context_cpu_state_arch(Mword *kernel_sp)
   : BASE(kernel_sp)

@@ -6,8 +6,8 @@
 struct Context_cpu_state_arm
 {
 #ifdef CONFIG_ARM_V6PLUS
-  Mword _tpidrurw;
-  Mword _tpidruro;
+  Mword _tpidrurw = 0;
+  Mword _tpidruro = 0;
 
   Mword tpidrurw() const
   {

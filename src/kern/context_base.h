@@ -35,7 +35,7 @@ public:
 
   struct State
   {
-    cxx::atomic<Mword> s;
+    cxx::atomic<Mword> s{0};
 
     Mword dirty() const noexcept
     { return s.load(cxx::memory_order_relaxed); }

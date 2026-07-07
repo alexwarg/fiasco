@@ -29,7 +29,7 @@ public:
 protected:
   using Rcv_state = Context::Rcv_state;
 
-  void *_utcb_handler;
+  void *_utcb_handler = nullptr;
 
   struct Check_sender
   {

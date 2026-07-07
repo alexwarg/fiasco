@@ -71,7 +71,7 @@ namespace Ctxt
     }
 
   private:
-    cxx::atomic<Migration *> _p;
+    cxx::atomic<Migration *> _p{nullptr};
   };
 
 }

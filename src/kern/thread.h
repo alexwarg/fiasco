@@ -112,8 +112,6 @@ public:
   void *operator new(size_t, Ram_quota *q) noexcept
   {
     void *t = Kmem_alloc::allocator()->q_alloc(q, Bytes(Thread::Size));
-    if (t)
-      memset(t, 0, sizeof(Thread));
 
     return t;
   }
@@ -392,7 +390,7 @@ protected:
 
 
 protected:
-  Ram_quota *_quota;
+  Ram_quota *_quota{nullptr};
   cxx::atomic<Irq_base *> _del_observer{nullptr};
 
   constexpr static unsigned magic = 0xf001c001;

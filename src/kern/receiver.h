@@ -291,7 +291,7 @@ protected:
   }
 
 private:
-  Syscall_frame *_rcv_regs; // registers used for receive
+  Syscall_frame *_rcv_regs = nullptr; // registers used for receive
   cxx::atomic<Mword> _caller{0};
   Iterable_prio_list _sender_list;
 

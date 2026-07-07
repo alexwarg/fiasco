@@ -11,8 +11,8 @@ public:
   typedef Spin_lock_coloc<Space *> Space_n_lock;
 
 private:
-  Space_n_lock _s;
-  Address _v;
+  Space_n_lock _s{Space_n_lock::Unlocked};
+  Address _v = 0;
 
 public:
   Space *space() const { return _s.get_unused(); }
