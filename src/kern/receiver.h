@@ -118,15 +118,15 @@ public:
     return Rcv_state::Not_receiving;
   }
 
-  class Caller
+  class Reply_cap
   {
   private:
     Mword _v = 0;
 
   public:
-    Caller() = default;
+    Reply_cap() = default;
 
-    constexpr Caller(Receiver *caller, L4_fpage::Rights rights)
+    constexpr Reply_cap(Receiver *caller, L4_fpage::Rights rights)
     : _v(reinterpret_cast<Mword>(caller) | (cxx::int_value<L4_fpage::Rights>(rights) & 0x3))
     {}
 
@@ -151,29 +151,29 @@ public:
     }
   };
 
-  Caller caller() const
+  Reply_cap reply_cap() const
   {
-    return _caller.load(cxx::memory_order_relaxed);
+    return _reply_cap.load(cxx::memory_order_relaxed);
   }
 
-  void set_caller(Receiver *caller, L4_fpage::Rights rights)
+  void set_reply_cap(Receiver *caller, L4_fpage::Rights rights)
   {
-    if (EXPECT_FALSE(_caller.load(cxx::memory_order_relaxed).valid()))
+    if (EXPECT_FALSE(_reply_cap.load(cxx::memory_order_relaxed).valid()))
       reset_caller();
 
-    caller->_partner_reply_cap.store(&_caller);
-    _caller.store(Caller(caller, rights));
+    caller->_partner_reply_cap.store(&_reply_cap);
+    _reply_cap.store(Reply_cap(caller, rights));
   }
 
   void reset_partner_reply_cap()
   {
-    Atomic_caller *reply_cap = _partner_reply_cap;
+    Atomic_reply_cap *reply_cap = _partner_reply_cap;
     if (EXPECT_TRUE(reply_cap == nullptr))
       return;
 
     _partner_reply_cap.store(nullptr);
-    Caller expected(this, reply_cap->load(cxx::memory_order_relaxed).rights());
-    reply_cap->compare_exchange_strong(expected, Caller());
+    Reply_cap expected(this, reply_cap->load(cxx::memory_order_relaxed).rights());
+    reply_cap->compare_exchange_strong(expected, Reply_cap());
   }
 
   /**
@@ -181,7 +181,7 @@ public:
    */
   void reset_caller(Receiver const *old_caller)
   {
-    Caller ov = _caller.load(cxx::memory_order_relaxed);
+    Reply_cap ov = _reply_cap.load(cxx::memory_order_relaxed);
     // avoid exclusive access (do test, test-and-set)
     if (old_caller != ov.receiver())
       return;
@@ -189,10 +189,10 @@ public:
     ov.receiver()->reset_partner_reply_cap();
   }
 
-  Caller reset_caller()
+  Reply_cap reset_caller()
   {
-    Caller old = _caller.exchange(Caller());
-    auto old_cap = &_caller;
+    Reply_cap old = _reply_cap.exchange(Reply_cap());
+    auto old_cap = &_reply_cap;
     if (old.valid())
       old.receiver()->_partner_reply_cap.compare_exchange_strong(old_cap, nullptr);
 
@@ -314,11 +314,11 @@ protected:
   }
 
 private:
-  using Atomic_caller = cxx::atomic<Caller>;
+  using Atomic_reply_cap = cxx::atomic<Reply_cap>;
 
-  cxx::atomic<Atomic_caller *> _partner_reply_cap{nullptr};
+  cxx::atomic<Atomic_reply_cap *> _partner_reply_cap{nullptr};
   Syscall_frame *_rcv_regs = nullptr; // registers used for receive
-  Atomic_caller _caller;
+  Atomic_reply_cap _reply_cap;
   Iterable_prio_list _sender_list;
 
   template<typename VCPU_STATE>

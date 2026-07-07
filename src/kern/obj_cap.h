@@ -15,9 +15,9 @@ public:
     Thread *current = current_thread();
     if (op() & L4_obj_ref::Ipc_reply)
       {
-        Context::Caller caller = current->caller();
-        if (rights) *rights = caller.rights();
-        Thread *ca = static_cast<Thread*>(caller.receiver());
+        Context::Reply_cap reply_cap = current->reply_cap();
+        if (rights) *rights = reply_cap.rights();
+        Thread *ca = static_cast<Thread*>(reply_cap.receiver());
         return ca;
       }
 

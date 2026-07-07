@@ -395,7 +395,7 @@ private:
 
     // setup the reply capability in case of a call
     if (success && open_wait && _this()->is_partner(receiver))
-      receiver->set_caller(_this(), rights);
+      receiver->set_reply_cap(_this(), rights);
 
     return success;
   }
