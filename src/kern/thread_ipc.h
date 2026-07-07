@@ -1084,6 +1084,9 @@ Thread_ipc<T>::_do_ipc(L4_msg_tag tag, Thread *partner,
 
   if (state & Thread_ipc_mask)
     {
+      if (have_receive && sender && sender == partner)
+        _this()->reset_partner_reply_cap();
+
       Utcb *utcb = _this()->utcb().access(true);
       // the IPC has not been finished.  could be timeout or cancel
       // XXX should only modify the error-code part of the status code

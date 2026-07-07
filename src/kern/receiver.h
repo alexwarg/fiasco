@@ -121,11 +121,15 @@ public:
   class Caller
   {
   private:
-    friend class Receiver;
-    constexpr explicit Caller(Mword v) : _v(v) {}
-    Mword _v;
+    Mword _v = 0;
 
   public:
+    Caller() = default;
+
+    constexpr Caller(Receiver *caller, L4_fpage::Rights rights)
+    : _v(reinterpret_cast<Mword>(caller) | (cxx::int_value<L4_fpage::Rights>(rights) & 0x3))
+    {}
+
     constexpr bool valid() const
     {
       return _v != 0;
@@ -149,13 +153,27 @@ public:
 
   Caller caller() const
   {
-    return Caller(_caller.load(cxx::memory_order_relaxed));
+    return _caller.load(cxx::memory_order_relaxed);
   }
 
   void set_caller(Receiver *caller, L4_fpage::Rights rights)
   {
-    Mword nv = Mword(caller) | (cxx::int_value<L4_fpage::Rights>(rights) & 0x3);
-    _caller.store(nv);
+    if (EXPECT_FALSE(_caller.load(cxx::memory_order_relaxed).valid()))
+      reset_caller();
+
+    caller->_partner_reply_cap.store(&_caller);
+    _caller.store(Caller(caller, rights));
+  }
+
+  void reset_partner_reply_cap()
+  {
+    Atomic_caller *reply_cap = _partner_reply_cap;
+    if (EXPECT_TRUE(reply_cap == nullptr))
+      return;
+
+    _partner_reply_cap.store(nullptr);
+    Caller expected(this, reply_cap->load(cxx::memory_order_relaxed).rights());
+    reply_cap->compare_exchange_strong(expected, Caller());
   }
 
   /**
@@ -163,17 +181,22 @@ public:
    */
   void reset_caller(Receiver const *old_caller)
   {
-    Mword ov = _caller.load(cxx::memory_order_relaxed);
+    Caller ov = _caller.load(cxx::memory_order_relaxed);
     // avoid exclusive access (do test, test-and-set)
-    if (reinterpret_cast<Mword>(old_caller) != (ov & ~3ul))
+    if (old_caller != ov.receiver())
       return;
 
-    _caller.compare_exchange_strong(ov, 0UL);
+    ov.receiver()->reset_partner_reply_cap();
   }
 
-  void reset_caller()
+  Caller reset_caller()
   {
-    _caller.store(0);
+    Caller old = _caller.exchange(Caller());
+    auto old_cap = &_caller;
+    if (old.valid())
+      old.receiver()->_partner_reply_cap.compare_exchange_strong(old_cap, nullptr);
+
+    return old;
   }
 
   /** Return a reference to receiver's IPC registers.
@@ -291,8 +314,11 @@ protected:
   }
 
 private:
+  using Atomic_caller = cxx::atomic<Caller>;
+
+  cxx::atomic<Atomic_caller *> _partner_reply_cap{nullptr};
   Syscall_frame *_rcv_regs = nullptr; // registers used for receive
-  cxx::atomic<Mword> _caller{0};
+  Atomic_caller _caller;
   Iterable_prio_list _sender_list;
 
   template<typename VCPU_STATE>
