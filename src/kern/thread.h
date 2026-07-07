@@ -234,7 +234,9 @@ public:
   {
     if (flags & L4_obj_ref::Ipc_recv)
       {
-        *sender = flags & L4_obj_ref::Ipc_open_wait ? 0 : const_cast<Thread*>(this);
+        if (!(flags & L4_obj_ref::Ipc_open_wait))
+          *sender = const_cast<Thread*>(this);
+
         *have_recv = true;
       }
 
