@@ -38,11 +38,6 @@ private:
 public:
   static Kpdir *kdir;
 
-  static bool is_kmem_page_fault(Address addr, Mword /*error*/)
-  {
-    return addr > Mem_layout::User_max;
-  }
-
   static bool is_io_bitmap_page_fault(Address addr)
   {
     return addr >= Mem_layout::Io_bitmap &&
