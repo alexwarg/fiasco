@@ -100,7 +100,7 @@ public:
         if (EXPECT_FALSE(!vcpu->irqs_enabled()))
           return Rcv_state::Not_receiving;
 
-        vcpu_async_ipc(sender, vcpu);
+        vcpu_async_ipc(sender, vcpu, Thread_receive_wait);
         return Rcv_state::Irq_receive;
       }
 
@@ -308,8 +308,9 @@ protected:
     if (!sender_list()->empty())
       _this()->vcpu_set_irq_pending();
 
-    vcpu_async_ipc(s, vcpu);
+    vcpu_async_ipc(s, vcpu, Thread_receive_in_progress);
     s->ipc_send_msg(_this(), false);
+    _this()->state.del(Thread_ipc_mask);
     return true;
   }
 
@@ -322,7 +323,7 @@ private:
   Iterable_prio_list _sender_list;
 
   template<typename VCPU_STATE>
-  void vcpu_async_ipc(Sender const *sender, VCPU_STATE *vcpu) const
+  void vcpu_async_ipc(Sender const *sender, VCPU_STATE *vcpu, Mword receive_state) const
   {
     CONTEXT *self = const_cast<CONTEXT*>(_this());
 
@@ -343,7 +344,7 @@ private:
     self->_rcv_regs = &vcpu->_ipc_regs;
     vcpu->_regs.set_ipc_upcall();
     self->set_partner(const_cast<Sender*>(sender));
-    self->state.add_dirty(Thread_receive_wait);
+    self->state.add_dirty(receive_state);
     self->vcpu_save_state_and_upcall();
   }
 };
