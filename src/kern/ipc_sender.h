@@ -114,14 +114,14 @@ protected:
       }
 
     // ipc completed
+    receiver->state.change(~Thread_ipc_mask, Thread_ready);
+
     if (!cpu_local_receiver)
       {
-        receiver->state.change(~Thread_ipc_mask, Thread_ready);
         receiver->remote_ready_enqueue();
         return false;
       }
 
-    receiver->state.change(~Thread_ipc_mask, Thread_ready);
     if (s.is_ipc()
         && handle_shortcut(dst_regs, receiver, receiver->state()))
       return false;
