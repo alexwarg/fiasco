@@ -99,7 +99,8 @@ Mword user_pagefault_entry(Mword pfa, Mword error_code, Mword pc)
   if (Thread_vcpu::vcpu_pagefault(t, pfa, map_fsr_user(error_code), pc))
     return 1;
 
-  if (Mem_layout::in_kernel(pfa))
+  if constexpr (!Mem_layout::Separate_kernel_space)
+    if (Mem_layout::in_kernel(pfa))
       return 0;
 
   t->state.del(Thread_cancel);
@@ -213,6 +214,7 @@ void arm_esr_entry(Return_frame *rf)
 
 #else // ARM_USE_ESR_TRAPS
 
+// this implies not CPU_VIRT, so kernel and user share one address space
 inline
 Mword kern_pagefault_entry(Mword pfa, Mword error_code,
                            Mword pc, Return_frame *ret_frame)

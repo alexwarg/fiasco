@@ -60,6 +60,7 @@ public:
 
   static bool add_pmem(Address phys, Address virt, unsigned long size);
 
+  static constexpr bool Separate_kernel_space = IS_ENABLED(CONFIG_CPU_VIRT);
 
 #ifdef CONFIG_VIRT_OBJ_SPACE
   static Mword _read_special_safe(Mword const *a);
