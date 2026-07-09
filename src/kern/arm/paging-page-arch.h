@@ -84,7 +84,7 @@ namespace Page
   static constexpr Mword Max_pa_range = 2; // 40 bits PA/IPA size (encoded as VTCR_EL2.PS)
   static constexpr Mword Vtcr_sl0 = 1;     // 3 level page table
 #endif
-  static unsigned inline ipa_bits(unsigned pa_range)
+  static constexpr unsigned inline ipa_bits(unsigned pa_range)
   {
     if (pa_range > Max_pa_range)
       pa_range = Max_pa_range;
