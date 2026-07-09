@@ -9,18 +9,9 @@
 class Mem_layout_arm_bits : public Mem_layout_defaults<Mem_layout_arm_bits>
 {
 public:
-#if defined(CONFIG_CPU_VIRT) && !defined(CONFIG_ARM_PT48)
-  enum Virt_layout_kern_user_max : Address {
-    User_max             = 0x000000ff'ffffffff,
-  };
-#elif defined(CONFIG_CPU_VIRT) && defined(CONFIG_ARM_PT48)
-  enum Virt_layout_kern_user_max : Address {
-    User_max             = 0x0000ffff'ffffffff,
-  };
-#endif
-
 #ifdef CONFIG_CPU_VIRT
   enum Virt_layout_kern : Address {
+    User_max             = 0, // dummy
     // These are guest physical addresses
 
     // The following are kernel virtual addresses. Mind that kernel and user
