@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ptab_base.h>
+#include <paging-pdir.h>
 #include <globalconfig.h>
 
 #ifdef CONFIG_ARM_LPAE
@@ -25,3 +26,7 @@ static constexpr Ptab::Level_id Ptab_super_level {1};
 using Ptab_traits_vpn = Ptab::Shift<Ptab_traits, Virt_addr::Shift>;
 using Ptab_va_vpn = Ptab::Page_addr_wrap<Page_number, Virt_addr::Shift>;
 using K_ptab_traits_vpn = Ptab_traits_vpn;
+
+template<typename PTE_PTR>
+using U_pdir_t = Pdir_x_t<PTE_PTR, Ptab_va_vpn, Ptab::Base, Ptab_traits_vpn>;
+

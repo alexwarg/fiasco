@@ -525,10 +525,6 @@ config ARM_LPAE
 	help
 	  Use the extended page table format (LPAE).
 
-config ARM_PT48
-	bool "Support user-level address space of 48bits (256TB)"
-	depends on CPU_VIRT && BIT64
-
 config ARM_SINGLE_PT
 	bool "Include only a single page-table variant"
 	depends on CPU_VIRT && BIT64

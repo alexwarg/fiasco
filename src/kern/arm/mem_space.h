@@ -115,22 +115,14 @@ public:
   static void init_page_sizes()
   {
     init_address_range();
-    init_ps(Pdir::Traits{});
+    Pdir::for_each_level([](auto const &l)
+        { add_page_size(Page_order(l.shift() + l.base_shift())); });
   }
 
 protected:
   bool initialize();
 
-  template<typename ...T>
-  static void init_ps(Ptab::List<T...> const &)
-  {
-    (add_page_size(Page_order(T::Shift + T::Base_shift)), ...);
-  }
-
-
 private:
   // DATA
   Phys_mem_addr _dir_phys;
-
-  static Kmem_slab_t<Dir_type, sizeof(Dir_type)> _dir_alloc;
 };

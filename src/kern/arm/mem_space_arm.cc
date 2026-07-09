@@ -5,6 +5,14 @@
 
 #include <cassert>
 
+#if defined (CONFIG_BIT32) && defined (CONFIG_ARM_LPAE)
+// small page directory in this case, a slab is the option
+static Kmem_slab_t<Pdir, sizeof(Pdir)> _dir_alloc;
+static constexpr auto dir_alloc() { return &_dir_alloc; }
+#else
+static auto dir_alloc() { return Kmem_alloc::allocator(); }
+#endif
+
 Mem_space::~Mem_space()
 {
   if (!_dir)
@@ -22,14 +30,14 @@ Mem_space::~Mem_space()
       _dir->destroy(Virt_addr(user_max() + 1),
                     Virt_addr(Pdir::max_addr()), Pdir::root_level(), Pdir::Super_level,
                     Kmem_alloc::q_allocator(_quota));
-  _dir_alloc.q_free(ram_quota(), _dir);
+  dir_alloc()->q_free(ram_quota(), Bytes(Pdir::size()), _dir);
 }
 
 
 bool
 Mem_space::initialize()
 {
-  _dir = _dir_alloc.q_new(ram_quota());
+  _dir = static_cast<Dir_type *>(dir_alloc()->q_alloc(ram_quota(), Bytes(Pdir::size())));
   if (!_dir)
     return false;
 

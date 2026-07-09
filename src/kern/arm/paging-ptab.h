@@ -7,6 +7,7 @@
 #include <mem_unit.h>
 #include <cxx/cxx_int>
 #include <globalconfig.h>
+#include <ptab_base-iterative.h>
 
 #ifdef CONFIG_ARM_V5
 using Kpte_cache_asid = Pte_v_cache_no_asid;
@@ -30,7 +31,7 @@ using Kpte_cache_asid = Pte_no_cache_asid;
 
 // simply always use the iterative page table
 template<typename PTE_PTR, typename TRAITS, typename VA>
-using Arm_pdir_t = Pdir_t<PTE_PTR, TRAITS, VA, Ptab::Base>;
+using Arm_pdir_t = Pdir_t<PTE_PTR, TRAITS, VA, Ptab::Iterative_base>;
 
 template<typename ENTRY>
 class Pte_page_template
@@ -296,7 +297,7 @@ public:
   { return Ptab::page_order_for_level<Ptab_traits_vpn>(level); };
 };
 
-using Pdir = Arm_pdir_t<Pte_ptr, Ptab_traits_vpn, Ptab_va_vpn>;
+using Pdir = U_pdir_t<Pte_ptr>;
 
 #else // CONFIG_CPU_VIRT
 

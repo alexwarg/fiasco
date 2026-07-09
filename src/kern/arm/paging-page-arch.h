@@ -77,13 +77,11 @@ namespace Page
     | (0UL  << 14)  // (TG0)  Page granularity 4 KiB
     | (5UL  << 16); // (PS)   Physical address size 48 bits
 
-#ifdef CONFIG_ARM_PT48
-  static constexpr Mword Max_pa_range = 5; // 48 bits PA/IPA size (encoded as VTCR_EL2.PS)
-  static constexpr Mword Vtcr_sl0 = 2;     // 4 level page table
-#else
-  static constexpr Mword Max_pa_range = 2; // 40 bits PA/IPA size (encoded as VTCR_EL2.PS)
-  static constexpr Mword Vtcr_sl0 = 1;     // 3 level page table
-#endif
+  static constexpr Mword Max_pa_range =
+    IS_ENABLED(CONFIG_ARM_SINGLE_PT) && IS_ENABLED(CONFIG_ARM_PT40_ONLY)
+    ? 2  // 40 bits PA/IPA size (encoded as VTCR_EL2.PS)
+    : 5; // 48 bits PA/IPA size (encoded as VTCR_EL2.PS)
+
   static constexpr unsigned inline ipa_bits(unsigned pa_range)
   {
     if (pa_range > Max_pa_range)
@@ -94,10 +92,8 @@ namespace Page
 
   static unsigned inline vtcr_bits(unsigned pa_range)
   {
-    if (pa_range > Max_pa_range)
-      pa_range = Max_pa_range;
-
     unsigned pa_bits = ipa_bits(pa_range);
+    Mword Vtcr_sl0 = pa_bits < 44 ? 1 : 2;     // 4 level page table
 
     return (Vtcr_sl0            <<  6)  // SL0
             | (pa_range         << 16)  // PS
