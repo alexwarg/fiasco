@@ -5,7 +5,7 @@
 #include <mem_unit.h>
 #include <cpu_generic.h>
 #include <cpu_arm_defaults.h>
-#include <paging.h>
+#include <paging-page.h>
 #include <panic.h>
 #include <alternatives.h>
 
