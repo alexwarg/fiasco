@@ -63,6 +63,9 @@ public:
       Mem_unit::tlb_flush(c_asid());
   }
 
+  Page_number mem_space_map_max_address() const override
+  { return Page_number(Virt_addr(user_max())) + Page_count(1); }
+
   void v_set_access_flags(Vaddr, L4_fpage::Rights) FIASCO_SPACE_OVERRIDE
   {}
 

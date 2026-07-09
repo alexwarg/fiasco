@@ -88,8 +88,8 @@ public:
 
   static bool is_user_memory(Address address, Mword len)
   {
-    return    address <= Mem_layout::User_max && len > 0
-           && Mem_layout::User_max - address >= len - 1;
+    return    address <= Mem_space::user_max() && len > 0
+           && Mem_space::user_max() - address >= len - 1;
   }
 
 protected:

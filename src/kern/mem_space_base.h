@@ -185,8 +185,7 @@ public:
   Address virt_to_phys_s0(void *virt) const = 0;
 
   virtual
-  Page_number mem_space_map_max_address() const
-  { return Page_number(Virt_addr(Mem_layout::User_max)) + Page_count(1); }
+  Page_number mem_space_map_max_address() const = 0;
 
   virtual
   bool is_sigma0() const

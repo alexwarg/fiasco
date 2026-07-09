@@ -92,6 +92,9 @@ public:
     tlb_flush_this_();
   }
 
+  Page_number mem_space_map_max_address() const override
+  { return Page_number(Virt_addr(user_max())) + Page_count(1); }
+
   Status v_insert(Phys_addr phys, Vaddr virt, Page_order size,
                   Attr page_attribs) FIASCO_SPACE_OVERRIDE;
   bool v_lookup(Vaddr virt, Phys_addr *phys = nullptr, Page_order *order = nullptr,

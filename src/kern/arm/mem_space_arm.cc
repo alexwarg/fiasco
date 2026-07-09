@@ -14,12 +14,12 @@ Mem_space::~Mem_space()
   // free all page tables we have allocated for this address space
   // except the ones in kernel space which are always shared
   _dir->destroy(Virt_addr(0UL),
-                Virt_addr(Mem_layout::User_max), Pdir::root_level(), Pdir::leaf_level(),
+                Virt_addr(user_max()), Pdir::root_level(), Pdir::leaf_level(),
                 Kmem_alloc::q_allocator(_quota));
   // free all unshared page table levels for the kernel space
   if constexpr (!Mem_layout::Separate_kernel_space)
-    if (Virt_addr(Mem_layout::User_max) < Virt_addr(Pdir::Max_addr))
-      _dir->destroy(Virt_addr(Mem_layout::User_max + 1),
+    if (Virt_addr(user_max()) < Virt_addr(Pdir::Max_addr))
+      _dir->destroy(Virt_addr(user_max() + 1),
                     Virt_addr(Pdir::Max_addr), Pdir::root_level(), Pdir::Super_level,
                     Kmem_alloc::q_allocator(_quota));
   _dir_alloc.q_free(ram_quota(), _dir);
