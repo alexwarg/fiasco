@@ -115,17 +115,7 @@ public:
   }
 
 protected:
-  bool initialize()
-  {
-    _dir = _dir_alloc.q_new(ram_quota());
-    if (!_dir)
-      return false;
-
-    _dir->clear(Pte_ptr::need_cache_write_back(false));
-    _dir_phys = Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)_dir));
-
-    return true;
-  }
+  bool initialize();
 
   template<typename ...T>
   static void init_ps(Ptab::List<T...> const &)

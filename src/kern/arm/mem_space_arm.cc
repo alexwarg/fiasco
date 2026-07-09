@@ -17,13 +17,27 @@ Mem_space::~Mem_space()
                 Virt_addr(Mem_layout::User_max), Pdir::root_level(), Pdir::leaf_level(),
                 Kmem_alloc::q_allocator(_quota));
   // free all unshared page table levels for the kernel space
-  if (Virt_addr(Mem_layout::User_max) < Virt_addr(Pdir::Max_addr))
-    _dir->destroy(Virt_addr(Mem_layout::User_max + 1),
-                  Virt_addr(Pdir::Max_addr), Pdir::root_level(), Pdir::Super_level,
-                  Kmem_alloc::q_allocator(_quota));
+  if constexpr (!Mem_layout::Separate_kernel_space)
+    if (Virt_addr(Mem_layout::User_max) < Virt_addr(Pdir::Max_addr))
+      _dir->destroy(Virt_addr(Mem_layout::User_max + 1),
+                    Virt_addr(Pdir::Max_addr), Pdir::root_level(), Pdir::Super_level,
+                    Kmem_alloc::q_allocator(_quota));
   _dir_alloc.q_free(ram_quota(), _dir);
 }
 
+
+bool
+Mem_space::initialize()
+{
+  _dir = _dir_alloc.q_new(ram_quota());
+  if (!_dir)
+    return false;
+
+  _dir->clear(Pte_ptr::need_cache_write_back(false));
+  _dir_phys = Phys_mem_addr(Kmem::kdir->virt_to_phys((Address)_dir));
+
+  return true;
+}
 
 bool
 Mem_space::v_lookup(Vaddr virt, Phys_addr *phys,
