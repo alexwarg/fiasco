@@ -114,6 +114,7 @@ public:
 
   static void init_page_sizes()
   {
+    init_address_range();
     init_ps(Pdir::Traits{});
   }
 

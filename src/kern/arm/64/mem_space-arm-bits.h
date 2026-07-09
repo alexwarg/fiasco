@@ -13,11 +13,21 @@ class Mem_space_arm_bits
 {
 private:
   M *_ths() { return static_cast<M *>(this); }
+#ifdef CONFIG_CPU_VIRT
+  static Unsigned64 _user_max;
+#endif
 
 protected:
   int sync_kernel()
   {
     return 0;
+  }
+
+  static void init_address_range()
+  {
+#ifdef CONFIG_CPU_VIRT
+    _user_max = ~0ULL >> (64 - Page::ipa_bits(Cpu::pa_range()));
+#endif
   }
 
 public:
@@ -38,10 +48,14 @@ public:
   static Address user_max()
   {
 #ifdef CONFIG_CPU_VIRT
-    return (1ULL << Page::ipa_bits(Cpu::pa_range())) - 1U;
+    return _user_max;
 #else
     return Mem_layout::User_max;
 #endif
   }
 };
 
+#ifdef CONFIG_CPU_VIRT
+template<typename M>
+Unsigned64 Mem_space_arm_bits<M>::_user_max;
+#endif

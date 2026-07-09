@@ -21,6 +21,8 @@ private:
 
 protected:
   int sync_kernel();
+  static void init_address_range()
+  {}
 
 public:
   static void set_syscall_page(void *p);
