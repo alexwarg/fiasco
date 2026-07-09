@@ -32,6 +32,11 @@ struct type_list<>
 {
   typedef false_type head;
   typedef false_type tail;
+  static constexpr unsigned size = 0; ///< size of the list (number of elements)
+
+  template<typename FN, typename ...ARGS>
+  static void for_each(FN &&, ARGS &&...)
+  {}
 };
 
 template<typename HEAD, typename ...TAIL>
@@ -39,6 +44,14 @@ struct type_list<HEAD, TAIL...>
 {
   typedef HEAD head;
   typedef type_list<TAIL...> tail;
+  static constexpr unsigned size = 1 + tail::size; ///< size of the list (number of elements)
+
+  template<typename FN, typename ...ARGS>
+  static void for_each(FN &&fn, ARGS &&...args)
+  {
+    fn(head{}, args...);
+    tail::for_each(cxx::forward<FN>(fn), cxx::forward<ARGS>(args)...);
+  }
 };
 
 template<typename TYPELIST, template <typename T> class PREDICATE>
@@ -60,5 +73,36 @@ struct find_type
 
 template<typename TYPELIST, template <typename T> class PREDICATE>
 using find_type_t = typename find_type<TYPELIST, PREDICATE>::type;
+
+template<typename List, typename T>
+struct append;
+
+template<typename... Ts, typename T>
+struct append<type_list<Ts...>, T>
+{
+  using type = type_list<Ts..., T>;
+};
+
+
+template<typename List>
+struct reverse;
+
+template<>
+struct reverse<type_list<>>
+{
+  using type = type_list<>;
+};
+
+template<typename T, typename... Ts>
+struct reverse<type_list<T, Ts...>>
+{
+  using type = typename append<
+      typename reverse<type_list<Ts...>>::type,
+      T
+  >::type;
+};
+
+template<typename List>
+using reverse_t = typename reverse<List>::type;
 
 }
