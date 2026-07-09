@@ -59,6 +59,7 @@ private:
 class Pte_ptr : private Pt_entry
 {
 public:
+  using Base = Pte_ptr;
   using Pt_entry::Super_level;
   Pte_ptr(void *pte, Ptab::Level_id level)
   : pte(static_cast<Mword*>(pte)), level(level) {}
@@ -103,6 +104,20 @@ public:
   Mword page_addr() const
   { return cxx::mask_lsb(*pte, page_order()) & ~Mword(XD); }
 
+  class Template
+  {
+  private:
+    Mword tmpl;
+
+  public:
+    Template() = default;
+    constexpr Template(Mword e) : tmpl(e) {}
+    constexpr Mword for_pa(Phys_mem_addr addr) const
+    { return tmpl | cxx::int_value<Phys_mem_addr>(addr); }
+    constexpr Mword for_pa(Address addr) const
+    { return tmpl | addr; }
+  };
+
   void set_attribs(Page::Attr attr)
   {
     typedef L4_fpage::Rights R;
@@ -119,7 +134,15 @@ public:
     *pte = (*pte & ~(ATTRIBS_MASK | Page::Cache_mask)) | r;
   }
 
-  Mword make_page(Phys_mem_addr addr, Page::Attr attr)
+  template<typename LEVEL_ID>
+  static constexpr Template make_page_tmpl(LEVEL_ID level, Mword attr)
+  {
+    Mword r = level.get() != 0 ? (Mword)Pse_bit : 0;
+    return Template(r | attr | Valid);
+  }
+
+  template<typename LEVEL_ID>
+  static constexpr Template make_page_tmpl(LEVEL_ID level, Page::Attr attr)
   {
     Mword r = level.get() != 0 ? (Mword)Pse_bit : 0;
     typedef L4_fpage::Rights R;
@@ -132,17 +155,25 @@ public:
     if (attr.type == T::Buffered()) r |= Page::BUFFERED;
     if (attr.type == T::Uncached()) r |= Page::NONCACHEABLE;
     if (attr.kern & K::Global()) r |= global();
-    return cxx::int_value<Phys_mem_addr>(addr) | r | Valid;
+    return Template(r | Valid);
   }
 
-  void set_page(Mword p)
+  constexpr Template make_page_tmpl(Page::Attr attr) const
+  { return make_page_tmpl(level, attr); }
+
+  Mword make_page(Phys_mem_addr addr, Page::Attr attr)
+  {
+    return make_page_tmpl(level, attr).for_pa(addr);
+  }
+
+  void set(Mword p)
   {
     write_now(pte, p);
   }
 
   void set_page(Phys_mem_addr addr, Page::Attr attr)
   {
-    set_page(make_page(addr, attr));
+    set(make_page(addr, attr));
   }
 
   Page::Attr attribs() const

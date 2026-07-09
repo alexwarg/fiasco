@@ -161,7 +161,19 @@ private:
         *e &= ~dr;
     }
 
-    Unsigned64 make_page(Phys_mem_addr addr, Page::Attr attr)
+    class Template
+    {
+    private:
+      Unsigned64 tmpl;
+
+    public:
+      Template() = default;
+      constexpr Template(Unsigned64 e) : tmpl(e) {}
+      constexpr Unsigned64 for_pa(Phys_mem_addr addr) const
+      { return tmpl | cxx::int_value<Phys_mem_addr>(addr); }
+    };
+
+    static Template make_page_tmpl(Ptab::Level_id level, Page::Attr attr)
     {
       typedef L4_fpage::Rights R;
       typedef Page::Type T;
@@ -175,7 +187,12 @@ private:
       if (attr.type == T::Buffered()) r |= 1 << 3;
       if (attr.type == T::Uncached()) r |= 0;
 
-      return cxx::int_value<Phys_mem_addr>(addr) | r;
+      return Template(r);
+    }
+
+    Unsigned64 make_page(Phys_mem_addr addr, Page::Attr attr)
+    {
+      return make_page_tmpl(level, attr).for_pa(addr);
     }
 
     void set_page(Unsigned64 p)
@@ -192,7 +209,7 @@ private:
 
   typedef Ptab::Shift<Ept_traits, 12> Ept_traits_vpn;
   typedef Ptab::Page_addr_wrap<Page_number, 12> Ept_va_vpn;
-  typedef Ptab::Base<Epte_ptr, Ept_traits_vpn, Ept_va_vpn, Mem_layout> Ept;
+  typedef Ptab::Base<Epte_ptr, Ept_va_vpn, Mem_layout, Ept_traits_vpn> Ept;
 
   Mword _ept_phys;
   Ept *_ept;

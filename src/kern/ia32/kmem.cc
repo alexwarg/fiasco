@@ -128,23 +128,20 @@ Kmem::init_mmu()
   map_initial_ram();
   map_kernel_virt(kdir);
 
-  bool ok = true;
-
-  if (!Mem_layout::Adap_in_kernel_image)
-    ok &= kdir->map(Address{Mem_layout::Adap_image_phys},
+  if (!Mem_layout::Adap_in_kernel_image
+      && !kdir->map(Address{Mem_layout::Adap_image_phys},
                     Virt_addr(Mem_layout::Adap_image),
                     Virt_size(Config::SUPERPAGE_SIZE),
                     Pt_entry::Dirty | Pt_entry::Writable | Pt_entry::Referenced
                     | Pt_entry::global(), Pt_entry::super_level(),
-                    false, pdir_alloc(alloc));
+                    false, pdir_alloc(alloc)))
+    panic("Cannot map initial memory");
 
   // map the last 64 MiB of physical memory as kernel memory
-  ok &= kdir->map(Mem_layout::pmem_to_phys(Mem_layout::Physmem),
-                  Virt_addr(Mem_layout::Physmem), Virt_size(Mem_layout::pmem_size),
-                  Pt_entry::Writable | Pt_entry::Referenced | Pt_entry::global(),
-                  Pt_entry::super_level(), false, pdir_alloc(alloc));
-
-  if (!ok)
+  if (!kdir->map(Mem_layout::pmem_to_phys(Mem_layout::Physmem),
+                 Virt_addr(Mem_layout::Physmem), Virt_size(Mem_layout::pmem_size),
+                 Pt_entry::Writable | Pt_entry::Referenced | Pt_entry::global(),
+                 Pt_entry::super_level(), false, pdir_alloc(alloc)))
     panic("Cannot map initial memory");
 
   // The service page directory entry points to an universal usable

@@ -150,11 +150,11 @@ map_extent(Address phys_adj, uintptr_t virt, size_t size_adj,
            Page::Attr attr, Ptab::Level_id level)
 {
   if (Kmem_alloc::ready())
-    return Kmem::kdir->map(Phys_mem_addr{phys_adj}, Virt_addr(virt), Virt_size(size_adj),
+    return (bool)Kmem::kdir->map(Phys_mem_addr{phys_adj}, Virt_addr(virt), Virt_size(size_adj),
         attr, level, true,
         pdir_alloc(Kmem_alloc::allocator()));
   else
-    return Kmem::kdir->map(Phys_mem_addr{phys_adj}, Virt_addr(virt), Virt_size(size_adj),
+    return (bool)Kmem::kdir->map(Phys_mem_addr{phys_adj}, Virt_addr(virt), Virt_size(size_adj),
         attr, level, true, Ptab::Null_alloc());
 }
 

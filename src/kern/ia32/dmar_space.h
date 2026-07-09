@@ -19,7 +19,7 @@ private:
     {
       Unsigned64 v;
       Dmar_ptr_val() = default;
-      Dmar_ptr_val(Unsigned64 v) : v(v) {}
+      constexpr Dmar_ptr_val(Unsigned64 v) : v(v) {}
       CXX_BITFIELD_MEMBER(0, 1, present, v);
     };
 
@@ -32,6 +32,18 @@ private:
     Dmar_ptr() = default;
     Dmar_ptr(Unsigned64 *e, Ptab::Level_id l)
     : e(reinterpret_cast<Dmar_ptr_val*>(e)), level(l) {}
+
+    class Template
+    {
+    private:
+      Dmar_ptr_val tmpl;
+
+    public:
+      Template() = default;
+      constexpr Template(Dmar_ptr_val e) : tmpl(e) {}
+      constexpr Dmar_ptr_val for_pa(Phys_mem_addr addr) const
+      { return tmpl.v | cxx::int_value<Phys_mem_addr>(addr); }
+    };
 
     bool is_valid() const { return e->present(); }
     bool is_leaf() const
@@ -136,7 +148,7 @@ private:
 
   typedef Ptab::Shift<Dmar_traits, 12> Dmar_traits_vpn;
   typedef Ptab::Page_addr_wrap<Page_number, 12> Dmar_va_vpn;
-  typedef Ptab::Base<Dmar_ptr, Dmar_traits_vpn, Dmar_va_vpn, Mem_layout> Dmar_pt;
+  typedef Ptab::Base<Dmar_ptr, Dmar_va_vpn, Mem_layout, Dmar_traits_vpn> Dmar_pt;
 
 public:
   enum { Max_nr_did = 0x10000 };

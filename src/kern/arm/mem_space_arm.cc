@@ -85,13 +85,13 @@ Mem_space::v_insert(Phys_addr phys, Vaddr virt, Page_order size,
       if (EXPECT_FALSE(i.entry() == entry))
         return Insert_warn_exists;
 
-      i.set_page(entry);
+      i.set(entry);
       i.write_back_if(flush, c_asid());
       return Insert_warn_attrib_upgrade;
     }
   else
     {
-      i.set_page(entry);
+      i.set(entry);
       i.write_back_if(flush, Mem_unit::Asid_invalid);
       // Because the entry was invalid before, no TLB maintenance is necessary.
       // We still have to make sure that the MMU sees the new entry before

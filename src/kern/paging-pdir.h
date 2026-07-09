@@ -3,8 +3,10 @@
 #include <ptab_base.h>
 #include <mem_layout.h>
 
-template<typename PTE_PTR, typename TRAITS, typename VA>
-class Pdir_t : public Ptab::Base<PTE_PTR, TRAITS, VA, Mem_layout>
+template<typename PTE_PTR, typename VA,
+         template<typename ...> class BASE,
+         typename ...TRAITS>
+class Pdir_x_t : public BASE<PTE_PTR, VA, Mem_layout, TRAITS...>
 {
 public:
   static constexpr Ptab::Level_id Super_level = PTE_PTR::Super_level;
@@ -22,3 +24,6 @@ public:
 };
 
 
+template<typename PTE_PTR, typename TRAITS, typename VA,
+         template<typename ...> class BASE = Ptab::Base>
+using Pdir_t = Pdir_x_t<PTE_PTR, VA, BASE, TRAITS>;

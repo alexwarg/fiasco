@@ -7,6 +7,20 @@
 #include <cxx/cxx_int>
 #include <globalconfig.h>
 
+template<typename ENTRY>
+class Pte_page_template
+{
+private:
+  ENTRY tmpl;
+
+public:
+  using Entry = ENTRY;
+  Pte_page_template() = default;
+  constexpr Pte_page_template(Entry e) : tmpl(e) {}
+  constexpr Entry for_pa(Phys_mem_addr addr) const
+  { return tmpl | cxx::int_value<Phys_mem_addr>(addr); }
+};
+
 /**
  * Mixin for PTE pointers for CPUs with virtual caches and without ASIDs.
  * (before and including ARMv5)
@@ -194,14 +208,16 @@ private:
   CLASS *_this() { return static_cast<CLASS *>(this); }
 
 public:
-  void set_page(Entry p)
+  using Template = Pte_page_template<Entry>;
+
+  void set(Entry p)
   {
     write_now(_this()->pte, p);
   }
 
   void set_page(Phys_mem_addr addr, Page::Attr attr)
   {
-    set_page(make_page(addr, attr));
+    set(make_page(addr, attr));
   }
 
   void set_attribs(Page::Attr attr)
@@ -211,10 +227,22 @@ public:
     write_now(_this()->pte, p);
   }
 
+  template<typename LEVEL_ID>
+  static constexpr Template
+  make_page_tmpl(LEVEL_ID level, Page::Attr attr)
+  {
+    return Template(CLASS{nullptr, level}._page_bits() | CLASS{nullptr, level}._attribs(attr));
+  }
+
+  constexpr Template
+  make_page_tmpl(Page::Attr attr) const
+  {
+    return Template(_this()->_page_bits() | _this()->_attribs(attr));
+  }
+
   Entry make_page(Phys_mem_addr addr, Page::Attr attr)
   {
-    return _this()->_page_bits() | _this()->_attribs(attr)
-           | cxx::int_value<Phys_mem_addr>(addr);
+    return make_page_tmpl(attr).for_pa(addr);
   }
 };
 
