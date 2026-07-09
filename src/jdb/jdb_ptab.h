@@ -44,7 +44,7 @@ private:
   inline int index(unsigned row, unsigned col)
   {
     Mword e = (col-1) + (row * (cols()-1));
-    if (e < Pdir::Levels::get(cur_pt_level).length())
+    if (e < Pdir::get_level_desc(cur_pt_level).length())
       return static_cast<int>(e);
     else
       return -1;
@@ -52,7 +52,7 @@ private:
 
   inline void *pte(int index)
   {
-    return reinterpret_cast<void *>(base + index * Pdir::Levels::get(cur_pt_level).entry_size());
+    return reinterpret_cast<void *>(base + index * Pdir::get_level_desc(cur_pt_level).entry_size());
   }
 };
 

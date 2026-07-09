@@ -63,13 +63,13 @@ namespace Ptab
     static constexpr auto get(Level_id)
     { return Traits::get(); }
 
-    static constexpr int lower_bound_level(unsigned order)
+    static constexpr Level_id lower_bound_level(unsigned order)
     {
       constexpr unsigned o = T::Shift + T::Base_shift;
       if (o <= order)
-        return Id;
+        return Level_id(Id);
       else
-        return -1;
+        __builtin_unreachable();
     }
   };
 
@@ -87,11 +87,11 @@ namespace Ptab
         : Next_level::get(level);
     }
 
-    static constexpr int lower_bound_level(unsigned order)
+    static constexpr Level_id lower_bound_level(unsigned order)
     {
       constexpr unsigned o = F::Shift + F::Base_shift;
       if (o <= order)
-        return Id;
+        return Level_id(Id);
       else
         return Next_level::lower_bound_level(order);
     }
@@ -516,10 +516,10 @@ namespace Ptab
 
   struct Level_desc
   {
-    unsigned _entry_len;
-    unsigned _shift;
-    unsigned _size;
-    unsigned _base_shift;
+    unsigned char _entry_len;
+    unsigned char _shift;
+    unsigned char _size;
+    unsigned char _base_shift;
     bool _may_be_leaf;
     bool _mask;
 
@@ -640,19 +640,20 @@ namespace Ptab
       Base_shift = L0::Base_shift,
     };
 
-    enum : Address
+    static constexpr Address max_addr()
     {
       // Attention: Must use 64 bit arithmetic because some page tables (namely
       // ia32 EPT) have more virtual address bits than what fits into the
       // Address type.
-      Max_addr = static_cast<Address>(~0ULL >> (sizeof(unsigned long long) * 8
-                                      - L0::Base_shift
-                                      - L0::Shift
-                                      - L0::Size)),
-    };
+      return static_cast<Address>(~0ULL >> (sizeof(unsigned long long) * 8
+                                           - L0::Base_shift
+                                           - L0::Shift
+                                           - L0::Size));
+    }
 
   private:
     typedef Ptab::Walk<_Traits, PTE_PTR> Walk;
+    typedef Level<Traits> Levels;
 
   public:
     static constexpr unsigned depth()
@@ -673,8 +674,6 @@ namespace Ptab
     static constexpr Level_id from_leaf_level(unsigned l)
     { return Level_id(l); }
 
-    typedef Level<Traits> Levels;
-
     static constexpr unsigned lsb_for_level(Level_id level)
     { return Levels::get(level).shift(); }
 
@@ -682,7 +681,10 @@ namespace Ptab
     { return Levels::get(level).shift() + Base_shift; }
 
     static constexpr Level_id lower_bound_level(unsigned order)
-    { return Level_id(Levels::lower_bound_level(order)); }
+    { return Levels::lower_bound_level(order); }
+
+    static constexpr Level_desc get_level_desc(Level_id level)
+    { return Levels::get(level); }
 
     /**
      * Create or lookup a page table entry for a virtual address on a particular

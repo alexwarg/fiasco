@@ -250,21 +250,29 @@ public:
     { return (*e << (6 - PWField_ptei)) & (~0UL << 12); }
   };
 
-  struct Levels
+  struct Level_desc
   {
-    unsigned _size;
-
-    static constexpr Levels get(Ptab::Level_id l) { return Levels{l_size(l.get())}; }
+    unsigned char _size, _field;
 
     static constexpr unsigned entry_size()
     { return sizeof(Mword); }
 
     constexpr unsigned long length() const
     { return 1UL << _size; }
+
+    constexpr unsigned shift()
+    { /* Va relative */ return _field - l_field(PT_level); }
   };
 
-  static constexpr unsigned lsb_for_level(Level_id l)
-  { /* Va relative */ return l_field(l.get()) - l_field(PT_level); }
+  static constexpr Level_desc
+  get_level_desc(Level_id level)
+  {
+    return Level_desc{
+        static_cast<unsigned char>(l_size(level.get())),
+        static_cast<unsigned char>(l_field(level.get()))
+    };
+  }
+
   // end JDB
 };
 

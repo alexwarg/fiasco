@@ -29,7 +29,7 @@ Jdb_ptab::Jdb_ptab(void *pt_base, Space *task,
     _task(task), entries(entries), cur_pt_level(pt_level), dump_raw(0)
 {
   if (entries == 0)
-    this->entries = Pdir::Levels::get(pt_level).length();
+    this->entries = Pdir::get_level_desc(pt_level).length();
 }
 
 unsigned
@@ -101,11 +101,12 @@ Jdb_ptab::entry_is_pt_ptr(Pdir::Pte_ptr const &entry,
     return 0;
 
   Pdir::Level_id n = Pdir::next_level(entry.level);
+  unsigned e;
   while (n != Pdir::leaf_level()
-         && Pdir::Levels::get(n).length() <= 1)
+         && (e = Pdir::get_level_desc(n).length()) <= 1)
     n = Pdir::next_level(n);
 
-  *entries = Pdir::Levels::get(n).length();
+  *entries = e;
   *next_level = n;
   return 1;
 }
@@ -119,7 +120,7 @@ Jdb_ptab::print_head(void *entry)
 Address
 Jdb_ptab::disp_virt(int idx)
 {
-  Pdir::Va e(static_cast<Mword>(idx) << Pdir::lsb_for_level(cur_pt_level));
+  Pdir::Va e(static_cast<Mword>(idx) << Pdir::get_level_desc(cur_pt_level).shift());
   return cxx::int_value<Virt_addr>(e) + virt_base;
 }
 
