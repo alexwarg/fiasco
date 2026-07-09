@@ -40,6 +40,12 @@ namespace Ptab
   {
     using First = T; ///< first element of the type-list
     static constexpr unsigned size = 1; ///< size of the list (number of elements)
+
+    template<typename FN, typename ...ARGS>
+    static void for_each(FN &&fn, ARGS &&...args)
+    {
+      cxx::forward<FN>(fn)(T{}, cxx::forward<ARGS>(args)...);
+    }
   };
 
   template< typename H, typename ...T >
@@ -48,6 +54,13 @@ namespace Ptab
     using First = H;
     using Next = List<T...>;
     static constexpr unsigned size = Next::size + 1;
+
+    template<typename FN, typename ...ARGS>
+    static void for_each(FN &&fn, ARGS &&...args)
+    {
+      fn(H{}, args...);
+      Next::for_each(cxx::forward<FN>(fn), cxx::forward<ARGS>(args)...);
+    }
   };
 
   template< typename T >
@@ -685,6 +698,12 @@ namespace Ptab
 
     static constexpr Level_desc get_level_desc(Level_id level)
     { return Levels::get(level); }
+
+    template<typename FN, typename ...ARGS>
+    static void for_each_level(FN &&fn, ARGS &&...args)
+    {
+      Traits::for_each(cxx::forward<FN>(fn), cxx::forward<ARGS>(args)...);
+    }
 
     /**
      * Create or lookup a page table entry for a virtual address on a particular
