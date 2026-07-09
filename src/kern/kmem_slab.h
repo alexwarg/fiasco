@@ -10,6 +10,7 @@
 #include "minmax.h"
 
 #include <cstddef>		// size_t
+#include <cassert>
 #include <cxx/slist>
 #include <cxx/type_traits>
 
@@ -62,10 +63,21 @@ public:
   template<typename Q> static
   void *q_alloc(Q *q) { return _s.template q_alloc<Q>(q); }
 
+  template<typename Q> static
+  void *q_alloc(Q *q,  [[maybe_unused]] Bytes size)
+  {
+    assert (cxx::int_value<Bytes>(size) <= SIZE);
+    return _s.template q_alloc<Q>(q);
+  }
+
   static void free(void *e) { _s.free(e); }
 
   template<typename Q> static
   void q_free(Q *q, void *e) { _s.template q_free<Q>(q, e); }
+
+  template<typename Q> static
+  void q_free(Q *q, [[maybe_unused]] Bytes size, void *e)
+  { _s.template q_free<Q>(q, e); }
 
   static Slab_cache *slab() { return &_s; }
 
@@ -98,12 +110,23 @@ public:
   void *q_alloc(Q *q)
   { return Kmem_alloc::allocator()->q_alloc(q, Bytes(SIZE)); }
 
+  template<typename Q> static
+  void *q_alloc(Q *q, [[maybe_unused]] Bytes size)
+  {
+    assert (cxx::int_value<Bytes>(size) == SIZE);
+    return Kmem_alloc::allocator()->q_alloc(q, Bytes(SIZE));
+  }
+
   static void free(void *e)
   { Kmem_alloc::allocator()->free(Bytes(SIZE), e); }
 
   template<typename Q> static
   void q_free(Q *q, void *e)
   { Kmem_alloc::allocator()->q_free(q, Bytes(SIZE), e); }
+
+  template<typename Q> static
+  void q_free(Q *q, Bytes size, void *e)
+  { Kmem_alloc::allocator()->q_free(q, size, e); }
 };
 
 /**
