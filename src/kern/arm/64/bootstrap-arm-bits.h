@@ -475,7 +475,7 @@ static void switch_to_el1()
   disable_mmu_and_caches(1);
 }
 
-static Phys_addr init_paging(Address)
+static Phys_addr init_paging(Address load_addr)
 {
   Pdir  *ud = reinterpret_cast<Pdir *>(kern_to_boot(bs_info.pi.l0_dir));
   Kpdir *kd = reinterpret_cast<Kpdir *>(kern_to_boot(bs_info.pi.l0_vdir));
@@ -488,7 +488,7 @@ static Phys_addr init_paging(Address)
 
   // map kernel to desired virtual address
   map_ram_range(kd, alloc, bs_info.kernel_start_phys, bs_info.kernel_end_phys,
-                Virt_ofs);
+                Virt_ofs + load_addr);
 
   // Create 1:1 mapping of the kernel in the idle (user) page table. Needed by
   // add_initial_pmem().
