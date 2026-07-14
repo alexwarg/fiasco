@@ -630,19 +630,24 @@ public:
   typedef VALUE *iterator;
   typedef VALUE const *const_iterator;
 
-  VALUE &operator [] (INDEX const &cpu)
+  constexpr VALUE &operator [] (INDEX const &cpu)
   { return _d[cxx::int_value<INDEX>(cpu)]; }
 
-  VALUE const &operator [] (INDEX const &cpu) const
+  constexpr VALUE const &operator [] (INDEX const &cpu) const
   { return _d[cxx::int_value<INDEX>(cpu)]; }
 
-  iterator begin() { return &_d[0]; }
-  iterator end() { return &_d[SIZE]; }
+  constexpr iterator begin() { return &_d[0]; }
+  constexpr iterator end() { return &_d[SIZE]; }
 
-  const_iterator begin() const { return &_d[0]; }
-  const_iterator end() const { return &_d[SIZE]; }
+  constexpr const_iterator begin() const { return &_d[0]; }
+  constexpr const_iterator end() const { return &_d[SIZE]; }
 
-  static INDEX size() { return INDEX(SIZE); }
+  static constexpr INDEX size() { return INDEX(SIZE); }
+
+  array() = default;
+
+  template<typename ...T>
+  constexpr array(T &&...v) : _d{cxx::forward<T>(v)...} {}
 
 private:
   VALUE _d[SIZE];
