@@ -31,6 +31,7 @@ private:
   static unsigned _num_pm_regions;
 
 public:
+  [[gnu::noinline]]
   static Address phys_to_pmem(Address phys)
   {
     for (unsigned i = 0; i < Max_pmem_regions && i < _num_pm_regions; ++i)
@@ -43,6 +44,7 @@ public:
     return ~0UL;
   }
 
+  [[gnu::noinline]]
   static Address pmem_to_phys(Address virt)
   {
     for (unsigned i = 0; i < Max_pmem_regions && i < _num_pm_regions; ++i)
