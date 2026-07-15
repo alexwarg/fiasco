@@ -200,8 +200,8 @@ public:
     _consumed_time += quantum;
   }
 
-  [[gnu::pure]] Space *space() const { return _cpu_state.space.space(); }
-  [[gnu::pure]] Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
+  Space *space() const { return _cpu_state.space.space(); }
+  Mem_space *mem_space() const { return static_cast<Mem_space*>(space()); }
 
   bool migration_pending() const
   { return _migration.pending(); }
