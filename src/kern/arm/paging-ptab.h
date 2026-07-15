@@ -2,10 +2,35 @@
 
 #include <paging-ptab-arch-bits.h>
 #include <paging-attribs.h>
+#include <paging-caching.h>
 #include <paging-pdir.h>
 #include <mem_unit.h>
 #include <cxx/cxx_int>
 #include <globalconfig.h>
+
+#ifdef CONFIG_ARM_V5
+using Kpte_cache_asid = Pte_v_cache_no_asid;
+#endif // CONFIG_ARM_V5
+
+#ifdef CONFIG_ARM_V6
+using Kpte_cache_asid = Pte_cache_asid;
+#endif // CONFIG_ARM_V6
+
+#ifdef CONFIG_ARM_V7
+#ifdef CONFIG_MP
+using Kpte_cache_asid = Pte_no_cache_asid;
+#else
+using Kpte_cache_asid = Pte_cache_asid;
+#endif // CONFIG_MP
+#endif // CONFIG_ARM_V7
+
+#ifdef CONFIG_ARM_V8PLUS
+using Kpte_cache_asid = Pte_no_cache_asid;
+#endif // CONFIG_ARM_V8PLUS
+
+// simply always use the iterative page table
+template<typename PTE_PTR, typename TRAITS, typename VA>
+using Arm_pdir_t = Pdir_t<PTE_PTR, TRAITS, VA, Ptab::Base>;
 
 template<typename ENTRY>
 class Pte_page_template
@@ -21,118 +46,89 @@ public:
   { return tmpl | cxx::int_value<Phys_mem_addr>(addr); }
 };
 
-/**
- * Mixin for PTE pointers for CPUs with virtual caches and without ASIDs.
- * (before and including ARMv5)
- */
-template<typename CLASS>
-struct Pte_v_cache_no_asid
+template<typename ENTRY, typename CACHING,
+  ENTRY PT_BITS, bool NEED_DMB,
+  ENTRY VALID_MASK,
+  ENTRY TYPE_MASK, ENTRY TYPE_LEAF,
+  unsigned NEXT_LOW, unsigned NEXT_HIGH = sizeof(ENTRY) * 8>
+struct Pte_ptr_base : CACHING
 {
-  static bool need_cache_write_back(bool current_pt)
-  { return current_pt; }
+  using Entry = ENTRY;
+  using Template = Pte_page_template<ENTRY>;
 
-  void write_back_if(bool current_pt, Mword /*asid*/ = 0)
-  {
-    if (current_pt)
-      Mem_unit::clean_dcache(static_cast<CLASS const *>(this)->pte);
-  }
-
-  static void write_back(void *start, void *end)
-  {
-    Mem_unit::clean_dcache(start, end);
-  }
-};
-
-/**
- * Mixin for PTE pointers for CPUs with ASIDs and non-coherent MMU.
- * (ARMv6 and ARMv7 without multiprocessing extension).
- */
-template<typename CLASS>
-struct Pte_cache_asid
-{
-  static bool need_cache_write_back(bool)
-  { return true; }
-
-  void write_back_if(bool, Mword asid = Mem_unit::Asid_invalid)
-  {
-    Mem_unit::clean_dcache(static_cast<CLASS const *>(this)->pte);
-    if (asid != Mem_unit::Asid_invalid)
-      Mem_unit::tlb_flush(asid);
-  }
-
-  static void write_back(void *start, void *end)
-  {
-    Mem_unit::clean_dcache(start, end);
-  }
-};
-
-/**
- * Mixin for PTE pointers for CPUs with ASIDs and coherent MMU.
- * (ARMv7 with multiprocessing extension or LPAE and ARMv8).
- */
-template<typename CLASS>
-struct Pte_no_cache_asid
-{
-  static bool need_cache_write_back(bool)
-  { return false; }
-
-  static void write_back_if(bool, Mword asid = Mem_unit::Asid_invalid)
-  {
-    if (asid != Mem_unit::Asid_invalid)
-      Mem_unit::tlb_flush(asid);
-  }
-
-  static void write_back(void *, void *)
-  {}
-};
-
-/**
- * Mixin for PTE pointers for 32bit page tables (short descriptors).
- */
-template<typename CLASS>
-class Pte_short_desc
-{
-public:
-  static constexpr Ptab::Level_id Super_level{1};
-
-  typedef Unsigned32 Entry;
-
-  Unsigned32 *pte;
+  Entry *pte;
   Ptab::Level_id level;
 
-  Pte_short_desc() = default;
-  Pte_short_desc(void *p, Ptab::Level_id level)
-  : pte((Entry *)p), level(level)
-  {}
+  Pte_ptr_base() = default;
+  constexpr Pte_ptr_base(Entry *pte, Ptab::Level_id level) : pte(pte), level(level) {}
 
-  bool is_valid() const { return access_once(pte) & 3; }
-  void clear() { write_now(pte, 0); }
+  void clear()
+  {
+    write_now(pte, 0);
+  }
+
+  void set(Entry e)
+  {
+    write_now(pte, e);
+  }
+
+  bool is_valid() const { return *pte & VALID_MASK; }
   bool is_leaf() const
   {
     if (level.get() == 0)
       return true;
 
-    return (access_once(pte) & 3) == 2;
+    return (*pte & TYPE_MASK) == TYPE_LEAF;
   }
 
-  Mword next_level() const
+  Entry next_level() const
   {
-    // 1 KiB second level tables
-    return cxx::mask_lsb(access_once(pte), 10);
+    if constexpr (sizeof(ENTRY) * 8 <= NEXT_HIGH)
+      return cxx::mask_lsb(*pte, NEXT_LOW);
+    else
+      return cxx::get_lsb(cxx::mask_lsb(*pte, NEXT_LOW), NEXT_HIGH);
   }
 
-  void set_next_level(Mword phys)
+  void set_next_level(Entry phys)
   {
-    write_now(pte, phys | 1);
+    // A new table was just allocated and cleared. Ensure the clearing is
+    // observable to the MMU before the updated table descriptor. Otherwise the
+    // next table walk might still see uninitialized PTEs.
+    if constexpr (NEED_DMB)
+      Mem::dmbst();
+    write_now(pte, phys | PT_BITS);
   }
+
+  Entry entry() const { return *pte; }
+
+  void write_back_if(bool current_pt, Mword asid = Mem_unit::Asid_invalid)
+  { CACHING::write_back_if(*this, current_pt, asid); }
+};
+
+
+/**
+ * Mixin for PTE pointers for 32bit page tables (short descriptors).
+ */
+template<typename CLASS, typename CACHING>
+class Pte_short_desc :
+  public Pte_ptr_base<Unsigned32, CACHING, 1, false, 3, 3, 2, 10> // 1 KiB second level tables
+{
+public:
+  using Base = Pte_ptr_base<Unsigned32, CACHING, 1, false, 3, 3, 2, 10>;
+  static constexpr Ptab::Level_id Super_level{1};
+
+  Pte_short_desc() = default;
+  Pte_short_desc(void *p, Ptab::Level_id level)
+  : Base{static_cast<typename Base::Entry *>(p), level}
+  {}
 
   unsigned char page_order() const
   {
-    if (level.get() == 1)
+    if (this->level.get() == 1)
       return 20; // 1 MiB
     else
       { // no tiny pages
-        if ((*pte & 3) == 1)
+        if ((*this->pte & 3) == 1)
           return 16;
         else
           return 12;
@@ -140,60 +136,31 @@ public:
   }
 
   Unsigned32 page_addr() const
-  { return cxx::mask_lsb(*pte, page_order()); }
-
-  Entry entry() const { return *pte; }
+  { return cxx::mask_lsb(*this->pte, page_order()); }
 };
+
 
 /**
  * Mixin for PTE pointers for 64bit page tables (long descriptors).
  */
-template<typename CLASS>
-class Pte_long_desc
+template<typename CLASS, typename CACHING>
+class Pte_long_desc :
+  public Pte_ptr_base<Unsigned64, CACHING, 3, true, 1, 3, 1, 12, 52>
 {
 private:
   CLASS const *_this() const { return static_cast<CLASS const *>(this); }
   CLASS *_this() { return static_cast<CLASS *>(this); }
 
 public:
-  typedef Unsigned64 Entry;
-
-  Entry *pte;
-  Ptab::Level_id level;
+  using Base = Pte_ptr_base<Unsigned64, CACHING, 3, true, 1, 3, 1, 12, 52>;
 
   Pte_long_desc() = default;
   Pte_long_desc(void *p, Ptab::Level_id level)
-  : pte((Unsigned64*)p), level(level)
+  : Base{static_cast<Unsigned64*>(p) ,level}
   {}
 
-  bool is_valid() const { return *pte & 1; }
-  void clear() { write_now(pte, 0); }
-  bool is_leaf() const
-  {
-    if (level.get() == 0)
-      return true;
-
-    return (*pte & 3) == 1;
-  }
-
-  Unsigned64 next_level() const
-  {
-    return cxx::get_lsb(cxx::mask_lsb(*pte, 12), 52);
-  }
-
-  void set_next_level(Unsigned64 phys)
-  {
-    // A new table was just allocated and cleared. Ensure the clearing is
-    // observable to the MMU before the updated table descriptor. Otherwise the
-    // next table walk might still see uninitialized PTEs.
-    Mem::dmbst();
-    write_now(pte, phys | 3);
-  }
-
   Unsigned64 page_addr() const
-  { return cxx::get_lsb(cxx::mask_lsb(*pte, _this()->page_order()), 52); }
-
-  Entry entry() const { return *pte; }
+  { return cxx::get_lsb(cxx::mask_lsb(*this->pte, _this()->page_order()), 52); }
 };
 
 
@@ -207,17 +174,12 @@ private:
   CLASS const *_this() const { return static_cast<CLASS const *>(this); }
   CLASS *_this() { return static_cast<CLASS *>(this); }
 
+  using Templ = Pte_page_template<Entry>;
+
 public:
-  using Template = Pte_page_template<Entry>;
-
-  void set(Entry p)
-  {
-    write_now(_this()->pte, p);
-  }
-
   void set_page(Phys_mem_addr addr, Page::Attr attr)
   {
-    set(make_page(addr, attr));
+    _this()->set(make_page(addr, attr));
   }
 
   void set_attribs(Page::Attr attr)
@@ -228,59 +190,31 @@ public:
   }
 
   template<typename LEVEL_ID>
-  static constexpr Template
+  static constexpr Templ
   make_page_tmpl(LEVEL_ID level, Page::Attr attr)
   {
-    return Template(CLASS{nullptr, level}._page_bits() | CLASS{nullptr, level}._attribs(attr));
+    return Templ(CLASS{nullptr, level}._page_bits() | CLASS{nullptr, level}._attribs(attr));
   }
 
-  constexpr Template
+  constexpr Templ
   make_page_tmpl(Page::Attr attr) const
   {
-    return Template(_this()->_page_bits() | _this()->_attribs(attr));
+    return Templ(_this()->_page_bits() | _this()->_attribs(attr));
   }
 
   Entry make_page(Phys_mem_addr addr, Page::Attr attr)
   {
     return make_page_tmpl(attr).for_pa(addr);
   }
+
 };
-
-#ifdef CONFIG_ARM_V5
-template<typename M>
-using Kpte_attribs_t = Pte_v5_attribs<M, Unsigned32>;
-
-template<typename M>
-using Kpte_cache_asid_t = Pte_v_cache_no_asid<M>;
-#endif // CONFIG_ARM_V5
-
-#ifdef CONFIG_ARM_V6
-template<typename M>
-using Kpte_cache_asid_t = Pte_cache_asid<M>;
-#endif // CONFIG_ARM_V6
-
-#ifdef CONFIG_ARM_V7
-#ifdef CONFIG_MP
-template<typename M>
-using Kpte_cache_asid_t = Pte_no_cache_asid<M>;
-#else
-template<typename M>
-using Kpte_cache_asid_t = Pte_cache_asid<M>;
-#endif // CONFIG_MP
-#endif // CONFIG_ARM_V7
-
-#ifdef CONFIG_ARM_V8PLUS
-template<typename M>
-using Kpte_cache_asid_t = Pte_no_cache_asid<M>;
-#endif // CONFIG_ARM_V8PLUS
 
 #ifdef CONFIG_ARM_LPAE
 
 template<typename M>
-struct Kpte_desc_t : Pte_long_desc<M>
+struct Kpte_desc_t : Pte_long_desc<M, Kpte_cache_asid>
 {
-  template<typename ...T>
-  Kpte_desc_t(T &&...args) : Pte_long_desc<M>(cxx::forward<T>(args)...) {}
+  using Pte_long_desc<M, Kpte_cache_asid>::Pte_long_desc;
   static constexpr Ptab::Level_id Super_level = K_ptab_super_level;
 };
 
@@ -293,29 +227,35 @@ using Kpte_attribs_t = Pte_long_attribs<M, Page::Kernel_attr>;
 #else // CONFIG_ARM_LPAE
 
 template<typename M>
-using Kpte_desc_t = Pte_short_desc<M>;
+using Kpte_desc_t = Pte_short_desc<M, Kpte_cache_asid>;
 
 template<typename M>
 using Kpte_generic_t = Pte_generic<M, Unsigned32>;
 
+#ifdef CONFIG_ARM_V5
+template<typename M>
+using Kpte_attribs_t = Pte_v5_attribs<M, Unsigned32>;
+#endif
 #ifdef CONFIG_ARM_V6PLUS
-
 template<typename M>
 using Kpte_attribs_t = Pte_v6plus_attribs<M, Page::User_attr>;
-
 #endif // CONFIG_ARM_V6PLUS
 #endif // CONFIG_ARM_LPAE
 
 class K_pte_ptr :
   public Kpte_desc_t<K_pte_ptr>,
   public Kpte_generic_t<K_pte_ptr>,
-  public Kpte_attribs_t<K_pte_ptr>,
-  public Kpte_cache_asid_t<K_pte_ptr>
+  public Kpte_attribs_t<K_pte_ptr>
 {
 public:
   K_pte_ptr() = default;
+  explicit K_pte_ptr(Kpte_desc_t<K_pte_ptr>::Base const &b)
+  : Kpte_desc_t<K_pte_ptr>(b.pte, b.level)
+  {}
+
   K_pte_ptr(void *p, Ptab::Level_id level)
-  : Kpte_desc_t<K_pte_ptr>(p, level) {}
+  : Kpte_desc_t<K_pte_ptr>(p, level)
+  {}
 
   [[gnu::always_inline]]
   unsigned char page_order() const
@@ -324,40 +264,44 @@ public:
   }
 };
 
-class Kpdir : public Pdir_t<K_pte_ptr, K_ptab_traits_vpn, Ptab_va_vpn> {};
+class Kpdir : public Arm_pdir_t<K_pte_ptr, K_ptab_traits_vpn, Ptab_va_vpn> {};
 
 #ifdef CONFIG_CPU_VIRT
 
 template<typename CLASS>
 class Pte_ptr_t :
-  public Pte_long_desc<CLASS>,
-  public Pte_no_cache_asid<CLASS>,
+  public Pte_long_desc<CLASS, Pte_no_cache_asid>,
   public Pte_stage2_attribs<CLASS, Page::User_attr>,
   public Pte_generic<CLASS, Unsigned64>
 {
 public:
   Pte_ptr_t() = default;
-  Pte_ptr_t(void *p, Ptab::Level_id level) : Pte_long_desc<CLASS>(p, level) {}
+
+  explicit Pte_ptr_t(typename Pte_long_desc<CLASS, Pte_no_cache_asid>::Base const &b)
+  : Pte_long_desc<CLASS, Pte_no_cache_asid>(b.pte, b.level)
+  {}
+
+  Pte_ptr_t(void *p, Ptab::Level_id level)
+  : Pte_long_desc<CLASS, Pte_no_cache_asid>(p, level)
+  {}
 };
 
 class Pte_ptr : public Pte_ptr_t<Pte_ptr>
 {
 public:
   static constexpr Ptab::Level_id Super_level = Ptab_super_level;
-
-  Pte_ptr() = default;
-  Pte_ptr(void *p, Ptab::Level_id level) : Pte_ptr_t(p, level) {}
+  using Pte_ptr_t<Pte_ptr>::Pte_ptr_t;
 
   unsigned char page_order() const
   { return Ptab::page_order_for_level<Ptab_traits_vpn>(level); };
 };
 
-using Pdir = Pdir_t<Pte_ptr, Ptab_traits_vpn, Ptab_va_vpn>;
+using Pdir = Arm_pdir_t<Pte_ptr, Ptab_traits_vpn, Ptab_va_vpn>;
 
 #else // CONFIG_CPU_VIRT
 
 using Pte_ptr = K_pte_ptr;
-using Pdir = Pdir_t<Pte_ptr, K_ptab_traits_vpn, Ptab_va_vpn>;
+using Pdir = Arm_pdir_t<Pte_ptr, K_ptab_traits_vpn, Ptab_va_vpn>;
 
 #endif // CONFIG_CPU_VIRT
 
