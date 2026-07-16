@@ -35,7 +35,14 @@ foreach my $f (@ARGV) {
     }
     if  (defined $pf) {
       $pf->{desc}  = $1                        if /$tag PFDESCR:\s*(.+)/x;
-      push(@{$pf->{select}}, split(/\s+/, $1)) if /$tag PFSELECT:\s*(.+)/x;
+      if (/$tag PFSELECT:\s*(.+)/x) {
+        my @w = split(/\s+/, $1);
+        if (@w > 1 && $w[1] eq 'if') {
+          push(@{$pf->{select}}, $1);
+        } else {
+          push(@{$pf->{select}}, @w);
+        }
+      }
       push(@{$pf->{dep}}, $1)                  if /$tag PFDEPENDS:\s*(.+)/x;
     }
 
