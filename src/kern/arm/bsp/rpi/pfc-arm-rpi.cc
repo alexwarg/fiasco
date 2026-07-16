@@ -1,12 +1,13 @@
 
-#include <pfc-arm.h>
-#include <pfc-psci.h>
+#include <pfc-dt.h>
+#include <device_tree.h>
 #include <types.h>
 #include <processor.h>
 #include <mem.h>
 #include <cpu.h>
 #include <mmio_register_block.h>
 #include <ipi.h>
+#include <io.h>
 #include <kmem_mmio.h>
 #include <mem_layout.h>
 #include <infinite_loop.h>
@@ -19,27 +20,44 @@ namespace {
 
 #ifndef CONFIG_PF_RPI_RPI5
 
-struct Pfc_z : Pfc_arm
+struct Pfc_z : Pfc_dt
 {
-  [[noreturn]] void system_reboot() override
+  static void bcm2711_reset(Address base)
   {
     enum { Rstc = 0x1c, Wdog = 0x24 };
-
-    Address base = Kmem_mmio::remap(Mem_layout::Watchdog_phys_base, 0x100);
-
     Mword pw = 0x5a << 24;
     Io::write<Unsigned32>(pw | 8, base + Wdog);
     Io::write<Unsigned32>((Io::read<Unsigned32>(base + Rstc) & ~0x30)
         | pw | 0x20,
         base + Rstc);
+  }
 
+  [[noreturn]] void system_reboot() override
+  {
+    if (Device_tree::dt.valid())
+      {
+#ifdef CONFIG_DT
+        Device_tree::Node n = Device_tree::dt.node_by_compatible("brcm,bcm2711-pm");
+        if (n.is_valid())
+          {
+            uint64_t phys;
+            if (n.get_reg(0, &phys))
+              bcm2711_reset(Kmem_mmio::remap(phys, 0x100));
+          }
+#endif
+      }
+
+    bcm2711_reset(Kmem_mmio::remap(Mem_layout::Watchdog_phys_base, 0x100));
     L4::infinite_loop();
   }
 
 #if !defined (CONFIG_PF_RPI_RPI1) && !defined (CONFIG_PF_RPI_PRIZW)
 #ifdef CONFIG_BIT64
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
+    if (Pfc_dt::do_boot_ap_cpus(phys_tramp_mp_addr))
+      return true;
+
     Mmio_register_block a(Kmem_mmio::map(0xd8, 0x28));
     Cpu_phys_id myid = Proc::cpu_id();
     int seq = 1;
@@ -58,10 +76,11 @@ struct Pfc_z : Pfc_arm
             }
           ++seq;
         }
+    return true;
   }
 #else
 #ifdef CONFIG_MP
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     Cpu_phys_id myid = Proc::cpu_id();
     int seq = 1;
@@ -76,6 +95,8 @@ struct Pfc_z : Pfc_arm
             }
           ++seq;
         }
+
+    return true;
   }
 #endif
 #endif
@@ -86,11 +107,16 @@ static Pfc_singleton<Pfc_z> __pfc;
 
 #else // CONFIG_PF_RPI_RPI5
 
-struct Pfc_rpi5 : Pfc_psci
+
+struct Pfc_rpi5 : Pfc_dt
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
+    if (Pfc_dt::do_boot_ap_cpus(phys_tramp_mp_addr))
+      return true;
+
     boot_ap_cpus_psci(phys_tramp_mp_addr, { 0x000, 0x100, 0x200, 0x300 }, true);
+    return true;
   }
 };
 

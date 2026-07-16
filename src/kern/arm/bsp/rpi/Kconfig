@@ -50,6 +50,7 @@ config PF_RPI_RPI4
         select ARM_GIC
         select HAVE_ARM_GICV2
         select ARM_GENERIC_TIMER
+        select HAS_DT_OPTION
 
 config PF_RPI_RPI5
 	bool "rpi5"
@@ -60,6 +61,8 @@ config PF_RPI_RPI5
 	select ARM_GIC
 	select HAVE_ARM_GICV2
 	select HAS_ARM_PSCI
+	select ARM_GENERIC_TIMER
+	select HAS_DT_OPTION
 	select ARM_PSCI
 
 endchoice
