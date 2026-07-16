@@ -5,6 +5,7 @@
 #include <ipi.h>
 #include <kernel_task.h>
 #include <kernel_uart.h>
+#include <device_tree.h>
 #include <kip_init.h>
 #include <kmem_alloc.h>
 #include <kmem_space.h>
@@ -49,6 +50,7 @@ static void stage2()
 
   Kip_init::init();
   Kmem_alloc::init();
+  Device_tree::init();
 
   if (Platform_if::pf)
     Platform_if::pf->init();

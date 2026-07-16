@@ -5,7 +5,7 @@
 
 include $(srcdir)/Modules.generic
 
-SUBSYSTEMS := 	ABI KERNEL LIBK DRIVERS LIBC LIBUART \
+SUBSYSTEMS += 	ABI KERNEL LIBK DRIVERS LIBC LIBUART \
 		CXXLIB VERSION JABI TCBOFFSET CRT0
 
 ifeq ($(CONFIG_UNIT_TEST),y)
@@ -141,6 +141,8 @@ CXXSRC_KERNEL-$(CONFIG_SERIAL) += boot_uart_init.cc
 CXXSRC_KERNEL-$(CONFIG_HAVE_ARM_GICV3) += gic_v3.cc gic_redist.cc gic_its.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC_MSI)-$(CONFIG_HAVE_ARM_GICV3) += gic_mem.cc gic_msi.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_GIC) += gic.cc pic-gic-helper.cc
+CXXSRC_KERNEL-$(CONFIG_ARM_GIC)-$(CONFIG_DT) += pic-gic-dt.cc dt-arm.cc
+CXXSRC_KERNEL-$(CONFIG_DT) += device_tree.cc
 CXXSRC_KERNEL-$(CONFIG_BIT32) += kern_lib_page.cc sys_call_page.cc
 CXXSRC_KERNEL-$(CONFIG_BIT64) += entry_cc.cc
 CXXSRC_KERNEL-$(CONFIG_ARM_SMC_USER) += smc_user.cc

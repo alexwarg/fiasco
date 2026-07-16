@@ -152,6 +152,9 @@ NOOPT			+= $(patsubst %.o, %,\
 LIBUART_UART = -include uart_$(strip $(1)).h \
 	       -DFIASCO_UART_TYPE=L4::Uart_$(strip $(if $(2),$(2),$(1)))
 
+ifeq ($(CONFIG_DT),y)
+SUBSYSTEMS += LIBFDT
+endif
 
 #
 # LIBC Subsystem
@@ -235,3 +238,19 @@ CSRC_LIBC         += lshrdi3.c
 ASSRC_LIBC        := setjmp.S longjmp.S \
                      $(if $(filter ia32,$(CONFIG_XARCH)),memcpy-i386.S)
 NOBUILTIN         += $(patsubst %.o, %, $(OBJ_LIBC))
+
+#
+# LIBFDT subsystem
+#
+ifeq ($(CONFIG_DT),y)
+  LIBFDT              := libfdt.a
+  SUBSYSTEMS          += LIBFDT
+  KERNEL_EXTRA_LIBS   += $(LIBFDT)
+  VPATH               += lib/libfdt
+  PRIVATE_INCDIR      += lib/libfdt
+  CSRC_LIBFDT         := fdt.c fdt_ro.c fdt_strerror.c fdt_addresses.c
+  # WARNING EXCEPTION: suppress warnings about bad function casts in unmodified
+  # upstream code.
+  $(foreach f, $(patsubst %.c, %, $(CSRC_LIBFDT)), \
+          $(eval CFLAGS_$(f) += -Wno-bad-function-cast))
+endif
