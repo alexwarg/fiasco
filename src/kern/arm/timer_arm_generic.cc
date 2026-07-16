@@ -7,6 +7,10 @@
 
 Mword Timer_generic_timer::_interval;
 Mword Timer_generic_timer::_freq0;
+unsigned Timer_generic_timer::_irq_phys       = 29;
+unsigned Timer_generic_timer::_irq_virt       = 27;
+unsigned Timer_generic_timer::_irq_hyp        = 26;
+unsigned Timer_generic_timer::_irq_secure_hyp = 20;
 
 void
 Timer_generic_timer::update_timer_one_shot(Unsigned64 wakeup)

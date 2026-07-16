@@ -29,12 +29,17 @@ public:
   {
     switch (Gtimer::Type)
       {
-      case Generic_timer::Physical: return 29;
-      case Generic_timer::Virtual:  return 27;
-      case Generic_timer::Hyp:      return 26;
-      case Generic_timer::Secure_hyp: return 20;
+      case Generic_timer::Physical:   return _irq_phys;
+      case Generic_timer::Virtual:    return _irq_virt;
+      case Generic_timer::Hyp:        return _irq_hyp;
+      case Generic_timer::Secure_hyp: return _irq_secure_hyp;
       };
   }
+
+  static unsigned _irq_phys;
+  static unsigned _irq_virt;
+  static unsigned _irq_hyp;
+  static unsigned _irq_secure_hyp;
 
   static Irq_chip::Mode irq_mode()
   {
