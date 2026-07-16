@@ -18,7 +18,7 @@ static char const *const memory_desc_types[] = {
     "(undef)",
     "(undef)",
     "(undef)",
-    "(undef)",
+    "Info",
     "Bootloader",
     "Arch"
 };
@@ -26,8 +26,8 @@ static char const *const memory_desc_types[] = {
 void
 Mem_desc::dump() const
 {
-  printf("%s [%016llx-%016llx] %s", is_virtual() ? "virt" : "phys",
-         Unsigned64{start()}, Unsigned64{end()} + 1, memory_desc_types[type()]);
+  printf("%s [%016llx-%016llx] %s(%u)", is_virtual() ? "virt" : "phys",
+         Unsigned64{start()}, Unsigned64{raw_end()}, memory_desc_types[type()], ext_type());
 }
 
 void
