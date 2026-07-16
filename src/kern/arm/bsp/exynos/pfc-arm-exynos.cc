@@ -113,7 +113,7 @@ public:
     return true;
   }
 
-  void do_boot_ap_cpus(Address phys_reset_vector) override;
+  bool do_boot_ap_cpus(Address phys_reset_vector) override;
 
   int cpu_allow_shutdown(Cpu_number cpu, bool allow) override
   {
@@ -240,7 +240,7 @@ public:
     return 0;
   }
 
-  void do_boot_ap_cpus(Address phys_reset_vector) override;
+  bool do_boot_ap_cpus(Address phys_reset_vector) override;
 };
 
 #endif // CONFIG_CPU_SUSPEND
@@ -319,7 +319,7 @@ Pfc_exynos_base::send_boot_ipi(unsigned val)
   Ipi::softint_phys(Ipi::Global_request, 1u << (16 + val));
 }
 
-void
+bool
 Pfc_exynos_mp::do_boot_ap_cpus(Address phys_reset_vector)
 {
   assert(current_cpu() == Cpu_number::boot_cpu());
@@ -336,13 +336,14 @@ Pfc_exynos_mp::do_boot_ap_cpus(Address phys_reset_vector)
           send_boot_ipi(i);
         }
 
-      return;
+      return true;
     }
 
   unsigned const second = 1;
   power_up_core(Cpu_phys_id(second));
   cpuboot(phys_reset_vector, Cpu_phys_id(second));
   send_boot_ipi(second);
+  return true;
 }
 #endif // CONFIG_MP
 

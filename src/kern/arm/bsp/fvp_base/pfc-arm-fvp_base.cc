@@ -19,7 +19,7 @@ struct Pfc_v_nopsci : Pfc_arm
     L4::infinite_loop();
   }
 
-  void do_boot_ap_cpus(Address)
+  bool do_boot_ap_cpus(Address)
   {
     enum { PPONR = 4 };
     Mmio_register_block pwr(Kmem_mmio::map(0x1c100000, 0x1000));
@@ -43,19 +43,21 @@ struct Pfc_v_nopsci : Pfc_arm
         if (seq == Config::Max_num_cpus)
           break;
       }
+    return true;
   }
 };
 
 
 struct Pfc_v_psci : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr,
                       {   0x000,   0x100,   0x200,   0x300,
                           0x400,   0x500,   0x600,   0x700,
                         0x10000, 0x10100, 0x10200, 0x10300,
                         0x10400, 0x10500, 0x10600, 0x10700 });
+    return true;
   }
 };
 

@@ -51,7 +51,7 @@ struct Pfc_tegra3 : Pfc_base
     CLK_RST_CONTROLLER_CLK_CPU_CMPLX_CLR_0 = 0x34c,
   };
 
-  void do_boot_ap_cpus(Address phys_reset_vector) override
+  bool do_boot_ap_cpus(Address phys_reset_vector) override
   {
     // set (temporary) new reset vector
     Io::write<Mword>(phys_reset_vector, Kmem_mmio::remap(Reset_vector_addr,
@@ -109,6 +109,7 @@ struct Pfc_tegra3 : Pfc_base
         clk_rst.write<Mword>(0x1111 << i, CLK_RST_CONTROLLER_RST_CPU_CMPLX_CLR);
         Mem::wmb();
       }
+    return true;
   }
 
 private:
@@ -136,7 +137,7 @@ struct Pfc_tegra2 : Pfc_base
 
   };
 
-  void do_boot_ap_cpus(Address phys_reset_vector) override
+  bool do_boot_ap_cpus(Address phys_reset_vector) override
   {
     // set (temporary) new reset vector
     Io::write<Mword>(phys_reset_vector, Kmem_mmio::remap(Reset_vector_addr,
@@ -150,6 +151,7 @@ struct Pfc_tegra2 : Pfc_base
     cpu_complex.write<Mword>((1 << 13) | (1 << 9) | (1 << 5) | (1 << 1), Clk_rst_ctrl_clr);
     // kick cpu1
     cpu_complex.write<Mword>(0, Unhalt_addr);
+    return true;
   }
 };
 

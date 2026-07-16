@@ -119,5 +119,10 @@ public:
   static int cpu_on(unsigned long target, Address phys_tramp_mp_addr);
   static void system_reset();
   static void system_off();
+
+#ifdef CONFIG_ARM_PSCI_DYN
+  static bool is_hvc() { return _psci_use_hvc; }
+  static inline bool _psci_use_hvc;
+#endif
 };
 

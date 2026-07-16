@@ -53,13 +53,14 @@ struct Pfc_imx6 : Pfc_imx_wdog_rst
   Pfc_imx6() : src(Kmem_mmio::map(0x020d8000 /*Src_phys*/, 0x100))
   {}
 
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     src[SRC_GPR3] = phys_tramp_mp_addr;
     src[SRC_GPR5] = phys_tramp_mp_addr;
     src[SRC_GPR7] = phys_tramp_mp_addr;
 
     src[SRC_SCR].set(SRC_SCR_CORE1_3_ENABLE | SRC_SCR_CORE1_3_RESET);
+    return true;
   }
 
   void cpus_off() override
@@ -92,7 +93,7 @@ struct Pfc_imx7_nopsci : Pfc_imx_wdog_rst
   Pfc_imx7_nopsci() : src(Kmem_mmio::map(0x30390000 /*Src_phys*/, 0x100))
   {}
 
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
 
     Register_block<32> gpc(Kmem_mmio::map(0x303a0000 /*Gpc_phys*/, 0x1000));
@@ -106,6 +107,7 @@ struct Pfc_imx7_nopsci : Pfc_imx_wdog_rst
     gpc[GPC_PGC_A7CORE1_CTRL].clear(GPC_PGC_A7CORE1_CTRL_PCR); // enable again
 
     src[SRC_A7RCR1].set(SRC_A7RCR_A7_CORE1_ENABLE);
+    return true;
   }
 
   void cpus_off() override
@@ -117,35 +119,39 @@ struct Pfc_imx7_nopsci : Pfc_imx_wdog_rst
 
 struct Pfc_imx7_psci : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr, { 0x1 });
+    return true;
   }
 };
 
 struct Pfc_imx8 : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr,
                       { 0x000, 0x001, 0x002, 0x003, 0x100, 0x101 });
+    return true;
   }
 };
 
 struct Pfc_imx8mp : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr, { 0x000, 0x001, 0x002, 0x003 });
+    return true;
   }
 };
 
 struct Pfc_imx95 : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr,
                       { 0x000, 0x100, 0x200, 0x300, 0x400, 0x500 }, true);
+    return true;
   }
 };
 

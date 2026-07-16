@@ -52,7 +52,7 @@ struct Pfc_z : Pfc_arm
     cpu_subsys.r<32>(0x90) = 0x000f1d13;
   }
 
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     unsigned hwcpu = 1;
     // CPU1 Power Management
@@ -66,6 +66,7 @@ struct Pfc_z : Pfc_arm
     // CPU0..n Software Reset Control Register
     Mmio_register_block cpu_reset(Kmem_mmio::map(0xf1020800, 8));
     cpu_reset.r<32>(hwcpu * 0x8).clear(1);
+    return true;
   }
 
   [[noreturn]] void system_reboot() override

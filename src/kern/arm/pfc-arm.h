@@ -6,10 +6,10 @@
 class Pfc_arm : public virtual Pfc
 {
 public:
-  virtual void do_boot_ap_cpus(Address entry_phys)
+  virtual bool do_boot_ap_cpus(Address entry_phys)
   {
-    // the default does nothing, makes file simpler for UP
     (void) entry_phys;
+    return false;
   }
 
   void boot_ap_cpus() override;

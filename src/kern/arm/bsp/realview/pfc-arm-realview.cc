@@ -9,7 +9,7 @@
 struct Pfc_realview : Pfc_arm
 {
 #ifdef CONFIG_MP
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     // set physical start address for AP CPUs
     Platform::sys->write<Mword>(0xffffffff, Platform::Sys::Flags_clr);
@@ -17,6 +17,7 @@ struct Pfc_realview : Pfc_arm
 
     // wake up AP CPUs, always from CPU 0
     Ipi::bcast(Ipi::Global_request, Cpu_number::boot_cpu());
+    return true;
   }
 #endif
 };

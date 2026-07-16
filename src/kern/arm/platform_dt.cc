@@ -3,22 +3,26 @@
 #include <device_tree.h>
 #include <dt-arm.h>
 #include <timer_arm_generic.h>
+#include <alternatives.h>
 #include <globalconfig.h>
+
+#include <string.h>
+
+#ifdef CONFIG_ARM_PSCI
+#include <psci.h>
+#endif
 
 #ifdef CONFIG_DT
 #include <pic-gic-dt.h>
 #endif
 
-void
-Platform_dt::init()
-{
-  if (!Device_tree::dt.valid())
-    return;
 
+static void init_timer_irqs(Device_tree::Dt &dt)
+{
   static char const * const compat[] = {
     "arm,armv8-timer", "arm,armv7-timer", "arm,cortex-a15-timer",
   };
-  Device_tree::Node n = Device_tree::dt.node_by_compatible_list(compat);
+  Device_tree::Node n = dt.node_by_compatible_list(compat);
   if (!n.is_valid())
     return;
 
@@ -39,6 +43,41 @@ Platform_dt::init()
   irq = Dt_arm::get_gic_irq(n, "sec-phys");
   if (irq == ~0u) irq = Dt_arm::get_gic_irq(n, 0u);
   if (irq != ~0u) Timer_generic_timer::_irq_secure_hyp = irq;
+}
+
+static void init_psci_method(Device_tree::Dt &dt [[maxbe_unused]])
+{
+#ifdef CONFIG_ARM_PSCI_DYN
+  static char const * const compat[] = {
+    "arm,psci-1.0", "arm,psci-0.2", "arm,psci",
+  };
+  Device_tree::Node n = dt.node_by_compatible_list(compat);
+  if (!n.is_valid() || !n.is_enabled())
+    return;
+
+  char const *method = n.get_prop_str("method");
+  if (!method)
+    return;
+
+  if (strcmp(method, "hvc") == 0)
+    Psci::_psci_use_hvc = true;
+  else if (strcmp(method, "smc") == 0)
+    Psci::_psci_use_hvc = false;
+  else
+    return;
+
+  Alternative_insn::init();
+#endif
+}
+
+void
+Platform_dt::init()
+{
+  if (!Device_tree::dt.valid())
+    return;
+
+  init_timer_irqs(Device_tree::dt);
+  init_psci_method(Device_tree::dt);
 }
 
 int

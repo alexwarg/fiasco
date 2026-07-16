@@ -60,7 +60,7 @@ struct Pfc_omap_4_5 : Pfc_arm
   virtual void setup_ap_boot(Mmio_register_block *aux, unsigned reg) = 0;
 
 #ifdef CONFIG_MP
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     // omap4: two possibilities available, the memory mapped only in later
     // board revisions
@@ -87,6 +87,7 @@ struct Pfc_omap_4_5 : Pfc_arm
         asm volatile("dsb; sev" : : : "memory");
         Ipi::bcast(Ipi::Global_request, current_cpu());
       }
+    return true;
   }
 #endif
 };

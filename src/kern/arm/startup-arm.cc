@@ -11,7 +11,6 @@
 #include <kmem_space.h>
 #include <per_cpu_data.h>
 #include <per_cpu_data_alloc.h>
-#include <psci.h>
 #include <processor.h>
 #include <static_init.h>
 #include <thread.h>

@@ -32,9 +32,10 @@ namespace {
 
 struct Pfc_qc_psci : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr, psci_coreid);
+    return true;
   }
 };
 
@@ -51,15 +52,16 @@ struct Pfc_qc_nopsci : Pfc_arm
     L4::infinite_loop();
   }
 
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     if (Koptions::o()->core_spin_addr == -1ULL)
-      return;
+      return false;
 
     Address base = Kmem_mmio::remap(Koptions::o()->core_spin_addr, sizeof(Address));
     Io::write<Address>(phys_tramp_mp_addr, base);
     Mem::dsb();
     asm volatile("sev" : : : "memory");
+    return true;
   }
 };
 

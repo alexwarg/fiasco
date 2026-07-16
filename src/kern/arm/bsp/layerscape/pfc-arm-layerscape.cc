@@ -27,12 +27,13 @@ struct Pfc_ls_nopsci : Pfc_arm
   }
 
 #ifdef CONFIG_MP
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     enum { DCFG_CCSR_SCRATCHRW1 = 0x200 };
     devcon.r<32>(DCFG_CCSR_SCRATCHRW1) = __builtin_bswap32(phys_tramp_mp_addr);
     Mem::mp_wmb();
     Ipi::bcast(Ipi::Global_request, Cpu_number::boot_cpu());
+    return true;
   }
 #endif
 };
@@ -40,9 +41,10 @@ struct Pfc_ls_nopsci : Pfc_arm
 
 struct Pfc_ls_psci : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr, { 0xf01 });
+    return true;
   }
 };
 

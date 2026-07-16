@@ -13,7 +13,7 @@ namespace {
 
 struct Pfc_z : Pfc_arm
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     enum {
       CPUx_base      = 0x40,
@@ -31,6 +31,7 @@ struct Pfc_z : Pfc_arm
     c.write<Mword>(3, CPUx_base + CPUx_offset * cpu + CPUx_RST_CTRL);
 
     Ipi::bcast(Ipi::Global_request, Cpu_number::boot_cpu());
+    return true;
   }
 
   [[noreturn]] void system_reboot()

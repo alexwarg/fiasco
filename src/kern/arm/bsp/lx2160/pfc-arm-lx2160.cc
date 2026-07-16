@@ -5,7 +5,7 @@ namespace {
 
 struct Pfc_z : Pfc_psci
 {
-  void do_boot_ap_cpus(Address phys_tramp_mp_addr) override
+  bool do_boot_ap_cpus(Address phys_tramp_mp_addr) override
   {
     boot_ap_cpus_psci(phys_tramp_mp_addr,
                       { 0x000, 0x001,
@@ -16,6 +16,7 @@ struct Pfc_z : Pfc_psci
                         0x500, 0x501,
                         0x600, 0x601,
                         0x700, 0x701 });
+    return true;
   }
 };
 

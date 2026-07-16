@@ -124,7 +124,8 @@ CXXSRC_KERNEL += main_arm.cc \
 	mem_op.cc mem_op-arm-$(BITS).cc \
 	alternatives-generic.cc \
 	mem_chunk.cc \
-	platform_dt.cc
+	platform_dt.cc \
+	pfc-dt.cc
 
 CXXSRC_KERNEL-$(CONFIG_ARM_GENERIC_TIMER) += \
 	arch_time_source-generic_timer.cc \
