@@ -157,6 +157,7 @@ SHARED_FLAGS-gcc	+= $(if $(call CHECKCC,-Wnonnull-compare),-Wno-nonnull-compare)
 SHARED_FLAGS-gcc	+= $(if $(call CHECKCC,-Waddress-of-packed-member),-Wno-address-of-packed-member)
 SHARED_FLAGS		+= -Wundef
 SHARED_FLAGS		+= -fno-asynchronous-unwind-tables -fno-unwind-tables
+SHARED_FLAGS		+= -ffunction-sections -fdata-sections
 
 SHARED_FLAGS		+= $(call CHECKCC,-Wformat=2,)
 SHARED_FLAGS		+= $(call CHECKCC,-fno-stack-protector,)
