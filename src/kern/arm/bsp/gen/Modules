@@ -1,0 +1,6 @@
+# vim:set ft=make:
+CXXSRC_KERNEL += gen_pf.cc pfc-arm-gen.cc
+
+OBJECTS_LIBUART         += uart_pl011.o
+LIBUART_UART_FLAGS      += $(call LIBUART_UART, pl011)
+
