@@ -118,3 +118,10 @@ int Uart_sh::get_char(bool blocking) const
 }
 
 }
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_sh,
+  "renesas,scif\0" "renesas,hscif\0");
+
+}

@@ -100,3 +100,10 @@ int Uart_tegra_tcu::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_tegra_tcu,
+  "nvidia,tegra194-tcu\0");
+
+}

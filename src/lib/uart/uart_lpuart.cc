@@ -112,3 +112,10 @@ int Uart_lpuart::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_lpuart,
+  "fsl,imx7ulp-lpuart\0" "fsl,imx8qxp-lpuart\0");
+
+}

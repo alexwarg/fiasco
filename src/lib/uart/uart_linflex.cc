@@ -262,3 +262,10 @@ int Uart_linflex::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_linflex,
+  "fsl,s32-linflexuart\0");
+
+}

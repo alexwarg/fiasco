@@ -172,3 +172,10 @@ int Uart_geni::get_char(bool blocking) const
 }
 
 }
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_geni,
+  "qcom,geni-uart\0");
+
+}

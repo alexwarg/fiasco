@@ -39,3 +39,10 @@ void Uart_16550_dw::irq_ack()
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_16550_dw,
+  "snps,dw-apb-uart\0");
+
+}

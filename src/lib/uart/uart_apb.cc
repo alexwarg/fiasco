@@ -118,3 +118,10 @@ int Uart_apb::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_apb,
+  "arm,cmsdk-uart\0");
+
+}

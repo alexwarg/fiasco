@@ -254,3 +254,16 @@ void Uart_s5pv210::ack_rx_irq() const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_s3c2410,
+  "samsung,s3c2410-uart\0");
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_s3c64xx,
+  "samsung,s3c6400-uart\0");
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_s5pv210,
+  "samsung,exynos4210-uart\0");
+
+}

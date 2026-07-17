@@ -11,6 +11,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <uart_registry.h>
 #include "io_regblock.h"
 
 #include "poll_timeout_counter.h"
@@ -118,6 +119,26 @@ public:
   virtual int get_char(bool blocking = true) const = 0;
 };
 
+struct Uart_factory
+{
+  char const *cids;
+  Uart_iface *(*create)(void *mem, unsigned size);
+};
+
+template<typename T>
+struct Uart_factory_t : Uart_factory
+{
+  constexpr Uart_factory_t(char const *cids)
+  : Uart_factory{cids, [](void *mem, unsigned size) -> Uart_iface * {
+      if (size >= sizeof(T))
+        return new (mem) T();
+      else
+        return nullptr;
+      }}
+  {}
+};
+
+
 class Uart : public Uart_iface
 {
 protected:
@@ -130,6 +151,25 @@ public:
   { return a; }
 
 public:
+
+  static Uart_iface *
+  create_from_cid(char const *cid, void *mem, unsigned size)
+  {
+    extern Uart_factory const __uart_registry_start[] asm ("__uart_registry_start");
+    extern Uart_factory const __uart_registry_end[] asm ("__uart_registry_end");
+    for (Uart_factory const *f = __uart_registry_start; f != __uart_registry_end; ++f)
+      {
+        for (char const *c = f->cids; *c; c += __builtin_strlen(c) + 1)
+          {
+            if (__builtin_strcmp(c, cid) == 0)
+              return f->create(mem, size);
+          }
+      }
+    return nullptr;
+  }
+
+
+
   Uart()
   : _mode(~0U), _rate(~0U)
   {}

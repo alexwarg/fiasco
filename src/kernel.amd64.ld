@@ -102,7 +102,13 @@ SECTIONS {
     PROVIDE (_ecode = .);
 
     *(.rodata .rodata.* .gnu.linkonce.r.*)
-    *(.rodata.log.*)
+  }
+
+  UART_REGISTRY_SECTION
+
+  .rodata.kernel :
+  {
+   *(.rodata.log.*)
 
     . = ALIGN(8);
     PROVIDE(__exc_table_start = .);

@@ -30,6 +30,7 @@ namespace L4_kernel_options
     F_uart_baud         = 1 << 20,
     F_uart_base         = 1 << 21,
     F_uart_irq          = 1 << 22,
+    F_uart_cid          = 1 << 30,
 
     F_jdb_cmd           = 1 << 23,
   };
@@ -77,6 +78,8 @@ namespace L4_kernel_options
     char         jdb_cmd[128];
     Unsigned32  tbuf_entries;
     Unsigned32  out_buf;
+
+    char        uart_cid[40];
 
     Unsigned32  opt(Flags flag) const { return flags & flag; }
 

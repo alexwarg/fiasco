@@ -119,6 +119,12 @@ SECTIONS {
     PROVIDE (_ecode = .);
 
     *(.rodata .rodata.* .gnu.linkonce.r.* .rodata1)
+  }
+
+  UART_REGISTRY_SECTION
+
+  .rodata.kernel :
+  {
     *(.rodata.log.*)
 
     . = ALIGN(WORD_SIZE);

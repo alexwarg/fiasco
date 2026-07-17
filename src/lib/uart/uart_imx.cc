@@ -197,3 +197,19 @@ int Uart_imx::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_imx21,
+  "fsl,imx21-uart\0");
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_imx6,
+  "fsl,imx6q-uart\0");
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_imx7,
+  "fsl,imx7d-uart\0");
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_imx8,
+  "fsl,imx8mp-uart\0" "fsl,imx8mq-uart\0");
+
+}

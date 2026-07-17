@@ -162,3 +162,10 @@ int Uart_16550::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_16550,
+  "ns16550a\0" "ns16550\0");
+
+}

@@ -104,6 +104,12 @@ SECTIONS {
     PROVIDE(__exc_table_start = .);
     KEEP(*(__exc_table __exc_table.*))
     PROVIDE(__exc_table_end = .);
+  }
+
+  UART_REGISTRY_SECTION
+
+  .rodate.kernel :
+  {
 
     *(.rodata.log.*)
 

@@ -112,3 +112,10 @@ int Uart_omap35x::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_omap35x,
+  "ti,omap3-uart\0" "ti,omap4-uart\0");
+
+}

@@ -78,6 +78,12 @@ SECTIONS {
     PROVIDE(MIPS_cpu_types = .);
     KEEP(*(.mips.cpu_type))
     LONG(0); LONG(0); LONG(0); LONG(0);
+  }
+
+  UART_REGISTRY_SECTION
+
+  .rodate.kernel :
+  {
 
     *(.rodata.log.*)
 

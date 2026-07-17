@@ -127,3 +127,10 @@ int Uart_cadence::get_char(bool blocking) const
 }
 
 } // namespace L4
+
+namespace {
+
+LIBUART_REGISTER_UART_FACTORY(L4::Uart_cadence,
+  "cdns,uart-r1p12\0" "cdns,uart-r1p8\0" "xlnx,xuartps\0");
+
+}

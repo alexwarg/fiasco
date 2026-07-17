@@ -77,8 +77,14 @@ private:
                bool /*resume*/)
   {
     _irq = irq;
-    _uart = new (_mem) FIASCO_UART_TYPE();
-    static_assert(sizeof(FIASCO_UART_TYPE) <= sizeof(_mem));
+    if (Koptions::o()->opt(Koptions::F_uart_cid))
+      _uart = L4::Uart::create_from_cid(Koptions::o()->uart_cid, _mem, sizeof(_mem));
+    else
+#ifdef FIASCO_UART_TYPE
+      _uart = new (_mem) FIASCO_UART_TYPE();
+#else
+      return false;
+#endif
 
     _uart->set_base_rate(base_baud);
 

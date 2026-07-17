@@ -14,6 +14,15 @@
 # define MWORD LONG
 #endif
 
+#define UART_REGISTRY_SECTION           \
+  .uart_registry :                      \
+  {                                     \
+    PROVIDE(__uart_registry_start = .); \
+    KEEP(*(.uart_registry))             \
+    PROVIDE(__uart_registry_end = .);   \
+  }
+
+
 #define JDB_TABLE_KEEP(name) \
   . = ALIGN(32);                               \
   PROVIDE(_jdb_ ## name ## _table = .);        \
