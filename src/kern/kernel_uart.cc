@@ -12,6 +12,7 @@
 #include "kdb_ke.h"
 #include "kernel_console.h"
 #include "uart.h"
+#include <uart_base.h>
 #include "config.h"
 #include "kip.h"
 #include "koptions.h"
@@ -37,9 +38,11 @@ namespace {
 /**
  * Glue between kernel and UART driver.
  */
-class Kuart : public Uart, public Pm_object, public FIASCO_UART_TYPE
+class Kuart : public Uart, public Pm_object
 {
 private:
+  unsigned long _mem[10];
+  L4::Uart_iface *_uart;
   /**
    * Prototype for the UART specific startup implementation.
    * @param uart, the instantiation to start.
@@ -66,8 +69,24 @@ private:
 
     if (!startup(p, i, resume))
       printf("Comport/base 0x%04llx is not accepted by the uart driver!\n", p);
-    else if (!change_mode(m, n))
+    else if (!_uart->change_mode(m, n))
       panic("Something is wrong with the baud rate (%u)!\n", n);
+  }
+
+  bool startup(L4::Io_register_block const *reg, int irq, Unsigned32 base_baud,
+               bool /*resume*/)
+  {
+    _irq = irq;
+    _uart = new (_mem) FIASCO_UART_TYPE();
+    static_assert(sizeof(FIASCO_UART_TYPE) <= sizeof(_mem));
+
+    _uart->set_base_rate(base_baud);
+
+    if (!_uart->startup(reg))
+      return false;
+
+    add_state(ENABLED);
+    return true;
   }
 
 public:
@@ -76,19 +95,29 @@ public:
     setup(false);
   }
 
+  bool enable_rx_irq(bool val = true) override
+  {
+    return _uart->enable_rx_irq(val);
+  }
+
+  void irq_ack() override
+  {
+    _uart->irq_ack();
+  }
+
   int write(char const *d, size_t len) override
   {
-    return FIASCO_UART_TYPE::write(d, len);
+    return _uart->write(d, len);
   }
 
   int getchar(bool blocking=true) override
   {
-    return FIASCO_UART_TYPE::get_char(blocking);
+    return _uart->get_char(blocking);
   }
 
   int char_avail() const override
   {
-    return FIASCO_UART_TYPE::char_avail();
+    return _uart->char_avail();
   }
 
   void pm_on_suspend(Cpu_number cpu) override
@@ -155,8 +184,8 @@ Kuart::setup_uart_io_port(void *r, Address base, int irq, bool resume)
   Regs *regs = static_cast<Regs *>(r);
   if (!resume)
     regs->io.construct(base);
-  return ::Uart::startup(regs->io.get(), irq,
-                         Koptions::o()->uart.base_baud, resume);
+  return startup(regs->io.get(), irq,
+                 Koptions::o()->uart.base_baud, resume);
 #else
   (void)r; (void)base; (void)irq; (void)resume;
   panic ("cannot use IO-Port based uart\n");
@@ -217,7 +246,7 @@ Kuart::startup(unsigned, int irq, bool resume)
                         Koptions::o()->uart.reg_shift);
                   break;
                 }
-              return ::Uart::startup(r, irq, Koptions::o()->uart.base_baud, resume);
+              return startup(r, irq, Koptions::o()->uart.base_baud, resume);
             }
         default:
           return false;
@@ -225,7 +254,7 @@ Kuart::startup(unsigned, int irq, bool resume)
     }
 
   if (Koptions::o()->uart.access_type == Koptions::Uart_type_msr)
-    return ::Uart::startup(0, irq, Koptions::o()->uart.base_baud, resume);
+    return startup(0, irq, Koptions::o()->uart.base_baud, resume);
 
   return false;
 }

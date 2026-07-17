@@ -1,13 +1,12 @@
 #pragma once
 
 #include "console.h"
-#include <uart_base.h>
 #include <std_macros.h>
 
 /**
  * Platform independent UART stub.
  */
-class Uart : public Console, public virtual L4::Uart_iface
+class Uart : public Console
 {
 public:
   /**
@@ -79,22 +78,10 @@ public:
     return UART | OUT | (IS_ENABLED(CONFIG_INPUT) ? IN : 0);
   }
 
+  virtual bool enable_rx_irq(bool = true) = 0;
+  virtual void irq_ack() = 0;
+
 protected:
-  using L4::Uart_iface::startup;
-  bool startup(L4::Io_register_block const *reg, int irq, Unsigned32 base_baud,
-               bool /*resume*/)
-  {
-    _irq = irq;
-    set_base_rate(base_baud);
-
-    if (!static_cast<Uart_iface *>(this)->startup(reg))
-      return false;
-
-    add_state(ENABLED);
-    return true;
-  }
-
-private:
   int _irq = -1;
 };
 
