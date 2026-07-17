@@ -118,7 +118,7 @@ public:
   virtual int get_char(bool blocking = true) const = 0;
 };
 
-class Uart : public virtual Uart_iface
+class Uart : public Uart_iface
 {
 protected:
   unsigned _mode;
