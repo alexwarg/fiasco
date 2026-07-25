@@ -652,7 +652,7 @@ private:
   }
 
   Check_sender
-  check_send(Thread *receiver, bool zero_timeout, bool cpu_local)
+  check_send(L4_msg_tag snd_tag, Thread *receiver, bool zero_timeout, bool cpu_local)
   {
     if (EXPECT_FALSE(receiver->is_invalid()))
       return check_send_fail(L4_error::Not_existent);
@@ -664,6 +664,9 @@ private:
     if (zero_timeout)
       return check_send_fail(L4_error::Timeout);
 
+    // set _snd_msg_tag to enable active receiving
+    _snd_msg_tag = snd_tag;
+    Mem::mp_release();
     for (;;)
       {
         _this()->state.add(Thread_send_wait);
@@ -911,13 +914,11 @@ Thread_ipc<T>::_ipc_send(L4_msg_tag tag, Thread *partner,
 {
   bool ok;
   bool activate_partner = false;
-  Check_sender result = check_send(partner, t.snd.is_zero(),
+  Check_sender result = check_send(tag, partner, t.snd.is_zero(),
                                    EXPECT_TRUE(current_cpu == partner->home_cpu()));
   switch (result.s)
     {
     case Check_sender::Queued:
-      // set _snd_msg_tag to enable active receiving
-      _snd_msg_tag = tag;
       if (partner->home_cpu() != current_cpu && partner->are_vcpu_irqs_enabled())
         partner->set_xcpu_ipc_pending();
 
