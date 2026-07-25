@@ -442,8 +442,9 @@ private:
   bool activate_ipc_partner(Thread *partner, Cpu_number current_cpu,
                             bool do_switch)
   {
-    // the existence of the 'partner' is ensured by having
-    // Thread_receive_in_progress still flagged
+    // the existence of 'partner' is ensured by the cpu_lock being held
+    // continuously from the transfer_msg call through here (RCU quiescent
+    // states require IRQs enabled without cpu_lock).
     partner->state.change(~Thread_receive_in_progress, Thread_ready);
     if (partner->home_cpu() == current_cpu)
       {
