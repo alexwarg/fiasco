@@ -351,7 +351,7 @@ private:
       return;
 
     inc_ref();
-    state.add_dirty(Thread_dying | Thread_cancel | Thread_ready);
+    state.add(Thread_dying | Thread_cancel | Thread_ready);
     _exc_cont.restore(regs()); // overwrite an already triggered exception
     do_trigger_exception(regs(), (void*)&leave_and_kill_myself);
   }
