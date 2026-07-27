@@ -239,7 +239,8 @@ public:
    */
   bool in_ipc(Sender *sender) const
   {
-    return (_this()->state() & Thread_receive_in_progress) && is_partner(sender);
+    return (_this()->state() & Thread_receive_in_progress)
+           && (sender_list()->current_poi_acquire() == sender);
   }
 
   void vcpu_update_state()

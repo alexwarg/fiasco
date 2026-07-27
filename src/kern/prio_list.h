@@ -211,6 +211,12 @@ public:
     return Poi(_poi.load(cxx::memory_order_relaxed));
   }
 
+  /// get the current Poi with acquire semantics (pairs with release in set_poi/reset_poi)
+  Poi current_poi_acquire() const
+  {
+    return Poi(_poi.load(cxx::memory_order_acquire));
+  }
+
   /// set the current Poi safely (includes current queue status)
   void set_poi(Prio_list_elem const *e) __attribute__((nonnull))
   {
