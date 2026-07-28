@@ -146,8 +146,7 @@ L4STD_INCDIR_LAST	?= -isystem $(GCCINCDIR)
 KERNEL_LDFLAGS		+= -gc-sections -Map=fiasco.map
 SHARED_FLAGS            += -fno-pic
 SHARED_FLAGS-gcc        += -fno-defer-pop
-# gcc #57845
-SHARED_FLAGS-gcc        += $(if $(filter sparc,$(CONFIG_XARCH)),,-freg-struct-return)
+SHARED_FLAGS-gcc        += -freg-struct-return
 SHARED_FLAGS-gcc	+= $(call CHECKCXX,-Wmisleading-indentation,) -Wlogical-op -Wfloat-equal
 SHARED_FLAGS  		+= $(if $(CHECK_CI_BUILDCHECK),,-g)
 SHARED_FLAGS  		+= -Wall -Wextra $(call CHECKCC,-Wdouble-promotion) $(call CHECKCC,-Wfloat-conversion) -Wmissing-declarations
