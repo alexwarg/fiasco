@@ -72,7 +72,7 @@ class Ipc_gate final :
 public:
   typedef Slab_cache Self_alloc;
   static Self_alloc *allocator();
-  static Ipc_gate *create(Ram_quota *q, Thread *t, Mword id);
+  static Ipc_gate *create(Ram_quota *q, Kobject_iface *target, Mword id);
 
   Kobject_iface *downgrade(unsigned long attr) override;
 
@@ -109,10 +109,12 @@ private:
   template<typename GATE, typename TGT>
   inline bool set_target(TGT *t, Mword id);
 
+  bool bind_target(Kobject_iface *ko, Mword id);
+
   Ram_quota *_quota;
 
 public:
-  Ipc_gate(Ram_quota *q, Thread *t, Mword id);
+  Ipc_gate(Ram_quota *q, Kobject_iface *target, Mword id);
 
   Kobject_iface *target() const { return _tgt.load(cxx::memory_order_relaxed); }
   Mword id() const { return _id.load(cxx::memory_order_relaxed); }

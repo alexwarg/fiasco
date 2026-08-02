@@ -275,6 +275,18 @@ Ipc_gate::set_target(TGT *t, Mword id)
   return true;
 }
 
+bool
+Ipc_gate::bind_target(Kobject_iface *ko, Mword id)
+{
+  if (auto *wq = cxx::dyn_cast<Wait_queue *>(ko))
+    return set_target<Ipc_gate_dispatch>(wq, id);
+
+  if (auto *t = cxx::dyn_cast<Thread *>(ko))
+    return set_target<Ipc_gate_bound>(t, id);
+
+  return false;
+}
+
 inline
 L4_msg_tag
 Ipc_gate::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
@@ -292,21 +304,8 @@ Ipc_gate::bind_thread(L4_obj_ref, L4_fpage::Rights rights,
   if (!ko)
     return tag;
 
-  if (auto *wq = cxx::dyn_cast<Wait_queue *>(ko))
-    {
-      if (set_target<Ipc_gate_dispatch>(wq, in->values[1]))
-        return commit_result(0);
-      else
-        return commit_result(-L4_err::EInval);
-    }
-
-  if (auto *t = cxx::dyn_cast<Thread *>(ko))
-    {
-      if (set_target<Ipc_gate_bound>(t, in->values[1]))
-        return commit_result(0);
-      else
-        return commit_result(-L4_err::EInval);
-    }
+  if (bind_target(ko, in->values[1]))
+    return commit_result(0);
 
   return commit_result(-L4_err::EInval);
 }
@@ -366,7 +365,7 @@ Ipc_gate::allocator()
 { return _ipc_gate_allocator.slab(); }
 
 Ipc_gate *
-Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
+Ipc_gate::create(Ram_quota *q, Kobject_iface *target, Mword id)
 {
   Auto_quota<Ram_quota> quota(q, sizeof(Ipc_gate));
 
@@ -378,7 +377,7 @@ Ipc_gate::create(Ram_quota *q, Thread *t, Mword id)
     return nullptr;
 
   quota.release();
-  return new (nq) Ipc_gate(q, t, id);
+  return new (nq) Ipc_gate(q, target, id);
 }
 
 void Ipc_gate::operator delete (void *_f) noexcept
@@ -427,13 +426,22 @@ Ipc_gate::kinvoke(L4_obj_ref self, L4_fpage::Rights rights,
 
 
 
-Ipc_gate::Ipc_gate(Ram_quota *q, Thread *t, Mword id)
+Ipc_gate::Ipc_gate(Ram_quota *q, Kobject_iface *target, Mword id)
 : _quota(q)
 {
-  if (t)
-    construct_gate<Ipc_gate_bound>(t, id);
-  else
-    construct_gate<Ipc_gate_unbound>();
+  if (auto *wq = cxx::dyn_cast<Wait_queue *>(target))
+    {
+      construct_gate<Ipc_gate_dispatch>(wq, id);
+      return;
+    }
+
+  if (auto *t = cxx::dyn_cast<Thread *>(target))
+    {
+      construct_gate<Ipc_gate_bound>(t, id);
+      return;
+    }
+
+  construct_gate<Ipc_gate_unbound>();
 }
 
 namespace {
@@ -443,20 +451,21 @@ ipc_gate_factory(Ram_quota *q, Space *space,
                  int *err)
 {
   L4_snd_item_iter snd_items(utcb, tag.words());
-  Thread *thread = nullptr;
+  Kobject_iface *target = nullptr;
   Mword id = 0;
 
   if (tag.items() && snd_items.next())
     {
-      L4_fpage bind_thread(snd_items.get()->d);
+      L4_fpage bind_cap(snd_items.get()->d);
       *err = L4_err::EInval;
-      if (EXPECT_FALSE(!bind_thread.is_objpage()))
+      if (EXPECT_FALSE(!bind_cap.is_objpage()))
         return nullptr;
 
       L4_msg_tag res;
-      thread = space->lookup_local(bind_thread.obj_index(), L4_fpage::Rights::CS()).deref<Thread>(&res);
+      target = space->lookup_local(bind_cap.obj_index(), L4_fpage::Rights::CS())
+                     .deref<Kobject_iface>(&res);
 
-      if (EXPECT_FALSE(!thread))
+      if (EXPECT_FALSE(!target))
         {
           *err = -res.proto();
           return nullptr;
@@ -472,7 +481,7 @@ ipc_gate_factory(Ram_quota *q, Space *space,
     }
 
   *err = L4_err::ENomem;
-  return Ipc_gate::create(q, thread, id);
+  return Ipc_gate::create(q, target, id);
 }
 
 static inline void __attribute__((constructor)) FIASCO_INIT_SFX(ipc_gate_register_factory)
