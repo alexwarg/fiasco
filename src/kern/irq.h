@@ -4,6 +4,7 @@
 
 #include "ipc_sender.h"
 #include "irq_chip.h"
+#include "send_endpoint.h"
 #include "kobject_helper.h"
 #include "member_offs.h"
 #include "sender.h"
@@ -19,6 +20,7 @@
 
 class Ram_quota;
 class Thread;
+class Wait_queue;
 
 
 /** Hardware interrupts.  This class encapsulates hardware IRQs.  Also,
@@ -119,81 +121,23 @@ public:
   };
 
   explicit Irq_sender(Ram_quota *q = nullptr) noexcept
-  : Kobject_h<Irq_sender, Irq>(q), _queued(0), _irq_thread(nullptr), _irq_id(~0UL)
+  : Kobject_h<Irq_sender, Irq>(q), _queued(0), _irq_target(nullptr), _irq_id(~0UL)
   {
     hit_func = &hit_level_irq;
   }
 
-  /**
-   * Bind a receiver to this device interrupt.
-   * \param t           the receiver that wants to receive IPC messages for this
-   *                    IRQ
-   * \param utcb        The input UTCB
-   * \param utcb_out    The output UTCB
-   *
-   * \retval 0        on success, `t` is the new IRQ handler thread
-   * \retval -EINVAL  if `t` is not a valid thread.
-   * \retval -EBUSY   if another detach operation is in progress or object already
-   *                  destroyed.
-   *
-   * \retval L4_error::Not_existent  Irq_sender object was deleted
-   */
-  L4_msg_tag bind_irq_thread(Thread *t, Utcb const *utcb, Utcb *)
+  L4_msg_tag bind_irq(Send_endpoint *tgt, Utcb const *utcb, Utcb *);
+
+  Send_endpoint *owner() const
+  { return const_cast<Send_endpoint *>(_irq_target.load(cxx::memory_order_relaxed)); }
+
+  void switch_mode(bool edge) override
   {
-    Thread *old = _irq_thread.load(cxx::memory_order_relaxed);
-    for (;;)
-      {
-
-        if (old == t)
-          break;
-
-        if (EXPECT_FALSE(old == detach_in_progress()))
-          return commit_result(-L4_err::EBusy);
-
-        if (_irq_thread.compare_exchange_strong(old, t, cxx::memory_order_acquire))
-          break;
-      }
-
-    // note: this is a possible race on user-land where the label of an IRQ might
-    // become inconsistent with the attached thread. The user is responsible to
-    // synchronize Irq::attach calls to prevent this.
-    _irq_id = access_once(&utcb->values[1]);
-
-    if (old == t)
-      return commit_result(0);
-
-    t->inc_ref();
-    if (Cpu::online(t->home_cpu()))
-      _chip->set_cpu(pin(), t->home_cpu());
-
-    bool reinject = false;
-
-    if (!is_valid_thread(old))
-      return commit_result(0);
-
-    if (sender_dequeue(old->sender_list()))
-      reinject = true;
-
-    if (old->dec_ref() == 0)
-      delete old;
-
-    if (reinject)
-      {
-        // might have changed between the CAS and taking the lock
-        t = _irq_thread.load();
-        if (EXPECT_TRUE(is_valid_thread(t)))
-          send(t);
-      }
-
-    return commit_result(0);
-  }
-
-  Context *owner() const
-  { return _irq_thread.load(cxx::memory_order_relaxed); }
-
-  void switch_mode(bool is_edge_triggered) override
-  {
-    hit_func = is_edge_triggered ? &hit_edge_irq : &hit_level_irq;
+    bool wq_bound = (hit_func == &hit_level_irq_wq || hit_func == &hit_edge_irq_wq);
+    if (wq_bound)
+      hit_func = edge ? &hit_edge_irq_wq : &hit_level_irq_wq;
+    else
+      hit_func = edge ? &hit_edge_irq : &hit_level_irq;
   }
 
   void destroy(Kobject ***rl) override
@@ -202,7 +146,10 @@ public:
     Irq::destroy(rl);
     // Must be done _after_ returning from Irq::destroy() to make sure that the
     // existence lock was finally released by the last owner (the existence lock
-    // was already invalidated before) -- see also Irq_sender::bind_irq_thread().
+    // was already invalidated before) -- see also Irq_sender::bind_irq.
+    if (auto *ep = _irq_target.load())
+      if (is_valid_target(ep))
+        ep->sender_deleted(_irq_id);
     (void)detach_irq_thread();
   }
 
@@ -250,14 +197,18 @@ public:
 #endif // CONFIG_JDB
 
 protected:
-  static Thread *detach_in_progress()
-  { return reinterpret_cast<Thread *>(1); }
+  static Send_endpoint *detach_in_progress()
+  { return reinterpret_cast<Send_endpoint *>(1); }
 
-  static bool is_valid_thread(Thread const *t)
+  static bool is_valid_target(Send_endpoint const *t)
   { return t > detach_in_progress(); }
 
+  template<typename T>
+  T *target() const
+  { return static_cast<T *>(_irq_target.load(cxx::memory_order_acquire)); }
+
   cxx::atomic<Smword> _queued;
-  cxx::atomic<Thread *> _irq_thread;
+  cxx::atomic<Send_endpoint *> _irq_target;
 
 private:
   Mword _irq_id;
@@ -266,6 +217,10 @@ private:
   static void hit_level_irq(Irq_base *i, Upstream_irq const *ui);
   void _hit_edge_irq(Upstream_irq const *ui);
   static void hit_edge_irq(Irq_base *i, Upstream_irq const *ui);
+  void _hit_level_irq_wq(Upstream_irq const *ui);
+  static void hit_level_irq_wq(Irq_base *i, Upstream_irq const *ui);
+  void _hit_edge_irq_wq(Upstream_irq const *ui);
+  static void hit_edge_irq_wq(Irq_base *i, Upstream_irq const *ui);
   L4_msg_tag sys_detach(L4_fpage::Rights rights);
   L4_msg_tag sys_bind(L4_msg_tag tag, L4_fpage::Rights rights, Utcb const *utcb,
                       Utcb *utcb_out);
@@ -280,31 +235,25 @@ private:
   int detach_irq_thread()
   {
     Mem::mp_release();
-    Thread *t = _irq_thread.load(cxx::memory_order_relaxed);
+    Send_endpoint *old = _irq_target.load(cxx::memory_order_relaxed);
     for (;;)
       {
-
-        if (t == detach_in_progress())
+        if (old == detach_in_progress())
           return -L4_err::EBusy;
 
-        if (t == nullptr)
+        if (old == nullptr)
           return -L4_err::ENoent;
 
-        if (EXPECT_TRUE(_irq_thread.compare_exchange_strong(t, detach_in_progress())))
+        if (EXPECT_TRUE(_irq_target.compare_exchange_strong(old, detach_in_progress())))
           break;
       }
 
     auto guard = lock_guard(cpu_lock);
     mask();
-
-    sender_dequeue(t->sender_list());
-
-    _irq_thread.store(nullptr, cxx::memory_order_release);
-    // release cpu-lock early, actually before delete
+    sender_dequeue(old->rcv_queue());
+    _irq_target.store(nullptr, cxx::memory_order_release);
     guard.reset();
-
-    if (t->dec_ref() == 0)
-      delete t;
+    old->release();
 
     return 0;
   }
@@ -319,7 +268,7 @@ private:
     while (!_queued.compare_exchange_strong(old, 0L, cxx::memory_order_acquire))
       ;
 
-    if (old >= 2 && hit_func == &hit_edge_irq)
+    if (old >= 2 && (hit_func == &hit_edge_irq || hit_func == &hit_edge_irq_wq))
       unmask();
 
     return 0L;
@@ -334,5 +283,10 @@ private:
   {
     send_msg(t, t->home_cpu() == current_cpu());
   }
+
+  void send_to_wq(Wait_queue *wq);
+
+  bool is_edge_triggered() const
+  { return hit_func == &hit_edge_irq || hit_func == &hit_edge_irq_wq; }
 };
 
