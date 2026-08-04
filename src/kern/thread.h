@@ -8,6 +8,7 @@
 #include "helping_lock.h"
 #include "irq_chip.h"
 #include "kobject.h"
+#include "send_endpoint.h"
 #include "mem_layout.h"
 #include "member_offs.h"
 #include "context.h"
@@ -48,7 +49,7 @@ class Irq_base;
 class Thread :
   public Context,
   public Thread_ipc<Thread>,
-  public cxx::Dyn_castable<Thread, Kobject>,
+  public cxx::Dyn_castable<Thread, Send_endpoint>,
   public Thread_fpu_x<Thread>,
   public Thread_arch_x<Thread>,
   public Ref_cnt_obj
@@ -107,6 +108,11 @@ public:
   };
 
 public:
+  Locked_prio_list *rcv_queue() override { return sender_list(); }
+  Space *home_space() const override { return space(); }
+  void inc_ref() override { Ref_cnt_obj::inc_ref(); }
+  void release() override { if (dec_ref() == 0) delete this; }
+
   typedef void (Utcb_copy_func)(Thread *sender, Thread *receiver);
 
   void *operator new(size_t, Ram_quota *q) noexcept
@@ -153,24 +159,6 @@ public:
   // unbind the thread from its task
   void unbind();
 
-  // register an IRQ to be triggered for IPC gate deletion
-  bool register_delete_irq(Irq_base *irq);
-
-  // unregister the del IRQ
-  void unregister_delete_irq();
-
-  void remove_delete_irq(Irq_base *irq)
-  {
-    _del_observer.compare_exchange_strong(irq, (Irq_base *)nullptr);
-  }
-
-  void ipc_gate_deleted(Mword id)
-  {
-    (void) id;
-    auto g = lock_guard(cpu_lock);
-    if (auto irq = _del_observer.load(cxx::memory_order_relaxed))
-      irq->hit(0);
-  }
 
 
   void ipc_receiver_aborted() override;
@@ -394,7 +382,6 @@ protected:
 
 protected:
   Ram_quota *_quota{nullptr};
-  cxx::atomic<Irq_base *> _del_observer{nullptr};
 
   constexpr static unsigned magic = 0xf001c001;
   // Debugging facilities

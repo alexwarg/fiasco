@@ -36,6 +36,7 @@ CXXSRC_KERNEL += \
 	globals.cc \
 	helping_lock.cc \
 	ipc_gate.cc \
+	send_endpoint.cc \
 	ipc_timeout.cc \
 	irq.cc \
 	irq_chip.cc \

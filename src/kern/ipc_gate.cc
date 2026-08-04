@@ -115,6 +115,12 @@ public:
     if (t->dec_ref() == 0)
       delete t;
   }
+
+  void del_notify() override
+  {
+    if (auto *ep = this->_this()->template target<Send_endpoint>())
+      ep->sender_deleted(this->_this()->_id.load(cxx::memory_order_acquire));
+  }
 };
 
 class Ipc_gate_bound final : public Ipc_gate_impl<Thread>
@@ -126,11 +132,6 @@ public:
   {
     auto *t = _this()->target<Thread>();
     return t && t->space() == s;
-  }
-
-  void del_notify() override
-  {
-    _this()->target<Thread>()->ipc_gate_deleted(_this()->_id.load(cxx::memory_order_acquire));
   }
 };
 
@@ -463,7 +464,7 @@ ipc_gate_factory(Ram_quota *q, Space *space,
 
       L4_msg_tag res;
       target = space->lookup_local(bind_cap.obj_index(), L4_fpage::Rights::CS())
-                     .deref<Kobject_iface>(&res);
+                     .deref<Send_endpoint>(&res);
 
       if (EXPECT_FALSE(!target))
         {

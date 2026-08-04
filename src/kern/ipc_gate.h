@@ -5,6 +5,7 @@
 #include "globalconfig.h"
 #include "kobject.h"
 #include "kobject_helper.h"
+#include "send_endpoint.h"
 #include "slab_cache.h"
 #include "assert_opt.h"
 
@@ -36,7 +37,7 @@ struct Inner_gate
 {
   Mword _gate_storage[(sizeof(Ipc_gate_if) + sizeof(Mword) - 1) / sizeof(Mword)];
 
-  cxx::atomic<Kobject_iface *> _tgt;
+  cxx::atomic<Send_endpoint *> _tgt;
   cxx::atomic<Mword> _id;
   Locked_prio_list _wait_q;
 
@@ -60,7 +61,7 @@ struct Inner_gate
   Ipc_gate_if const *gate() const
   { return reinterpret_cast<Ipc_gate_if const *>(&_gate_storage); }
 
-  template<typename T = Kobject_iface>
+  template<typename T = Send_endpoint>
   T *target() const { return static_cast<T *>(_tgt.load(cxx::memory_order_acquire)); }
 };
 
