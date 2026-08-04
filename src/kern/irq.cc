@@ -1,4 +1,5 @@
 #include "irq.h"
+#include "wait_queue.h"
 #include "kmem_slab.h"
 #include "kobject_rpc.h"
 
@@ -19,6 +20,70 @@ struct Irq_base_cast
 };
 
 static Irq_base_cast register_irq_base_cast;
+}
+
+/**
+ * Bind a receiver to this device interrupt.
+ * \param t           the receiver that wants to receive IPC messages for this
+ *                    IRQ
+ * \param utcb        The input UTCB
+ * \param utcb_out    The output UTCB
+ *
+ * \retval 0        on success, `t` is the new IRQ handler thread
+ * \retval -EINVAL  if `t` is not a valid thread.
+ * \retval -EBUSY   if another detach operation is in progress or object already
+ *                  destroyed.
+ *
+ * \retval L4_error::Not_existent  Irq_sender object was deleted
+ */
+L4_msg_tag
+Irq_sender::bind_irq(Send_endpoint *tgt, Utcb const *utcb, Utcb *)
+{
+  Send_endpoint *old = _irq_target.load(cxx::memory_order_relaxed);
+  for (;;)
+    {
+      if (old == tgt)
+        break;
+
+      if (EXPECT_FALSE(old == detach_in_progress()))
+        return commit_result(-L4_err::EBusy);
+
+      if (_irq_target.compare_exchange_strong(old, tgt, cxx::memory_order_acquire))
+        break;
+    }
+
+  _irq_id = access_once(&utcb->values[1]);
+
+  if (old == tgt)
+    return commit_result(0);
+
+  tgt->inc_ref();
+
+  auto *t = cxx::dyn_cast<Thread *>(tgt);
+  bool edge = is_edge_triggered();
+
+  if (t)
+    {
+      hit_func = edge ? &hit_edge_irq : &hit_level_irq;
+      if (Cpu::online(t->home_cpu()))
+        _chip->set_cpu(pin(), t->home_cpu());
+    }
+  else
+    hit_func = edge ? &hit_edge_irq_wq : &hit_level_irq_wq;
+
+  if (!is_valid_target(old))
+    return commit_result(0);
+
+  if (sender_dequeue(old->rcv_queue()))
+    {
+      if (t)
+        send(t);
+      else
+        send_to_wq(static_cast<Wait_queue *>(tgt));
+    }
+
+  old->release();
+  return commit_result(0);
 }
 
 void
@@ -42,21 +107,12 @@ Irq_sender::modify_label(Mword const *todo, int cnt)
 inline void
 Irq_sender::_hit_level_irq(Upstream_irq const *ui)
 {
-  // We're entered holding the kernel lock, which also means irqs are
-  // disabled on this CPU (XXX always correct?).  We never enable irqs
-  // in this stack frame (except maybe in a nonnested invocation of
-  // switch_exec() -> switchin_context()) -- they will be re-enabled
-  // once we return from it (iret in entry.S:all_irqs) or we switch to
-  // a different thread.
-
-  // LOG_MSG_3VAL(current(), "IRQ", dbg_id(), 0, _queued);
-
   assert (cpu_lock.test());
   mask_and_ack();
   Upstream_irq::ack(ui);
 
-  auto t = _irq_thread.load(cxx::memory_order_acquire);
-  if (EXPECT_FALSE(!is_valid_thread(t)))
+  auto *t = target<Thread>();
+  if (EXPECT_FALSE(!is_valid_target(t)))
     return;
 
   if (queue() == 0)
@@ -70,19 +126,10 @@ Irq_sender::hit_level_irq(Irq_base *i, Upstream_irq const *ui)
 inline void
 Irq_sender::_hit_edge_irq(Upstream_irq const *ui)
 {
-  // We're entered holding the kernel lock, which also means irqs are
-  // disabled on this CPU (XXX always correct?).  We never enable irqs
-  // in this stack frame (except maybe in a nonnested invocation of
-  // switch_exec() -> switchin_context()) -- they will be re-enabled
-  // once we return from it (iret in entry.S:all_irqs) or we switch to
-  // a different thread.
-
-  // LOG_MSG_3VAL(current(), "IRQ", dbg_id(), 0, _queued);
-
   assert (cpu_lock.test());
 
-  auto t = _irq_thread.load(cxx::memory_order_acquire);
-  if (EXPECT_FALSE(!is_valid_thread(t)))
+  auto *t = target<Thread>();
+  if (EXPECT_FALSE(!is_valid_target(t)))
     {
       mask_and_ack();
       Upstream_irq::ack(ui);
@@ -91,9 +138,6 @@ Irq_sender::_hit_edge_irq(Upstream_irq const *ui)
 
   Smword q = queue();
 
-  // if we get a second edge triggered IRQ before the first is
-  // handled we can mask the IRQ.  The consume function will
-  // unmask the IRQ when the last IRQ is dequeued.
   if (!q)
     ack();
   else
@@ -108,7 +152,63 @@ void
 Irq_sender::hit_edge_irq(Irq_base *i, Upstream_irq const *ui)
 { nonull_static_cast<Irq_sender*>(i)->_hit_edge_irq(ui); }
 
+inline void
+Irq_sender::_hit_level_irq_wq(Upstream_irq const *ui)
+{
+  assert (cpu_lock.test());
+  mask_and_ack();
+  Upstream_irq::ack(ui);
 
+  auto *wq = target<Wait_queue>();
+  if (EXPECT_FALSE(!is_valid_target(wq)))
+    return;
+
+  if (queue() == 0)
+    send_to_wq(wq);
+}
+
+void
+Irq_sender::hit_level_irq_wq(Irq_base *i, Upstream_irq const *ui)
+{ nonull_static_cast<Irq_sender*>(i)->_hit_level_irq_wq(ui); }
+
+inline void
+Irq_sender::_hit_edge_irq_wq(Upstream_irq const *ui)
+{
+  assert (cpu_lock.test());
+
+  auto *wq = target<Wait_queue>();
+  if (EXPECT_FALSE(!is_valid_target(wq)))
+    {
+      mask_and_ack();
+      Upstream_irq::ack(ui);
+      return;
+    }
+
+  Smword q = queue();
+
+  if (!q)
+    ack();
+  else
+    mask_and_ack();
+
+  Upstream_irq::ack(ui);
+  if (q == 0)
+    send_to_wq(wq);
+}
+
+void
+Irq_sender::hit_edge_irq_wq(Irq_base *i, Upstream_irq const *ui)
+{ nonull_static_cast<Irq_sender*>(i)->_hit_edge_irq_wq(ui); }
+
+void
+Irq_sender::send_to_wq(Wait_queue *wq)
+{
+  if (Thread *receiver = wq->receive_msg_from(this, 255))
+    {
+      receiver->set_partner(this);
+      send_msg(receiver, receiver->home_cpu() == current_cpu());
+    }
+}
 
 L4_msg_tag
 Irq_sender::sys_bind(L4_msg_tag tag, L4_fpage::Rights rights, Utcb const *utcb,
@@ -117,14 +217,12 @@ Irq_sender::sys_bind(L4_msg_tag tag, L4_fpage::Rights rights, Utcb const *utcb,
   if (EXPECT_FALSE(!(rights & L4_fpage::Rights::CS())))
     return commit_result(-L4_err::EPerm);
 
-  Thread *thread = Ko::first_cap(&tag, utcb, L4_fpage::Rights::CS())
-    .deref<Thread>(&tag);
-  if (!thread)
+  auto *ep = Ko::first_cap(&tag, utcb, L4_fpage::Rights::CS())
+    .deref<Send_endpoint>(&tag);
+  if (!ep)
     return tag;
 
-  L4_msg_tag res = bind_irq_thread(thread, utcb, utcb_out);
-
-  return res;
+  return bind_irq(ep, utcb, utcb_out);
 }
 
 L4_msg_tag
