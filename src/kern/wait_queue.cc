@@ -19,15 +19,6 @@ using Ipc_flags = Sender::Ipc_flags;
 // _wait_q holds either blocked senders or blocked receivers — never both.
 // _has_senders is updated atomically under the _wait_q lock.
 
-inline Thread *
-Wait_queue::dequeue_receiver()
-{
-  auto g = lock_guard(_wait_q.qlock());
-  if (_has_senders)
-    return nullptr;
-  return static_cast<Thread*>(Sender::cast(_wait_q.dequeue_first_dirty()));
-}
-
 inline Sender *
 Wait_queue::dequeue_sender()
 {
@@ -35,18 +26,6 @@ Wait_queue::dequeue_sender()
   if (!_has_senders)
     return nullptr;
   return Sender::cast(_wait_q.dequeue_first_dirty());
-}
-
-inline Thread *
-Wait_queue::enqueue_sender(Thread *ct, unsigned short prio)
-{
-  auto g = lock_guard(_wait_q.qlock());
-  if (!_has_senders && !_wait_q.empty())
-    return static_cast<Thread*>(Sender::cast(_wait_q.dequeue_first_dirty()));
-
-  _has_senders = true;
-  _wait_q.insert_dirty(ct->qitem(), prio);
-  return nullptr;
 }
 
 inline Sender *
@@ -245,9 +224,16 @@ Wait_queue::do_send_ipc(Thread *ct, L4_obj_ref self,
 }
 
 void
-Wait_queue::invoke(L4_obj_ref self, L4_fpage::Rights,
+Wait_queue::invoke(L4_obj_ref self, L4_fpage::Rights rights,
                    Syscall_frame *f, Utcb *utcb)
 {
+  if (EXPECT_FALSE(f->tag().proto() == L4_msg_tag::Label_thread)
+      && (f->ref().op() == (L4_obj_ref::Ipc_send | L4_obj_ref::Ipc_recv)))
+    {
+      f->tag(kinvoke(self, rights, f, utcb, utcb));
+      return;
+    }
+
   Thread *ct = current_thread();
   bool have_recv = self.have_recv();
 
@@ -315,4 +301,72 @@ register_factory()
 {
   Kobject_iface::set_factory(L4_msg_tag::Label_wait_queue, wait_queue_factory);
 }
+}
+
+L4_msg_tag
+Wait_queue::kinvoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f,
+                    Utcb const *in, Utcb *out)
+{
+  L4_msg_tag tag = f->tag();
+  if (EXPECT_FALSE(!(rights & L4_fpage::Rights::CS())))
+    return commit_result(-L4_err::EPerm);
+  if (EXPECT_FALSE(tag.words() < 1))
+    return commit_result(-L4_err::EInval);
+
+  switch (in->values[0])
+    {
+    case Op_register_del_irq: return sys_register_delete_irq(tag, in, out);
+    case Op_modify_senders:   return sys_modify_senders(tag, in, out);
+    default:                  return commit_result(-L4_err::ENosys);
+    }
+}
+
+L4_msg_tag
+Wait_queue::sys_register_delete_irq(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
+{
+  Kobject_iface *i = Ko::first_cap(&tag, in, L4_fpage::Rights::CW()).deref(&tag);
+  if (!i)
+    return tag;
+
+  Irq_base *irq = Irq_base::dcast(i);
+  if (!irq)
+    return commit_result(-L4_err::EInval);
+
+  if (register_delete_irq(irq))
+    return commit_result(0);
+  else
+    return commit_result(-L4_err::EBusy);
+}
+
+L4_msg_tag
+Wait_queue::sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
+{
+  int elems = (tag.words() - 1) / 4;
+  if (elems < 1)
+    return commit_result(0);
+
+  auto g = lock_guard(_wait_q.qlock());
+
+  auto *c = _wait_q.first();
+  while (_has_senders && c)
+    {
+      // this is kind of arbitrary
+      for (int cnt = 50; c && cnt > 0; --cnt, c = _wait_q.next(c))
+        Sender::cast(c)->modify_label(&in->values[1], elems);
+
+      if (!c)
+        return Kobject_iface::commit_result(0);
+
+      _wait_q.cursor(c);
+
+      // preemption point, release the queue lock
+      g.reset();
+      Proc::preemption_point();
+      g = lock_guard(_wait_q.qlock());
+      // back in the loop
+
+      c = _wait_q.cursor();
+    }
+
+  return commit_result(0);
 }
