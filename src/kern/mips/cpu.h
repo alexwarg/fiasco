@@ -267,6 +267,8 @@ public:
   static unsigned ftlb_ways() { return _ftlb_ways; }
   static Options options;
 
+  void print_infos() const;
+
 private:
   friend struct Cpu_type;
 
@@ -288,6 +290,5 @@ private:
     __attribute__((format(printf,2,3)));
 
   bool if_show_infos() const;
-  void print_infos() const;
   void first_boot(bool is_boot_cpu);
 };
