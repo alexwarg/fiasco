@@ -6,16 +6,22 @@
 #include <alternatives.h>
 #include <std_macros.h>
 
+#ifdef CONFIG_BIT32
+# define FIASCO_ARM_ASM_VIRT(insn) ".arch_extension virt\n" insn "\n .arch_extension novirt"
+#else
+# define FIASCO_ARM_ASM_VIRT(insn) insn
+#endif
+
 #ifdef CONFIG_ARM_PSCI_SMC
 #define FIASCO_ARM_PSCI_CALL_ASM_FUNC "smc #0"
 #define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS FIASCO_ARM_SMC_CALL_ASM_OPERANDS
 #endif
 #ifdef CONFIG_ARM_PSCI_HVC
-#define FIASCO_ARM_PSCI_CALL_ASM_FUNC "hvc #0"
+#define FIASCO_ARM_PSCI_CALL_ASM_FUNC FIASCO_ARM_ASM_VIRT("hvc #0")
 #define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS FIASCO_ARM_SMC_CALL_ASM_OPERANDS
 #endif
 #ifdef CONFIG_ARM_PSCI_DYN
-#define FIASCO_ARM_PSCI_CALL_ASM_FUNC ALTERNATIVE_INSN("smc #0", "hvc #0")
+#define FIASCO_ARM_PSCI_CALL_ASM_FUNC ALTERNATIVE_INSN("smc #0", FIASCO_ARM_ASM_VIRT("hvc #0"))
 
 #define FIASCO_ARM_PSCI_CALL_ASM_OPERANDS \
     : FIASCO_ARM_SMC_CALL_ASM_OUTPUTS \
