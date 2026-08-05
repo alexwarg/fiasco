@@ -32,7 +32,7 @@ update_local_map(Context *c, Address pfa, Mword /*error_code*/)
 
   auto s = Kmem::current_cpu_udir()->walk(Virt_addr(pfa), Kpdir::root_level());
   assert (!s.is_valid());
-  auto r = c->vcpu_aware_space()->dir()->walk(Virt_addr(pfa), Kpding::root_level());
+  auto r = c->vcpu_aware_space()->dir()->walk(Virt_addr(pfa), Kpdir::root_level());
   if (EXPECT_FALSE(!r.is_valid()))
     return false;
 
