@@ -17,6 +17,7 @@
 #include <std_macros.h>
 #include <log_pagefault.h>
 #include <traps_local_map.h>
+#include <apic.h>
 
 #ifndef CONFIG_JDB
 /** There is no nested trap handler if both jdb and kdb are disabled.
