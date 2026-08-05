@@ -236,7 +236,7 @@ Kmem::init_cpu(Cpu &cpu)
   memset (cpu_dir, 0, cpu_dir_sz);
 
   auto src = kdir->walk(Virt_addr(0), Kpdir::root_level());
-  auto dst = cpu_dir->walk(Virt_addr(0), Kpdinr::root_level());
+  auto dst = cpu_dir->walk(Virt_addr(0), Kpdir::root_level());
   write_now(dst.pte, *src.pte);
 
   static_assert ((Kglobal_area & ((1UL << 30) - 1)) == 0, "Kglobal area must be 1 GiB aligned");
@@ -245,13 +245,13 @@ Kmem::init_cpu(Cpu &cpu)
   for (unsigned i = 0; i < ((Kglobal_area_end - Kglobal_area) >> 30); ++i)
     {
       auto src = kdir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), Kpdir::from_root_level(1));
-      auto dst = cpu_dir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), Kpdinr::from_root_level(1),
+      auto dst = cpu_dir->walk(Virt_addr(Kglobal_area + (((Address)i) << 30)), Kpdir::from_root_level(1),
                                false, pdir_alloc(alloc));
 
-      if (dst.level != 1)
+      if (dst.level != Kpdir::from_root_level(1))
         panic("could not setup per-cpu page table: %d\n", __LINE__);
 
-      if (src.level != 1)
+      if (src.level != Kpdir::from_root_level(1))
         panic("could not setup per-cpu page table, invalid source mapping: %d\n", __LINE__);
 
       write_now(dst.pte, *src.pte);
@@ -268,7 +268,7 @@ Kmem::init_cpu(Cpu &cpu)
           // copy a superpage slot
           auto src = kdir->walk(Virt_addr(a), Kpdir::from_root_level(2));
 
-          if (src.level != 2)
+          if (src.level != Kpdir::from_root_level(2))
             panic("could not setup per-cpu page table, invalid source mapping: %d\n", __LINE__);
 
           if (src.is_valid())
@@ -276,7 +276,7 @@ Kmem::init_cpu(Cpu &cpu)
               auto dst = cpu_dir->walk(Virt_addr(a), Kpdir::from_root_level(2),
                                        false, pdir_alloc(alloc));
 
-              if (dst.level != 2)
+              if (dst.level != Kpdir::from_root_level(2))
                 panic("could not setup per-cpu page table: %d\n", __LINE__);
 
               if (dst.is_valid())
@@ -296,16 +296,16 @@ Kmem::init_cpu(Cpu &cpu)
       else
         {
           // copy a 1 GiB slot
-          auto src = kdir->walk(Virt_addr(a), Kpdinr::from_root_level(1));
-          if (src.level != 1)
+          auto src = kdir->walk(Virt_addr(a), Kpdir::from_root_level(1));
+          if (src.level != Kpdir::from_root_level(1))
             panic("could not setup per-cpu page table, invalid source mapping: %d\n", __LINE__);
 
           if (src.is_valid())
             {
-              auto dst = cpu_dir->walk(Virt_addr(a), Kpdinr::from_root_level(1),
+              auto dst = cpu_dir->walk(Virt_addr(a), Kpdir::from_root_level(1),
                                        false, pdir_alloc(alloc));
 
-              if (dst.level != 1)
+              if (dst.level != Kpdir::from_root_level(1))
                 panic("could not setup per-cpu page table: %d\n", __LINE__);
 
               if (dst.is_valid())
@@ -330,7 +330,7 @@ Kmem::init_cpu(Cpu &cpu)
   bool ok = true;
 
   if (!Adap_in_kernel_image)
-    ok &= cpu_dir->map(Adap_image_phys,
+    ok &= cpu_dir->map(Address{Adap_image_phys},
                        Virt_addr(Adap_image),
                        Virt_size(Config::SUPERPAGE_SIZE),
                        Pt_entry::Dirty | Pt_entry::Writable | Pt_entry::Referenced
