@@ -153,7 +153,6 @@ Jdb::access_mem_task(Jdb_address addr, bool write)
 
 #include <cstdio>
 
-static
 void
 Jdb::send_nmi(Cpu_number cpu)
 {
