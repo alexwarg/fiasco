@@ -106,4 +106,9 @@ public:
    */
   CXX_BITFIELD_MEMBER(10, 14, obj, _raw);
 
+#if defined(CONFIG_BIT64)
+  CXX_BITFIELD_MEMBER(32, 63, generation_count, _raw);
+#elif defined(CONFIG_BIT32)
+  CXX_BITFIELD_MEMBER(15, 23, generation_count, _raw);
+#endif
 };

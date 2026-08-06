@@ -95,6 +95,12 @@ Wait_queue::destroy(Kobject ***reap_list)
 inline void
 Wait_queue::do_receive(Thread *ct, Syscall_frame *f, Utcb *utcb)
 {
+  if (EXPECT_FALSE(!check_generation(utcb->buf_desc)))
+    {
+      f->tag(commit_error(utcb, L4_error(L4_error::Canceled, L4_error::Rcv)));
+      return;
+    }
+
   auto *sender = dequeue_sender();
   if (!sender)
     {
@@ -317,6 +323,7 @@ Wait_queue::kinvoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f,
     {
     case Op_register_del_irq: return sys_register_delete_irq(tag, in, out);
     case Op_modify_senders:   return sys_modify_senders(tag, in, out);
+    case Op_bump_generation:  return sys_bump_generation(tag, in, out);
     default:                  return commit_result(-L4_err::ENosys);
     }
 }
@@ -369,4 +376,37 @@ Wait_queue::sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb * /*out*/)
     }
 
   return commit_result(0);
+}
+
+L4_msg_tag
+Wait_queue::sys_bump_generation(L4_msg_tag, Utcb const *, Utcb *out)
+{
+  auto gen = _generation.add_fetch(1);
+
+    {
+      auto g = lock_guard(_wait_q.qlock());
+      if (_wait_q.empty() || _has_senders)
+        {
+          out->values[0] = gen;
+          return commit_result(0, 1);  // return new generation in MR[0]
+        }
+    }
+
+  unsigned cnt = 0;
+  bool need_sched = false;
+  while (Thread *t = dequeue_receiver())
+    {
+      if (t->state.change_safely(~Thread_receive_wait, Thread_ready | Thread_cancel))
+        need_sched |= t->xcpu_ready_enqueue();
+
+      if ((++cnt & 0x1f) == 0)
+        Proc::preemption_point();
+    }
+
+  out->values[0] = _generation;
+
+  if (need_sched)
+    current()->schedule();
+
+  return commit_result(0, 1);  // return new generation in MR[0]
 }

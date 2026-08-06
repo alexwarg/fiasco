@@ -13,7 +13,7 @@ class Wait_queue final :
   Wait_queue() = delete;
 
 public:
-  explicit Wait_queue(Ram_quota *q, Space *space) : _quota(q), _space(space)
+  explicit Wait_queue(Ram_quota *q, Space *space) : _space(space), _quota(q)
   {
     inc_ref();
   }
@@ -36,6 +36,7 @@ public:
   {
     Op_register_del_irq = 5, // must be thread protocol Op codes
     Op_modify_senders   = 6, // must be thread protocol Op codes
+    Op_bump_generation  = 0x100, // must not collide with thread protocol Op codes
   };
 
   L4_msg_tag kinvoke(L4_obj_ref, L4_fpage::Rights rights, Syscall_frame *f,
@@ -44,6 +45,7 @@ public:
 private:
   L4_msg_tag sys_register_delete_irq(L4_msg_tag tag, Utcb const *in, Utcb *out);
   L4_msg_tag sys_modify_senders(L4_msg_tag tag, Utcb const *in, Utcb *out);
+  L4_msg_tag sys_bump_generation(L4_msg_tag tag, Utcb const *in, Utcb *out);
 
 public:
 
@@ -91,10 +93,15 @@ private:
     return nullptr;
   }
 
+  bool check_generation(L4_buf_desc bdr) const
+  {
+    return (_generation.load(cxx::memory_order_acquire) & L4_buf_desc::generation_count_bfm_t::Low_mask) == bdr.generation_count();
+  }
 
 
   Locked_prio_list _wait_q;
   bool _has_senders = false;
-  Ram_quota *_quota;
+  cxx::atomic<unsigned> _generation{0};
   Space *_space;
+  Ram_quota *_quota;
 };
