@@ -74,21 +74,16 @@ Wait_queue::destroy(Kobject ***reap_list)
 {
   Kobject::destroy(reap_list);
   auto g = lock_guard(cpu_lock);
-  if (_has_senders)
+  while (auto *t = dequeue_sender())
     {
-      while (auto *t = dequeue_sender())
-        {
-          t->ipc_receiver_aborted();
-          Proc::preemption_point();
-        }
+      t->ipc_receiver_aborted();
+      Proc::preemption_point();
     }
-  else
+
+  while (Thread *t = dequeue_receiver())
     {
-      while (Thread *t = dequeue_receiver())
-        {
-          t->utcb().access()->error = L4_error::Not_existent;
-          t->activate();
-        }
+      t->utcb().access()->error = L4_error::Not_existent;
+      t->activate();
     }
 }
 
