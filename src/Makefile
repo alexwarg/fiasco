@@ -68,12 +68,11 @@ all $(filter config %config,$(MAKECMDGOALS)):
 
 else # srcdir != NOT_SET
 
-all: globalconfig.h globalconfig.tags
+all: globalconfig.h
 
 ifeq ($(filter config %config,$(MAKECMDGOALS)),)
 
 -include globalconfig.out
--include globalconfig.tags
 
 # use patsubst here to prevent confusion of syntax highlighting editors :-)
 CONFIG_XARCH	:= $(patsubst "%",%,$(CONFIG_XARCH))
@@ -101,8 +100,6 @@ else # ! no ABI
 # .Modules.deps, then restart using Makefile.sub1, Makefile.sub2.
 #
 
-.PRECIOUS: globalconfig.tags
-
 # Read Make configuration
 include $(srcdir)/Makeconf
 
@@ -119,10 +116,9 @@ GENERATED_MODULES =
 ALL = $(foreach subsys, $(SUBSYSTEMS), $($(subsys)) $($(subsys)_EXTRA))
 
 .PRECIOUS: .Modules.deps
-.Modules.deps: $(MODULES_FILES) globalconfig.h globalconfig.tags | auto
+.Modules.deps: $(MODULES_FILES) globalconfig.h
 	@echo "Cleaning up build directory"
 	$(VERBOSE)$(RM_R) *.lds *.o fiasco *.d .*.d .*.d.new *.d.new
-	$(VERBOSE)$(RM_R) auto/*.cc auto/*.h auto/*.S auto/stamp-*.ready
 	$(VERBOSE)$(RM) dump_tcboffsets
 	@echo "Creating $@"
 	@(echo "") > $@.new
@@ -141,7 +137,7 @@ endif # _modules_read_
 # 
 
 .PHONY: create-sources
-create-sources: $(MODULES_FILES) globalconfig.h globalconfig.tags .Modules.deps source
+create-sources: $(MODULES_FILES) globalconfig.h .Modules.deps source
 	$(MAKE) srcdir=$(srcdir) objbase=$(objbase) -f $(srcdir)/Makefile.sub1 
 
 DEPS_FILES=DEPS DEPS.a4 DEPS.tred
@@ -150,10 +146,10 @@ DEPS_FILES=DEPS DEPS.a4 DEPS.tred
 # Makefile.sub2: Create everything else.
 #
 all doc $(addsuffix .ps,$(DEPS_FILES)) $(addsuffix .svg,$(DEPS_FILES)) TAGS tags: \
-  $(MODULES_FILES) .Modules.deps create-sources globalconfig.h globalconfig.tags
+  $(MODULES_FILES) .Modules.deps create-sources globalconfig.h
 	$(MAKE) srcdir=$(srcdir) objbase=$(objbase) -f $(srcdir)/Makefile.sub2 $@
 
-%.o %_t: $(MODULES_FILES) .Modules.deps create-sources globalconfig.h globalconfig.tags
+%.o %_t: $(MODULES_FILES) .Modules.deps create-sources globalconfig.h
 	$(MAKE) srcdir=$(srcdir) objbase=$(objbase) -f $(srcdir)/Makefile.sub2 $@
 
 
@@ -177,9 +173,6 @@ endif # ! no ABI
 endif # ! no XARCH
 endif # ! config xconfig menuconfig oldconfig
 
-auto:
-	@mkdir -p auto
-
 source:
 	test -e source || ln -sf $(srcdir) source
 
@@ -202,9 +195,6 @@ kconfig_call = $(MAKE) -C $(tooldir)/kconfig O=$(objbase) \
 	       INCLUDE_SPARC=$(INCLUDE_SPARC) \
 	       fiasco_srcdir=$(srcdir)/..
 
-update_globalconfig_tags = \
-	     @$(tooldir)/config-tags globalconfig.out > globalconfig.tags
-
 # save config file dependencies to detect BSP removals
 .$(KCONFIG_FILE).parts: FORCE
 	@echo '$(KCONFIG_PART_FILES)' | cmp -s - $@ || echo '$(KCONFIG_PART_FILES)' > $@
@@ -217,31 +207,25 @@ $(KCONFIG_FILE): $(KCONFIG_SRC_FILE) $(KCONFIG_PART_FILES) .$(KCONFIG_FILE).part
 globalconfig.out: $(KCONFIG_FILE)
 	+$(kconfig_call) oldconfig
 
-globalconfig.h globalconfig.tags: globalconfig.out
+globalconfig.h: globalconfig.out
 	+$(kconfig_call) syncconfig
-	+$(update_globalconfig_tags)
 
 config: $(KCONFIG_FILE)
 	+$(kconfig_call) menuconfig
 	+$(kconfig_call) syncconfig
-	+$(update_globalconfig_tags)
 
 textconfig: $(KCONFIG_FILE)
 	+$(kconfig_call) config syncconfig
-	+$(update_globalconfig_tags)
 
 menuconfig oldconfig xconfig gconfig nconfig randconfig allyesconfig allnoconfig: $(KCONFIG_FILE)
 	+$(kconfig_call) $@
 	+$(kconfig_call) syncconfig
-	+$(update_globalconfig_tags)
 
 olddefconfig oldnoconfig: $(KCONFIG_FILE)
 	+$(kconfig_call) $@
-	+$(update_globalconfig_tags)
 
 oldaskconfig: $(KCONFIG_FILE)
 	+$(kconfig_call) config
-	+$(update_globalconfig_tags)
 
 listnewconfig savedefconfig: $(KCONFIG_FILE)
 	+$(kconfig_call) $@
@@ -265,13 +249,13 @@ endif
 clean: $(foreach subsys, $(SUBSYSTEMS), clean-$(subsys))
 	$(VERBOSE)$(RM) $(strip $(ALL))
 	$(VERBOSE)$(RM) *.o fiasco fiasco.map
-	$(VERBOSE)$(RM) auto/*.cc auto/*.h auto/*.S auto/stamp-*.ready
+	$(VERBOSE)$(RM_R) auto
 	$(VERBOSE)$(RM) .Clean-auto .$(KCONFIG_FILE).parts
 
 cleanall: clean $(foreach subsys, $(SUBSYSTEMS), cleanall-$(subsys))
 	$(foreach subdir, $(SUBDIRS), $(VERBOSE)$(RM) $(subdir)/*.d $(subdir)/.*.d)
 	$(VERBOSE)$(RM) *.d .*.d .*.d.new *.d.new *~
-	$(VERBOSE)$(RM) globalconfig.h globalconfig.tags globalconfig.h.old Circular
+	$(VERBOSE)$(RM) globalconfig.h globalconfig.h.old Circular
 	$(VERBOSE)$(RM) .Modules.deps source .Compiler-config
 	$(VERBOSE)$(RM_R) scripts
 

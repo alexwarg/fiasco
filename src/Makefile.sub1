@@ -13,7 +13,6 @@ BUILD_SOURCES=true
 
 include $(srcdir)/Makeconf	# also reads srcdir/Makeconf.local
                                 # and        objdir/Makeconf.local
-include globalconfig.tags
 include $(MODULES_FILE)
 include .Modules.deps
 
@@ -31,17 +30,6 @@ do-all:
 #
 # Auto-created source files
 #
-auto_clean_files = $(strip $(filter-out 				      \
-	  $(addprefix auto/,				      		      \
-	    $(addsuffix .cc,						      \
-	      $(foreach mod, $(GENERATED_MODULES), $(call eval_impl,$(mod)))) \
-	    $(foreach mod, $(GENERATED_MODULES), 			      \
-			   $(mod).h $(mod)_i.h stamp-$(mod).ready)),	      \
-	  $(wildcard auto/*)))
-
-.Clean-auto: $(MODULES_FILES) .Modules.deps globalconfig.out
-	$(if $(auto_clean_files),$(RM) $(auto_clean_files))
-	touch $@
 
 define find_ld_emulation
 	emulations=$$(LC_ALL=C $(LD) --help |                             \
@@ -101,5 +89,5 @@ endif
 force-the-rule: ;
 
 do-all: $(MODULES_FILES) .Modules.deps globalconfig.out \
-	       .Clean-auto .Compiler-config .Host-config
+	       .Compiler-config .Host-config
 
