@@ -17,8 +17,8 @@ PRIVATE_INCDIR	:= $(addprefix $(srcdir)/, $(PRIVATE_INCDIR))
 endif
 
 # Finally add the current directory and the preprocessor directory
-VPATH 		+= . auto
-PRIVATE_INCDIR	+= . auto
+VPATH 		+= .
+PRIVATE_INCDIR	+= .
 
 #
 # Function for all Makerules.<subsystem> files
