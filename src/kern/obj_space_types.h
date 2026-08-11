@@ -108,6 +108,8 @@ namespace Obj {
 
     constexpr bool valid() const { return _c != 0; }
 
+    Capability get() const { return valid() ? _self()->read_cap_safely(_cap()) : Capability(0); }
+
     Kobject_iface *deref(L4_msg_tag *tag = nullptr) const
     {
       unsigned char r;

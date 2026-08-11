@@ -151,6 +151,10 @@ public:
   lookup_local(Cap_index virt, L4_fpage::Rights expected)
   { return Base::lookup_local(virt, expected); }
 
+  auto FIASCO_FLATTEN
+  lookup(Cap_index virt, L4_fpage::Rights expected)
+  { return Base::lookup(virt, expected); }
+
   inline V_pfn map_max_address() const
   { return obj_map_max_address(); }
 

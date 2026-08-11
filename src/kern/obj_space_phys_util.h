@@ -106,6 +106,14 @@ public:
     return Obj::Insert_ok;
   }
 
+  class Cap_ref : public Obj::Cap_reference<Cap_ref>
+  {
+  public:
+    using Obj::Cap_reference<Cap_ref>::Cap_reference;
+    static Capability read_cap_safely(Capability const *c)
+    { return access_once(c); }
+  };
+
   Capability lookup(Cap_index virt) FIASCO_FLATTEN
   {
     Entry *c = get_cap(virt);
@@ -115,15 +123,6 @@ public:
 
     return c->capability();
   }
-
-  class Cap_ref : public Obj::Cap_reference<Cap_ref>
-  {
-  public:
-    using Obj::Cap_reference<Cap_ref>::Cap_reference;
-    static Capability read_cap_safely(Capability const *c)
-    { return access_once(c); }
-  };
-
 
   Cap_ref
   lookup_local(Cap_index virt, L4_fpage::Rights expected)
@@ -135,6 +134,9 @@ public:
 
     return Cap_ref(&c->capability(), expected);
   }
+
+  Cap_ref lookup(Cap_index virt, L4_fpage::Rights expected)
+  { return lookup_local(virt, expected); }
 
   void caps_free()
   {
