@@ -157,23 +157,6 @@ public:
   }
 
 
-  /// lookup
-  Capability lookup(Cap_index virt) FIASCO_FLATTEN
-  {
-    Entry *c;
-    virt &= Cap_index(~(~0UL << Whole_space));
-
-    if (SPACE::mem_space(this) == Mem_space::current_mem_space(current_cpu()))
-      c = cap_virt(virt);
-    else
-      c = get_cap(virt);
-
-    if (EXPECT_FALSE(!c))
-      return Capability(0); // void
-
-    return Mem_layout::read_special_safe(&c->capability());
-  }
-
   class Cap_ref : public Obj::Cap_reference<Cap_ref>
   {
   public:
@@ -190,6 +173,28 @@ public:
     Entry *c = cap_virt(virt);
     return Cap_ref(&c->capability(), expected);
   }
+
+  /// lookup
+  Cap_ref
+  lookup(Cap_index virt, L4_fpage::Rights expected)
+  {
+    Entry *c;
+    virt &= Cap_index(~(~0UL << Whole_space));
+
+    if (SPACE::mem_space(this) == Mem_space::current_mem_space(current_cpu()))
+      c = cap_virt(virt);
+    else
+      c = get_cap(virt);
+
+    if (EXPECT_FALSE(!c))
+      return nullptr;
+
+    return Cap_ref(&c->capability(), expected);
+  }
+
+  /// lookup
+  Capability lookup(Cap_index virt) FIASCO_FLATTEN
+  { return this->lookup(virt, L4_fpage::Rights{}).get(); }
 
   V_pfn obj_map_max_address() const
   {

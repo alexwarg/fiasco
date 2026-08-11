@@ -795,7 +795,7 @@ Thread_ipc<THREAD>::map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
       if (EXPECT_FALSE(!buf->target_space.valid()))
         return L4_error::Overflow;
 
-      auto task_ref = receiver_t->lookup_local(buf->target_space.cap(), L4_fpage::Rights::CS());
+      auto task_ref = receiver_t->lookup(buf->target_space.cap(), L4_fpage::Rights::CS());
       rcv_t = Kobject::Locked<Task>(task_ref.as<Task>());
     }
   else
