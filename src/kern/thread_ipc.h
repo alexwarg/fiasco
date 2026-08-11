@@ -200,7 +200,7 @@ private:
   L4_error map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
                         Ref_ptr<Task> const &receiver_t,
                         L4_buf_iter::Item const *buf,
-                        Utcb *rcv_utcb, Kobject::Reap_list *rl);
+                        Kobject::Reap_list *rl);
 
 private:
   // Used by Thread::ipc_send_msg().
@@ -787,20 +787,15 @@ inline L4_error
 Thread_ipc<THREAD>::map_one_item(Thread *snd, L4_msg_item item, L4_fpage sfp,
                                  Ref_ptr<Task> const &receiver_t,
                                  L4_buf_iter::Item const *buf,
-                                 Utcb *rcv_utcb, Kobject::Reap_list *rl)
+                                 Kobject::Reap_list *rl)
 {
   Kobject::Locked<Task> rcv_t;
   if (EXPECT_FALSE(buf->b.compound()))
     {
-      unsigned cap_br = buf->b.cap_br_idx();
-      if (cap_br >= Utcb::Max_buffers)
+      if (EXPECT_FALSE(!buf->target_space.valid()))
         return L4_error::Overflow;
 
-      L4_obj_ref tc(rcv_utcb->buffers[cap_br]);
-      if (EXPECT_FALSE(!tc.valid()))
-        return L4_error::Overflow;
-
-      auto task_ref = receiver_t->lookup_local(tc.cap(), L4_fpage::Rights::CS());
+      auto task_ref = receiver_t->lookup_local(buf->target_space.cap(), L4_fpage::Rights::CS());
       rcv_t = Kobject::Locked<Task>(task_ref.as<Task>());
     }
   else
@@ -901,7 +896,7 @@ Thread_ipc<THREAD>::transfer_msg_items(L4_msg_tag tag,
           if (!try_transfer_local_id(buf, sfp, rcv_item, snd, rcv))
             {
               // we need to do a real mapping
-              L4_error err = map_one_item(snd, item->b, sfp, receiver_t, buf, rcv_utcb, &rl);
+              L4_error err = map_one_item(snd, item->b, sfp, receiver_t, buf, &rl);
               if (EXPECT_FALSE(!err.ok()))
                 {
                   snd->set_ipc_error(err, rcv);
