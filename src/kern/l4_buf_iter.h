@@ -12,6 +12,7 @@ public:
   {
     L4_msg_item b;
     Mword d;
+    L4_obj_ref target_space;
 
     Item() : b(0)
 #ifndef NDEBUG
@@ -36,6 +37,17 @@ public:
     return &c;
   }
 
+  unsigned size() const noexcept
+  {
+    if (c.b.type() == L4_msg_item::Map && c.b.is_small_obj())
+      return 1;
+
+    if (!c.b.compound())
+      return 2;
+
+    return 3;
+  }
+
   bool next() noexcept
   {
     if (EXPECT_FALSE(_buf >= _max))
@@ -44,24 +56,26 @@ public:
         return false;
       }
 
-    c.b = L4_msg_item(_buf[0]);
+    auto const *br = _buf;
+    c.b = L4_msg_item(br[0]);
     if (EXPECT_FALSE(c.b.is_void()))
       return false;
+
+    _buf += size();
+    if (EXPECT_FALSE(_buf > _max))
+      {
+        c.b = L4_msg_item(0);
+        return false;
+      }
 
     if (c.b.type() == L4_msg_item::Map && c.b.is_small_obj())
       c.d = c.b.get_small_buf().raw();
     else
       {
-        ++_buf;
-        if (EXPECT_FALSE(_buf >= _max))
-          {
-            c.b = L4_msg_item(0);
-            return false;
-          }
-
-        c.d = _buf[0];
+        c.d = br[1];
+        if (c.b.compound())
+          c.target_space = L4_obj_ref(br[2]);
       }
-    ++_buf;
     return true;
   }
 
